@@ -324,14 +324,10 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                   width: 118,
                   insertAfter: ErpLineItemTableColumn.uom,
                 ),
-                ErpLineItemCustomColumn(
-                  id: 'remarks',
-                  label: 'Remarks',
-                  width: 200,
-                  insertAfter: ErpLineItemTableColumn.uom,
-                ),
               ],
-              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (
+                index,
+              ) {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.warehouseId, line.itemId);
                 final serials = vm.serialOptions(
@@ -344,26 +340,56 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                   itemId: line.itemId,
                   itemSelection: vm.items
                       .where((x) => x.id == line.itemId)
-                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
                       .firstOrNull,
                   itemOptions: vm.items
                       .where((x) => x.id != null)
-                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
                       .toList(growable: false),
-                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
-                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  onItemChanged: canEdit
+                      ? (v) => vm.onLineItemChanged(index, v)
+                      : null,
+                  itemValidator: (_) =>
+                      line.itemId == null ? 'Item is required' : null,
                   warehouseId: line.warehouseId,
                   warehouseOptions: vm.warehouseOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
-                  onWarehouseChanged: canEdit ? (v) => vm.onLineWarehouseChanged(index, v) : null,
+                  onWarehouseChanged: canEdit
+                      ? (v) => vm.onLineWarehouseChanged(index, v)
+                      : null,
                   uomId: line.uomId,
-                  uomOptions: vm.uomOptionsForItem(line.itemId)
+                  uomOptions: vm
+                      .uomOptionsForItem(line.itemId)
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
-                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  onUomChanged: canEdit
+                      ? (v) => vm.onLineUomChanged(index, v)
+                      : null,
                   uomValidator: Validators.requiredSelection('UOM'),
                   amount: 0,
                   deleteEnabled: canEdit && vm.lines.length > 1,
@@ -375,16 +401,28 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                               hintText: 'Batch',
                               fieldPadding: EdgeInsets.zero,
                               mappedItems: batches
-                                  .map((x) => AppDropdownItem<int>(
-                                        value: intValue(x, 'id')!,
-                                        label: stringValue(x, 'batch_no', 'Batch'),
-                                      ))
+                                  .map(
+                                    (x) => AppDropdownItem<int>(
+                                      value: intValue(x, 'id')!,
+                                      label: stringValue(
+                                        x,
+                                        'batch_no',
+                                        'Batch',
+                                      ),
+                                    ),
+                                  )
                                   .toList(growable: false),
                               initialValue: line.batchId,
-                              onChanged: canEdit ? (v) => vm.onLineBatchChanged(index, v) : null,
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineBatchChanged(index, v)
+                                  : null,
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'serial': vm.itemHasSerial(line.itemId)
                         ? ErpLineItemCellFrame(
                             child: AppDropdownField<int>.fromMapped(
@@ -392,16 +430,28 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                               hintText: 'Serial',
                               fieldPadding: EdgeInsets.zero,
                               mappedItems: serials
-                                  .map((x) => AppDropdownItem<int>(
-                                        value: intValue(x, 'id')!,
-                                        label: stringValue(x, 'serial_no', 'Serial'),
-                                      ))
+                                  .map(
+                                    (x) => AppDropdownItem<int>(
+                                      value: intValue(x, 'id')!,
+                                      label: stringValue(
+                                        x,
+                                        'serial_no',
+                                        'Serial',
+                                      ),
+                                    ),
+                                  )
                                   .toList(growable: false),
                               initialValue: line.serialId,
-                              onChanged: canEdit ? (v) => vm.onLineSerialChanged(index, v) : null,
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineSerialChanged(index, v)
+                                  : null,
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'direction': ErpLineItemCellFrame(
                       child: AppDropdownField<String>.fromMapped(
                         labelText: '',
@@ -413,53 +463,74 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                         ],
                         initialValue: line.adjustmentDirection,
                         validator: Validators.requiredSelection('Direction'),
-                        onChanged: canEdit ? (v) => vm.onLineDirectionChanged(index, v) : null,
+                        onChanged: canEdit
+                            ? (v) => vm.onLineDirectionChanged(index, v)
+                            : null,
                       ),
                     ),
                     'system_qty': ErpLineItemTextCell(
                       controller: line.systemQtyController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('System qty'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'System qty',
+                      ),
                     ),
                     'actual_qty': ErpLineItemTextCell(
                       controller: line.actualQtyController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Actual qty'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Actual qty',
+                      ),
                     ),
                     'adj_qty': ErpLineItemTextCell(
                       controller: line.adjustmentQtyController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: (value) {
                         final text = (value ?? '').trim();
-                        if (text.isEmpty) return null;
-                        if (double.tryParse(text) == null) return 'Adjustment qty must be a valid number';
+                        if (text.isEmpty) {
+                          return null;
+                        }
+                        if (double.tryParse(text) == null) {
+                          return 'Adjustment qty must be a valid number';
+                        }
                         return null;
                       },
                     ),
                     'unit_cost': ErpLineItemTextCell(
                       controller: line.unitCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Unit cost'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Unit cost',
+                      ),
                     ),
                     'total_cost': ErpLineItemTextCell(
                       controller: line.totalCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: (value) {
                         final text = (value ?? '').trim();
-                        if (text.isEmpty) return null;
-                        if (double.tryParse(text) == null) return 'Total cost must be a valid number';
+                        if (text.isEmpty) {
+                          return null;
+                        }
+                        if (double.tryParse(text) == null) {
+                          return 'Total cost must be a valid number';
+                        }
                         return null;
                       },
-                    ),
-                    'remarks': ErpLineItemTextCell(
-                      controller: line.remarksController,
-                      enabled: canEdit,
-                      validator: Validators.optionalMaxLength(500, 'Line remarks'),
                     ),
                   },
                 );

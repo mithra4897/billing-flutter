@@ -296,7 +296,6 @@ class ErpLineItemTable extends StatefulWidget {
       ErpLineItemTableColumn.discount,
       ErpLineItemTableColumn.taxCode,
       ErpLineItemTableColumn.description,
-      ErpLineItemTableColumn.remarks,
       ErpLineItemTableColumn.amount,
       ErpLineItemTableColumn.action,
     },

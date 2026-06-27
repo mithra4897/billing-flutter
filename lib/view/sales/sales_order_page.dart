@@ -208,10 +208,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -302,6 +300,19 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
       sourceColumnLabel: 'Quotation line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.source,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.discount,
+        ErpLineItemTableColumn.taxCode,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
       columnLabels: const <ErpLineItemTableColumn, String>{
         ErpLineItemTableColumn.qty: 'Order qty',
       },

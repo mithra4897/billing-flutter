@@ -244,7 +244,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       ErpLineItemTableColumn.qty,
       ErpLineItemTableColumn.rate,
       ErpLineItemTableColumn.description,
-      ErpLineItemTableColumn.remarks,
       ErpLineItemTableColumn.amount,
       if (!controller.isSelectedReceiptReadOnly) ErpLineItemTableColumn.action,
     };
@@ -276,7 +275,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
 
     if (controller.isSelectedReceiptReadOnly) {
       visibleColumns.remove(ErpLineItemTableColumn.description);
-      visibleColumns.remove(ErpLineItemTableColumn.remarks);
     }
 
     return ErpLineItemTable(

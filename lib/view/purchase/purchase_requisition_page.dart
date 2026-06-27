@@ -91,7 +91,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     );
   }
 
-  Widget _buildLineItemTable(PurchaseRequisitionManagementController controller) {
+  Widget _buildLineItemTable(
+    PurchaseRequisitionManagementController controller,
+  ) {
     final itemOptions = controller.itemsLookup
         .where((item) => item.id != null)
         .map(
@@ -107,10 +109,8 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     final warehouseOptions = controller.warehouses
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
@@ -122,10 +122,8 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -143,11 +141,13 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
               orElse: () => null,
             );
 
-      final qty = Validators.parseFlexibleNumber(
+      final qty =
+          Validators.parseFlexibleNumber(
             line.requestedQtyController.text.trim(),
           ) ??
           0;
-      final rate = Validators.parseFlexibleNumber(
+      final rate =
+          Validators.parseFlexibleNumber(
             line.estimatedRateController.text.trim(),
           ) ??
           0;
@@ -208,7 +208,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
@@ -498,5 +497,4 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       ),
     );
   }
-
 }

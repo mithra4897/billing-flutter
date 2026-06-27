@@ -286,15 +286,46 @@ class _StockDamageEditor extends StatelessWidget {
                 ErpLineItemTableColumn.action,
               },
               customColumns: const <ErpLineItemCustomColumn>[
-                ErpLineItemCustomColumn(id: 'batch', label: 'Batch', width: 140, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'serial', label: 'Serials', width: 240, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'damage_qty', label: 'Damage Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'unit_cost', label: 'Unit Cost', width: 110, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'total_cost', label: 'Total Cost', width: 118, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'reason', label: 'Reason', width: 180, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 200, insertAfter: ErpLineItemTableColumn.uom),
+                ErpLineItemCustomColumn(
+                  id: 'batch',
+                  label: 'Batch',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'serial',
+                  label: 'Serials',
+                  width: 240,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'damage_qty',
+                  label: 'Damage Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'unit_cost',
+                  label: 'Unit Cost',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'total_cost',
+                  label: 'Total Cost',
+                  width: 118,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'reason',
+                  label: 'Reason',
+                  width: 180,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
               ],
-              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (
+                index,
+              ) {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.itemId);
                 final serials = vm.serialOptions(line.itemId, line.batchId);
@@ -303,13 +334,45 @@ class _StockDamageEditor extends StatelessWidget {
                 return ErpLineItemTableRow(
                   rowKey: line,
                   itemId: line.itemId,
-                  itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
-                  itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
-                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  itemSelection: vm.items
+                      .where((x) => x.id == line.itemId)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .firstOrNull,
+                  itemOptions: vm.items
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .toList(growable: false),
+                  onItemChanged: canEdit
+                      ? (v) => vm.onLineItemChanged(index, v)
+                      : null,
+                  itemValidator: (_) =>
+                      line.itemId == null ? 'Item is required' : null,
                   uomId: line.uomId,
-                  uomOptions: vm.uomOptionsForItem(line.itemId).where((u) => u.id != null).map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString())).toList(growable: false),
-                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  uomOptions: vm
+                      .uomOptionsForItem(line.itemId)
+                      .where((u) => u.id != null)
+                      .map(
+                        (u) => AppDropdownItem<int>(
+                          value: u.id!,
+                          label: u.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onUomChanged: canEdit
+                      ? (v) => vm.onLineUomChanged(index, v)
+                      : null,
                   uomValidator: Validators.requiredSelection('UOM'),
                   amount: 0,
                   deleteEnabled: canEdit && vm.lines.length > 1,
@@ -317,65 +380,132 @@ class _StockDamageEditor extends StatelessWidget {
                     'batch': showBatch
                         ? ErpLineItemCellFrame(
                             child: AppDropdownField<int>.fromMapped(
-                              labelText: '', hintText: 'Batch', fieldPadding: EdgeInsets.zero,
-                              mappedItems: batches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                              labelText: '',
+                              hintText: 'Batch',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: batches
+                                  .map(
+                                    (x) => AppDropdownItem<int>(
+                                      value: intValue(x, 'id')!,
+                                      label: stringValue(
+                                        x,
+                                        'batch_no',
+                                        'Batch',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
                               initialValue: line.batchId,
-                              onChanged: canEdit ? (v) => vm.onLineBatchChanged(index, v) : null,
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineBatchChanged(index, v)
+                                  : null,
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'serial': showSerial
                         ? ErpLineItemCellFrame(
                             height: null,
                             child: AppSerialNumbersField(
-                              values: vm.lineSerialIds(line).map((id) {
-                                final serial = serials.cast<Map<String, dynamic>?>().firstWhere((e) => e != null && intValue(e, 'id') == id, orElse: () => null);
-                                return serial == null ? '' : stringValue(serial, 'serial_no');
-                              }).where((v) => v.trim().isNotEmpty).toList(growable: false),
+                              values: vm
+                                  .lineSerialIds(line)
+                                  .map((id) {
+                                    final serial = serials
+                                        .cast<Map<String, dynamic>?>()
+                                        .firstWhere(
+                                          (e) =>
+                                              e != null &&
+                                              intValue(e, 'id') == id,
+                                          orElse: () => null,
+                                        );
+                                    return serial == null
+                                        ? ''
+                                        : stringValue(serial, 'serial_no');
+                                  })
+                                  .where((v) => v.trim().isNotEmpty)
+                                  .toList(growable: false),
                               enabled: canEdit,
                               emptyText: 'No serials added',
-                              countSummaryBuilder: (count) => '$count serial(s) added',
+                              countSummaryBuilder: (count) =>
+                                  '$count serial(s) added',
                               validator: (values) {
-                                final byLabel = <String, int>{for (final s in serials) stringValue(s, 'serial_no').trim().toLowerCase(): intValue(s, 'id') ?? 0};
+                                final byLabel = <String, int>{
+                                  for (final s in serials)
+                                    stringValue(
+                                          s,
+                                          'serial_no',
+                                        ).trim().toLowerCase():
+                                        intValue(s, 'id') ?? 0,
+                                };
                                 for (final label in values) {
-                                  if (!byLabel.containsKey(label.toLowerCase())) return 'Serial "$label" is not available for this item/batch.';
+                                  if (!byLabel.containsKey(
+                                    label.toLowerCase(),
+                                  )) {
+                                    return 'Serial "$label" is not available for this item/batch.';
+                                  }
                                 }
                                 return null;
                               },
                               onChanged: (values) {
-                                final byLabel = <String, int>{for (final s in serials) stringValue(s, 'serial_no').trim().toLowerCase(): intValue(s, 'id') ?? 0};
-                                vm.setLineSerialIds(index, values.map((v) => byLabel[v.toLowerCase()]!).toList(growable: false));
+                                final byLabel = <String, int>{
+                                  for (final s in serials)
+                                    stringValue(
+                                          s,
+                                          'serial_no',
+                                        ).trim().toLowerCase():
+                                        intValue(s, 'id') ?? 0,
+                                };
+                                vm.setLineSerialIds(
+                                  index,
+                                  values
+                                      .map((v) => byLabel[v.toLowerCase()]!)
+                                      .toList(growable: false),
+                                );
                               },
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'damage_qty': ErpLineItemTextCell(
                       controller: line.qtyController,
                       enabled: canEdit && !showSerial,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.requiredPositiveNumber('Damage qty'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.requiredPositiveNumber(
+                        'Damage qty',
+                      ),
                     ),
                     'unit_cost': ErpLineItemTextCell(
                       controller: line.unitCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Unit Cost',
+                      ),
                     ),
                     'total_cost': ErpLineItemTextCell(
                       controller: line.totalCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Total Cost'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Total Cost',
+                      ),
                     ),
                     'reason': ErpLineItemTextCell(
                       controller: line.reasonController,
                       enabled: canEdit,
                       validator: Validators.optionalMaxLength(255, 'Reason'),
-                    ),
-                    'remarks': ErpLineItemTextCell(
-                      controller: line.remarksController,
-                      enabled: canEdit,
-                      validator: Validators.optionalMaxLength(500, 'Line Remarks'),
                     ),
                   },
                 );

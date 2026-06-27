@@ -101,20 +101,16 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     final warehouseOptions = controller.warehouses
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
     final taxOptions = controller.taxCodes
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
@@ -127,10 +123,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -234,7 +228,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
@@ -255,7 +248,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 ? (Validators.parseFlexibleNumber(
                         controller.roundOffController.text.trim(),
                       ) ??
-                    0)
+                      0)
                 : 0),
         currencyCode: 'INR',
         subtitle: (() {
@@ -263,7 +256,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
               ? (Validators.parseFlexibleNumber(
                       controller.roundOffController.text.trim(),
                     ) ??
-                  0)
+                    0)
               : 0;
           if (roundOff == 0) {
             return 'Live totals for the current purchase order lines.';

@@ -29,7 +29,10 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
       'ProduceTrackingViewModel',
       scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    Get.put(ProduceTrackingViewModel(initialId: widget.initialId), tag: _controllerTag);
+    Get.put(
+      ProduceTrackingViewModel(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -172,14 +175,11 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
               'Date ${displayDate(nullableStringValue(data, 'tracking_date'))}',
               if (status.isNotEmpty) 'Status ${status.toUpperCase()}',
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: JsonModel.combineValues(
-              <String>[
-                stringValue(data, 'current_location'),
-                stringValue(data, 'destination_location'),
-                stringValue(data, 'vehicle_no'),
-              ],
-              defaultValue: referenceFlow.replaceAll('_', ' '),
-            ),
+            detail: JsonModel.combineValues(<String>[
+              stringValue(data, 'current_location'),
+              stringValue(data, 'destination_location'),
+              stringValue(data, 'vehicle_no'),
+            ], defaultValue: referenceFlow.replaceAll('_', ' ')),
             trailing: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -510,26 +510,84 @@ class _ProduceTrackingEditor extends StatelessWidget {
                 ErpLineItemTableColumn.action,
               },
               customColumns: const <ErpLineItemCustomColumn>[
-                ErpLineItemCustomColumn(id: 'batch', label: 'Batch', width: 140, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'serial', label: 'Serial', width: 140, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'tracked_qty', label: 'Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
-                ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 220, insertAfter: ErpLineItemTableColumn.uom),
+                ErpLineItemCustomColumn(
+                  id: 'batch',
+                  label: 'Batch',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'serial',
+                  label: 'Serial',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'tracked_qty',
+                  label: 'Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
               ],
-              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (
+                index,
+              ) {
                 final line = vm.lines[index];
                 return ErpLineItemTableRow(
                   rowKey: line,
                   itemId: line.itemId,
-                  itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
-                  itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
-                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  itemSelection: vm.items
+                      .where((x) => x.id == line.itemId)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .firstOrNull,
+                  itemOptions: vm.items
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .toList(growable: false),
+                  onItemChanged: canEdit
+                      ? (v) => vm.onLineItemChanged(index, v)
+                      : null,
+                  itemValidator: (_) =>
+                      line.itemId == null ? 'Item is required' : null,
                   warehouseId: line.warehouseId,
-                  warehouseOptions: vm.warehouseOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                  onWarehouseChanged: canEdit ? (v) => vm.onLineWarehouseChanged(index, v) : null,
+                  warehouseOptions: vm.warehouseOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onWarehouseChanged: canEdit
+                      ? (v) => vm.onLineWarehouseChanged(index, v)
+                      : null,
                   uomId: line.uomId,
-                  uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  uomOptions: vm
+                      .uomOptionsForItem(line.itemId)
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onUomChanged: canEdit
+                      ? (v) => vm.onLineUomChanged(index, v)
+                      : null,
                   uomValidator: Validators.requiredSelection('UOM'),
                   amount: 0,
                   deleteEnabled: canEdit && vm.lines.length > 1,
@@ -537,33 +595,70 @@ class _ProduceTrackingEditor extends StatelessWidget {
                     'batch': vm.itemHasBatch(line.itemId)
                         ? ErpLineItemCellFrame(
                             child: AppDropdownField<int>.fromMapped(
-                              labelText: '', hintText: 'Batch', fieldPadding: EdgeInsets.zero,
-                              mappedItems: vm.batchOptionsForLine(line).map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                              labelText: '',
+                              hintText: 'Batch',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: vm
+                                  .batchOptionsForLine(line)
+                                  .map(
+                                    (x) => AppDropdownItem<int>(
+                                      value: intValue(x, 'id')!,
+                                      label: stringValue(
+                                        x,
+                                        'batch_no',
+                                        'Batch',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
                               initialValue: line.batchId,
-                              onChanged: canEdit ? (v) => vm.onLineBatchChanged(index, v) : null,
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineBatchChanged(index, v)
+                                  : null,
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'serial': vm.itemHasSerial(line.itemId)
                         ? ErpLineItemCellFrame(
                             child: AppDropdownField<int>.fromMapped(
-                              labelText: '', hintText: 'Serial', fieldPadding: EdgeInsets.zero,
-                              mappedItems: vm.serialOptionsForLine(line).map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
+                              labelText: '',
+                              hintText: 'Serial',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: vm
+                                  .serialOptionsForLine(line)
+                                  .map(
+                                    (x) => AppDropdownItem<int>(
+                                      value: intValue(x, 'id')!,
+                                      label: stringValue(
+                                        x,
+                                        'serial_no',
+                                        'Serial',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
                               initialValue: line.serialId,
-                              onChanged: canEdit ? (v) => vm.onLineSerialChanged(index, v) : null,
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineSerialChanged(index, v)
+                                  : null,
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'tracked_qty': ErpLineItemTextCell(
                       controller: line.trackedQtyController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       validator: Validators.requiredPositiveNumber('Qty'),
-                    ),
-                    'remarks': ErpLineItemTextCell(
-                      controller: line.remarksController,
-                      enabled: canEdit,
-                      maxLines: 2,
                     ),
                   },
                 );

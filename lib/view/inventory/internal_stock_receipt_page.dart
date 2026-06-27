@@ -333,25 +333,53 @@ class _InternalStockReceiptEditor extends StatelessWidget {
                   width: 118,
                   insertAfter: ErpLineItemTableColumn.uom,
                 ),
-                ErpLineItemCustomColumn(
-                  id: 'remarks',
-                  label: 'Remarks',
-                  width: 200,
-                  insertAfter: ErpLineItemTableColumn.uom,
-                ),
               ],
-              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (
+                index,
+              ) {
                 final line = vm.lines[index];
                 return ErpLineItemTableRow(
                   rowKey: line,
                   itemId: line.itemId,
-                  itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
-                  itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
-                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  itemSelection: vm.items
+                      .where((x) => x.id == line.itemId)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .firstOrNull,
+                  itemOptions: vm.items
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => ErpLinkFieldOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .toList(growable: false),
+                  onItemChanged: canEdit
+                      ? (v) => vm.onLineItemChanged(index, v)
+                      : null,
+                  itemValidator: (_) =>
+                      line.itemId == null ? 'Item is required' : null,
                   uomId: line.uomId,
-                  uomOptions: vm.uomOptionsForItem(line.itemId).where((u) => u.id != null).map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString())).toList(growable: false),
-                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  uomOptions: vm
+                      .uomOptionsForItem(line.itemId)
+                      .where((u) => u.id != null)
+                      .map(
+                        (u) => AppDropdownItem<int>(
+                          value: u.id!,
+                          label: u.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onUomChanged: canEdit
+                      ? (v) => vm.onLineUomChanged(index, v)
+                      : null,
                   uomValidator: Validators.requiredSelection('UOM'),
                   amount: 0,
                   deleteEnabled: canEdit && vm.lines.length > 1,
@@ -361,13 +389,23 @@ class _InternalStockReceiptEditor extends StatelessWidget {
                             controller: line.batchNoController,
                             enabled: canEdit,
                             validator: (value) {
-                              if (!vm.itemHasBatch(line.itemId)) return null;
-                              if ((value ?? '').trim().isEmpty) return 'Batch is required';
+                              if (!vm.itemHasBatch(line.itemId)) {
+                                return null;
+                              }
+                              if ((value ?? '').trim().isEmpty) {
+                                return 'Batch is required';
+                              }
                               return null;
                             },
-                            onChanged: canEdit ? (v) => vm.onLineBatchInputChanged(index, v) : null,
+                            onChanged: canEdit
+                                ? (v) => vm.onLineBatchInputChanged(index, v)
+                                : null,
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'serial': vm.itemHasSerial(line.itemId)
                         ? ErpLineItemCellFrame(
                             height: null,
@@ -375,33 +413,46 @@ class _InternalStockReceiptEditor extends StatelessWidget {
                               values: line.serialNumbers,
                               enabled: canEdit,
                               emptyText: 'No serials added',
-                              countSummaryBuilder: (count) => '$count serial(s) added',
-                              onChanged: (values) => vm.setLineSerialNumbers(index, values),
+                              countSummaryBuilder: (count) =>
+                                  '$count serial(s) added',
+                              onChanged: (values) =>
+                                  vm.setLineSerialNumbers(index, values),
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'receipt_qty': ErpLineItemTextCell(
                       controller: line.qtyController,
                       enabled: canEdit && !vm.itemHasSerial(line.itemId),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.requiredPositiveNumber('Receipt qty'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.requiredPositiveNumber(
+                        'Receipt qty',
+                      ),
                     ),
                     'unit_cost': ErpLineItemTextCell(
                       controller: line.unitCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Unit Cost',
+                      ),
                     ),
                     'total_cost': ErpLineItemTextCell(
                       controller: line.totalCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Total Cost'),
-                    ),
-                    'remarks': ErpLineItemTextCell(
-                      controller: line.remarksController,
-                      enabled: canEdit,
-                      validator: Validators.optionalMaxLength(500, 'Line Remarks'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Total Cost',
+                      ),
                     ),
                   },
                 );

@@ -155,13 +155,21 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   controller: line.batchNoController,
                   readOnly: true,
                 )
-              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+              : const ErpLineItemTextCell(
+                  readOnly: true,
+                  enabled: false,
+                  initialValue: '-',
+                ),
           'serial': controller.isSerialManagedItem(line.itemId)
               ? ErpLineItemTextCell(
                   controller: line.serialNoController,
                   readOnly: true,
                 )
-              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+              : const ErpLineItemTextCell(
+                  readOnly: true,
+                  enabled: false,
+                  initialValue: '-',
+                ),
         },
       );
     });
@@ -178,7 +186,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },

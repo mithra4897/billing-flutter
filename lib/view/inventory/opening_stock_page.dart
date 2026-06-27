@@ -536,39 +536,89 @@ class _OpeningStockEditor extends StatelessWidget {
                   width: 118,
                   insertAfter: ErpLineItemTableColumn.uom,
                 ),
-                ErpLineItemCustomColumn(
-                  id: 'remarks',
-                  label: 'Remarks',
-                  width: 200,
-                  insertAfter: ErpLineItemTableColumn.uom,
-                ),
               ],
-              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (
+                index,
+              ) {
                 final line = vm.lines[index];
                 final effectiveItemId = fixedItemId ?? line.itemId;
                 return ErpLineItemTableRow(
                   rowKey: line,
                   itemId: effectiveItemId,
                   itemSelection: fixedItemId != null
-                      ? vm.itemOptions.where((x) => x.id == fixedItemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull
-                      : vm.itemOptions.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                      ? vm.itemOptions
+                            .where((x) => x.id == fixedItemId)
+                            .map(
+                              (x) => ErpLinkFieldOption<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                                subtitle: x.itemCode,
+                              ),
+                            )
+                            .firstOrNull
+                      : vm.itemOptions
+                            .where((x) => x.id == line.itemId)
+                            .map(
+                              (x) => ErpLinkFieldOption<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                                subtitle: x.itemCode,
+                              ),
+                            )
+                            .firstOrNull,
                   itemOptions: fixedItemId != null
-                      ? vm.itemOptions.where((x) => x.id == fixedItemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: fixedItemLabel ?? x.toString(), subtitle: x.itemCode)).toList(growable: false)
-                      : vm.itemOptions.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                  onItemChanged: (canEdit && fixedItemId == null) ? (v) => vm.onLineItemChanged(index, v) : null,
-                  itemValidator: (_) => effectiveItemId == null ? 'Item is required' : null,
+                      ? vm.itemOptions
+                            .where((x) => x.id == fixedItemId)
+                            .map(
+                              (x) => ErpLinkFieldOption<int>(
+                                value: x.id!,
+                                label: fixedItemLabel ?? x.toString(),
+                                subtitle: x.itemCode,
+                              ),
+                            )
+                            .toList(growable: false)
+                      : vm.itemOptions
+                            .where((x) => x.id != null)
+                            .map(
+                              (x) => ErpLinkFieldOption<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                                subtitle: x.itemCode,
+                              ),
+                            )
+                            .toList(growable: false),
+                  onItemChanged: (canEdit && fixedItemId == null)
+                      ? (v) => vm.onLineItemChanged(index, v)
+                      : null,
+                  itemValidator: (_) =>
+                      effectiveItemId == null ? 'Item is required' : null,
                   warehouseId: line.warehouseId,
                   warehouseOptions: vm.warehouseOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
-                  onWarehouseChanged: canEdit ? (v) => vm.onLineWarehouseChanged(index, v) : null,
+                  onWarehouseChanged: canEdit
+                      ? (v) => vm.onLineWarehouseChanged(index, v)
+                      : null,
                   uomId: line.uomId,
-                  uomOptions: vm.uomOptionsForItem(effectiveItemId)
+                  uomOptions: vm
+                      .uomOptionsForItem(effectiveItemId)
                       .where((u) => u.id != null)
-                      .map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString()))
+                      .map(
+                        (u) => AppDropdownItem<int>(
+                          value: u.id!,
+                          label: u.toString(),
+                        ),
+                      )
                       .toList(growable: false),
-                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  onUomChanged: canEdit
+                      ? (v) => vm.onLineUomChanged(index, v)
+                      : null,
                   uomValidator: Validators.requiredSelection('UOM'),
                   amount: 0,
                   deleteEnabled: canEdit && vm.lines.length > 1,
@@ -581,57 +631,92 @@ class _OpeningStockEditor extends StatelessWidget {
                               doctypeLabel: 'batch',
                               enabled: canEdit,
                               initialSelection: vm.selectedBatchOption(line),
-                              options: vm.batchFieldOptions(effectiveItemId, line.warehouseId),
+                              options: vm.batchFieldOptions(
+                                effectiveItemId,
+                                line.warehouseId,
+                              ),
                               allowCreate: canEdit,
                               validator: (_) {
-                                if (!vm.isBatchManagedItem(effectiveItemId)) return null;
-                                final hasBatchNo = line.batchNoController.text.trim().isNotEmpty;
-                                if (!hasBatchNo) return 'Batch is required';
+                                if (!vm.isBatchManagedItem(effectiveItemId)) {
+                                  return null;
+                                }
+                                final hasBatchNo = line.batchNoController.text
+                                    .trim()
+                                    .isNotEmpty;
+                                if (!hasBatchNo) {
+                                  return 'Batch is required';
+                                }
                                 return null;
                               },
-                              onChanged: canEdit ? (v) => vm.onLineBatchChanged(index, v) : (_) {},
-                              onCreateNew: canEdit ? (query) => vm.createBatchForLine(index, query) : null,
-                              createNewLabelBuilder: (query, _) => 'Create batch "$query"',
-                              emptyMessageBuilder: (_, _) => 'No batches found for the selected item and warehouse',
+                              onChanged: canEdit
+                                  ? (v) => vm.onLineBatchChanged(index, v)
+                                  : (_) {},
+                              onCreateNew: canEdit
+                                  ? (query) =>
+                                        vm.createBatchForLine(index, query)
+                                  : null,
+                              createNewLabelBuilder: (query, _) =>
+                                  'Create batch "$query"',
+                              emptyMessageBuilder: (_, _) =>
+                                  'No batches found for the selected item and warehouse',
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'serial': vm.isSerialManagedItem(effectiveItemId)
                         ? ErpLineItemCellFrame(
                             height: null,
                             child: AppSerialNumbersField(
                               values: line.serialNumbers,
                               enabled: canEdit,
-                              validator: (values) => vm.validateLineSerialNumbers(index, values),
-                              onChanged: (values) => vm.setLineSerialNumbers(index, values),
+                              validator: (values) =>
+                                  vm.validateLineSerialNumbers(index, values),
+                              onChanged: (values) =>
+                                  vm.setLineSerialNumbers(index, values),
                             ),
                           )
-                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                        : const ErpLineItemTextCell(
+                            readOnly: true,
+                            enabled: false,
+                            initialValue: '-',
+                          ),
                     'qty': ErpLineItemTextCell(
                       controller: line.qtyController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => vm.onLineQtyChanged(index, line.qtyController.text),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) =>
+                          vm.onLineQtyChanged(index, line.qtyController.text),
                       validator: Validators.requiredPositiveNumber('Quantity'),
                     ),
                     'unit_cost': ErpLineItemTextCell(
                       controller: line.unitCostController,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (_) => vm.onLineUnitCostChanged(index, line.unitCostController.text),
-                      validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => vm.onLineUnitCostChanged(
+                        index,
+                        line.unitCostController.text,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Unit Cost',
+                      ),
                     ),
                     'total_cost': ErpLineItemTextCell(
                       controller: line.totalCostController,
                       readOnly: true,
                       enabled: canEdit,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: Validators.optionalNonNegativeNumber('Total Cost'),
-                    ),
-                    'remarks': ErpLineItemTextCell(
-                      controller: line.remarksController,
-                      enabled: canEdit,
-                      validator: Validators.optionalMaxLength(500, 'Line Remarks'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Total Cost',
+                      ),
                     ),
                   },
                 );

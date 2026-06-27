@@ -101,20 +101,16 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     final warehouseOptions = controller.warehouses
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
     final taxOptions = controller.taxCodes
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
@@ -127,10 +123,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -161,7 +155,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 index,
                 line.copyWith(
                   itemId: value ?? 0,
-                  uomId: controller.resolveDefaultUom(value, line.uomId) ?? line.uomId,
+                  uomId:
+                      controller.resolveDefaultUom(value, line.uomId) ??
+                      line.uomId,
                 ),
               ),
         itemValidator: (_) =>
@@ -170,14 +166,18 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         warehouseOptions: warehouseOptions,
         onWarehouseChanged: controller.isSelectedInvoiceReadOnly
             ? null
-            : (value) =>
-                controller.updateLine(index, line.copyWith(warehouseId: value)),
+            : (value) => controller.updateLine(
+                index,
+                line.copyWith(warehouseId: value),
+              ),
         uomId: line.uomId == 0 ? null : line.uomId,
         uomOptions: uomOptions,
         onUomChanged: controller.isSelectedInvoiceReadOnly
             ? null
-            : (value) =>
-                controller.updateLine(index, line.copyWith(uomId: value ?? 0)),
+            : (value) => controller.updateLine(
+                index,
+                line.copyWith(uomId: value ?? 0),
+              ),
         uomValidator: (_) =>
             Validators.requiredSelectionOrPositiveIdField(line.uomId, 'UOM'),
         taxCodeId: line.taxCodeId,
@@ -185,10 +185,11 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         onTaxCodeChanged: controller.isSelectedInvoiceReadOnly
             ? null
             : (value) =>
-                controller.updateLine(index, line.copyWith(taxCodeId: value)),
+                  controller.updateLine(index, line.copyWith(taxCodeId: value)),
         amount: amount,
         deleteEnabled:
-            !controller.isSelectedInvoiceReadOnly && controller.lines.length > 1,
+            !controller.isSelectedInvoiceReadOnly &&
+            controller.lines.length > 1,
         cellWidgets: <ErpLineItemTableColumn, Widget>{
           ErpLineItemTableColumn.qty: ErpLineItemTextCell(
             key: ValueKey('purchase-invoice-qty-$index'),
@@ -254,16 +255,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               line.copyWith(description: nullIfEmpty(value)),
             ),
           ),
-          ErpLineItemTableColumn.remarks: ErpLineItemTextCell(
-            key: ValueKey('purchase-invoice-remarks-$index'),
-            initialValue: line.remarks ?? '',
-            hintText: 'Remarks',
-            maxLines: 2,
-            onChanged: (value) => controller.updateLine(
-              index,
-              line.copyWith(remarks: nullIfEmpty(value)),
-            ),
-          ),
         },
       );
     });
@@ -274,7 +265,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     return ErpLineItemTable(
       title: 'Lines',
       lines: rows,
-      onAddLine: controller.isSelectedInvoiceReadOnly ? null : controller.addLine,
+      onAddLine: controller.isSelectedInvoiceReadOnly
+          ? null
+          : controller.addLine,
       onDeleteLine: controller.isSelectedInvoiceReadOnly
           ? null
           : controller.removeLine,
@@ -289,7 +282,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
@@ -309,19 +301,19 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         subtitle: controller.isSelectedInvoiceReadOnly
             ? 'Saved invoice totals from the posted document.'
             : controller.applyRoundOff &&
-                    (Validators.parseFlexibleNumber(
-                              controller.roundOffController.text.trim(),
-                            ) ??
-                        0) !=
-                        0
-                ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
-                : ((Validators.parseFlexibleNumber(
-                            controller.adjustmentAmountController.text.trim(),
+                  (Validators.parseFlexibleNumber(
+                            controller.roundOffController.text.trim(),
                           ) ??
-                        0) !=
-                        0)
-                    ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
-                    : 'Live totals for the current purchase invoice lines.',
+                          0) !=
+                      0
+            ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
+            : ((Validators.parseFlexibleNumber(
+                        controller.adjustmentAmountController.text.trim(),
+                      ) ??
+                      0) !=
+                  0)
+            ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
+            : 'Live totals for the current purchase invoice lines.',
       ),
     );
   }
