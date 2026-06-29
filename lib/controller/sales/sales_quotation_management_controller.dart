@@ -1142,6 +1142,7 @@ class SalesQuotationManagementController extends GetxController {
     Future<ApiResponse<SalesQuotationModel>> Function() action,
   ) async {
     try {
+      final currentId = intValue(selectedItem?.toJson() ?? const {}, 'id');
       final response = await action();
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -1149,7 +1150,8 @@ class SalesQuotationManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        selectId:
+            intValue(response.data?.toJson() ?? const {}, 'id') ?? currentId,
       );
       _refreshController.notifyChanged(source: 'sales_quotation');
     } catch (error) {
