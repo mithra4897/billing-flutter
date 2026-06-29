@@ -20,13 +20,34 @@ class _DocumentSeriesManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'DocumentSeriesManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
     );
-    Get.put(DocumentSeriesManagementController(), tag: _controllerTag);
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<DocumentSeriesManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<DocumentSeriesManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<DocumentSeriesManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(DocumentSeriesManagementController(), tag: _controllerTag);
   }
 
   @override
