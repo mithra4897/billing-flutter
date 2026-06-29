@@ -142,6 +142,99 @@ OpeningStockModel _enrichOpeningStockRowWithItemMaster(
   });
 }
 
+Future<PaginatedResponse<T>> _loadEnrichedInventoryRegister<T extends JsonModel>({
+  required InventoryService service,
+  required Future<PaginatedResponse<T>> Function() listLoader,
+  required Future<ApiResponse<T>> Function(int id) detailLoader,
+  required T Function(Map<String, dynamic> json) fromJson,
+}) async {
+  final response = await listLoader();
+  final rows = response.data ?? <T>[];
+  if (rows.isEmpty) {
+    return response;
+  }
+
+  final itemResponse = await service.items(
+    filters: const {'per_page': 500, 'sort_by': 'item_name'},
+  );
+  final itemById = <int, ItemModel>{
+    for (final item in itemResponse.data ?? const <ItemModel>[])
+      if (item.id != null) item.id!: item,
+  };
+
+  final enriched = await Future.wait<T>(
+    rows.map((row) async {
+      final id = intValue(row.toJson(), 'id');
+      if (id == null) {
+        return row;
+      }
+      try {
+        final detail = await detailLoader(id);
+        final detailedRow = detail.data ?? row;
+        
+        final rawItems = detailedRow.toJson()['items'];
+        if (rawItems is! List) {
+          return detailedRow;
+        }
+
+        final enrichedItems = rawItems
+            .map((item) {
+              if (item is! Map) {
+                return item;
+              }
+              final map = Map<String, dynamic>.from(item);
+              final itemId = intValue(map, 'item_id');
+              final itemMaster = itemId == null ? null : itemById[itemId];
+              if (itemMaster == null) {
+                return map;
+              }
+              map['item_id'] ??= itemMaster.id;
+              map['item_code'] ??= itemMaster.itemCode;
+              map['item_name'] ??= itemMaster.itemName;
+              map['category_code'] ??= itemMaster.categoryCode;
+              map['category_name'] ??= itemMaster.categoryName;
+              return map;
+            })
+            .toList(growable: false);
+
+        return fromJson(<String, dynamic>{
+          ...detailedRow.toJson(),
+          'items': enrichedItems,
+        });
+      } catch (_) {
+        return row;
+      }
+    }),
+  );
+
+  return PaginatedResponse<T>(
+    success: response.success,
+    message: response.message,
+    data: enriched,
+    meta: response.meta,
+    errors: response.errors,
+  );
+}
+
+List<String> _genericCategoryValues<T extends JsonModel>(T row) {
+  final seen = <String>{};
+  final values = <String>[];
+  final rawItems = row.toJson()['items'];
+  if (rawItems is List) {
+    for (final item in rawItems) {
+      if (item is Map) {
+        final value = stringValue(item as Map<String, dynamic>, 'category_name').trim();
+        final normalized = value.toLowerCase();
+        if (value.isNotEmpty && seen.add(normalized)) {
+          values.add(value);
+        }
+      }
+    }
+  }
+  return values;
+}
+
+
 Future<List<AppDropdownItem<String>>> _loadOpeningStockCategoryItems(
   InventoryService service,
 ) async {
@@ -218,7 +311,7 @@ class InventoryRegisterController<T> extends GetxController {
               return false;
             }
           }
-          if (category.trim().isNotEmpty) {
+          if (category.trim().isNotEmpty && categoryValues != null) {
             final rowCategories =
                 (categoryValues?.call(row) ?? const <String>[])
                     .map((value) => value.trim().toLowerCase())
@@ -781,8 +874,13 @@ class StockIssueRegisterPage extends StatelessWidget {
       controllerName: 'StockIssueRegisterController',
       title: 'Stock issues',
       embedded: embedded,
-      loader: (service) => service.stockIssues(
-        filters: const {'per_page': 200, 'sort_by': 'issue_date'},
+      loader: (service) => _loadEnrichedInventoryRegister<StockIssueModel>(
+        service: service,
+        listLoader: () => service.stockIssues(
+          filters: const {'per_page': 200, 'sort_by': 'issue_date'},
+        ),
+        detailLoader: service.stockIssue,
+        fromJson: StockIssueModel.fromJson,
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -794,10 +892,12 @@ class StockIssueRegisterPage extends StatelessWidget {
       },
       emptyMessage: 'No stock issues found.',
       newRoute: '/inventory/stock-issues/new',
-      newLabel: 'New Stock Issue',
+      newLabel: 'New Issue',
       searchHint: 'Search issues',
       statusValue: (row) => stringValue(row.toJson(), 'issue_status'),
       dateValue: (row) => nullableStringValue(row.toJson(), 'issue_date'),
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
+      categoryValues: _genericCategoryValues,
       columns: [
         PurchaseRegisterColumn<StockIssueModel>(
           label: 'No',
@@ -834,22 +934,30 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
       controllerName: 'InternalStockReceiptRegisterController',
       title: 'Internal stock receipts',
       embedded: embedded,
-      loader: (service) => service.internalStockReceipts(
-        filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+      loader: (service) => _loadEnrichedInventoryRegister<InternalStockReceiptModel>(
+        service: service,
+        listLoader: () => service.internalStockReceipts(
+          filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+        ),
+        detailLoader: service.internalStockReceipt,
+        fromJson: InternalStockReceiptModel.fromJson,
       ),
       matches: (row, query) {
         final data = row.toJson();
         return [
           stringValue(data, 'receipt_no'),
           stringValue(data, 'receipt_status'),
+          stringValue(data, 'receipt_source'),
         ].join(' ').toLowerCase().contains(query);
       },
-      emptyMessage: 'No internal receipts found.',
-      newRoute: '/inventory/internal-stock-receipts/new',
-      newLabel: 'New Internal Receipt',
+      emptyMessage: 'No internal stock receipts found.',
+      newRoute: '/inventory/internal-receipts/new',
+      newLabel: 'New Receipt',
       searchHint: 'Search receipts',
       statusValue: (row) => stringValue(row.toJson(), 'receipt_status'),
       dateValue: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
+      categoryValues: _genericCategoryValues,
       columns: [
         PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'No',
@@ -882,22 +990,30 @@ class StockTransferRegisterPage extends StatelessWidget {
       controllerName: 'StockTransferRegisterController',
       title: 'Stock transfers',
       embedded: embedded,
-      loader: (service) => service.stockTransfers(
-        filters: const {'per_page': 200, 'sort_by': 'transfer_date'},
+      loader: (service) => _loadEnrichedInventoryRegister<StockTransferModel>(
+        service: service,
+        listLoader: () => service.stockTransfers(
+          filters: const {'per_page': 200, 'sort_by': 'transfer_date'},
+        ),
+        detailLoader: service.stockTransfer,
+        fromJson: StockTransferModel.fromJson,
       ),
       matches: (row, query) {
         final data = row.toJson();
         return [
           stringValue(data, 'transfer_no'),
           stringValue(data, 'transfer_status'),
+          stringValue(data, 'remarks'),
         ].join(' ').toLowerCase().contains(query);
       },
       emptyMessage: 'No stock transfers found.',
       newRoute: '/inventory/stock-transfers/new',
-      newLabel: 'New Stock Transfer',
+      newLabel: 'New Transfer',
       searchHint: 'Search transfers',
       statusValue: (row) => stringValue(row.toJson(), 'transfer_status'),
       dateValue: (row) => nullableStringValue(row.toJson(), 'transfer_date'),
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
+      categoryValues: _genericCategoryValues,
       columns: [
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'No',
@@ -1001,8 +1117,13 @@ class StockDamageRegisterPage extends StatelessWidget {
       controllerName: 'StockDamageRegisterController',
       title: 'Stock damage',
       embedded: embedded,
-      loader: (service) => service.stockDamageEntries(
-        filters: const {'per_page': 200, 'sort_by': 'damage_date'},
+      loader: (service) => _loadEnrichedInventoryRegister<StockDamageEntryModel>(
+        service: service,
+        listLoader: () => service.stockDamageEntries(
+          filters: const {'per_page': 200, 'sort_by': 'damage_date'},
+        ),
+        detailLoader: service.stockDamageEntry,
+        fromJson: StockDamageEntryModel.fromJson,
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -1012,12 +1133,14 @@ class StockDamageRegisterPage extends StatelessWidget {
           stringValue(data, 'damage_type'),
         ].join(' ').toLowerCase().contains(query);
       },
-      emptyMessage: 'No stock damage entries found.',
-      newRoute: '/inventory/stock-damage/new',
-      newLabel: 'New Stock Damage',
+      emptyMessage: 'No stock damages found.',
+      newRoute: '/inventory/stock-damages/new',
+      newLabel: 'New Damage',
       searchHint: 'Search damage entries',
       statusValue: (row) => stringValue(row.toJson(), 'damage_status'),
       dateValue: (row) => nullableStringValue(row.toJson(), 'damage_date'),
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
+      categoryValues: _genericCategoryValues,
       columns: [
         PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'No',
@@ -1054,8 +1177,13 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
       controllerName: 'InventoryAdjustmentRegisterController',
       title: 'Inventory adjustments',
       embedded: embedded,
-      loader: (service) => service.inventoryAdjustments(
-        filters: const {'per_page': 200, 'sort_by': 'adjustment_date'},
+      loader: (service) => _loadEnrichedInventoryRegister<InventoryAdjustmentModel>(
+        service: service,
+        listLoader: () => service.inventoryAdjustments(
+          filters: const {'per_page': 200, 'sort_by': 'adjustment_date'},
+        ),
+        detailLoader: service.inventoryAdjustment,
+        fromJson: InventoryAdjustmentModel.fromJson,
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -1071,6 +1199,8 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
       searchHint: 'Search adjustments',
       statusValue: (row) => stringValue(row.toJson(), 'adjustment_status'),
       dateValue: (row) => nullableStringValue(row.toJson(), 'adjustment_date'),
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
+      categoryValues: _genericCategoryValues,
       columns: [
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'No',

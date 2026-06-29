@@ -340,6 +340,7 @@ export 'view/inventory/internal_stock_receipt_page.dart';
 export 'view/inventory/inventory_adjustment_page.dart';
 export 'view/inventory/inventory_inquiry_page.dart';
 export 'view/inventory/inventory_registers.dart';
+export 'view/inventory/inventory_support.dart';
 export 'view/inventory/opening_stock_page.dart';
 export 'view/inventory/produce_tracking_page.dart';
 export 'view/inventory/stock_batch_page.dart';

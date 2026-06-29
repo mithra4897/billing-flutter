@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'internal_stock_receipt_line_model.dart';
 
 class InternalStockReceiptModel extends JsonModel {
   const InternalStockReceiptModel({
@@ -23,6 +24,7 @@ class InternalStockReceiptModel extends JsonModel {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.items,
   });
   final int? companyId;
   final int? branchId;
@@ -44,6 +46,7 @@ class InternalStockReceiptModel extends JsonModel {
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final List<InternalStockReceiptLineModel>? items;
 
   factory InternalStockReceiptModel.fromJson(Map<String, dynamic> json) {
     return InternalStockReceiptModel(
@@ -70,6 +73,15 @@ class InternalStockReceiptModel extends JsonModel {
           : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      items: json['items'] == null
+          ? null
+          : (json['items'] as List<dynamic>)
+              .map(
+                (e) => InternalStockReceiptLineModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
+              .toList(),
     );
   }
   @override
@@ -103,5 +115,6 @@ class InternalStockReceiptModel extends JsonModel {
     if (isActive != null) 'is_active': isActive,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (items != null) 'items': items!.map((e) => e.toJson()).toList(),
   };
 }

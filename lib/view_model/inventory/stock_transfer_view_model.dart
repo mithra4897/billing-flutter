@@ -67,9 +67,14 @@ class StockTransferViewModel extends GetxController {
       InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final TextEditingController transferNoController = TextEditingController();
   final TextEditingController transferDateController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+
+  String statusFilter = '';
+  String categoryFilter = '';
 
   bool loading = true;
   bool detailLoading = false;
@@ -150,11 +155,49 @@ class StockTransferViewModel extends GetxController {
     financialYearId: financialYearId,
   );
 
+  static const List<AppDropdownItem<String>> listStatusFilter =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: '', label: 'All'),
+        AppDropdownItem<String>(value: 'draft', label: 'Draft'),
+        AppDropdownItem<String>(value: 'posted', label: 'Posted'),
+        AppDropdownItem<String>(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  List<AppDropdownItem<String>> get categoryItems {
+    final seen = <String>{};
+    final options = <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All'),
+    ];
+    for (final item in items) {
+      final value = (item.categoryName ?? '').trim();
+      if (value.isEmpty) {
+        continue;
+      }
+      final normalized = value.toLowerCase();
+      if (!seen.add(normalized)) {
+        continue;
+      }
+      options.add(AppDropdownItem<String>(value: normalized, label: value));
+    }
+    return options;
+  }
+
   List<StockTransferModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
     return rows
         .where((row) {
           final data = row.toJson();
+          final rowStatus = stringValue(data, 'transfer_status');
+          if (statusFilter.isNotEmpty && rowStatus != statusFilter) {
+            return false;
+          }
+          if (!matchesDateValueRange(
+            nullableStringValue(data, 'transfer_date'),
+            fromValue: dateFromController.text,
+            toValue: dateToController.text,
+          )) {
+            return false;
+          }
           if (q.isEmpty) {
             return true;
           }
@@ -165,6 +208,10 @@ class StockTransferViewModel extends GetxController {
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  void applyFilters() {
+    update();
   }
 
   String? consumeActionMessage() {
@@ -925,6 +972,8 @@ class StockTransferViewModel extends GetxController {
   void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     transferNoController.dispose();
     transferDateController.dispose();
     remarksController.dispose();

@@ -53,6 +53,12 @@ class _InternalStockReceiptPageState extends State<InternalStockReceiptPage> {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
@@ -87,6 +93,37 @@ class _InternalStockReceiptPageState extends State<InternalStockReceiptPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _openFilterPanel(BuildContext context) {
+    return openInventorySearchStatusCategoryFilterPanel(
+      context: context,
+      title: 'Filter Internal Stock Receipts',
+      searchController: _viewModel.searchController,
+      dateFromController: _viewModel.dateFromController,
+      dateToController: _viewModel.dateToController,
+      searchHint: 'Search by receipt no, source, status',
+      status: _viewModel.statusFilter,
+      statusItems: InternalStockReceiptViewModel.listStatusFilter,
+      category: _viewModel.categoryFilter,
+      categoryItems: _viewModel.categoryItems,
+      onApply: (search, status, dateFrom, dateTo, category) {
+        _viewModel.searchController.text = search;
+        _viewModel.dateFromController.text = dateFrom;
+        _viewModel.dateToController.text = dateTo;
+        _viewModel.statusFilter = status;
+        _viewModel.categoryFilter = category;
+        _viewModel.applyFilters();
+      },
+      onClear: () {
+        _viewModel.searchController.clear();
+        _viewModel.dateFromController.clear();
+        _viewModel.dateToController.clear();
+        _viewModel.statusFilter = '';
+        _viewModel.categoryFilter = '';
+        _viewModel.applyFilters();
+      },
+    );
   }
 
   Widget _buildContent(BuildContext context) {
