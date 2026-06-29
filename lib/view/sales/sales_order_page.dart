@@ -359,6 +359,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,
