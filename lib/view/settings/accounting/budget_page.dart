@@ -16,7 +16,28 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('BudgetManagementController');
+    _controllerTag = persistentControllerTag(
+      'BudgetManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<BudgetManagementController>(tag: _controllerTag)) {
+      Get.delete<BudgetManagementController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<BudgetManagementController>(tag: _controllerTag)) {
+      return;
+    }
     Get.put(BudgetManagementController(), tag: _controllerTag);
   }
 

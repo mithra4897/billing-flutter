@@ -67,14 +67,36 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('PostingRuleManagementController');
-    Get.put(PostingRuleManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'PostingRuleManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<PostingRuleManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<PostingRuleManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<PostingRuleManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(PostingRuleManagementController(), tag: _controllerTag);
   }
 
   @override

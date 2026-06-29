@@ -29,13 +29,34 @@ class _PostingRuleGroupManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'PostingRuleGroupManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
     );
-    Get.put(PostingRuleGroupManagementController(), tag: _controllerTag);
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<PostingRuleGroupManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<PostingRuleGroupManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<PostingRuleGroupManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(PostingRuleGroupManagementController(), tag: _controllerTag);
   }
 
   @override

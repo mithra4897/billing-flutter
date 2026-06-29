@@ -20,7 +20,33 @@ class _VoucherAllocationManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'VoucherAllocationManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
     );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<VoucherAllocationManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<VoucherAllocationManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<VoucherAllocationManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
     Get.put(VoucherAllocationManagementController(), tag: _controllerTag);
   }
 

@@ -22,7 +22,32 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('PartyAccountRegisterController');
+    _controllerTag = persistentControllerTag(
+      'PartyAccountRegisterController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+        'initialPartyId': widget.initialPartyId,
+      },
+    );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<PartyAccountRegisterController>(tag: _controllerTag)) {
+      Get.delete<PartyAccountRegisterController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<PartyAccountRegisterController>(tag: _controllerTag)) {
+      return;
+    }
     Get.put(
       PartyAccountRegisterController(initialPartyId: widget.initialPartyId),
       tag: _controllerTag,

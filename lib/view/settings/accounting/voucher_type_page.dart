@@ -31,13 +31,36 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('VoucherTypeManagementController');
-    Get.put(VoucherTypeManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'VoucherTypeManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<VoucherTypeManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<VoucherTypeManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<VoucherTypeManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(VoucherTypeManagementController(), tag: _controllerTag);
   }
 
   @override

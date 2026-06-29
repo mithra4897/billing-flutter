@@ -16,13 +16,29 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('AccountManagementController');
-    Get.put(AccountManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'AccountManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<AccountManagementController>(tag: _controllerTag)) {
+      Get.delete<AccountManagementController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<AccountManagementController>(tag: _controllerTag)) {
+      return;
+    }
+    Get.put(AccountManagementController(), tag: _controllerTag);
   }
 
   @override

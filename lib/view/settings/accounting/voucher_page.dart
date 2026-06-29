@@ -16,7 +16,28 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('VoucherManagementController');
+    _controllerTag = persistentControllerTag(
+      'VoucherManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<VoucherManagementController>(tag: _controllerTag)) {
+      Get.delete<VoucherManagementController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<VoucherManagementController>(tag: _controllerTag)) {
+      return;
+    }
     Get.put(VoucherManagementController(), tag: _controllerTag);
   }
 
