@@ -204,8 +204,8 @@ class FinancialReportViews {
       children: [
         Wrap(
           children: [
-            _meta(theme, 'From', period['date_from']?.toString() ?? ''),
-            _meta(theme, 'To', period['date_to']?.toString() ?? ''),
+            _meta(theme, 'From', _displayDate(period['date_from'])),
+            _meta(theme, 'To', _displayDate(period['date_to'])),
             _meta(theme, 'Total debit', _money(summary['total_debit'])),
             _meta(theme, 'Total credit', _money(summary['total_credit'])),
           ],
@@ -228,7 +228,7 @@ class FinancialReportViews {
               .map((raw) {
                 final r = _mapDynamic(raw);
                 return [
-                  r['voucher_date']?.toString() ?? '',
+                  _displayDate(r['voucher_date']),
                   r['voucher_no']?.toString() ?? '',
                   r['voucher_type']?.toString() ?? '',
                   r['line_no']?.toString() ?? '',
@@ -262,8 +262,8 @@ class FinancialReportViews {
         const SizedBox(height: AppUiConstants.spacingSm),
         Wrap(
           children: [
-            _meta(theme, 'From', period['date_from']?.toString() ?? ''),
-            _meta(theme, 'To', period['date_to']?.toString() ?? ''),
+            _meta(theme, 'From', _displayDate(period['date_from'])),
+            _meta(theme, 'To', _displayDate(period['date_to'])),
             _meta(
               theme,
               'Opening',
@@ -299,7 +299,7 @@ class FinancialReportViews {
               .map((raw) {
                 final r = _mapDynamic(raw);
                 return [
-                  r['voucher_date']?.toString() ?? '',
+                  _displayDate(r['voucher_date']),
                   r['voucher_no']?.toString() ?? '',
                   r['voucher_type']?.toString() ?? '',
                   r['party_name']?.toString() ?? '',
@@ -322,7 +322,7 @@ class FinancialReportViews {
       children: [
         Wrap(
           children: [
-            _meta(theme, 'As of', data['as_of_date']?.toString() ?? ''),
+            _meta(theme, 'As of', _displayDate(data['as_of_date'])),
             _meta(theme, 'Total debit', _money(totals['debit'])),
             _meta(theme, 'Total credit', _money(totals['credit'])),
           ],
@@ -354,7 +354,7 @@ class FinancialReportViews {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _meta(theme, 'As of', data['as_of_date']?.toString() ?? ''),
+        _meta(theme, 'As of', _displayDate(data['as_of_date'])),
         const SizedBox(height: AppUiConstants.spacingMd),
         _bsSection(theme, 'Assets', _asList(data['assets'])),
         _bsSection(theme, 'Liabilities', _asList(data['liabilities'])),
@@ -412,8 +412,8 @@ class FinancialReportViews {
       children: [
         Wrap(
           children: [
-            _meta(theme, 'From', period['date_from']?.toString() ?? ''),
-            _meta(theme, 'To', period['date_to']?.toString() ?? ''),
+            _meta(theme, 'From', _displayDate(period['date_from'])),
+            _meta(theme, 'To', _displayDate(period['date_to'])),
             _meta(
               theme,
               totals['net_label']?.toString() ?? 'Net Profit',
@@ -470,8 +470,8 @@ class FinancialReportViews {
       children: [
         Wrap(
           children: [
-            _meta(theme, 'From', period['date_from']?.toString() ?? ''),
-            _meta(theme, 'To', period['date_to']?.toString() ?? ''),
+            _meta(theme, 'From', _displayDate(period['date_from'])),
+            _meta(theme, 'To', _displayDate(period['date_to'])),
             _meta(theme, 'Inflows', _money(summary['cash_inflows'])),
             _meta(theme, 'Outflows', _money(summary['cash_outflows'])),
             _meta(theme, 'Net', _money(summary['net_cash_flow'])),
@@ -502,7 +502,7 @@ class FinancialReportViews {
               .map((raw) {
                 final r = _mapDynamic(raw);
                 return [
-                  r['voucher_date']?.toString() ?? '',
+                  _displayDate(r['voucher_date']),
                   r['voucher_no']?.toString() ?? '',
                   r['classification']?.toString() ?? '',
                   r['cash_accounts']?.toString() ?? '',
@@ -519,21 +519,90 @@ class FinancialReportViews {
   }
 
   static Widget _aging(Map<String, dynamic> data, ThemeData theme) {
+    final appTheme = theme.extension<AppThemeExtension>()!;
     final totals = _mapDynamic(data['totals']);
+    final lines = _asList(data['lines']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _meta(theme, 'As of', data['as_of_date']?.toString() ?? ''),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Wrap(
-          children: [
-            _meta(theme, 'Current', _money(totals['current'])),
-            _meta(theme, '1–30', _money(totals['1_30'])),
-            _meta(theme, '31–60', _money(totals['31_60'])),
-            _meta(theme, '61–90', _money(totals['61_90'])),
-            _meta(theme, '91+', _money(totals['91_plus'])),
-            _meta(theme, 'Grand total', _money(totals['grand_total'])),
-          ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+          decoration: BoxDecoration(
+            color: appTheme.subtleFill,
+            borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
+            border: Border.all(color: appTheme.tableBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Aging overview',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingXs),
+              Text(
+                'As of ${_displayDate(data['as_of_date'])}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: [
+                  _agingStatCard(
+                    theme: theme,
+                    label: 'Current',
+                    value: _money(totals['current']),
+                    accent: theme.colorScheme.primary,
+                  ),
+                  _agingStatCard(
+                    theme: theme,
+                    label: '1-30 days',
+                    value: _money(totals['1_30']),
+                    accent: const Color(0xFF2E7D6B),
+                  ),
+                  _agingStatCard(
+                    theme: theme,
+                    label: '31-60 days',
+                    value: _money(totals['31_60']),
+                    accent: const Color(0xFFB8871F),
+                  ),
+                  _agingStatCard(
+                    theme: theme,
+                    label: '61-90 days',
+                    value: _money(totals['61_90']),
+                    accent: const Color(0xFFBE5A38),
+                  ),
+                  _agingStatCard(
+                    theme: theme,
+                    label: '91+ days',
+                    value: _money(totals['91_plus']),
+                    accent: const Color(0xFFB23A48),
+                  ),
+                  _agingStatCard(
+                    theme: theme,
+                    label: 'Grand total',
+                    value: _money(totals['grand_total']),
+                    accent: const Color(0xFF244C7A),
+                    emphasized: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Text(
+                '${lines.length} open invoice${lines.length == 1 ? '' : 's'}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: appTheme.mutedText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
         _table(
@@ -557,11 +626,11 @@ class FinancialReportViews {
                 return [
                   partyName,
                   r['invoice_no']?.toString() ?? '',
-                  r['invoice_date']?.toString() ?? '',
-                  r['due_date']?.toString() ?? '',
+                  _displayDate(r['invoice_date']),
+                  _displayDate(r['due_date']),
                   r['age_days']?.toString() ?? '',
                   _money(r['outstanding_amount']),
-                  r['bucket']?.toString() ?? '',
+                  _bucketLabel(r['bucket']),
                 ];
               })
               .toList(growable: false),
@@ -607,6 +676,64 @@ class FinancialReportViews {
     }
 
     return _ReportDataTable(theme: theme, headers: headers, rows: rows);
+  }
+
+  static Widget _agingStatCard({
+    required ThemeData theme,
+    required String label,
+    required String value,
+    required Color accent,
+    bool emphasized = false,
+  }) {
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      width: 168,
+      padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        border: Border.all(
+          color: emphasized
+              ? accent.withValues(alpha: 0.30)
+              : appTheme.tableBorder,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.cardShadow.withValues(
+              alpha: emphasized ? 0.10 : 0.05,
+            ),
+            blurRadius: emphasized ? 22 : 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: appTheme.mutedText,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            value.isEmpty ? '-' : value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static bool _isNumericHeader(String header) {
@@ -676,6 +803,55 @@ class FinancialReportViews {
         _num(summary['${prefix}_outflows']);
   }
 
+  static String _displayDate(dynamic value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty || raw == '-') {
+      return '-';
+    }
+
+    DateTime? parsed = DateTime.tryParse(raw);
+    parsed ??= DateTime.tryParse(raw.replaceFirst(' ', 'T'));
+    if (parsed == null) {
+      return raw;
+    }
+
+    final months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final day = parsed.day.toString().padLeft(2, '0');
+    final month = months[parsed.month - 1];
+    final year = parsed.year.toString();
+    return '$day $month $year';
+  }
+
+  static String _bucketLabel(dynamic value) {
+    switch (value?.toString().trim()) {
+      case '1_30':
+        return '1-30 days';
+      case '31_60':
+        return '31-60 days';
+      case '61_90':
+        return '61-90 days';
+      case '91_plus':
+        return '91+ days';
+      case 'current':
+        return 'Current';
+      default:
+        return value?.toString() ?? '';
+    }
+  }
+
   static Map<String, dynamic> _mapDynamic(dynamic v) {
     if (v is Map<String, dynamic>) {
       return v;
@@ -702,11 +878,53 @@ class _ReportTableCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final displayText = text.trim().isEmpty ? '-' : text;
+    final isBucket =
+        !alignEnd &&
+        displayText != '-' &&
+        (displayText.endsWith('days') || displayText == 'Current');
+
+    if (isBucket) {
+      final Color accent = switch (displayText) {
+        'Current' => theme.colorScheme.primary,
+        '1-30 days' => const Color(0xFF2E7D6B),
+        '31-60 days' => const Color(0xFFB8871F),
+        '61-90 days' => const Color(0xFFBE5A38),
+        '91+ days' => const Color(0xFFB23A48),
+        _ => appTheme.mutedText,
+      };
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.spacingSm,
+            vertical: AppUiConstants.spacingXs,
+          ),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
+            border: Border.all(color: accent.withValues(alpha: 0.22)),
+          ),
+          child: Text(
+            displayText,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
     final child = Text(
-      text.trim().isEmpty ? '-' : text,
+      displayText,
       overflow: TextOverflow.ellipsis,
       textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-      style: Theme.of(context).textTheme.bodySmall,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: alignEnd ? theme.colorScheme.onSurface : appTheme.tableCellText,
+      ),
     );
 
     return ConstrainedBox(
@@ -753,6 +971,7 @@ class _ReportDataTableState extends State<_ReportDataTable> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = widget.theme.extension<AppThemeExtension>()!;
     return LayoutBuilder(
       builder: (context, constraints) {
         final estimatedWidth = widget.headers.fold<double>(
@@ -770,48 +989,83 @@ class _ReportDataTableState extends State<_ReportDataTable> {
           child: SingleChildScrollView(
             controller: _horizontalScrollController,
             scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                maxWidth: estimatedWidth > constraints.maxWidth
-                    ? estimatedWidth
-                    : constraints.maxWidth,
+            child: Container(
+              decoration: BoxDecoration(
+                color: widget.theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.tableRadiusSm,
+                ),
+                border: Border.all(color: appTheme.tableBorder),
               ),
-              child: DataTable(
-                headingRowHeight: 52,
-                dataRowMinHeight: 56,
-                dataRowMaxHeight: 64,
-                columnSpacing: AppUiConstants.spacingLg,
-                horizontalMargin: AppUiConstants.spacingSm,
-                columns: widget.headers
-                    .map(
-                      (header) => DataColumn(
-                        numeric: FinancialReportViews._isNumericHeader(header),
-                        label: Text(header),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: constraints.maxWidth,
+                  maxWidth: estimatedWidth > constraints.maxWidth
+                      ? estimatedWidth
+                      : constraints.maxWidth,
+                ),
+                child: Theme(
+                  data: widget.theme.copyWith(
+                    dividerColor: appTheme.tableBorder,
+                    dataTableTheme: DataTableThemeData(
+                      headingRowColor: WidgetStatePropertyAll(
+                        appTheme.tableHeaderBackground,
                       ),
-                    )
-                    .toList(growable: false),
-                rows: widget.rows
-                    .map(
-                      (cells) => DataRow(
-                        cells: cells
-                            .asMap()
-                            .entries
-                            .map(
-                              (entry) => DataCell(
-                                _ReportTableCell(
-                                  text: entry.value,
-                                  alignEnd: FinancialReportViews
-                                      ._isNumericHeader(
-                                        widget.headers[entry.key],
-                                      ),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
+                      headingTextStyle: widget.theme.textTheme.titleSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: appTheme.tableTitleText,
+                          ),
+                      dataTextStyle: widget.theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.tableCellText,
                       ),
-                    )
-                    .toList(growable: false),
+                    ),
+                  ),
+                  child: DataTable(
+                    headingRowHeight: 56,
+                    dataRowMinHeight: 58,
+                    dataRowMaxHeight: 66,
+                    columnSpacing: AppUiConstants.spacingLg,
+                    horizontalMargin: AppUiConstants.spacingMd,
+                    columns: widget.headers
+                        .map(
+                          (header) => DataColumn(
+                            numeric: FinancialReportViews._isNumericHeader(
+                              header,
+                            ),
+                            label: Text(header),
+                          ),
+                        )
+                        .toList(growable: false),
+                    rows: widget.rows
+                        .map(
+                          (cells) => DataRow(
+                            color: WidgetStateProperty.resolveWith((states) {
+                              if (states.contains(WidgetState.hovered)) {
+                                return appTheme.tableRowHover;
+                              }
+                              return null;
+                            }),
+                            cells: cells
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => DataCell(
+                                    _ReportTableCell(
+                                      text: entry.value,
+                                      alignEnd:
+                                          FinancialReportViews._isNumericHeader(
+                                            widget.headers[entry.key],
+                                          ),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
               ),
             ),
           ),
