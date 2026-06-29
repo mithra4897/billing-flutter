@@ -930,6 +930,8 @@ List<Widget> buildSalesCustomerCommercialFields({
   required TextEditingController customerRefDateController,
   required TextEditingController notesController,
   required TextEditingController termsController,
+  Widget? notesSuffixIcon,
+  List<Widget> notesExtraFields = const <Widget>[],
 }) {
   return <Widget>[
     AppDropdownField<int>.fromMapped(
@@ -971,7 +973,9 @@ List<Widget> buildSalesCustomerCommercialFields({
       controller: notesController,
       maxLines: 3,
       enabled: canEdit,
+      suffixIcon: notesSuffixIcon,
     ),
+    ...notesExtraFields,
     AppFormTextField(
       labelText: 'Terms & Conditions',
       controller: termsController,

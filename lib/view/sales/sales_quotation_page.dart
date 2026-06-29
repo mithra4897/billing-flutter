@@ -492,6 +492,13 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       allowTemplateEditing: controller.status != 'draft',
                     ),
                   ),
+                if (controller.selectedItem != null)
+                  AppActionButton(
+                    icon: Icons.edit_note_outlined,
+                    label: 'Revise quote',
+                    filled: false,
+                    onPressed: () => controller.reviseSelected(context),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null

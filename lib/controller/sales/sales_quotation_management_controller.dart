@@ -75,6 +75,10 @@ class SalesQuotationManagementController extends GetxController {
   SalesQuotationManagementController();
 
   static const String lineItemsSectionId = 'quotation_line_items';
+  static final RegExp _revisionHeaderPattern = RegExp(
+    r'^Revised Quote (\d+) for quotation (.+?)(?: dated .*)?$',
+    multiLine: true,
+  );
 
   static const List<AppDropdownItem<String>> listStatusFilter =
       <AppDropdownItem<String>>[
@@ -1242,6 +1246,131 @@ class SalesQuotationManagementController extends GetxController {
       () => _salesService.cancelQuotation(
         id,
         SalesQuotationModel.fromJson(const <String, dynamic>{}),
+      ),
+    );
+  }
+
+  String _revisionSourceNumberFromData(Map<String, dynamic> data) {
+    final notes = stringValue(data, 'notes');
+    final match = _revisionHeaderPattern.firstMatch(notes);
+    if (match != null) {
+      final source = (match.group(2) ?? '').trim();
+      if (source.isNotEmpty) {
+        return source;
+      }
+    }
+    return stringValue(data, 'quotation_no', 'Draft');
+  }
+
+  int _nextRevisionNumber(String sourceNumber) {
+    var maxRevision = 0;
+    for (final item in items) {
+      final notes = stringValue(item.toJson(), 'notes');
+      final match = _revisionHeaderPattern.firstMatch(notes);
+      if (match == null) {
+        continue;
+      }
+      final source = (match.group(2) ?? '').trim();
+      if (source != sourceNumber) {
+        continue;
+      }
+      final value = int.tryParse(match.group(1) ?? '');
+      if (value != null && value > maxRevision) {
+        maxRevision = value;
+      }
+    }
+    return maxRevision + 1;
+  }
+
+  String _withoutRevisionHeader(String notes) {
+    final trimmed = notes.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final match = _revisionHeaderPattern.firstMatch(trimmed);
+    if (match == null || match.start != 0) {
+      return trimmed;
+    }
+    return trimmed
+        .substring(match.end)
+        .trimLeft()
+        .replaceFirst(RegExp(r'^\n+'), '');
+  }
+
+  void reviseSelected(BuildContext context) {
+    final data = selectedItem?.toJson() ?? const <String, dynamic>{};
+    if (data.isEmpty) {
+      return;
+    }
+
+    final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map((line) {
+          final copy = Map<String, dynamic>.from(line)
+            ..remove('id')
+            ..remove('sales_quotation_id')
+            ..remove('created_at')
+            ..remove('updated_at');
+          return QuotationLineDraft.fromJson(copy);
+        })
+        .toList(growable: true);
+
+    final sourceNumber = _revisionSourceNumberFromData(data);
+    final revisionNumber = _nextRevisionNumber(sourceNumber);
+    final sourceDate = displayDate(nullableStringValue(data, 'quotation_date'));
+    final revisionHeader = [
+      'Revised Quote $revisionNumber for quotation $sourceNumber',
+      if (sourceDate.isNotEmpty) 'dated $sourceDate',
+    ].join(' ');
+    final originalNotes = _withoutRevisionHeader(stringValue(data, 'notes'));
+
+    selectedItem = null;
+    companyId = intValue(data, 'company_id') ?? contextCompanyId;
+    branchId = intValue(data, 'branch_id') ?? contextBranchId;
+    locationId = intValue(data, 'location_id') ?? contextLocationId;
+    financialYearId =
+        intValue(data, 'financial_year_id') ?? contextFinancialYearId;
+    documentSeriesId = intValue(data, 'document_series_id');
+    customerPartyId = intValue(data, 'customer_party_id');
+    quotationNoController.clear();
+    quotationDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
+    validUntilController.text = displayDate(
+      nullableStringValue(data, 'valid_until'),
+    );
+    customerRefNoController.text = stringValue(data, 'customer_reference_no');
+    customerRefDateController.text = displayDate(
+      nullableStringValue(data, 'customer_reference_date'),
+    );
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
+    notesController.text = originalNotes.isEmpty
+        ? revisionHeader
+        : '$revisionHeader\n\n$originalNotes';
+    termsController.text = stringValue(data, 'terms_conditions');
+    isActive = boolValue(data, 'is_active', fallback: true);
+    crmOpportunityId = intValue(data, 'crm_opportunity_id');
+    salesChain = null;
+    formError = null;
+    _replaceLines(nextLines, notify: false);
+    _syncAutoRoundOff();
+    unawaited(ensureCustomerPrintContext(customerPartyId));
+    update();
+    if (Responsive.isMobile(context) || Responsive.isTablet(context)) {
+      workspaceController.openEditor();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Revision draft created as Revised Quote $revisionNumber. Update details and save it.',
+        ),
       ),
     );
   }

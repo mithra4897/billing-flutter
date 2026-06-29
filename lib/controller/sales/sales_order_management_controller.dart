@@ -92,6 +92,10 @@ class SalesOrderManagementController extends GetxController {
   SalesOrderManagementController();
 
   static const String lineItemsSectionId = 'sales_order_line_items';
+  static final RegExp _notesImageUrlPattern = RegExp(
+    r'https?:\/\/\S+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?\S*)?',
+    caseSensitive: false,
+  );
 
   static const List<AppDropdownItem<String>>
   listStatusFilter = <AppDropdownItem<String>>[
@@ -112,6 +116,7 @@ class SalesOrderManagementController extends GetxController {
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
   final TaxesService _taxesService = TaxesService();
+  final MediaService _mediaService = MediaService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -134,6 +139,7 @@ class SalesOrderManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool uploadingNotesImage = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -174,6 +180,7 @@ class SalesOrderManagementController extends GetxController {
   bool applyRoundOff = false;
   bool isActive = true;
   List<OrderLineDraft> lines = <OrderLineDraft>[];
+  List<String> notesImageUrls = <String>[];
 
   bool _initialized = false;
   int? _lastRequestedSelectId;
@@ -240,6 +247,72 @@ class SalesOrderManagementController extends GetxController {
       return error.message;
     }
     return error.toString();
+  }
+
+  void _setNotesValue(String rawNotes) {
+    notesImageUrls = _notesImageUrlPattern
+        .allMatches(rawNotes)
+        .map((match) => match.group(0) ?? '')
+        .where((url) => url.trim().isNotEmpty)
+        .toList(growable: false);
+
+    final cleanedLines = rawNotes
+        .split('\n')
+        .map((line) => line.trimRight())
+        .where(
+          (line) =>
+              line.trim().isNotEmpty &&
+              !_notesImageUrlPattern.hasMatch(line.trim()),
+        )
+        .toList(growable: false);
+    notesController.text = cleanedLines.join('\n').trim();
+  }
+
+  String _notesPayloadValue() {
+    final text = notesController.text.trim();
+    final urls = notesImageUrls
+        .map((url) => url.trim())
+        .where((url) => url.isNotEmpty)
+        .toList(growable: false);
+    if (text.isEmpty && urls.isEmpty) {
+      return '';
+    }
+    if (text.isEmpty) {
+      return urls.join('\n');
+    }
+    if (urls.isEmpty) {
+      return text;
+    }
+    return '$text\n${urls.join('\n')}';
+  }
+
+  Future<void> uploadNotesImage(BuildContext context) async {
+    await MediaUploadHelper.uploadImage(
+      context: context,
+      mediaService: _mediaService,
+      onLoading: (isLoading) {
+        uploadingNotesImage = isLoading;
+        update();
+      },
+      onSuccess: (filePath) {
+        final normalized = filePath.trim();
+        if (normalized.isNotEmpty && !notesImageUrls.contains(normalized)) {
+          notesImageUrls = <String>[...notesImageUrls, normalized];
+        }
+        formError = null;
+        update();
+      },
+      onError: (errorValue) {
+        formError = errorValue;
+        update();
+      },
+      module: 'sales',
+      documentType: 'sales_orders',
+      documentId: selectedItem?.id,
+      purpose: 'sales_order_notes_image',
+      folder: 'sales/orders/notes',
+      isPublic: true,
+    );
   }
 
   bool get canEdit {
@@ -724,7 +797,7 @@ class SalesOrderManagementController extends GetxController {
         nullableStringValue(data, 'customer_reference_date'),
       );
       roundOffController.clear();
-      notesController.text = stringValue(data, 'notes');
+      _setNotesValue(stringValue(data, 'notes'));
       termsController.text = documentTermsDefault('sales_order');
       isActive = true;
       _replaceLines(nextLines, notify: false);
@@ -781,7 +854,7 @@ class SalesOrderManagementController extends GetxController {
     applyRoundOff =
         (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
         0;
-    notesController.text = stringValue(data, 'notes');
+    _setNotesValue(stringValue(data, 'notes'));
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
@@ -818,6 +891,7 @@ class SalesOrderManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
+    notesImageUrls = <String>[];
     termsController.text = documentTermsDefault('sales_order');
     isActive = true;
     _replaceLines(const <OrderLineDraft>[], notify: false);
@@ -1335,7 +1409,7 @@ class SalesOrderManagementController extends GetxController {
       'igst_amount': roundToDouble(summary.igst, 2),
       'cess_amount': roundToDouble(summary.cess, 2),
       'total_amount': roundToDouble(summary.total, 2),
-      'notes': nullIfEmpty(notesController.text),
+      'notes': nullIfEmpty(_notesPayloadValue()),
       'terms_conditions': nullIfEmpty(termsController.text),
       'is_active': isActive,
       'lines': lines.map(linePayload).toList(growable: false),
