@@ -395,6 +395,7 @@ bool _isPrintAmountLikeKey(String key) {
     'igst_amount',
     'cess_amount',
     'round_off_amount',
+    'adjustment_amount',
   };
   return amountKeys.contains(key.trim().toLowerCase());
 }

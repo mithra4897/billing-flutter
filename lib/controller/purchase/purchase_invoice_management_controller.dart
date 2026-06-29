@@ -628,6 +628,13 @@ class PurchaseInvoiceManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'round_off_amount': _roundOffAmountForSave(),
+        'adjustment_amount': double.parse(
+          ((Validators.parseFlexibleNumber(
+                        adjustmentAmountController.text.trim(),
+                      ) ??
+                      0))
+              .toStringAsFixed(2),
+        ),
       },
     );
   }

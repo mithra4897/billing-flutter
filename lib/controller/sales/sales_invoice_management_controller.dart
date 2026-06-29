@@ -2438,9 +2438,19 @@ class SalesInvoiceManagementController extends GetxController {
       ),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
-      extraData: invoiceStatus == 'draft'
-          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
-          : const <String, dynamic>{},
+      extraData: <String, dynamic>{
+        'round_off_amount': roundToDouble(
+          applyRoundOff
+              ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0)
+              : 0,
+          2,
+        ),
+        'adjustment_amount': roundToDouble(
+          Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0,
+          2,
+        ),
+        if (invoiceStatus == 'draft') 'watermark_text': 'DRAFT',
+      },
     );
   }
 
