@@ -36,6 +36,7 @@ class PhysicalStockCountManagementController extends GetxController {
   List<UomModel> uoms = const <UomModel>[];
   List<StockBatchModel> batches = const <StockBatchModel>[];
   List<StockSerialModel> serials = const <StockSerialModel>[];
+  List<StockBalanceModel> stockBalances = const <StockBalanceModel>[];
   PhysicalStockCountModel? selectedCount;
   List<PhysicalStockCountLineModel> lines = <PhysicalStockCountLineModel>[];
   int? contextCompanyId;
@@ -94,6 +95,9 @@ class PhysicalStockCountManagementController extends GetxController {
         ),
         _inventoryService.stockBatchesDropdown(filters: const {}),
         _inventoryService.stockSerialsDropdown(filters: const {}),
+        _inventoryService.stockBalances(
+          filters: const {'per_page': 1000, 'sort_by': 'qty_available'},
+        ),
       ]);
 
       final counts =
@@ -129,6 +133,9 @@ class PhysicalStockCountManagementController extends GetxController {
       final serialsResponse =
           (responses[10] as ApiResponse<List<StockSerialModel>>).data ??
           const <StockSerialModel>[];
+      final stockBalanceResponse =
+          (responses[11] as PaginatedResponse<StockBalanceModel>).data ??
+          const <StockBalanceModel>[];
 
       final activeCompanies = companies
           .where((company) => company.isActive)
@@ -166,6 +173,7 @@ class PhysicalStockCountManagementController extends GetxController {
       uoms = uomsResponse.where((uom) => uom.isActive).toList();
       batches = batchesResponse;
       serials = serialsResponse;
+      stockBalances = stockBalanceResponse;
       initialLoading = false;
 
       final selected = selectId != null
@@ -278,17 +286,19 @@ class PhysicalStockCountManagementController extends GetxController {
         defaultItem?.baseUomId ?? (uoms.isNotEmpty ? uoms.first.id : null);
     lines = <PhysicalStockCountLineModel>[
       ...lines,
-      PhysicalStockCountLineModel(
-        itemId: defaultItem?.id,
-        uomId: defaultUomId,
-        countedQty: 0,
+      _applySystemStock(
+        PhysicalStockCountLineModel(
+          itemId: defaultItem?.id,
+          uomId: defaultUomId,
+          countedQty: 0,
+        ),
       ),
     ];
     update();
   }
 
   void updateLine(int index, PhysicalStockCountLineModel line) {
-    lines[index] = line;
+    lines[index] = _applySystemStock(line);
     update();
   }
 
@@ -330,6 +340,84 @@ class PhysicalStockCountManagementController extends GetxController {
   String serialLabel(StockSerialModel serial) {
     final json = serial.toJson();
     return json['serial_no']?.toString() ?? 'Serial';
+  }
+
+  PhysicalStockCountLineModel _applySystemStock(
+    PhysicalStockCountLineModel line,
+  ) {
+    final systemQty = _resolveSystemQty(line);
+    final unitCost = line.unitCost ?? _resolveUnitCost(line);
+    final countedQty = line.countedQty;
+    final varianceQty = countedQty == null || systemQty == null
+        ? null
+        : countedQty - systemQty;
+
+    return PhysicalStockCountLineModel(
+      id: line.id,
+      itemId: line.itemId,
+      uomId: line.uomId,
+      batchId: line.batchId,
+      serialId: line.serialId,
+      systemQty: systemQty,
+      countedQty: countedQty,
+      varianceQty: varianceQty,
+      unitCost: unitCost,
+      varianceValue: varianceQty == null || unitCost == null
+          ? null
+          : varianceQty * unitCost,
+      varianceType: varianceQty == null
+          ? null
+          : varianceQty > 0
+          ? 'excess'
+          : varianceQty < 0
+          ? 'shortage'
+          : 'matched',
+      isReconciled: line.isReconciled,
+      remarks: line.remarks,
+      itemCode: line.itemCode,
+      itemName: line.itemName,
+      batchNo: line.batchNo,
+      serialNo: line.serialNo,
+      uomCode: line.uomCode,
+      uomName: line.uomName,
+      uomSymbol: line.uomSymbol,
+    );
+  }
+
+  double? _resolveSystemQty(PhysicalStockCountLineModel line) {
+    if (warehouseId == null || line.itemId == null) {
+      return null;
+    }
+
+    final matches = stockBalances.where((balance) {
+      final sameWarehouse = balance.warehouseId == warehouseId;
+      final sameItem = balance.itemId == line.itemId;
+      final sameBatch = line.batchId == null || balance.batchId == line.batchId;
+      final sameSerial =
+          line.serialId == null || balance.serialId == line.serialId;
+      return sameWarehouse && sameItem && sameBatch && sameSerial;
+    });
+
+    final total = matches.fold<double>(
+      0,
+      (sum, balance) => sum + (balance.qtyAvailable ?? 0),
+    );
+    return total;
+  }
+
+  double? _resolveUnitCost(PhysicalStockCountLineModel line) {
+    if (warehouseId == null || line.itemId == null) {
+      return null;
+    }
+    final balance = stockBalances.cast<StockBalanceModel?>().firstWhere(
+      (entry) =>
+          entry?.warehouseId == warehouseId &&
+          entry?.itemId == line.itemId &&
+          (line.batchId == null || entry?.batchId == line.batchId) &&
+          (line.serialId == null || entry?.serialId == line.serialId),
+      orElse: () => null,
+    );
+    return balance?.avgCost;
   }
 
   PhysicalStockCountModel buildModel() {
@@ -474,6 +562,7 @@ class PhysicalStockCountManagementController extends GetxController {
 
   void setWarehouseId(int? value) {
     warehouseId = value;
+    lines = lines.map(_applySystemStock).toList(growable: true);
     update();
   }
 
