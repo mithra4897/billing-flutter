@@ -240,81 +240,96 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       ];
     }
 
-    return lines
-        .map((line) {
-          final item = _asMap(line['item']);
-          final taxCode = _asMap(line['tax_code']);
-          final taxCodeModel = taxCode.isEmpty
-              ? null
-              : TaxCodeModel.fromJson(taxCode);
-          final qty =
-              Validators.parseFlexibleNumber(
-                line['invoiced_qty']?.toString(),
-              ) ??
-              Validators.parseFlexibleNumber(line['qty']?.toString()) ??
-              0;
-          final rate =
-              Validators.parseFlexibleNumber(line['rate']?.toString()) ?? 0;
-          final discount =
-              Validators.parseFlexibleNumber(
-                line['discount_percent']?.toString(),
-              ) ??
-              0;
-          final rawTaxPercent =
-              Validators.parseFlexibleNumber(line['tax_percent']?.toString()) ??
-              Validators.parseFlexibleNumber(taxCode['rate']?.toString()) ??
-              Validators.parseFlexibleNumber(
-                taxCode['tax_percent']?.toString(),
-              ) ??
-              0;
-          final breakdown = computeSalesLineTaxBreakdown(
-            qty: qty,
-            rate: rate,
-            discountPercent: discount,
-            taxCode: taxCodeModel,
-            isInterState: isInterState,
-          );
-          final taxable =
-              Validators.parseFlexibleNumber(
-                line['taxable_amount']?.toString(),
-              ) ??
-              breakdown.taxable;
-          final igst =
-              Validators.parseFlexibleNumber(line['igst_amount']?.toString()) ??
-              breakdown.igst;
-          final cgst =
-              Validators.parseFlexibleNumber(line['cgst_amount']?.toString()) ??
-              breakdown.cgst;
-          final sgst =
-              Validators.parseFlexibleNumber(line['sgst_amount']?.toString()) ??
-              breakdown.sgst;
-          final amount =
-              Validators.parseFlexibleNumber(line['line_total']?.toString()) ??
-              roundToDouble(taxable + igst + cgst + sgst, 2);
-          final hsn = _firstNonEmpty(<String?>[
-            nullableStringValue(item, 'hsn_sac_code'),
-            nullableStringValue(item, 'hsn_code'),
-            nullableStringValue(item, 'sac_code'),
-          ]);
+    final hsnValues = <String>{};
+    final gstPercentValues = <String>{};
+    var totalQty = 0.0;
+    var totalTaxable = 0.0;
+    var totalIgst = 0.0;
+    var totalCgst = 0.0;
+    var totalSgst = 0.0;
+    var totalAmount = 0.0;
 
-          return <_ExcelCell>[
-            _ExcelCell.text(''),
-            _ExcelCell.text(invoiceDate),
-            _ExcelCell.text(customerName),
-            _ExcelCell.text(state),
-            _ExcelCell.text(gstin),
-            _ExcelCell.text(invoiceNo),
-            _ExcelCell.text(hsn),
-            _ExcelCell.number(rawTaxPercent),
-            _ExcelCell.number(qty),
-            _ExcelCell.number(taxable),
-            _ExcelCell.number(igst),
-            _ExcelCell.number(cgst),
-            _ExcelCell.number(sgst),
-            _ExcelCell.number(amount),
-          ];
-        })
-        .toList(growable: false);
+    for (final line in lines) {
+      final item = _asMap(line['item']);
+      final taxCode = _asMap(line['tax_code']);
+      final taxCodeModel = taxCode.isEmpty ? null : TaxCodeModel.fromJson(taxCode);
+      final qty =
+          Validators.parseFlexibleNumber(line['invoiced_qty']?.toString()) ??
+          Validators.parseFlexibleNumber(line['qty']?.toString()) ??
+          0;
+      final rate = Validators.parseFlexibleNumber(line['rate']?.toString()) ?? 0;
+      final discount =
+          Validators.parseFlexibleNumber(line['discount_percent']?.toString()) ??
+          0;
+      final rawTaxPercent =
+          Validators.parseFlexibleNumber(line['tax_percent']?.toString()) ??
+          Validators.parseFlexibleNumber(taxCode['rate']?.toString()) ??
+          Validators.parseFlexibleNumber(taxCode['tax_percent']?.toString()) ??
+          0;
+      final breakdown = computeSalesLineTaxBreakdown(
+        qty: qty,
+        rate: rate,
+        discountPercent: discount,
+        taxCode: taxCodeModel,
+        isInterState: isInterState,
+      );
+      final taxable =
+          Validators.parseFlexibleNumber(line['taxable_amount']?.toString()) ??
+          breakdown.taxable;
+      final igst =
+          Validators.parseFlexibleNumber(line['igst_amount']?.toString()) ??
+          breakdown.igst;
+      final cgst =
+          Validators.parseFlexibleNumber(line['cgst_amount']?.toString()) ??
+          breakdown.cgst;
+      final sgst =
+          Validators.parseFlexibleNumber(line['sgst_amount']?.toString()) ??
+          breakdown.sgst;
+      final amount =
+          Validators.parseFlexibleNumber(line['line_total']?.toString()) ??
+          roundToDouble(taxable + igst + cgst + sgst, 2);
+      final hsn = _firstNonEmpty(<String?>[
+        nullableStringValue(item, 'hsn_sac_code'),
+        nullableStringValue(item, 'hsn_code'),
+        nullableStringValue(item, 'sac_code'),
+      ]);
+
+      if (hsn.isNotEmpty) {
+        hsnValues.add(hsn);
+      }
+      gstPercentValues.add(_formatExportNumber(rawTaxPercent));
+      totalQty += qty;
+      totalTaxable += taxable;
+      totalIgst += igst;
+      totalCgst += cgst;
+      totalSgst += sgst;
+      totalAmount += amount;
+    }
+
+    return <List<_ExcelCell>>[
+      <_ExcelCell>[
+        _ExcelCell.text(''),
+        _ExcelCell.text(invoiceDate),
+        _ExcelCell.text(customerName),
+        _ExcelCell.text(state),
+        _ExcelCell.text(gstin),
+        _ExcelCell.text(invoiceNo),
+        _ExcelCell.text(hsnValues.join(', ')),
+        _ExcelCell.text(gstPercentValues.join(', ')),
+        _ExcelCell.number(roundToDouble(totalQty, 2)),
+        _ExcelCell.number(roundToDouble(totalTaxable, 2)),
+        _ExcelCell.number(roundToDouble(totalIgst, 2)),
+        _ExcelCell.number(roundToDouble(totalCgst, 2)),
+        _ExcelCell.number(roundToDouble(totalSgst, 2)),
+        _ExcelCell.number(roundToDouble(totalAmount, 2)),
+      ],
+    ];
+  }
+
+  String _formatExportNumber(double value) {
+    return value == value.roundToDouble()
+        ? value.roundToDouble().toStringAsFixed(0)
+        : value.toStringAsFixed(2);
   }
 
   String _companyLabel(Map<String, dynamic>? invoice) {

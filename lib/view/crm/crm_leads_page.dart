@@ -1069,7 +1069,11 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: SettingsExpandableTile(
                 title: activity.activityTypeLabel,
+                // Surface activity completion state directly in the collapsed card.
                 subtitle: [
+                  activity.status.trim().isEmpty
+                      ? ''
+                      : activity.status.trim().toUpperCase(),
                   activity.activityDateTimeController.text.trim(),
                   activity.nextFollowupController.text.trim(),
                 ].where((value) => value.isNotEmpty).join(' • '),
@@ -1097,6 +1101,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         initialValue: activity.activityType,
                         onChanged: (value) =>
                             controller.setLeadActivityType(activity, value),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: CrmLeadsController.activityStatuses,
+                        initialValue: activity.status,
+                        onChanged: (value) =>
+                            controller.setLeadActivityStatus(activity, value),
                       ),
                       AppFormTextField(
                         controller: activity.activityDateTimeController,

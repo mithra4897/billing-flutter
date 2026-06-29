@@ -1263,7 +1263,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                         ),
                       )
                       .toList(growable: false),
-                  onChanged: controller.setLeadId,
+                  onChanged: (value) {
+                    unawaited(controller.setLeadId(value));
+                  },
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -1681,6 +1683,14 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     CrmOpportunitiesController controller,
   ) {
     final isLocked = controller.isSelectedOpportunityReadOnly;
+    if (!controller.canManageFollowups) {
+      return _buildDependentTabPlaceholder(
+        title: 'Save Opportunity First',
+        message:
+            'Save the opportunity header before adding follow-ups. Follow-ups are tracked against an existing opportunity.',
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

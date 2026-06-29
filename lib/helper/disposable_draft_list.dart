@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 final Expando<bool> _draftEntryPendingDispose = Expando<bool>(
@@ -28,14 +29,16 @@ void disposeDraftEntriesNextFrame<T extends Object>(
   if (capturedEntries.isEmpty) {
     return;
   }
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    for (final entry in capturedEntries) {
-      try {
-        dispose(entry);
-      } finally {
-        _draftEntryPendingDispose[entry] = false;
+  SchedulerBinding.instance.endOfFrame.then((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final entry in capturedEntries) {
+        try {
+          dispose(entry);
+        } finally {
+          _draftEntryPendingDispose[entry] = false;
+        }
       }
-    }
+    });
   });
 }
 
@@ -46,12 +49,14 @@ void disposeChangeNotifiersNextFrame<T extends ChangeNotifier>(
   if (captured.isEmpty) {
     return;
   }
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    for (final notifier in captured) {
-      try {
-        notifier.dispose();
-      } catch (_) {}
-    }
+  SchedulerBinding.instance.endOfFrame.then((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final notifier in captured) {
+        try {
+          notifier.dispose();
+        } catch (_) {}
+      }
+    });
   });
 }
 

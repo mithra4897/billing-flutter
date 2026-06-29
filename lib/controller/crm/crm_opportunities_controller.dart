@@ -88,6 +88,8 @@ class CrmOpportunitiesController extends GetxController {
   bool appliedInitialNewMode = false;
   bool filtersApplied = false;
   Worker? _refreshWorker;
+  String? _autofilledOpportunityName;
+  String? _autofilledRemarks;
 
   bool get isSelectedOpportunityReadOnly {
     final data = selectedItem?.toJson() ?? const <String, dynamic>{};
@@ -100,6 +102,8 @@ class CrmOpportunitiesController extends GetxController {
         lifecycleStatus == 'lost' ||
         lifecycleStatus == 'converted';
   }
+
+  bool get canManageFollowups => selectedItem != null;
 
   @override
   void onInit() {
@@ -371,6 +375,8 @@ class CrmOpportunitiesController extends GetxController {
     expectedCloseDateController.text = displayDate(
       nullableStringValue(data, 'expected_close_date'),
     );
+    _autofilledOpportunityName = null;
+    _autofilledRemarks = null;
     _replaceLines(nextLines, notify: false);
     _replaceFollowups(nextFollowups, notify: false);
     _replaceProducts(nextProducts, notify: false);
@@ -409,6 +415,8 @@ class CrmOpportunitiesController extends GetxController {
     expectedValueController.clear();
     probabilityController.clear();
     expectedCloseDateController.clear();
+    _autofilledOpportunityName = null;
+    _autofilledRemarks = null;
     _replaceLines(const <OpportunityLineDraft>[], notify: false);
     _replaceFollowups(const <OpportunityFollowupDraft>[], notify: false);
     _replaceProducts(const <OpportunityProductDraft>[], notify: false);
@@ -445,14 +453,7 @@ class CrmOpportunitiesController extends GetxController {
         contextCompanyId;
     this.leadId = leadId ?? initialLeadId ?? this.leadId;
     assignedTo = initialAssignedTo ?? lead?.assignedTo ?? assignedTo;
-    if (lead != null) {
-      final data = lead.toJson();
-      final leadName = stringValue(data, 'lead_name');
-      remarksController.text = stringValue(data, 'remarks');
-      if (leadName.isNotEmpty) {
-        nameController.text = leadName;
-      }
-    }
+    _applyLeadAutofill(lead, forceTextValues: true);
     formError = null;
     if (notify) {
       update();
@@ -479,6 +480,62 @@ class CrmOpportunitiesController extends GetxController {
     } catch (_) {
       return null;
     }
+  }
+
+  CrmLeadModel? _leadById(int? id) {
+    if (id == null) {
+      return null;
+    }
+
+    return leads.cast<CrmLeadModel?>().firstWhere(
+      (item) => intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') == id,
+      orElse: () => null,
+    );
+  }
+
+  void _applyLeadAutofill(
+    CrmLeadModel? lead, {
+    bool forceTextValues = false,
+  }) {
+    if (lead == null) {
+      _autofilledOpportunityName = null;
+      _autofilledRemarks = null;
+      return;
+    }
+
+    final data = lead.toJson();
+    final nextCompanyId = intValue(data, 'company_id');
+    final nextAssignedTo = intValue(data, 'assigned_to');
+    final nextOpportunityName = stringValue(data, 'lead_name');
+    final nextRemarks = stringValue(data, 'remarks');
+
+    if (nextCompanyId != null) {
+      companyId = nextCompanyId;
+    }
+    if (nextAssignedTo != null) {
+      assignedTo = nextAssignedTo;
+    }
+
+    final currentOpportunityName = nameController.text.trim();
+    final previousAutofilledName = (_autofilledOpportunityName ?? '').trim();
+    if (forceTextValues ||
+        currentOpportunityName.isEmpty ||
+        (previousAutofilledName.isNotEmpty &&
+            currentOpportunityName == previousAutofilledName)) {
+      nameController.text = nextOpportunityName;
+    }
+
+    final currentRemarks = remarksController.text.trim();
+    final previousAutofilledRemarks = (_autofilledRemarks ?? '').trim();
+    if (forceTextValues ||
+        currentRemarks.isEmpty ||
+        (previousAutofilledRemarks.isNotEmpty &&
+            currentRemarks == previousAutofilledRemarks)) {
+      remarksController.text = nextRemarks;
+    }
+
+    _autofilledOpportunityName = nextOpportunityName;
+    _autofilledRemarks = nextRemarks;
   }
 
   void disposeLines(List<OpportunityLineDraft> source) {
@@ -513,7 +570,7 @@ class CrmOpportunitiesController extends GetxController {
 
   void addFollowup() {
     followups = List<OpportunityFollowupDraft>.from(followups)
-      ..add(OpportunityFollowupDraft());
+      ..add(OpportunityFollowupDraft(assignedTo: assignedTo));
     expandedFollowupIndex = followups.length - 1;
     update();
   }
@@ -602,6 +659,17 @@ class CrmOpportunitiesController extends GetxController {
     if (activeFormState != null && !activeFormState.validate()) {
       return;
     }
+    if (selectedItem != null) {
+      final followupValidationError = _validateFollowups();
+      if (followupValidationError != null) {
+        formError = followupValidationError;
+        appScaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(followupValidationError)),
+        );
+        update();
+        return;
+      }
+    }
     saving = true;
     formError = null;
     update();
@@ -621,11 +689,14 @@ class CrmOpportunitiesController extends GetxController {
       'expected_close_date': nullIfEmpty(expectedCloseDateController.text),
       'status': status,
       'lines': lines.map((item) => item.toJson()).toList(growable: false),
-      'followups': followups
-          .map((item) => item.toJson())
-          .toList(growable: false),
       'products': products.map((item) => item.toJson()).toList(growable: false),
     };
+
+    if (selectedItem != null) {
+      payload['followups'] = followups
+          .map((item) => item.toJson())
+          .toList(growable: false);
+    }
 
     try {
       final response = selectedItem == null
@@ -736,8 +807,9 @@ class CrmOpportunitiesController extends GetxController {
     update();
   }
 
-  void setLeadId(int? value) {
+  Future<void> setLeadId(int? value) async {
     leadId = value;
+    _applyLeadAutofill(_leadById(value), forceTextValues: false);
     update();
   }
 
@@ -748,6 +820,9 @@ class CrmOpportunitiesController extends GetxController {
 
   void setAssignedTo(int? value) {
     assignedTo = value;
+    for (final followup in followups) {
+      followup.assignedTo ??= value;
+    }
     update();
   }
 
@@ -779,6 +854,23 @@ class CrmOpportunitiesController extends GetxController {
   void setActiveTabIndex(int index) {
     activeTabIndex = index;
     update();
+  }
+
+  String? _validateFollowups() {
+    for (var index = 0; index < followups.length; index++) {
+      final followup = followups[index];
+      final rowNumber = index + 1;
+      if (followup.followupDateController.text.trim().isEmpty) {
+        return 'Followup date is required for followup $rowNumber.';
+      }
+      if ((followup.assignedTo ?? assignedTo) == null) {
+        return 'Assigned To is required for followup $rowNumber.';
+      }
+      if (followup.notesController.text.trim().isEmpty) {
+        return 'Notes are required for followup $rowNumber.';
+      }
+    }
+    return null;
   }
 
   bool _filterAllowsStatus(String statusValue) {

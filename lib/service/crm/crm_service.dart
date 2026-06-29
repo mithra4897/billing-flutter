@@ -118,14 +118,14 @@ class CrmService extends ErpModuleService {
   Future<PaginatedResponse<CrmEnquiryModel>> enquiries({
     Map<String, dynamic>? filters,
   }) => paginated<CrmEnquiryModel>(
-    ApiEndpoints.crmOpportunities,
+    ApiEndpoints.crmEnquiries,
     filters: filters,
     fromJson: CrmEnquiryModel.fromJson,
   );
 
   Future<ApiResponse<CrmEnquiryModel>> enquiry(int id) =>
       object<CrmEnquiryModel>(
-        '${ApiEndpoints.crmOpportunities}/$id',
+        '${ApiEndpoints.crmEnquiries}/$id',
         fromJson: CrmEnquiryModel.fromJson,
       );
 
@@ -160,7 +160,7 @@ class CrmService extends ErpModuleService {
 
   Future<ApiResponse<CrmEnquiryModel>> createEnquiry(CrmEnquiryModel body) =>
       createModel<CrmEnquiryModel>(
-        ApiEndpoints.crmOpportunities,
+        ApiEndpoints.crmEnquiries,
         body,
         fromJson: CrmEnquiryModel.fromJson,
       );
@@ -169,7 +169,7 @@ class CrmService extends ErpModuleService {
     int id,
     CrmEnquiryModel body,
   ) => updateModel<CrmEnquiryModel>(
-    '${ApiEndpoints.crmOpportunities}/$id',
+    '${ApiEndpoints.crmEnquiries}/$id',
     body,
     fromJson: CrmEnquiryModel.fromJson,
   );
@@ -195,13 +195,13 @@ class CrmService extends ErpModuleService {
     int id,
     CrmEnquiryModel body,
   ) => actionModel<CrmEnquiryModel>(
-    '${ApiEndpoints.crmOpportunities}/$id/lose',
+    '${ApiEndpoints.crmEnquiries}/$id/lose',
     body: body,
     fromJson: CrmEnquiryModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteEnquiry(int id) =>
-      destroy('${ApiEndpoints.crmOpportunities}/$id');
+      destroy('${ApiEndpoints.crmEnquiries}/$id');
 
   Future<PaginatedResponse<CrmOpportunityModel>> opportunities({
     Map<String, dynamic>? filters,

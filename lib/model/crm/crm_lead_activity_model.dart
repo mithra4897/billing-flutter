@@ -8,6 +8,7 @@ class CrmLeadActivityModel extends JsonModel {
     this.activityDatetime,
     this.notes,
     this.nextFollowup,
+    this.status,
     this.createdBy,
     this.createdAt,
     this.updatedAt,
@@ -18,6 +19,7 @@ class CrmLeadActivityModel extends JsonModel {
   final String? activityDatetime;
   final String? notes;
   final String? nextFollowup;
+  final String? status;
   final int? createdBy;
   final String? createdAt;
   final String? updatedAt;
@@ -30,6 +32,7 @@ class CrmLeadActivityModel extends JsonModel {
       activityDatetime: json['activity_datetime']?.toString(),
       notes: json['notes']?.toString(),
       nextFollowup: json['next_followup']?.toString(),
+      status: json['status']?.toString(),
       createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
@@ -50,6 +53,7 @@ class CrmLeadActivityModel extends JsonModel {
     if (activityDatetime != null) 'activity_datetime': activityDatetime,
     if (notes != null) 'notes': notes,
     if (nextFollowup != null) 'next_followup': nextFollowup,
+    if (status != null) 'status': status,
     if (createdBy != null) 'created_by': createdBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,

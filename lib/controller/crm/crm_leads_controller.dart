@@ -19,6 +19,11 @@ class CrmLeadsController extends GetxController {
         AppDropdownItem(value: 'note', label: 'Note'),
         AppDropdownItem(value: 'whatsapp', label: 'WhatsApp'),
       ];
+  static const List<AppDropdownItem<String>> activityStatuses =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'pending', label: 'Pending'),
+        AppDropdownItem(value: 'done', label: 'Done'),
+      ];
 
   CrmLeadsController({
     required this.startInNewMode,
@@ -711,6 +716,11 @@ class CrmLeadsController extends GetxController {
     update();
   }
 
+  void setLeadActivityStatus(LeadActivityDraft activity, String? value) {
+    activity.status = value ?? activity.status;
+    update();
+  }
+
   void setActiveTabIndex(int index) {
     activeTabIndex = index;
     update();
@@ -720,6 +730,7 @@ class CrmLeadsController extends GetxController {
 class LeadActivityDraft {
   LeadActivityDraft({
     this.activityType = 'call',
+    this.status = 'pending',
     String? activityDateTime,
     String? notes,
     String? nextFollowup,
@@ -740,6 +751,7 @@ class LeadActivityDraft {
   factory LeadActivityDraft.fromJson(Map<String, dynamic> json) {
     return LeadActivityDraft(
       activityType: stringValue(json, 'activity_type', 'call'),
+      status: stringValue(json, 'status', 'pending'),
       activityDateTime: stringValue(json, 'activity_datetime'),
       notes: stringValue(json, 'notes'),
       nextFollowup: stringValue(json, 'next_followup'),
@@ -747,6 +759,7 @@ class LeadActivityDraft {
   }
 
   String activityType;
+  String status;
   final TextEditingController activityDateTimeController;
   final TextEditingController notesController;
   final TextEditingController nextFollowupController;
@@ -772,6 +785,7 @@ class LeadActivityDraft {
   Map<String, dynamic> toJson() {
     return {
       'activity_type': activityType,
+      'status': status,
       'activity_datetime': nullIfEmpty(activityDateTimeController.text),
       'notes': nullIfEmpty(notesController.text),
       'next_followup': nullIfEmpty(nextFollowupController.text),
