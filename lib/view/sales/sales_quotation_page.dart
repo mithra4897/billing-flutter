@@ -294,8 +294,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     final totalStr = (controller.taxSummary().total + roundOff).toStringAsFixed(
       2,
     );
-    final hasExistingOrder =
-        ((controller.salesChain?['orders'] as List?) ?? const []).isNotEmpty;
+    final selectedQuotationId = intValue(selected, 'id');
+    final chainOrders =
+        ((controller.salesChain?['orders'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(growable: false);
+    final hasExistingOrder = selectedQuotationId == null
+        ? chainOrders.isNotEmpty
+        : chainOrders.any(
+            (order) =>
+                intValue(order, 'sales_quotation_id') == selectedQuotationId,
+          );
 
     return SettingsWorkspace(
       controller: controller.workspaceController,

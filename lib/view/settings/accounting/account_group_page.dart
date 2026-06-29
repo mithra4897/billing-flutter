@@ -51,14 +51,36 @@ class _AccountGroupManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('AccountGroupManagementController');
-    Get.put(AccountGroupManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'AccountGroupManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<AccountGroupManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<AccountGroupManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<AccountGroupManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(AccountGroupManagementController(), tag: _controllerTag);
   }
 
   @override

@@ -20,7 +20,33 @@ class _DocumentPostingManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'DocumentPostingManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
     );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<DocumentPostingManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<DocumentPostingManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<DocumentPostingManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
     Get.put(DocumentPostingManagementController(), tag: _controllerTag);
   }
 

@@ -24,13 +24,15 @@ class _BranchManagementPageState extends State<BranchManagementPage>
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('BranchManagementController');
-    _controller = Get.put(
-      BranchManagementController(initialTabIndex: widget.initialTabIndex),
-      tag: _controllerTag,
-    permanent: true,
+    _controllerTag = persistentControllerTag(
+      'BranchManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+        'initialTabIndex': widget.initialTabIndex,
+      },
     );
+    _controller = _registerController();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
@@ -42,7 +44,20 @@ class _BranchManagementPageState extends State<BranchManagementPage>
   @override
   void dispose() {
     _tabController.dispose();
+    if (Get.isRegistered<BranchManagementController>(tag: _controllerTag)) {
+      Get.delete<BranchManagementController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
+  }
+
+  BranchManagementController _registerController() {
+    if (Get.isRegistered<BranchManagementController>(tag: _controllerTag)) {
+      return Get.find<BranchManagementController>(tag: _controllerTag);
+    }
+    return Get.put(
+      BranchManagementController(initialTabIndex: widget.initialTabIndex),
+      tag: _controllerTag,
+    );
   }
 
   @override

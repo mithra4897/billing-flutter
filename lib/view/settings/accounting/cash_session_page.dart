@@ -17,7 +17,31 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('CashSessionManagementController');
+    _controllerTag = persistentControllerTag(
+      'CashSessionManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CashSessionManagementController>(tag: _controllerTag)) {
+      Get.delete<CashSessionManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<CashSessionManagementController>(tag: _controllerTag)) {
+      return;
+    }
     Get.put(CashSessionManagementController(), tag: _controllerTag);
   }
 

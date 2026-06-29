@@ -16,7 +16,28 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('FinancialReportsController');
+    _controllerTag = persistentControllerTag(
+      'FinancialReportsController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<FinancialReportsController>(tag: _controllerTag)) {
+      Get.delete<FinancialReportsController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<FinancialReportsController>(tag: _controllerTag)) {
+      return;
+    }
     Get.put(FinancialReportsController(), tag: _controllerTag);
   }
 

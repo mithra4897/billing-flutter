@@ -18,14 +18,36 @@ class _BankReconciliationManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('BankReconciliationManagementController');
-    Get.put(BankReconciliationManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'BankReconciliationManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
+    _registerController();
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<BankReconciliationManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<BankReconciliationManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
+  }
+
+  void _registerController() {
+    if (Get.isRegistered<BankReconciliationManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    Get.put(BankReconciliationManagementController(), tag: _controllerTag);
   }
 
   @override

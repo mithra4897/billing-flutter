@@ -770,6 +770,24 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       changed = true;
     }
+    if (widget.documentType == 'sales_invoice' &&
+        !updatedColumns.any((column) => column.key == 'discount_label')) {
+      final rateIndex = updatedColumns.indexWhere(
+        (column) => column.key == 'rate',
+      );
+      final insertAt = rateIndex >= 0 ? rateIndex + 1 : updatedColumns.length;
+      updatedColumns.insert(
+        insertAt,
+        const DocumentPrintColumn(
+          key: 'discount_label',
+          label: 'Disc',
+          widthFactor: 1.0,
+          align: 'right',
+          titleAlign: 'center',
+        ),
+      );
+      changed = true;
+    }
 
     return changed ? shape.copyWith(columns: updatedColumns) : shape;
   }

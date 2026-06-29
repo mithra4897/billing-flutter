@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'stock_issue_line_model.dart';
 
 class StockIssueModel extends JsonModel {
   const StockIssueModel({
@@ -24,6 +25,7 @@ class StockIssueModel extends JsonModel {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.items,
   });
   final int? companyId;
   final int? branchId;
@@ -46,6 +48,7 @@ class StockIssueModel extends JsonModel {
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final List<StockIssueLineModel>? items;
 
   factory StockIssueModel.fromJson(Map<String, dynamic> json) {
     return StockIssueModel(
@@ -73,6 +76,11 @@ class StockIssueModel extends JsonModel {
           : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      items: json['items'] == null
+          ? null
+          : (json['items'] as List<dynamic>)
+              .map((e) => StockIssueLineModel.fromJson(e as Map<String, dynamic>))
+              .toList(),
     );
   }
   @override
@@ -107,5 +115,6 @@ class StockIssueModel extends JsonModel {
     if (isActive != null) 'is_active': isActive,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (items != null) 'items': items!.map((e) => e.toJson()).toList(),
   };
 }

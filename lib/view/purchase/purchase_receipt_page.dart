@@ -472,12 +472,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                             .toList(growable: false),
                         initialValue: controller.warehouseId,
                         onChanged: controller.setWarehouseId,
-                        validator: (_) => controller.hasInventoryTrackedLines
-                            ? Validators.requiredSelectionField(
-                                controller.warehouseId,
-                                'Warehouse',
-                              )
-                            : null,
+                        validator: (_) => Validators.requiredSelectionField(
+                          controller.warehouseId,
+                          'Warehouse',
+                        ),
                       ),
                       AppFormTextField(
                         labelText: 'Supplier Invoice No',

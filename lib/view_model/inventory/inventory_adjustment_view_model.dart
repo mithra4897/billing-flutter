@@ -113,10 +113,15 @@ class InventoryAdjustmentViewModel extends GetxController {
   final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final TextEditingController adjustmentNoController = TextEditingController();
   final TextEditingController adjustmentDateController =
       TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+
+  String statusFilter = '';
+  String categoryFilter = '';
 
   bool loading = true;
   bool detailLoading = false;
@@ -190,11 +195,61 @@ class InventoryAdjustmentViewModel extends GetxController {
     financialYearId: financialYearId,
   );
 
+  static const List<AppDropdownItem<String>> listStatusFilter =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: '', label: 'All'),
+        AppDropdownItem<String>(value: 'draft', label: 'Draft'),
+        AppDropdownItem<String>(value: 'posted', label: 'Posted'),
+        AppDropdownItem<String>(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  List<AppDropdownItem<String>> get categoryItems {
+    final seen = <String>{};
+    final items = <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All'),
+    ];
+    for (final row in rows) {
+      for (final line in row.items ?? const <InventoryAdjustmentItemModel>[]) {
+        final item = itemById(line.itemId);
+        final value = (item?.categoryName ?? '').trim();
+        if (value.isEmpty) {
+          continue;
+        }
+        final normalized = value.toLowerCase();
+        if (!seen.add(normalized)) {
+          continue;
+        }
+        items.add(AppDropdownItem<String>(value: normalized, label: value));
+      }
+    }
+    return items;
+  }
+
   List<InventoryAdjustmentModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
     return rows
         .where((row) {
           final data = row.toJson();
+          final rowStatus = stringValue(data, 'adjustment_status');
+          if (statusFilter.isNotEmpty && rowStatus != statusFilter) {
+            return false;
+          }
+          if (categoryFilter.isNotEmpty) {
+            final rowCategories = (row.items ?? const <InventoryAdjustmentItemModel>[])
+                .map((line) => (itemById(line.itemId)?.categoryName ?? '').trim().toLowerCase())
+                .where((value) => value.isNotEmpty)
+                .toSet();
+            if (!rowCategories.contains(categoryFilter)) {
+              return false;
+            }
+          }
+          if (!matchesDateValueRange(
+            nullableStringValue(data, 'adjustment_date'),
+            fromValue: dateFromController.text,
+            toValue: dateToController.text,
+          )) {
+            return false;
+          }
           if (q.isEmpty) return true;
           return [
             stringValue(data, 'adjustment_no'),
@@ -204,6 +259,10 @@ class InventoryAdjustmentViewModel extends GetxController {
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  void applyFilters() {
+    update();
   }
 
   String _rowItemSearchText(InventoryAdjustmentModel row) {
@@ -821,6 +880,8 @@ class InventoryAdjustmentViewModel extends GetxController {
   void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     adjustmentNoController.dispose();
     adjustmentDateController.dispose();
     remarksController.dispose();

@@ -340,6 +340,13 @@ class DocumentPrintTemplate {
                 titleAlign: 'center',
               ),
               DocumentPrintColumn(
+                key: 'discount_label',
+                label: 'Disc',
+                widthFactor: 1.0,
+                align: 'right',
+                titleAlign: 'center',
+              ),
+              DocumentPrintColumn(
                 key: 'tax_amount',
                 label: 'Tax',
                 widthFactor: 1.2,
@@ -2407,7 +2414,13 @@ class DocumentPrintShape {
       DocumentPrintColumn(
         key: 'rate',
         label: 'Rate',
-        widthFactor: 1.2,
+        widthFactor: 1.0,
+        align: 'right',
+      ),
+      DocumentPrintColumn(
+        key: 'discount_label',
+        label: 'Disc %',
+        widthFactor: 1.0,
         align: 'right',
       ),
       DocumentPrintColumn(

@@ -408,6 +408,8 @@ class SalesDeliveryManagementController extends GetxController {
 
   bool isSerialManagedItem(int? itemId) => itemById(itemId)?.hasSerial == true;
   bool isBatchManagedItem(int? itemId) => itemById(itemId)?.hasBatch == true;
+  bool isStockTrackedItem(int? itemId) =>
+      itemById(itemId)?.trackInventory == true;
 
   String batchCacheKey(int? itemId, int? warehouseId) =>
       '${itemId ?? 0}:${warehouseId ?? 0}:${companyId ?? 0}';
@@ -1513,17 +1515,22 @@ class SalesDeliveryManagementController extends GetxController {
     if (!formKey.currentState!.validate()) return;
     syncInventoryOptionsForLines(lines);
     if (deliveryKind == 'dc') {
-      if (lines.any(
-        (line) =>
-            line.itemId == null ||
-            line.uomId == null ||
-            line.warehouseId == null ||
-            (Validators.parseFlexibleNumber(line.deliveredQtyController.text) ??
-                    0) <=
-                0,
-      )) {
+      final saveLines = linesForSave();
+      if (saveLines.isEmpty ||
+          saveLines.any(
+            (line) =>
+                intValue(line, 'item_id') == null ||
+                intValue(line, 'uom_id') == null ||
+                (isStockTrackedItem(intValue(line, 'item_id')) &&
+                    intValue(line, 'warehouse_id') == null) ||
+                (Validators.parseFlexibleNumber(
+                          line['delivered_qty']?.toString(),
+                        ) ??
+                        0) <=
+                    0,
+          )) {
         formError =
-            'Each line needs item, warehouse, UOM, and delivered quantity.';
+            'Each line needs item, UOM, and delivered quantity. Warehouse is required only for stock-tracked items.';
         update();
         return;
       }
@@ -1575,12 +1582,10 @@ class SalesDeliveryManagementController extends GetxController {
     };
     try {
       final response = selectedItem == null
-          ? await _salesService.createDelivery(
-              SalesDeliveryModel.fromJson(payload),
-            )
+          ? await _salesService.createDelivery(payload)
           : await _salesService.updateDelivery(
               intValue(selectedItem!.toJson(), 'id')!,
-              SalesDeliveryModel.fromJson(payload),
+              payload,
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

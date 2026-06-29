@@ -188,17 +188,16 @@ class SalesService extends ErpModuleService {
         fromJson: SalesDeliveryModel.fromJson,
       );
 
-  Future<ApiResponse<SalesDeliveryModel>> createDelivery(
-    SalesDeliveryModel body,
-  ) => createModel<SalesDeliveryModel>(
-    '/sales/deliveries',
-    body,
-    fromJson: SalesDeliveryModel.fromJson,
-  );
+  Future<ApiResponse<SalesDeliveryModel>> createDelivery(dynamic body) =>
+      createModel<SalesDeliveryModel>(
+        '/sales/deliveries',
+        body,
+        fromJson: SalesDeliveryModel.fromJson,
+      );
 
   Future<ApiResponse<SalesDeliveryModel>> updateDelivery(
     int id,
-    SalesDeliveryModel body,
+    dynamic body,
   ) => updateModel<SalesDeliveryModel>(
     '/sales/deliveries/$id',
     body,
