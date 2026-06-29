@@ -142,7 +142,8 @@ OpeningStockModel _enrichOpeningStockRowWithItemMaster(
   });
 }
 
-Future<PaginatedResponse<T>> _loadEnrichedInventoryRegister<T extends JsonModel>({
+Future<PaginatedResponse<T>>
+_loadEnrichedInventoryRegister<T extends JsonModel>({
   required InventoryService service,
   required Future<PaginatedResponse<T>> Function() listLoader,
   required Future<ApiResponse<T>> Function(int id) detailLoader,
@@ -171,7 +172,7 @@ Future<PaginatedResponse<T>> _loadEnrichedInventoryRegister<T extends JsonModel>
       try {
         final detail = await detailLoader(id);
         final detailedRow = detail.data ?? row;
-        
+
         final rawItems = detailedRow.toJson()['items'];
         if (rawItems is! List) {
           return detailedRow;
@@ -223,7 +224,10 @@ List<String> _genericCategoryValues<T extends JsonModel>(T row) {
   if (rawItems is List) {
     for (final item in rawItems) {
       if (item is Map) {
-        final value = stringValue(item as Map<String, dynamic>, 'category_name').trim();
+        final value = stringValue(
+          item as Map<String, dynamic>,
+          'category_name',
+        ).trim();
         final normalized = value.toLowerCase();
         if (value.isNotEmpty && seen.add(normalized)) {
           values.add(value);
@@ -233,7 +237,6 @@ List<String> _genericCategoryValues<T extends JsonModel>(T row) {
   }
   return values;
 }
-
 
 Future<List<AppDropdownItem<String>>> _loadOpeningStockCategoryItems(
   InventoryService service,
@@ -934,14 +937,15 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
       controllerName: 'InternalStockReceiptRegisterController',
       title: 'Internal stock receipts',
       embedded: embedded,
-      loader: (service) => _loadEnrichedInventoryRegister<InternalStockReceiptModel>(
-        service: service,
-        listLoader: () => service.internalStockReceipts(
-          filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
-        ),
-        detailLoader: service.internalStockReceipt,
-        fromJson: InternalStockReceiptModel.fromJson,
-      ),
+      loader: (service) =>
+          _loadEnrichedInventoryRegister<InternalStockReceiptModel>(
+            service: service,
+            listLoader: () => service.internalStockReceipts(
+              filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+            ),
+            detailLoader: service.internalStockReceipt,
+            fromJson: InternalStockReceiptModel.fromJson,
+          ),
       matches: (row, query) {
         final data = row.toJson();
         return [
@@ -951,7 +955,7 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
         ].join(' ').toLowerCase().contains(query);
       },
       emptyMessage: 'No internal stock receipts found.',
-      newRoute: '/inventory/internal-receipts/new',
+      newRoute: '/inventory/internal-stock-receipts/new',
       newLabel: 'New Receipt',
       searchHint: 'Search receipts',
       statusValue: (row) => stringValue(row.toJson(), 'receipt_status'),
@@ -1117,14 +1121,15 @@ class StockDamageRegisterPage extends StatelessWidget {
       controllerName: 'StockDamageRegisterController',
       title: 'Stock damage',
       embedded: embedded,
-      loader: (service) => _loadEnrichedInventoryRegister<StockDamageEntryModel>(
-        service: service,
-        listLoader: () => service.stockDamageEntries(
-          filters: const {'per_page': 200, 'sort_by': 'damage_date'},
-        ),
-        detailLoader: service.stockDamageEntry,
-        fromJson: StockDamageEntryModel.fromJson,
-      ),
+      loader: (service) =>
+          _loadEnrichedInventoryRegister<StockDamageEntryModel>(
+            service: service,
+            listLoader: () => service.stockDamageEntries(
+              filters: const {'per_page': 200, 'sort_by': 'damage_date'},
+            ),
+            detailLoader: service.stockDamageEntry,
+            fromJson: StockDamageEntryModel.fromJson,
+          ),
       matches: (row, query) {
         final data = row.toJson();
         return [
@@ -1177,14 +1182,15 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
       controllerName: 'InventoryAdjustmentRegisterController',
       title: 'Inventory adjustments',
       embedded: embedded,
-      loader: (service) => _loadEnrichedInventoryRegister<InventoryAdjustmentModel>(
-        service: service,
-        listLoader: () => service.inventoryAdjustments(
-          filters: const {'per_page': 200, 'sort_by': 'adjustment_date'},
-        ),
-        detailLoader: service.inventoryAdjustment,
-        fromJson: InventoryAdjustmentModel.fromJson,
-      ),
+      loader: (service) =>
+          _loadEnrichedInventoryRegister<InventoryAdjustmentModel>(
+            service: service,
+            listLoader: () => service.inventoryAdjustments(
+              filters: const {'per_page': 200, 'sort_by': 'adjustment_date'},
+            ),
+            detailLoader: service.inventoryAdjustment,
+            fromJson: InventoryAdjustmentModel.fromJson,
+          ),
       matches: (row, query) {
         final data = row.toJson();
         return [
