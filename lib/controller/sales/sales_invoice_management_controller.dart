@@ -2375,6 +2375,13 @@ class SalesInvoiceManagementController extends GetxController {
               Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
           final rate =
               Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+          final discountPercent =
+              Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
+          final grossAmount = roundToDouble(qty > 0 && rate >= 0 ? qty * rate : 0, 2);
+          final discountAmount = roundToDouble(
+            (grossAmount * discountPercent.clamp(0, 100)) / 100,
+            2,
+          );
           final taxCode = taxCodeById(line.taxCodeId);
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
@@ -2400,6 +2407,11 @@ class SalesInvoiceManagementController extends GetxController {
             hsn: item?.hsnSacCode?.trim() ?? '',
             qty: qty,
             rate: rate,
+            discountLabel: discountPercent == 0
+                ? null
+                : '${discountPercent % 1 == 0 ? discountPercent.toStringAsFixed(0) : discountPercent.toStringAsFixed(2)}%',
+            discountPercent: discountPercent == 0 ? null : discountPercent,
+            discountAmount: discountAmount == 0 ? null : discountAmount,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );
