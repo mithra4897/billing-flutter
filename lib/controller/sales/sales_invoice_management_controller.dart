@@ -2600,13 +2600,14 @@ class SalesInvoiceManagementController extends GetxController {
     final roundOff = applyRoundOff
         ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0.0)
         : 0.0;
-    if (adjAmt != 0 && adjustmentAccountId == null) {
-      State(
-        () => formError =
-            'Choose an adjustment account when adjustment amount is not zero.',
-      );
-      return;
-    }
+    // Future option:
+    // if (adjAmt != 0 && adjustmentAccountId == null) {
+    //   State(
+    //     () => formError =
+    //         'Choose an adjustment account when adjustment amount is not zero.',
+    //   );
+    //   return;
+    // }
 
     State(() {
       saving = true;

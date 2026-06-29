@@ -502,20 +502,21 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         initialValue: controller.purchaseReceiptId,
                         onChanged: controller.handlePurchaseReceiptChanged,
                       ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Adjustment Account',
-                        mappedItems: controller.accounts
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: controller.adjustmentAccountId,
-                        onChanged: controller.setAdjustmentAccountId,
-                      ),
+                      // Future option:
+                      // AppDropdownField<int>.fromMapped(
+                      //   labelText: 'Adjustment Account',
+                      //   mappedItems: controller.accounts
+                      //       .where((item) => item.id != null)
+                      //       .map(
+                      //         (item) => AppDropdownItem(
+                      //           value: item.id!,
+                      //           label: item.toString(),
+                      //         ),
+                      //       )
+                      //       .toList(growable: false),
+                      //   initialValue: controller.adjustmentAccountId,
+                      //   onChanged: controller.setAdjustmentAccountId,
+                      // ),
                       AppFormTextField(
                         labelText: 'Supplier Ref No',
                         controller: controller.supplierReferenceNoController,

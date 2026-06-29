@@ -1338,12 +1338,13 @@ class PurchaseInvoiceManagementController extends GetxController {
           adjustmentAmountController.text.trim(),
         ) ??
         0;
-    if (adjustmentAmount != 0 && adjustmentAccountId == null) {
-      formError =
-          'Choose an adjustment account when adjustment amount is not zero.';
-      update();
-      return;
-    }
+    // Future option:
+    // if (adjustmentAmount != 0 && adjustmentAccountId == null) {
+    //   formError =
+    //       'Choose an adjustment account when adjustment amount is not zero.';
+    //   update();
+    //   return;
+    // }
     saving = true;
     formError = null;
     update();

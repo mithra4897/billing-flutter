@@ -944,27 +944,28 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     return null;
                   },
                 ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Adjustment account',
-                  mappedItems: controller.accountOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.adjustmentAccountId,
-                  onChanged: (value) {
-                    if (!controller.canEdit) {
-                      return;
-                    }
-                    controller.State(
-                      () => controller.adjustmentAccountId = value,
-                    );
-                  },
-                ),
+                // Future option:
+                // AppDropdownField<int>.fromMapped(
+                //   labelText: 'Adjustment account',
+                //   mappedItems: controller.accountOptions
+                //       .where((item) => item.id != null)
+                //       .map(
+                //         (item) => AppDropdownItem(
+                //           value: item.id!,
+                //           label: item.toString(),
+                //         ),
+                //       )
+                //       .toList(growable: false),
+                //   initialValue: controller.adjustmentAccountId,
+                //   onChanged: (value) {
+                //     if (!controller.canEdit) {
+                //       return;
+                //     }
+                //     controller.State(
+                //       () => controller.adjustmentAccountId = value,
+                //     );
+                //   },
+                // ),
                 AppFormTextField(
                   labelText: 'Adjustment remarks',
                   controller: controller.adjustmentRemarksController,
