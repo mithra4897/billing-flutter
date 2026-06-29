@@ -20,6 +20,9 @@ class StockBalanceModel extends JsonModel {
     this.itemCode = '',
     this.itemName = '',
     this.itemType,
+    this.categoryId,
+    this.categoryCode,
+    this.categoryName,
     this.warehouseCode,
     this.warehouseName,
     this.batchNo,
@@ -42,6 +45,9 @@ class StockBalanceModel extends JsonModel {
   final String itemCode;
   final String itemName;
   final String? itemType;
+  final int? categoryId;
+  final String? categoryCode;
+  final String? categoryName;
   final String? warehouseCode;
   final String? warehouseName;
   final String? batchNo;
@@ -52,6 +58,7 @@ class StockBalanceModel extends JsonModel {
 
   factory StockBalanceModel.fromJson(Map<String, dynamic> json) {
     final item = _asMap(json['item']);
+    final category = _asMap(item['category']);
     final warehouse = _asMap(json['warehouse']);
     final batch = _asMap(json['batch']);
     final serial = _asMap(json['serial']);
@@ -75,6 +82,13 @@ class StockBalanceModel extends JsonModel {
       itemCode: item['item_code']?.toString() ?? '',
       itemName: item['item_name']?.toString() ?? '',
       itemType: item['item_type']?.toString(),
+      categoryId: _nullableInt(item['category_id'] ?? category['id']),
+      categoryCode:
+          item['category_code']?.toString() ??
+          category['category_code']?.toString(),
+      categoryName:
+          item['category_name']?.toString() ??
+          category['category_name']?.toString(),
       warehouseCode: warehouse['code']?.toString(),
       warehouseName: warehouse['name']?.toString(),
       batchNo: batch['batch_no']?.toString(),
@@ -102,6 +116,9 @@ class StockBalanceModel extends JsonModel {
     'item_code': itemCode,
     'item_name': itemName,
     if (itemType != null) 'item_type': itemType,
+    if (categoryId != null) 'category_id': categoryId,
+    if (categoryCode != null) 'category_code': categoryCode,
+    if (categoryName != null) 'category_name': categoryName,
     if (warehouseCode != null) 'warehouse_code': warehouseCode,
     if (warehouseName != null) 'warehouse_name': warehouseName,
     if (batchNo != null) 'batch_no': batchNo,

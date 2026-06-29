@@ -12,6 +12,86 @@ class StockBalancePage extends StatefulWidget {
 
 class _StockBalancePageState extends State<StockBalancePage> {
   late final String _controllerTag;
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
+  String _statusFilter = '';
+  String _categoryFilter = '';
+
+  static const List<AppDropdownItem<String>> _statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All status'),
+      ];
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    StockBalanceManagementController controller,
+  ) {
+    return openInventorySearchStatusCategoryFilterPanel(
+      context: context,
+      title: 'Filter Stock Balances',
+      searchController: controller.searchController,
+      dateFromController: _dateFromController,
+      dateToController: _dateToController,
+      searchHint: 'Item, warehouse, batch, or serial',
+      status: _statusFilter,
+      statusItems: _statusItems,
+      category: _categoryFilter,
+      categoryItems: _buildCategoryItems(controller),
+      onApply: (search, status, dateFrom, dateTo, category) {
+        setState(() {
+          controller.searchController.text = search;
+          _dateFromController.text = dateFrom;
+          _dateToController.text = dateTo;
+          _statusFilter = status;
+          _categoryFilter = category;
+        });
+      },
+      onClear: () {
+        setState(() {
+          controller.searchController.clear();
+          _dateFromController.clear();
+          _dateToController.clear();
+          _statusFilter = '';
+          _categoryFilter = '';
+        });
+      },
+    );
+  }
+
+  List<AppDropdownItem<String>> _buildCategoryItems(
+    StockBalanceManagementController controller,
+  ) {
+    final seen = <String>{};
+    final values = controller.filteredItems
+        .map((item) => (item.categoryName ?? item.categoryCode ?? '').trim())
+        .where((value) => value.isNotEmpty && seen.add(value))
+        .toList(growable: false);
+    return <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All categories'),
+      ...values.map(
+        (value) => AppDropdownItem<String>(value: value, label: value),
+      ),
+    ];
+  }
+
+  List<StockBalanceModel> _visibleItems(
+    StockBalanceManagementController controller,
+  ) {
+    return controller.filteredItems
+        .where((item) {
+          final matchesCategory =
+              _categoryFilter.isEmpty ||
+              (item.categoryName ?? item.categoryCode ?? '').trim() ==
+                  _categoryFilter;
+          final matchesDate = matchesDateValueRange(
+            item.lastMovementAt,
+            fromValue: _dateFromController.text,
+            toValue: _dateToController.text,
+          );
+          return matchesCategory && matchesDate;
+        })
+        .toList(growable: false);
+  }
 
   @override
   void initState() {
@@ -23,20 +103,35 @@ class _StockBalancePageState extends State<StockBalancePage> {
   }
 
   @override
+  void dispose() {
+    _dateFromController.dispose();
+    _dateToController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<StockBalanceManagementController>(
       tag: _controllerTag,
       builder: (controller) {
         final content = _buildContent(context, controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+        ];
 
         if (widget.embedded) {
-          return ShellPageActions(actions: const <Widget>[], child: content);
+          return ShellPageActions(actions: actions, child: content);
         }
 
         return AppStandaloneShell(
           title: 'Stock Balances',
           scrollController: controller.pageScrollController,
-          actions: const <Widget>[],
+          actions: actions,
           child: content,
         );
       },
@@ -67,7 +162,7 @@ class _StockBalancePageState extends State<StockBalancePage> {
       list: SettingsListCard<StockBalanceModel>(
         searchController: controller.searchController,
         searchHint: 'Search stock balances',
-        items: controller.filteredItems,
+        items: _visibleItems(controller),
         selectedItem: controller.selectedItem,
         emptyMessage: 'No stock balance records found.',
         itemBuilder: (item, selected) => SettingsListTile(

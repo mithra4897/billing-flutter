@@ -15,6 +15,83 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   late final String _controllerTag;
   late final ItemManagementController _controller;
   late final TabController _tabController;
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
+  String _statusFilter = '';
+  String _categoryFilter = '';
+
+  static const List<AppDropdownItem<String>> _statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All status'),
+        AppDropdownItem(value: 'active', label: 'Active'),
+        AppDropdownItem(value: 'inactive', label: 'Inactive'),
+      ];
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    ItemManagementController controller,
+  ) {
+    return openInventorySearchStatusCategoryFilterPanel(
+      context: context,
+      title: 'Filter Items',
+      searchController: controller.searchController,
+      dateFromController: _dateFromController,
+      dateToController: _dateToController,
+      searchHint: 'Item code, name, type, category, or SKU',
+      status: _statusFilter,
+      statusItems: _statusItems,
+      category: _categoryFilter,
+      categoryItems: _buildCategoryItems(controller),
+      onApply: (search, status, dateFrom, dateTo, category) {
+        setState(() {
+          controller.searchController.text = search;
+          _dateFromController.text = dateFrom;
+          _dateToController.text = dateTo;
+          _statusFilter = status;
+          _categoryFilter = category;
+        });
+      },
+      onClear: () {
+        setState(() {
+          controller.searchController.clear();
+          _dateFromController.clear();
+          _dateToController.clear();
+          _statusFilter = '';
+          _categoryFilter = '';
+        });
+      },
+    );
+  }
+
+  List<AppDropdownItem<String>> _buildCategoryItems(
+    ItemManagementController controller,
+  ) {
+    return <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All categories'),
+      ...controller.categories.map(
+        (category) => AppDropdownItem<String>(
+          value: category.categoryName,
+          label: category.categoryName,
+        ),
+      ),
+    ];
+  }
+
+  List<ItemModel> _visibleItems(ItemManagementController controller) {
+    return controller.filteredItems
+        .where((item) {
+          final matchesStatus =
+              _statusFilter.isEmpty ||
+              (_statusFilter == 'active' && item.isActive) ||
+              (_statusFilter == 'inactive' && !item.isActive);
+          final matchesCategory =
+              _categoryFilter.isEmpty ||
+              (item.categoryName ?? item.categoryCode ?? '').trim() ==
+                  _categoryFilter;
+          return matchesStatus && matchesCategory;
+        })
+        .toList(growable: false);
+  }
 
   @override
   void initState() {
@@ -37,6 +114,8 @@ class _ItemManagementPageState extends State<ItemManagementPage>
 
   @override
   void dispose() {
+    _dateFromController.dispose();
+    _dateToController.dispose();
     _tabController.dispose();
     if (Get.isRegistered<ItemManagementController>(tag: _controllerTag)) {
       Get.delete<ItemManagementController>(tag: _controllerTag, force: true);
@@ -51,6 +130,12 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 controller.startNew(isDesktop: Responsive.isDesktop(context)),
@@ -102,7 +187,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       list: SettingsListCard<ItemModel>(
         searchController: controller.searchController,
         searchHint: 'Search items',
-        items: controller.filteredItems,
+        items: _visibleItems(controller),
         selectedItem: controller.selectedItem,
         emptyMessage: 'No item records found.',
         itemBuilder: (item, selected) => SettingsListTile(

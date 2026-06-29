@@ -27,6 +27,84 @@ class ItemSupplierMapManagementPage extends StatefulWidget {
 class _ItemSupplierMapManagementPageState
     extends State<ItemSupplierMapManagementPage> {
   late final String _controllerTag;
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
+  String _statusFilter = '';
+  String _categoryFilter = '';
+
+  static const List<AppDropdownItem<String>> _statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All status'),
+      ];
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    ItemSupplierMapManagementController controller,
+  ) {
+    return openInventorySearchStatusCategoryFilterPanel(
+      context: context,
+      title: 'Filter ${controller.pageTitle}',
+      searchController: controller.masterSearchController,
+      dateFromController: _dateFromController,
+      dateToController: _dateToController,
+      searchHint: controller.isItemWise
+          ? 'Item code or item name'
+          : 'Supplier code or supplier name',
+      status: _statusFilter,
+      statusItems: _statusItems,
+      category: _categoryFilter,
+      categoryItems: _buildCategoryItems(controller),
+      onApply: (search, status, dateFrom, dateTo, category) {
+        setState(() {
+          controller.masterSearchController.text = search;
+          _dateFromController.text = dateFrom;
+          _dateToController.text = dateTo;
+          _statusFilter = status;
+          _categoryFilter = category;
+        });
+      },
+      onClear: () {
+        setState(() {
+          controller.masterSearchController.clear();
+          _dateFromController.clear();
+          _dateToController.clear();
+          _statusFilter = '';
+          _categoryFilter = '';
+        });
+      },
+    );
+  }
+
+  List<AppDropdownItem<String>> _buildCategoryItems(
+    ItemSupplierMapManagementController controller,
+  ) {
+    final seen = <String>{};
+    final values = controller.allItems
+        .map((item) => (item.categoryName ?? item.categoryCode ?? '').trim())
+        .where((value) => value.isNotEmpty && seen.add(value))
+        .toList(growable: false);
+    return <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All categories'),
+      ...values.map(
+        (value) => AppDropdownItem<String>(value: value, label: value),
+      ),
+    ];
+  }
+
+  List<dynamic> _visibleMasters(
+    ItemSupplierMapManagementController controller,
+  ) {
+    if (!controller.isItemWise) {
+      return controller.filteredMasterSuppliers;
+    }
+    return controller.filteredMastersItems
+        .where((item) {
+          return _categoryFilter.isEmpty ||
+              (item.categoryName ?? item.categoryCode ?? '').trim() ==
+                  _categoryFilter;
+        })
+        .toList(growable: false);
+  }
 
   @override
   void initState() {
@@ -44,6 +122,13 @@ class _ItemSupplierMapManagementPageState
       ),
       tag: _controllerTag,
     );
+  }
+
+  @override
+  void dispose() {
+    _dateFromController.dispose();
+    _dateToController.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmDelete(
@@ -92,6 +177,12 @@ class _ItemSupplierMapManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
           AdaptiveShellActionButton(
             onPressed: controller.selectedMasterId == null
                 ? null
@@ -162,9 +253,7 @@ class _ItemSupplierMapManagementPageState
       list: SettingsListCard<dynamic>(
         searchController: controller.masterSearchController,
         searchHint: 'Search ${controller.masterLabel}',
-        items: controller.isItemWise
-            ? controller.filteredMastersItems
-            : controller.filteredMasterSuppliers,
+        items: _visibleMasters(controller),
         selectedItem: controller.isItemWise
             ? controller.allItems.cast<ItemModel?>().firstWhere(
                 (item) => item?.id == controller.selectedMasterId,

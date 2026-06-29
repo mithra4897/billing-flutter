@@ -12,6 +12,108 @@ class PhysicalStockCountPage extends StatefulWidget {
 
 class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
   late final String _controllerTag;
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
+  String _statusFilter = '';
+  String _categoryFilter = '';
+
+  static const List<AppDropdownItem<String>> _statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All status'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'counted', label: 'Counted'),
+        AppDropdownItem(value: 'reconciled', label: 'Reconciled'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    PhysicalStockCountManagementController controller,
+  ) {
+    return openInventorySearchStatusCategoryFilterPanel(
+      context: context,
+      title: 'Filter Physical Counts',
+      searchController: controller.searchController,
+      dateFromController: _dateFromController,
+      dateToController: _dateToController,
+      searchHint: 'Count no, status, scope, or warehouse',
+      status: _statusFilter,
+      statusItems: _statusItems,
+      category: _categoryFilter,
+      categoryItems: _buildCategoryItems(controller),
+      onApply: (search, status, dateFrom, dateTo, category) {
+        setState(() {
+          controller.searchController.text = search;
+          _dateFromController.text = dateFrom;
+          _dateToController.text = dateTo;
+          _statusFilter = status;
+          _categoryFilter = category;
+        });
+      },
+      onClear: () {
+        setState(() {
+          controller.searchController.clear();
+          _dateFromController.clear();
+          _dateToController.clear();
+          _statusFilter = '';
+          _categoryFilter = '';
+        });
+      },
+    );
+  }
+
+  List<AppDropdownItem<String>> _buildCategoryItems(
+    PhysicalStockCountManagementController controller,
+  ) {
+    final seen = <String>{};
+    final values = controller.allItems
+        .map((item) => (item.categoryName ?? item.categoryCode ?? '').trim())
+        .where((value) => value.isNotEmpty && seen.add(value))
+        .toList(growable: false);
+    return <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All categories'),
+      ...values.map(
+        (value) => AppDropdownItem<String>(value: value, label: value),
+      ),
+    ];
+  }
+
+  String _categoryForItem(
+    PhysicalStockCountManagementController controller,
+    int? itemId,
+  ) {
+    final item = controller.allItems.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return (item?.categoryName ?? item?.categoryCode ?? '').trim();
+  }
+
+  List<PhysicalStockCountModel> _visibleItems(
+    PhysicalStockCountManagementController controller,
+  ) {
+    return controller.filteredItems
+        .where((item) {
+          final matchesStatus =
+              _statusFilter.isEmpty ||
+              (item.countStatus ?? '').trim().toLowerCase() ==
+                  _statusFilter.toLowerCase();
+          final matchesDate = matchesDateValueRange(
+            item.countDate,
+            fromValue: _dateFromController.text,
+            toValue: _dateToController.text,
+          );
+          final matchesCategory =
+              _categoryFilter.isEmpty ||
+              item.items.any(
+                (line) =>
+                    _categoryForItem(controller, line.itemId) ==
+                    _categoryFilter,
+              );
+          return matchesStatus && matchesDate && matchesCategory;
+        })
+        .toList(growable: false);
+  }
 
   @override
   void initState() {
@@ -23,11 +125,24 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
   }
 
   @override
+  void dispose() {
+    _dateFromController.dispose();
+    _dateToController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<PhysicalStockCountManagementController>(
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 controller.startNew(isDesktop: Responsive.isDesktop(context)),
@@ -79,7 +194,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       list: SettingsListCard<PhysicalStockCountModel>(
         searchController: controller.searchController,
         searchHint: 'Search physical counts',
-        items: controller.filteredItems,
+        items: _visibleItems(controller),
         selectedItem: controller.selectedCount,
         emptyMessage: 'No physical counts found.',
         itemBuilder: (item, selected) => SettingsListTile(
