@@ -849,6 +849,7 @@ class PurchaseReceiptManagementController extends GetxController {
         .whereType<int>()
         .cast<int?>()
         .firstWhere((value) => value != null, orElse: () => null);
+    final resolvedWarehouseId = defaultWarehouseId ?? warehouseId;
     final nextCompanyId = intValue(data, 'company_id');
     final nextFinancialYearId = intValue(data, 'financial_year_id');
 
@@ -862,7 +863,7 @@ class PurchaseReceiptManagementController extends GetxController {
       financialYearId: nextFinancialYearId,
     );
     supplierPartyId = intValue(data, 'supplier_party_id');
-    warehouseId = defaultWarehouseId;
+    warehouseId = resolvedWarehouseId;
     unawaited(ensureSupplierPrintContext(supplierPartyId));
     receiptNoController.clear();
     supplierInvoiceNoController.clear();
@@ -877,6 +878,9 @@ class PurchaseReceiptManagementController extends GetxController {
         (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
         0;
     notesController.text = stringValue(data, 'notes');
+    for (final line in nextLines) {
+      line.warehouseId ??= resolvedWarehouseId;
+    }
     _replaceLines(nextLines, notify: false);
     formError = nextLines.length == 1 && nextLines.first.itemId == null
         ? 'Selected purchase order has no pending receipt quantity.'
@@ -891,7 +895,7 @@ class PurchaseReceiptManagementController extends GetxController {
 
   void addLine() {
     lines = List<PurchaseReceiptLineDraft>.from(lines)
-      ..add(PurchaseReceiptLineDraft());
+      ..add(PurchaseReceiptLineDraft(warehouseId: warehouseId));
     update();
   }
 
@@ -905,9 +909,17 @@ class PurchaseReceiptManagementController extends GetxController {
     List<PurchaseReceiptLineDraft> nextLines, {
     bool notify = true,
   }) {
+    final normalizedLines = nextLines
+        .map((line) {
+          if (line.warehouseId == null && warehouseId != null) {
+            line.warehouseId = warehouseId;
+          }
+          return line;
+        })
+        .toList(growable: false);
     replaceDisposableDraftEntries<PurchaseReceiptLineDraft>(
       previous: lines,
-      next: nextLines,
+      next: normalizedLines,
       createEmpty: () => PurchaseReceiptLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
@@ -935,6 +947,12 @@ class PurchaseReceiptManagementController extends GetxController {
 
   void setWarehouseId(int? value) {
     warehouseId = value;
+    for (final line in lines) {
+      if (lineUsesInventory(line.itemId)) {
+        line.warehouseId = value;
+        line.serialId = null;
+      }
+    }
     update();
   }
 
@@ -1057,6 +1075,9 @@ class PurchaseReceiptManagementController extends GetxController {
     line.itemId = value;
     line.uomId = resolveDefaultUom(value, line.uomId);
     line.serialId = null;
+    if (lineUsesInventory(value) && line.warehouseId == null) {
+      line.warehouseId = warehouseId;
+    }
     if (!lineUsesInventory(value)) {
       line.warehouseId = null;
       if ((Validators.parseFlexibleNumber(
@@ -1143,6 +1164,11 @@ class PurchaseReceiptManagementController extends GetxController {
 
   Future<void> save(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
+    if (warehouseId == null) {
+      formError = 'Warehouse is required.';
+      update();
+      return;
+    }
     if (lines.any(
       (line) =>
           line.itemId == null ||
@@ -1190,7 +1216,7 @@ class PurchaseReceiptManagementController extends GetxController {
       'receipt_no': nullIfEmpty(receiptNoController.text),
       'receipt_date': receiptDateController.text.trim(),
       'supplier_party_id': supplierPartyId,
-      'warehouse_id': hasInventoryTrackedLines ? warehouseId : null,
+      'warehouse_id': warehouseId,
       'supplier_invoice_no': nullIfEmpty(supplierInvoiceNoController.text),
       'supplier_invoice_date': nullIfEmpty(supplierInvoiceDateController.text),
       'supplier_dc_no': nullIfEmpty(supplierDcNoController.text),
