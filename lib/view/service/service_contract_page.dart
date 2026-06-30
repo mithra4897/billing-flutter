@@ -263,9 +263,11 @@ class _ServiceContractEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Customer'),
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Contract no. (optional if series set)',
                     controller: vm.contractNoController,
+                    documentSeries: vm.seriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: edit,
                   ),
                   AppDropdownField<int?>.fromMapped(

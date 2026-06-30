@@ -371,9 +371,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Quotation No',
                   controller: controller.quotationNoController,
+                  documentSeries: controller.seriesOptions(),
+                  documentSeriesId: controller.documentSeriesId,
                   hintText: 'Leave blank if your series fills this in',
                   enabled: controller.canEdit,
                   validator: Validators.optionalMaxLength(100, 'Quotation No'),

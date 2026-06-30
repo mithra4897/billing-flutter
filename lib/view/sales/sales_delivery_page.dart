@@ -544,9 +544,11 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Delivery No',
                   controller: controller.deliveryNoController,
+                  documentSeries: controller.seriesOptions(),
+                  documentSeriesId: controller.documentSeriesId,
                   hintText: 'Auto-generated on save',
                   validator: Validators.optionalMaxLength(100, 'Delivery No'),
                 ),

@@ -460,9 +460,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Order No',
                   controller: controller.orderNoController,
+                  documentSeries: controller.seriesOptions(),
+                  documentSeriesId: controller.documentSeriesId,
                   hintText: 'Leave blank if your series fills this in',
                   enabled: controller.canEdit,
                   validator: Validators.optionalMaxLength(100, 'Order No'),

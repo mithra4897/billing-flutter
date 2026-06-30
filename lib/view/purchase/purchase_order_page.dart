@@ -377,9 +377,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         initialValue: controller.documentSeriesId,
                         onChanged: controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Order No',
                         controller: controller.orderNoController,
+                        documentSeries: controller.seriesOptions(),
+                        documentSeriesId: controller.documentSeriesId,
                         hintText: 'Auto-generated on save',
                         validator: Validators.optionalMaxLength(
                           100,

@@ -458,9 +458,11 @@ class _OpeningStockEditor extends StatelessWidget {
                     vm.onSeriesChanged(value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Opening No',
                   controller: vm.openingNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Opening No'),

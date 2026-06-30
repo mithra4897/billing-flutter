@@ -213,9 +213,11 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                         ? controller.setDocumentSeriesId
                         : (_) {},
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Receipt No',
                     controller: controller.receiptNoController,
+                    documentSeries: controller.seriesOptions(),
+                    documentSeriesId: controller.documentSeriesId,
                     hintText: 'Auto-generated on save',
                     enabled: canEdit,
                     validator: Validators.optionalMaxLength(100, 'Receipt No'),

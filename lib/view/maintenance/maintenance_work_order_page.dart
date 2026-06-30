@@ -303,9 +303,12 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                         }
                       },
                     ),
-                    AppFormTextField(
+                    GeneratedDocumentNumberField(
                       labelText: 'Work order no. (or use series)',
                       controller: vm.workOrderNoController,
+                      documentSeries: vm.seriesOptions,
+                      documentSeriesId: vm.documentSeriesId,
+                      enabled: vm.canEdit,
                     ),
                   ] else
                     AppFormTextField(

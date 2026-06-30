@@ -218,9 +218,11 @@ class _JobworkDispatchEditor extends StatelessWidget {
                       if (!locked) vm.setDocumentSeriesId(v);
                     },
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Dispatch no. (optional)',
                     controller: vm.dispatchNoController,
+                    documentSeries: vm.seriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: !locked && editLines,
                   ),
                   AppFormTextField(

@@ -294,9 +294,11 @@ class _InternalStockReceiptEditor extends StatelessWidget {
                     vm.onReceiptSourceChanged(value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Receipt No',
                   controller: vm.receiptNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Receipt No'),

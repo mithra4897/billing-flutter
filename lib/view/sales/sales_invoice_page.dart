@@ -756,9 +756,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     controller.State(() => controller.documentSeriesId = value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Invoice No',
                   controller: controller.invoiceNoController,
+                  documentSeries: controller.seriesOptions(),
+                  documentSeriesId: controller.documentSeriesId,
                   hintText: 'Leave blank if your series fills this in',
                   enabled: controller.canEdit,
                   validator: Validators.optionalMaxLength(100, 'Invoice No'),

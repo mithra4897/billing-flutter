@@ -298,9 +298,11 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                         initialValue: controller.documentSeriesId,
                         onChanged: controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Return No',
                         controller: controller.returnNoController,
+                        documentSeries: controller.seriesOptions(),
+                        documentSeriesId: controller.documentSeriesId,
                         hintText: 'Auto-generated on save',
                         validator: Validators.optionalMaxLength(
                           100,

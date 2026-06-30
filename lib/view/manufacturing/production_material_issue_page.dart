@@ -359,9 +359,11 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                   onChanged: vm.setProductionOrderId,
                   validator: Validators.requiredSelection('Production Order'),
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Issue No',
                   controller: vm.issueNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   enabled: vm.isDraft || vm.selected == null,
                 ),
                 DocumentSeriesSelector<int>(

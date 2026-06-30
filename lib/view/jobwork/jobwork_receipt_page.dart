@@ -232,9 +232,11 @@ class _JobworkReceiptEditor extends StatelessWidget {
                       if (!locked) vm.setDocumentSeriesId(v);
                     },
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Receipt no. (optional)',
                     controller: vm.receiptNoController,
+                    documentSeries: vm.seriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: !locked && editLines,
                   ),
                   AppFormTextField(

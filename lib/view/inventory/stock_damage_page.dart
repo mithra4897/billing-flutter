@@ -283,9 +283,11 @@ class _StockDamageEditor extends StatelessWidget {
                     vm.onDamageTypeChanged(value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Damage No',
                   controller: vm.damageNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Damage No'),

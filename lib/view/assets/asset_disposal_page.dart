@@ -179,9 +179,11 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                             ? (_) {}
                             : controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Disposal no.',
                         controller: controller.disposalNoController,
+                        documentSeries: controller.seriesOptions,
+                        documentSeriesId: controller.documentSeriesId,
                       ),
                       AppFormTextField(
                         labelText: 'Disposal date',

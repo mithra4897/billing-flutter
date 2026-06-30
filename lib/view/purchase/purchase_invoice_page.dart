@@ -398,9 +398,11 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         initialValue: controller.documentSeriesId,
                         onChanged: controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Invoice No',
                         controller: controller.invoiceNoController,
+                        documentSeries: controller.seriesOptions(),
+                        documentSeriesId: controller.documentSeriesId,
                         hintText: 'Auto-generated on save',
                         validator: Validators.optionalMaxLength(
                           100,

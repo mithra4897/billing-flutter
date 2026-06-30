@@ -308,9 +308,11 @@ class _ProduceTrackingEditor extends StatelessWidget {
                         }
                       : null,
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Tracking No',
                   controller: vm.trackingNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Tracking No'),

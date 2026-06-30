@@ -262,9 +262,11 @@ class _ProductionOrderEditor extends StatelessWidget {
                   onChanged: vm.setWarehouseId,
                   validator: Validators.requiredSelection('Warehouse'),
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Production No',
                   controller: vm.productionNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   enabled: !vm.isLocked,
                 ),
                 DocumentSeriesSelector<int>(

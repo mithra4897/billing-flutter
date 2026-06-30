@@ -273,9 +273,11 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                     vm.onReasonCodeChanged(v);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Adjustment No',
                   controller: vm.adjustmentNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Adjustment No'),
                 ),

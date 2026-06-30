@@ -303,9 +303,11 @@ class _StockIssueEditor extends StatelessWidget {
                     vm.onIssuePurposeChanged(value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Issue No',
                   controller: vm.issueNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Issue No'),

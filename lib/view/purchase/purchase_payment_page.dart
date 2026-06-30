@@ -205,9 +205,11 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                         initialValue: controller.documentSeriesId,
                         onChanged: controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Payment No',
                         controller: controller.paymentNoController,
+                        documentSeries: controller.seriesOptions(),
+                        documentSeriesId: controller.documentSeriesId,
                         hintText: 'Auto-generated on save',
                         validator: Validators.optionalMaxLength(
                           100,

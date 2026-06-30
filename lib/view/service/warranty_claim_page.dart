@@ -435,9 +435,11 @@ class _WarrantyClaimEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Customer'),
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Ticket no. (optional if series set)',
                     controller: vm.ticketNoController,
+                    documentSeries: vm.ticketSeriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: edit,
                   ),
                   DocumentSeriesSelector<int?>(

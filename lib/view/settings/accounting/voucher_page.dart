@@ -302,11 +302,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     return null;
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Voucher No',
                   controller: controller.voucherNoController,
+                  documentSeries: controller.filteredDocumentSeriesOptions,
+                  documentSeriesId: controller.documentSeriesId,
                   hintText: 'Auto-generated',
-                  readOnly: true,
                   validator: Validators.optionalMaxLength(100, 'Voucher No'),
                 ),
                 AppFormTextField(

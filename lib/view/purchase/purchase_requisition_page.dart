@@ -314,9 +314,11 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                         initialValue: controller.documentSeriesId,
                         onChanged: controller.setDocumentSeriesId,
                       ),
-                      AppFormTextField(
+                      GeneratedDocumentNumberField(
                         labelText: 'Requisition No',
                         controller: controller.requisitionNoController,
+                        documentSeries: controller.documentSeriesForContext(),
+                        documentSeriesId: controller.documentSeriesId,
                         hintText: 'Auto-generated on save',
                         validator: Validators.optionalMaxLength(
                           100,

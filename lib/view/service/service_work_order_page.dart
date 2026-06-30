@@ -297,9 +297,11 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Customer'),
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Work order no. (optional if series set)',
                     controller: vm.workOrderNoController,
+                    documentSeries: vm.woSeriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: edit,
                   ),
                   DocumentSeriesSelector<int?>(

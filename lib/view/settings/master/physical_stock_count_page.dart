@@ -251,9 +251,11 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                   onChanged: controller.setWarehouseId,
                   validator: Validators.requiredSelection('Warehouse'),
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Count No',
                   controller: controller.countNoController,
+                  documentSeries: controller.filteredDocumentSeriesOptions,
+                  documentSeriesId: controller.documentSeriesId,
                   validator: Validators.optionalMaxLength(100, 'Count No'),
                 ),
                 AppFormTextField(

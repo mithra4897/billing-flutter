@@ -294,9 +294,11 @@ class _StockTransferEditor extends StatelessWidget {
                     vm.onToWarehouseChanged(value);
                   },
                 ),
-                AppFormTextField(
+                GeneratedDocumentNumberField(
                   labelText: 'Transfer No',
                   controller: vm.transferNoController,
+                  documentSeries: vm.seriesOptions,
+                  documentSeriesId: vm.documentSeriesId,
                   hintText: 'Leave blank if series auto-generates',
                   enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Transfer No'),

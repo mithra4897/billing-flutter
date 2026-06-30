@@ -227,9 +227,11 @@ class _JobworkChargeEditor extends StatelessWidget {
                       if (!locked) vm.setDocumentSeriesId(v);
                     },
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Charge no. (optional)',
                     controller: vm.chargeNoController,
+                    documentSeries: vm.seriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: !locked && editLines,
                   ),
                   AppFormTextField(

@@ -262,9 +262,12 @@ class _MaintenanceRequestEditor extends StatelessWidget {
                         }
                       },
                     ),
-                    AppFormTextField(
+                    GeneratedDocumentNumberField(
                       labelText: 'Request no. (or use series above)',
                       controller: vm.requestNoController,
+                      documentSeries: vm.seriesOptions,
+                      documentSeriesId: vm.documentSeriesId,
+                      enabled: vm.canEdit,
                     ),
                   ] else
                     AppFormTextField(

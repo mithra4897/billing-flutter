@@ -268,9 +268,11 @@ class _JobworkOrderEditor extends StatelessWidget {
                       if (!locked) vm.setDocumentSeriesId(v);
                     },
                   ),
-                  AppFormTextField(
+                  GeneratedDocumentNumberField(
                     labelText: 'Jobwork no. (optional)',
                     controller: vm.jobworkNoController,
+                    documentSeries: vm.seriesOptions,
+                    documentSeriesId: vm.documentSeriesId,
                     enabled: !locked && editLines,
                   ),
                   AppFormTextField(
