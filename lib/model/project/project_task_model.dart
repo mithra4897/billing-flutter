@@ -8,6 +8,7 @@ class ProjectTaskModel extends JsonModel {
     this.taskName,
     this.description,
     this.assignedEmployeeId,
+    this.assignedEmployeeIds = const <int>[],
     this.plannedStartDate,
     this.plannedEndDate,
     this.actualStartDate,
@@ -26,6 +27,7 @@ class ProjectTaskModel extends JsonModel {
   final String? taskName;
   final String? description;
   final int? assignedEmployeeId;
+  final List<int> assignedEmployeeIds;
   final String? plannedStartDate;
   final String? plannedEndDate;
   final String? actualStartDate;
@@ -47,6 +49,19 @@ class ProjectTaskModel extends JsonModel {
       taskName: json['task_name']?.toString(),
       description: json['description']?.toString(),
       assignedEmployeeId: JsonModel.nullableInt(json['assigned_employee_id']),
+      assignedEmployeeIds: (() {
+        final values =
+            (json['assigned_employee_ids'] as List<dynamic>? ??
+                    const <dynamic>[])
+                .map((value) => JsonModel.nullableInt(value))
+                .whereType<int>()
+                .toList(growable: false);
+        if (values.isNotEmpty) {
+          return values;
+        }
+        final single = JsonModel.nullableInt(json['assigned_employee_id']);
+        return single == null ? const <int>[] : <int>[single];
+      })(),
       plannedStartDate: json['planned_start_date']?.toString(),
       plannedEndDate: json['planned_end_date']?.toString(),
       actualStartDate: json['actual_start_date']?.toString(),
@@ -70,7 +85,6 @@ class ProjectTaskModel extends JsonModel {
     plannedStartDate,
   ], defaultValue: 'Project Task');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (projectId != null) 'project_id': projectId,
@@ -78,6 +92,8 @@ class ProjectTaskModel extends JsonModel {
     if (taskName != null) 'task_name': taskName,
     if (description != null) 'description': description,
     if (assignedEmployeeId != null) 'assigned_employee_id': assignedEmployeeId,
+    if (assignedEmployeeIds.isNotEmpty)
+      'assigned_employee_ids': assignedEmployeeIds,
     if (plannedStartDate != null) 'planned_start_date': plannedStartDate,
     if (plannedEndDate != null) 'planned_end_date': plannedEndDate,
     if (actualStartDate != null) 'actual_start_date': actualStartDate,
