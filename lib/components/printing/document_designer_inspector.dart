@@ -206,7 +206,8 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final supportsTypography = shape.type == 'text' ||
+    final supportsTypography =
+        shape.type == 'text' ||
         shape.type == 'table' ||
         shape.type == 'barcode';
     final supportsAlignment = shape.type == 'text';
@@ -391,9 +392,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
                       .map(
                         (value) => DropdownMenuItem<String>(
                           value: value,
-                          child: Text(
-                            documentPrintShapeFontFamilyLabel(value),
-                          ),
+                          child: Text(documentPrintShapeFontFamilyLabel(value)),
                         ),
                       )
                       .toList(growable: false),
@@ -446,10 +445,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
                     value: shape.align,
                     items: const [
                       DropdownMenuItem(value: 'left', child: Text('Left')),
-                      DropdownMenuItem(
-                        value: 'center',
-                        child: Text('Center'),
-                      ),
+                      DropdownMenuItem(value: 'center', child: Text('Center')),
                       DropdownMenuItem(value: 'right', child: Text('Right')),
                     ],
                     onChanged: (value) {
@@ -514,8 +510,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             label: 'Text',
             value: shape.text,
             maxLines: 4,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(text: value)),
+            onChanged: (value) => onChanged(shape.copyWith(text: value)),
           ),
           const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
