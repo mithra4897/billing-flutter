@@ -8,17 +8,21 @@ class StockMovementModel extends JsonModel {
     this.locationId,
     this.financialYearId,
     this.movementDate,
+    this.voucherDate,
     this.itemId,
     this.warehouseId,
     this.batchId,
     this.serialId,
     this.uomId,
     this.movementType,
+    this.stockEffect,
+    this.referenceType,
     this.referenceModule,
     this.referenceTable,
     this.referenceId,
     this.referenceLineId,
     this.referenceNo,
+    this.qty,
     this.qtyIn,
     this.qtyOut,
     this.unitCost,
@@ -27,6 +31,7 @@ class StockMovementModel extends JsonModel {
     this.amount,
     this.sourceWarehouseId,
     this.destinationWarehouseId,
+    this.remarks,
     this.lineNarration,
     this.postedBy,
     this.postedAt,
@@ -43,17 +48,21 @@ class StockMovementModel extends JsonModel {
   final int? locationId;
   final int? financialYearId;
   final String? movementDate;
+  final String? voucherDate;
   final int? itemId;
   final int? warehouseId;
   final int? batchId;
   final int? serialId;
   final int? uomId;
   final String? movementType;
+  final String? stockEffect;
+  final String? referenceType;
   final String? referenceModule;
   final String? referenceTable;
   final int? referenceId;
   final int? referenceLineId;
   final String? referenceNo;
+  final double? qty;
   final double? qtyIn;
   final double? qtyOut;
   final double? unitCost;
@@ -62,6 +71,7 @@ class StockMovementModel extends JsonModel {
   final double? amount;
   final int? sourceWarehouseId;
   final int? destinationWarehouseId;
+  final String? remarks;
   final String? lineNarration;
   final int? postedBy;
   final String? postedAt;
@@ -81,17 +91,27 @@ class StockMovementModel extends JsonModel {
       locationId: JsonModel.nullableInt(json['location_id']),
       financialYearId: JsonModel.nullableInt(json['financial_year_id']),
       movementDate: json['movement_date']?.toString(),
+      voucherDate:
+          json['voucher_date']?.toString() ?? json['movement_date']?.toString(),
       itemId: JsonModel.nullableInt(json['item_id']),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
       batchId: JsonModel.nullableInt(json['batch_id']),
       serialId: JsonModel.nullableInt(json['serial_id']),
       uomId: JsonModel.nullableInt(json['uom_id']),
       movementType: json['movement_type']?.toString(),
+      stockEffect: json['stock_effect']?.toString(),
+      referenceType:
+          json['reference_type']?.toString() ??
+          json['reference_module']?.toString(),
       referenceModule: json['reference_module']?.toString(),
       referenceTable: json['reference_table']?.toString(),
       referenceId: JsonModel.nullableInt(json['reference_id']),
       referenceLineId: JsonModel.nullableInt(json['reference_line_id']),
       referenceNo: json['reference_no']?.toString(),
+      qty:
+          JsonModel.nullableDouble(json['qty']) ??
+          JsonModel.nullableDouble(json['qty_in']) ??
+          JsonModel.nullableDouble(json['qty_out']),
       qtyIn: JsonModel.nullableDouble(json['qty_in']),
       qtyOut: JsonModel.nullableDouble(json['qty_out']),
       unitCost: JsonModel.nullableDouble(json['unit_cost']),
@@ -102,6 +122,8 @@ class StockMovementModel extends JsonModel {
       destinationWarehouseId: JsonModel.nullableInt(
         json['destination_warehouse_id'],
       ),
+      remarks:
+          json['remarks']?.toString() ?? json['line_narration']?.toString(),
       lineNarration: json['line_narration']?.toString(),
       postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
@@ -123,7 +145,6 @@ class StockMovementModel extends JsonModel {
     movementType,
   ], defaultValue: 'Stock Movement');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -132,17 +153,21 @@ class StockMovementModel extends JsonModel {
     if (locationId != null) 'location_id': locationId,
     if (financialYearId != null) 'financial_year_id': financialYearId,
     if (movementDate != null) 'movement_date': movementDate,
+    if (voucherDate != null) 'voucher_date': voucherDate,
     if (itemId != null) 'item_id': itemId,
     if (warehouseId != null) 'warehouse_id': warehouseId,
     if (batchId != null) 'batch_id': batchId,
     if (serialId != null) 'serial_id': serialId,
     if (uomId != null) 'uom_id': uomId,
     if (movementType != null) 'movement_type': movementType,
+    if (stockEffect != null) 'stock_effect': stockEffect,
+    if (referenceType != null) 'reference_type': referenceType,
     if (referenceModule != null) 'reference_module': referenceModule,
     if (referenceTable != null) 'reference_table': referenceTable,
     if (referenceId != null) 'reference_id': referenceId,
     if (referenceLineId != null) 'reference_line_id': referenceLineId,
     if (referenceNo != null) 'reference_no': referenceNo,
+    if (qty != null) 'qty': qty,
     if (qtyIn != null) 'qty_in': qtyIn,
     if (qtyOut != null) 'qty_out': qtyOut,
     if (unitCost != null) 'unit_cost': unitCost,
@@ -152,6 +177,7 @@ class StockMovementModel extends JsonModel {
     if (sourceWarehouseId != null) 'source_warehouse_id': sourceWarehouseId,
     if (destinationWarehouseId != null)
       'destination_warehouse_id': destinationWarehouseId,
+    if (remarks != null) 'remarks': remarks,
     if (lineNarration != null) 'line_narration': lineNarration,
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
