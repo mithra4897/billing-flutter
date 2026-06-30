@@ -921,11 +921,18 @@ class PurchaseOrderManagementController extends GetxController {
     return mappedIds;
   }
 
+  Set<int> currentLineItemIds() {
+    return lines.map((line) => line.itemId).whereType<int>().toSet();
+  }
+
   List<ItemModel> get purchasableItemOptions {
     final specificSupplierId = hasSpecificSupplierSelection
         ? supplierPartyId
         : null;
-    final allowedIds = mappedPurchaseItemIds(supplierId: specificSupplierId);
+    final allowedIds = <int>{
+      ...mappedPurchaseItemIds(supplierId: specificSupplierId),
+      ...currentLineItemIds(),
+    };
     if (allowedIds.isEmpty) {
       return const <ItemModel>[];
     }
@@ -952,7 +959,11 @@ class PurchaseOrderManagementController extends GetxController {
     }
     final currentRate =
         Validators.parseFlexibleNumber(draft.rateController.text) ?? 0;
-    if (currentRate <= 0 && item?.standardCost != null) {
+    final preserveRequisitionRate =
+        draft.purchaseRequisitionLineId != null && currentRate > 0;
+    if (!preserveRequisitionRate &&
+        currentRate <= 0 &&
+        item?.standardCost != null) {
       draft.rateController.text = item!.standardCost!.toString();
     }
     if (draft.remarksController.text.trim().isEmpty &&
@@ -973,8 +984,10 @@ class PurchaseOrderManagementController extends GetxController {
         draft.uomId =
             supplierMap.purchaseUomId ??
             resolveDefaultUom(draft.itemId, draft.uomId);
-        draft.rateController.text =
-            supplierMap.supplierRate?.toString() ?? draft.rateController.text;
+        if (!preserveRequisitionRate) {
+          draft.rateController.text =
+              supplierMap.supplierRate?.toString() ?? draft.rateController.text;
+        }
         draft.taxCodeId = item?.taxCodeId;
         if (fillDescription &&
             draft.descriptionController.text.trim().isEmpty) {
