@@ -356,10 +356,15 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   List<Object> get _orderedColumns {
     final ordered = <Object>[];
-    for (final column in _activeColumns) {
-      ordered.add(column);
+    for (final column in ErpLineItemTableColumn.values) {
+      if (_activeColumns.contains(column)) {
+        ordered.add(column);
+      }
       ordered.addAll(
-        widget.customColumns.where((custom) => custom.insertAfter == column),
+        widget.customColumns.where(
+          (custom) =>
+              custom.insertAfter == column && _shouldShowCustomColumn(custom),
+        ),
       );
     }
     return ordered;
@@ -367,7 +372,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   List<ErpLineItemTableColumn> get _activeColumns => ErpLineItemTableColumn
       .values
-      .where(widget.visibleColumns.contains)
+      .where(
+        (column) =>
+            widget.visibleColumns.contains(column) &&
+            _shouldShowBuiltInColumn(column),
+      )
       .toList(growable: false);
 
   double get _tableMinWidth => _orderedColumns.fold<double>(0, (sum, column) {
@@ -411,6 +420,38 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   void _notifyChanged() {
     widget.onChanged?.call(widget.lines);
+  }
+
+  bool _shouldShowCustomColumn(ErpLineItemCustomColumn column) {
+    if (widget.lines.isEmpty) {
+      return true;
+    }
+    return widget.lines.any(
+      (row) => !_isHiddenPlaceholderCell(row.customCells[column.id]),
+    );
+  }
+
+  bool _shouldShowBuiltInColumn(ErpLineItemTableColumn column) {
+    if (column == ErpLineItemTableColumn.uom) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _isHiddenPlaceholderCell(Widget? cell) {
+    if (cell == null || cell is SizedBox) {
+      return true;
+    }
+    if (cell is ErpLineItemCellFrame) {
+      return _isHiddenPlaceholderCell(cell.child);
+    }
+    if (cell is ErpLineItemTextCell) {
+      final value = (cell.initialValue ?? '').trim();
+      return cell.readOnly &&
+          !cell.enabled &&
+          (value.isEmpty || value == '-' || value == '—');
+    }
+    return false;
   }
 
   String _columnKey(ErpLineItemTableColumn column) {
