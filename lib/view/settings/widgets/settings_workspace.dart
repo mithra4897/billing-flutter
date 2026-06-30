@@ -769,6 +769,7 @@ class SettingsFormWrap extends StatelessWidget {
               .map((child) {
                 if (child is AppDropdownField ||
                     child is DocumentSeriesSelector ||
+                    child is GeneratedDocumentNumberField ||
                     child is AppFormTextField ||
                     child is AppDateField ||
                     child is AppCheckboxFilter ||

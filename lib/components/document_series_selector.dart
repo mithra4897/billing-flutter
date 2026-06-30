@@ -119,14 +119,12 @@ class GeneratedDocumentNumberField extends StatelessWidget {
         ? controller.text.trim()
         : formatDocumentSeriesPreviewNumber(selectedSeries);
 
-    return AppFieldBox(
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: labelText,
-          hintText: hintText,
-        ),
-        child: Text(value),
-      ),
+    return AppFormTextField(
+      labelText: labelText,
+      initialValue: value,
+      hintText: hintText,
+      readOnly: true,
+      validator: validator,
     );
   }
 }
