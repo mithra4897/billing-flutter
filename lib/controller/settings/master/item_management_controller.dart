@@ -118,9 +118,7 @@ class ItemManagementController extends GetxController {
 
     try {
       final responses = await Future.wait<dynamic>([
-        _inventoryService.items(
-          filters: const {'per_page': 200, 'sort_by': 'item_name'},
-        ),
+        _loadAllItems(),
         _masterService.companies(filters: const {'per_page': 200}),
         _inventoryService.itemCategories(
           filters: const {'per_page': 200, 'sort_by': 'category_name'},
@@ -204,6 +202,44 @@ class ItemManagementController extends GetxController {
     }
 
     update();
+  }
+
+  Future<PaginatedResponse<ItemModel>> _loadAllItems() async {
+    const perPage = 200;
+    final allItems = <ItemModel>[];
+
+    var page = 1;
+    var lastPage = 1;
+    PaginationMeta? lastMeta;
+
+    do {
+      final response = await _inventoryService.items(
+        filters: <String, dynamic>{
+          'per_page': perPage,
+          'page': page,
+          'sort_by': 'item_name',
+        },
+      );
+
+      allItems.addAll(response.data ?? const <ItemModel>[]);
+      lastMeta = response.meta;
+      lastPage = response.meta?.lastPage ?? 1;
+      page++;
+    } while (page <= lastPage);
+
+    return PaginatedResponse<ItemModel>(
+      data: allItems,
+      message: lastMeta == null
+          ? 'Items fetched successfully.'
+          : 'Items fetched successfully. (${allItems.length}/${lastMeta.total})',
+      success: true,
+      meta: PaginationMeta(
+        currentPage: 1,
+        lastPage: 1,
+        perPage: allItems.length,
+        total: allItems.length,
+      ),
+    );
   }
 
   List<ItemModel> _filterItems(List<ItemModel> source, String query) {
