@@ -43,6 +43,7 @@ class ItemModel extends JsonModel {
     this.weight,
     this.volume,
     this.imagePath,
+    this.description,
     this.hasBatch = false,
     this.hasSerial = false,
     this.hasExpiry = false,
@@ -94,6 +95,7 @@ class ItemModel extends JsonModel {
   final double? weight;
   final double? volume;
   final String? imagePath;
+  final String? description;
   final bool hasBatch;
   final bool hasSerial;
   final bool hasExpiry;
@@ -116,6 +118,8 @@ class ItemModel extends JsonModel {
     categoryName ?? '',
     sku ?? '',
     barcode ?? '',
+    description ?? '',
+    remarks ?? '',
   ].where((value) => value.trim().isNotEmpty).join(' ');
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -179,6 +183,7 @@ class ItemModel extends JsonModel {
       weight: _parseDouble(json['weight']),
       volume: _parseDouble(json['volume']),
       imagePath: json['image_path']?.toString(),
+      description: json['description']?.toString(),
       hasBatch: _bool(json['has_batch']),
       hasSerial: _bool(json['has_serial']),
       hasExpiry: _bool(json['has_expiry']),
@@ -228,6 +233,7 @@ class ItemModel extends JsonModel {
       if (weight != null) 'weight': weight,
       if (volume != null) 'volume': volume,
       if (imagePath != null) 'image_path': imagePath,
+      if (description != null) 'description': description,
       'is_active': isActive,
       if (remarks != null) 'remarks': remarks,
     };
