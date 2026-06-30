@@ -1139,7 +1139,7 @@ class StockDamageRegisterPage extends StatelessWidget {
         ].join(' ').toLowerCase().contains(query);
       },
       emptyMessage: 'No stock damages found.',
-      newRoute: '/inventory/stock-damages/new',
+      newRoute: '/inventory/stock-damage/new',
       newLabel: 'New Damage',
       searchHint: 'Search damage entries',
       statusValue: (row) => stringValue(row.toJson(), 'damage_status'),
