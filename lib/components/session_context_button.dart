@@ -57,11 +57,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
   }
 
   String get _primarySummaryLabel {
-    final value = _display?.primarySummary ?? '';
-    if (value.trim().isEmpty) {
-      return 'Context';
-    }
-    return value;
+    return 'Context';
   }
 
   String? get _financialYearSummaryLabel {

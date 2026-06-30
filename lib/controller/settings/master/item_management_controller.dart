@@ -42,6 +42,7 @@ class ItemManagementController extends GetxController {
   final TextEditingController weightController = TextEditingController();
   final TextEditingController volumeController = TextEditingController();
   final TextEditingController imagePathController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
 
   bool initialLoading = true;
@@ -105,6 +106,7 @@ class ItemManagementController extends GetxController {
     weightController.dispose();
     volumeController.dispose();
     imagePathController.dispose();
+    descriptionController.dispose();
     remarksController.dispose();
     super.onClose();
   }
@@ -214,6 +216,9 @@ class ItemManagementController extends GetxController {
         item.categoryCode ?? '',
         item.categoryName ?? '',
         item.sku ?? '',
+        item.barcode ?? '',
+        item.description ?? '',
+        item.remarks ?? '',
       ];
     });
   }
@@ -249,6 +254,7 @@ class ItemManagementController extends GetxController {
     weightController.text = item.weight?.toString() ?? '';
     volumeController.text = item.volume?.toString() ?? '';
     imagePathController.text = item.imagePath ?? '';
+    descriptionController.text = item.description ?? '';
     remarksController.text = item.remarks ?? '';
     hasBatch = item.hasBatch;
     hasSerial = item.hasSerial;
@@ -290,6 +296,7 @@ class ItemManagementController extends GetxController {
     weightController.clear();
     volumeController.clear();
     imagePathController.clear();
+    descriptionController.clear();
     remarksController.clear();
     hasBatch = false;
     hasSerial = false;
@@ -350,6 +357,7 @@ class ItemManagementController extends GetxController {
       weight: double.tryParse(weightController.text.trim()),
       volume: double.tryParse(volumeController.text.trim()),
       imagePath: nullIfEmpty(imagePathController.text),
+      description: nullIfEmpty(descriptionController.text),
       hasBatch: hasBatch,
       hasSerial: hasSerial,
       hasExpiry: hasExpiry,

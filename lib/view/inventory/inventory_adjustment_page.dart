@@ -509,7 +509,8 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                     ),
                     'system_qty': ErpLineItemTextCell(
                       controller: line.systemQtyController,
-                      enabled: canEdit,
+                      enabled: false,
+                      readOnly: true,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),

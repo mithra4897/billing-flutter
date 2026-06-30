@@ -663,13 +663,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     var normalized = List<DocumentPrintColumn>.from(columns);
 
     if (!hideIgst && !normalized.any((c) => c.key == 'igst')) {
-      final defaultIgst =
-          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'igst');
+      final defaultIgst = defaultGstBreakupTableColumns.firstWhere(
+        (c) => c.key == 'igst',
+      );
       normalized.add(defaultIgst);
     }
     if (!hideCgstSgst && !normalized.any((c) => c.key == 'cgst')) {
-      final defaultCgst =
-          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'cgst');
+      final defaultCgst = defaultGstBreakupTableColumns.firstWhere(
+        (c) => c.key == 'cgst',
+      );
       final igstIndex = normalized.indexWhere((c) => c.key == 'igst');
       if (igstIndex >= 0) {
         normalized.insert(igstIndex, defaultCgst);
@@ -678,8 +680,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       }
     }
     if (!hideCgstSgst && !normalized.any((c) => c.key == 'sgst')) {
-      final defaultSgst =
-          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'sgst');
+      final defaultSgst = defaultGstBreakupTableColumns.firstWhere(
+        (c) => c.key == 'sgst',
+      );
       final igstIndex = normalized.indexWhere((c) => c.key == 'igst');
       if (igstIndex >= 0) {
         normalized.insert(igstIndex, defaultSgst);
@@ -1033,10 +1036,21 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final showSideInspector = _editMode && constraints.maxWidth >= 1400;
+            final isMobileLayout = constraints.maxWidth < 760;
+            final showSideInspector = _editMode && !isMobileLayout;
+            final pagePadding = isMobileLayout
+                ? AppUiConstants.spacingSm
+                : AppUiConstants.pagePadding;
+            final sectionSpacing = isMobileLayout
+                ? AppUiConstants.spacingMd
+                : AppUiConstants.spacingLg;
+            final bottomInspectorHeight = math.min(
+              340.0,
+              math.max(220.0, constraints.maxHeight * 0.34),
+            );
 
             return Padding(
-              padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+              padding: EdgeInsets.all(pagePadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1052,10 +1066,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                         ? Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(child: _buildCanvasCard(template)),
-                              const SizedBox(width: AppUiConstants.spacingLg),
-                              SizedBox(
-                                width: 420,
+                              Expanded(
+                                flex: 3,
+                                child: _buildCanvasCard(
+                                  template,
+                                  compact: isMobileLayout,
+                                ),
+                              ),
+                              SizedBox(width: sectionSpacing),
+                              Expanded(
+                                flex: 2,
                                 child: _buildInspector(
                                   template,
                                   padding: const EdgeInsets.all(
@@ -1068,13 +1088,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(child: _buildCanvasCard(template)),
-                              if (_editMode) ...[
-                                const SizedBox(
-                                  height: AppUiConstants.spacingLg,
+                              Expanded(
+                                child: _buildCanvasCard(
+                                  template,
+                                  compact: isMobileLayout,
                                 ),
+                              ),
+                              if (_editMode) ...[
+                                SizedBox(height: sectionSpacing),
                                 SizedBox(
-                                  height: 320,
+                                  height: bottomInspectorHeight,
                                   child: _buildInspector(
                                     template,
                                     padding: EdgeInsets.zero,
@@ -1325,15 +1348,25 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
-  Widget _buildCanvasCard(DocumentPrintTemplate template) {
+  Widget _buildCanvasCard(
+    DocumentPrintTemplate template, {
+    required bool compact,
+  }) {
+    final cardPadding = compact
+        ? AppUiConstants.spacingSm
+        : AppUiConstants.spacingMd;
+    final canvasPadding = compact
+        ? AppUiConstants.spacingMd
+        : AppUiConstants.spacingLg;
+
     return AppSectionCard(
-      padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+      padding: EdgeInsets.all(cardPadding),
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
         ),
-        padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+        padding: EdgeInsets.all(canvasPadding),
         alignment: Alignment.center,
         child: KeyboardListener(
           focusNode: _designerFocusNode,
@@ -3030,8 +3063,10 @@ class _DesignerCanvasState extends State<_DesignerCanvas> {
           (constraints.maxWidth - 24) / widget.template.pageWidth,
           (constraints.maxHeight - 24) / widget.template.pageHeight,
         );
-        final baseScale = math.max(0.45, fitScale);
-        final scale = (baseScale * widget.zoom).clamp(0.45, 2.5);
+        // Keep the document at full size and rely on scrollbars instead of
+        // shrinking the page when the available space gets tighter.
+        final baseScale = math.max(1.0, fitScale);
+        final scale = (baseScale * widget.zoom).clamp(1.0, 2.5);
 
         return Scrollbar(
           controller: _verticalController,

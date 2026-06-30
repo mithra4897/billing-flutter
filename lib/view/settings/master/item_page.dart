@@ -507,6 +507,12 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           ),
           const SizedBox(height: 16),
           AppFormTextField(
+            labelText: 'Description',
+            controller: controller.descriptionController,
+            maxLines: 4,
+          ),
+          const SizedBox(height: 16),
+          AppFormTextField(
             labelText: 'Remarks',
             controller: controller.remarksController,
             maxLines: 3,

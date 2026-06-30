@@ -142,6 +142,7 @@ class InventoryAdjustmentViewModel extends GetxController {
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<StockBatchModel> batches = const <StockBatchModel>[];
   List<StockSerialModel> serials = const <StockSerialModel>[];
+  List<StockBalanceModel> stockBalances = const <StockBalanceModel>[];
 
   InventoryAdjustmentModel? selected;
   int? companyId;
@@ -235,10 +236,15 @@ class InventoryAdjustmentViewModel extends GetxController {
             return false;
           }
           if (categoryFilter.isNotEmpty) {
-            final rowCategories = (row.items ?? const <InventoryAdjustmentItemModel>[])
-                .map((line) => (itemById(line.itemId)?.categoryName ?? '').trim().toLowerCase())
-                .where((value) => value.isNotEmpty)
-                .toSet();
+            final rowCategories =
+                (row.items ?? const <InventoryAdjustmentItemModel>[])
+                    .map(
+                      (line) => (itemById(line.itemId)?.categoryName ?? '')
+                          .trim()
+                          .toLowerCase(),
+                    )
+                    .where((value) => value.isNotEmpty)
+                    .toSet();
             if (!rowCategories.contains(categoryFilter)) {
               return false;
             }
@@ -329,6 +335,9 @@ class InventoryAdjustmentViewModel extends GetxController {
         ),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
+        _inventoryService.stockBalances(
+          filters: const {'per_page': 1000, 'sort_by': 'qty_available'},
+        ),
       ]);
       rows =
           (responses[0] as PaginatedResponse<InventoryAdjustmentModel>).data ??
@@ -384,6 +393,9 @@ class InventoryAdjustmentViewModel extends GetxController {
       serials =
           (responses[11] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
+      stockBalances =
+          (responses[12] as PaginatedResponse<StockBalanceModel>).data ??
+          const <StockBalanceModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -444,11 +456,13 @@ class InventoryAdjustmentViewModel extends GetxController {
       line.dispose();
     }
     lines = <InventoryAdjustmentLineDraft>[
-      InventoryAdjustmentLineDraft(
-        itemId: initialItemId,
-        warehouseId: warehouseOptions.isNotEmpty
-            ? warehouseOptions.first.id
-            : null,
+      _applySystemStock(
+        InventoryAdjustmentLineDraft(
+          itemId: initialItemId,
+          warehouseId: warehouseOptions.isNotEmpty
+              ? warehouseOptions.first.id
+              : null,
+        ),
       ),
     ];
     final itemId = initialItemId;
@@ -514,25 +528,29 @@ class InventoryAdjustmentViewModel extends GetxController {
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
       lines = apiLines.isEmpty
-          ? <InventoryAdjustmentLineDraft>[InventoryAdjustmentLineDraft()]
+          ? <InventoryAdjustmentLineDraft>[
+              _applySystemStock(InventoryAdjustmentLineDraft()),
+            ]
           : apiLines
                 .map(
-                  (line) => InventoryAdjustmentLineDraft(
-                    itemId: intValue(line, 'item_id'),
-                    warehouseId: intValue(line, 'warehouse_id'),
-                    batchId: intValue(line, 'batch_id'),
-                    serialId: intValue(line, 'serial_id'),
-                    uomId: intValue(line, 'uom_id'),
-                    systemQty: stringValue(line, 'system_qty'),
-                    actualQty: stringValue(line, 'actual_qty'),
-                    adjustmentQty: stringValue(line, 'adjustment_qty'),
-                    unitCost: stringValue(line, 'unit_cost'),
-                    totalCost: stringValue(line, 'total_cost'),
-                    adjustmentDirection: stringValue(
-                      line,
-                      'adjustment_direction',
+                  (line) => _applySystemStock(
+                    InventoryAdjustmentLineDraft(
+                      itemId: intValue(line, 'item_id'),
+                      warehouseId: intValue(line, 'warehouse_id'),
+                      batchId: intValue(line, 'batch_id'),
+                      serialId: intValue(line, 'serial_id'),
+                      uomId: intValue(line, 'uom_id'),
+                      systemQty: stringValue(line, 'system_qty'),
+                      actualQty: stringValue(line, 'actual_qty'),
+                      adjustmentQty: stringValue(line, 'adjustment_qty'),
+                      unitCost: stringValue(line, 'unit_cost'),
+                      totalCost: stringValue(line, 'total_cost'),
+                      adjustmentDirection: stringValue(
+                        line,
+                        'adjustment_direction',
+                      ),
+                      remarks: stringValue(line, 'remarks'),
                     ),
-                    remarks: stringValue(line, 'remarks'),
                   ),
                 )
                 .toList(growable: true);
@@ -590,10 +608,12 @@ class InventoryAdjustmentViewModel extends GetxController {
   void addLine() {
     lines = List<InventoryAdjustmentLineDraft>.from(lines)
       ..add(
-        InventoryAdjustmentLineDraft(
-          warehouseId: warehouseOptions.isNotEmpty
-              ? warehouseOptions.first.id
-              : null,
+        _applySystemStock(
+          InventoryAdjustmentLineDraft(
+            warehouseId: warehouseOptions.isNotEmpty
+                ? warehouseOptions.first.id
+                : null,
+          ),
         ),
       );
     update();
@@ -629,6 +649,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       uomConversions,
       current: lines[i].uomId,
     );
+    _applySystemStock(lines[i]);
     update();
   }
 
@@ -636,6 +657,7 @@ class InventoryAdjustmentViewModel extends GetxController {
     lines[i].warehouseId = value;
     lines[i].batchId = null;
     _reconcileLineSerialSelection(lines[i]);
+    _applySystemStock(lines[i]);
     update();
   }
 
@@ -647,12 +669,72 @@ class InventoryAdjustmentViewModel extends GetxController {
   void onLineBatchChanged(int i, int? value) {
     lines[i].batchId = value;
     _reconcileLineSerialSelection(lines[i]);
+    _applySystemStock(lines[i]);
     update();
   }
 
   void onLineSerialChanged(int i, int? value) {
     lines[i].serialId = value;
+    _applySystemStock(lines[i]);
     update();
+  }
+
+  InventoryAdjustmentLineDraft _applySystemStock(
+    InventoryAdjustmentLineDraft line,
+  ) {
+    final systemQty = _resolveSystemQty(line);
+    line.systemQtyController.text = systemQty == null
+        ? ''
+        : _formatQuantity(systemQty);
+    if (line.unitCostController.text.trim().isEmpty) {
+      final unitCost = _resolveUnitCost(line);
+      if (unitCost != null) {
+        line.unitCostController.text = _formatQuantity(unitCost);
+      }
+    }
+    return line;
+  }
+
+  double? _resolveSystemQty(InventoryAdjustmentLineDraft line) {
+    if (line.warehouseId == null || line.itemId == null) {
+      return null;
+    }
+    final matches = stockBalances.where((balance) {
+      final sameWarehouse = balance.warehouseId == line.warehouseId;
+      final sameItem = balance.itemId == line.itemId;
+      final sameBatch = line.batchId == null || balance.batchId == line.batchId;
+      final sameSerial =
+          line.serialId == null || balance.serialId == line.serialId;
+      return sameWarehouse && sameItem && sameBatch && sameSerial;
+    });
+    return matches.fold<double>(
+      0,
+      (sum, balance) => sum + (balance.qtyAvailable ?? 0),
+    );
+  }
+
+  double? _resolveUnitCost(InventoryAdjustmentLineDraft line) {
+    if (line.warehouseId == null || line.itemId == null) {
+      return null;
+    }
+    final match = stockBalances.cast<StockBalanceModel?>().firstWhere(
+      (balance) =>
+          balance?.warehouseId == line.warehouseId &&
+          balance?.itemId == line.itemId &&
+          (line.batchId == null || balance?.batchId == line.batchId) &&
+          (line.serialId == null || balance?.serialId == line.serialId),
+      orElse: () => null,
+    );
+    return match?.avgCost;
+  }
+
+  String _formatQuantity(double value) {
+    return value % 1 == 0
+        ? value.toStringAsFixed(0)
+        : value
+              .toStringAsFixed(6)
+              .replaceFirst(RegExp(r'0+$'), '')
+              .replaceFirst(RegExp(r'\.$'), '');
   }
 
   void _reconcileLineSerialSelection(InventoryAdjustmentLineDraft line) {
