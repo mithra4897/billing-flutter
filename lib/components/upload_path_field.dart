@@ -1,4 +1,5 @@
 import '../screen.dart';
+import '../core/files/external_url_actions.dart';
 
 class UploadPathField extends StatelessWidget {
   const UploadPathField({
@@ -23,35 +24,43 @@ class UploadPathField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final resolvedPreviewUrl = (previewUrl ?? '').trim();
+    final hasPreview = resolvedPreviewUrl.isNotEmpty;
+    final isImagePreview = _isImageUrl(resolvedPreviewUrl);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if ((previewUrl ?? '').trim().isNotEmpty)
+        if (hasPreview)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
-              child: Image.network(
-                previewUrl!,
-                width: 96,
-                height: 96,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 96,
-                    height: 96,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: appTheme.subtleFill,
-                      borderRadius: BorderRadius.circular(
-                        AppUiConstants.fieldRadius,
-                      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isImagePreview)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.fieldRadius,
                     ),
-                    child: Icon(previewIcon),
-                  );
-                },
-              ),
+                    child: Image.network(
+                      resolvedPreviewUrl,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _fallbackPreviewCard(appTheme);
+                      },
+                    ),
+                  )
+                else
+                  _fallbackPreviewCard(appTheme),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _openPreview(context, resolvedPreviewUrl),
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('View'),
+                ),
+              ],
             ),
           ),
         SizedBox(
@@ -110,6 +119,42 @@ class UploadPathField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _fallbackPreviewCard(AppThemeExtension appTheme) {
+    return Container(
+      width: 96,
+      height: 96,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
+      ),
+      child: Icon(previewIcon),
+    );
+  }
+
+  bool _isImageUrl(String value) {
+    final normalized = value.toLowerCase();
+    return normalized.contains('.png') ||
+        normalized.contains('.jpg') ||
+        normalized.contains('.jpeg') ||
+        normalized.contains('.gif') ||
+        normalized.contains('.webp') ||
+        normalized.contains('.bmp') ||
+        normalized.contains('.svg');
+  }
+
+  Future<void> _openPreview(BuildContext context, String url) async {
+    final opened = await openExternalUrl(url);
+    if (opened || !context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('File preview is supported in the web app browser.'),
+      ),
     );
   }
 }
