@@ -2626,13 +2626,15 @@ class SalesInvoiceManagementController extends GetxController {
       formError = null;
     });
 
+    final effectiveCustomerPartyId = customerPartyId;
+
     final invoice = SalesInvoiceModel(
       id: selectedItem?.id ?? 0,
       companyId: companyId ?? 0,
       branchId: branchId ?? 0,
       locationId: locationId ?? 0,
       financialYearId: financialYearId ?? 0,
-      customerPartyId: customerPartyId ?? 0,
+      customerPartyId: effectiveCustomerPartyId ?? 0,
       billingAddressId: billingAddressId,
       shippingAddressId: shippingAddressId,
       invoiceDate: invoiceDateController.text.trim(),

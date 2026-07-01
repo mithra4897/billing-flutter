@@ -127,7 +127,7 @@ class SalesInvoiceModel extends JsonModel {
       if (customer != null) 'customer': customer,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
-      'customer_party_id': customerPartyId,
+      if (customerPartyId > 0) 'customer_party_id': customerPartyId,
       if (billingAddressId != null) 'billing_address_id': billingAddressId,
       if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
       if (contactId != null) 'contact_id': contactId,

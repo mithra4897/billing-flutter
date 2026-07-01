@@ -828,7 +828,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     });
                     unawaited(controller.ensureCustomerTaxContext(value));
                   },
-                  validator: Validators.requiredSelection('Customer'),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales quotation (optional)',
