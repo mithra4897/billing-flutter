@@ -48,7 +48,7 @@ class OpeningStockLineDraft {
       'serial_no': serialNumbers.first.trim(),
     'uom_id': uomId,
     'qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()),
     'total_cost': double.tryParse(totalCostController.text.trim()),
     'remarks': nullIfEmpty(remarksController.text),
   };

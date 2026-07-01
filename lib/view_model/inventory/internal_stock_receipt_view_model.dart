@@ -59,7 +59,7 @@ class InternalStockReceiptLineDraft {
     if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
       'serial_no': serialNumbers.first.trim(),
     'receipt_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()),
     'total_cost': double.tryParse(totalCostController.text.trim()),
     'remarks': nullIfEmpty(remarksController.text),
   };

@@ -53,6 +53,7 @@ class SalesDeliveryLineDraft {
   final TextEditingController serialNoController;
 
   Map<String, dynamic> toJson() {
+    final rate = Validators.parseFlexibleNumber(rateController.text);
     return <String, dynamic>{
       if (salesOrderLineId != null) 'sales_order_line_id': salesOrderLineId,
       'item_id': itemId,
@@ -62,7 +63,7 @@ class SalesDeliveryLineDraft {
       'description': nullIfEmpty(descriptionController.text),
       'delivered_qty':
           Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0,
-      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
+      'rate': rate,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }

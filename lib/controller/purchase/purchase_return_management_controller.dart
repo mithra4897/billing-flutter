@@ -92,6 +92,7 @@ class PurchaseReturnLineDraft {
   }
 
   Map<String, dynamic> toJson() {
+    final rate = Validators.parseFlexibleNumber(rateController.text);
     return <String, dynamic>{
       'purchase_invoice_line_id': purchaseInvoiceLineId,
       'item_id': itemId,
@@ -103,7 +104,7 @@ class PurchaseReturnLineDraft {
       if (discountPercent != null) 'discount_percent': discountPercent,
       'return_qty':
           Validators.parseFlexibleNumber(returnQtyController.text) ?? 0,
-      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
+      'rate': rate,
       'return_reason': nullIfEmpty(returnReasonController.text),
       'remarks': nullIfEmpty(remarksController.text),
     };

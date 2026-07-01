@@ -13,7 +13,7 @@ class JobworkDispatchLineDraft {
     String? unitCost,
     String? remarks,
   }) : qtyController = TextEditingController(text: qty ?? '1'),
-       unitCostController = TextEditingController(text: unitCost ?? '0'),
+       unitCostController = TextEditingController(text: unitCost ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
   factory JobworkDispatchLineDraft.fromModel(JobworkDispatchLineModel m) {
@@ -25,7 +25,7 @@ class JobworkDispatchLineDraft {
       batchId: m.batchId,
       serialId: m.serialId,
       qty: m.dispatchQty.toString(),
-      unitCost: m.unitCost.toString(),
+      unitCost: m.unitCost == 0 ? '' : m.unitCost.toString(),
       remarks: m.remarks,
     );
   }

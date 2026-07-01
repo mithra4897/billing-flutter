@@ -556,7 +556,19 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
-    final tableCellStyle = _tableCellStyle(theme, appTheme);
+    final tableCellStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: appTheme.tableCellText,
+          fontSize: 14,
+          height: 1.2,
+        ) ??
+        TextStyle(
+          fontWeight: FontWeight.w500,
+          color: appTheme.tableCellText,
+          fontSize: 14,
+          height: 1.2,
+        );
     final compactTheme = theme.copyWith(
       inputDecorationTheme: theme.inputDecorationTheme.copyWith(
         filled: true,
@@ -1211,44 +1223,13 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    final tableCellStyle = _tableCellStyle(theme, appTheme);
-    final compactErrorStyle = theme.textTheme.bodySmall?.copyWith(
-      fontSize: 0,
-      height: 0.01,
-      color: Colors.transparent,
-    );
-    return Padding(
-      padding: const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
-      child: SizedBox(
-        height: AppUiConstants.tableCompactFieldHeight,
-        child: TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          onChanged: onChanged,
-          validator: validator,
-          textAlignVertical: TextAlignVertical.center,
-          style: tableCellStyle,
-          inputFormatters: keyboardType == null
-              ? null
-              : <TextInputFormatter>[
-                  if (NumericFieldFocusBinding.isNumericKeyboard(keyboardType))
-                    const NumericInputFormatter(),
-                ],
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: hintText,
-            errorStyle: compactErrorStyle,
-            errorMaxLines: 1,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppUiConstants.tableCellPaddingSm,
-              vertical: AppUiConstants.tableCellPaddingXs,
-            ),
-          ),
-        ),
-      ),
+    return _ErpCompactTextField(
+      controller: controller,
+      hintText: hintText,
+      onChanged: onChanged,
+      validator: validator,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
     );
   }
 
@@ -1301,6 +1282,128 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+class _ErpCompactTextField extends StatefulWidget {
+  const _ErpCompactTextField({
+    required this.controller,
+    required this.hintText,
+    this.onChanged,
+    this.validator,
+    this.keyboardType,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
+  final TextInputType? keyboardType;
+  final int maxLines;
+
+  @override
+  State<_ErpCompactTextField> createState() => _ErpCompactTextFieldState();
+}
+
+class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
+  final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
+
+  bool get _isNumericField =>
+      NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
+
+  @override
+  void initState() {
+    super.initState();
+    final created = _numericBinding.sync(
+      enable: _isNumericField,
+      controller: widget.controller,
+    );
+    if (created) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ErpCompactTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final created = _numericBinding.sync(
+      enable: _isNumericField,
+      controller: widget.controller,
+    );
+    if (created) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _numericBinding.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final tableCellStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: appTheme.tableCellText,
+          fontSize: 14,
+          height: 1.2,
+        ) ??
+        TextStyle(
+          fontWeight: FontWeight.w500,
+          color: appTheme.tableCellText,
+          fontSize: 14,
+          height: 1.2,
+        );
+    final compactErrorStyle = theme.textTheme.bodySmall?.copyWith(
+      fontSize: 0,
+      height: 0.01,
+      color: Colors.transparent,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
+      child: SizedBox(
+        height: AppUiConstants.tableCompactFieldHeight,
+        child: TextFormField(
+          controller: widget.controller,
+          focusNode: _numericBinding.focusNode,
+          maxLines: widget.maxLines,
+          keyboardType: widget.keyboardType,
+          onChanged: widget.onChanged,
+          validator: widget.validator,
+          textAlignVertical: TextAlignVertical.center,
+          style: tableCellStyle,
+          inputFormatters: widget.keyboardType == null
+              ? null
+              : <TextInputFormatter>[
+                  if (_isNumericField) const NumericInputFormatter(),
+                ],
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: widget.hintText,
+            errorStyle: compactErrorStyle,
+            errorMaxLines: 1,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppUiConstants.tableCellPaddingSm,
+              vertical: AppUiConstants.tableCellPaddingXs,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

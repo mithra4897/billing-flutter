@@ -143,6 +143,7 @@ class SalesReturnLineDraft {
   }
 
   Map<String, dynamic> toJson() {
+    final rate = Validators.parseFlexibleNumber(rateController.text);
     return <String, dynamic>{
       'sales_invoice_line_id': salesInvoiceLineId,
       'item_id': itemId,
@@ -159,7 +160,7 @@ class SalesReturnLineDraft {
       if (taxPercent != null) 'tax_percent': taxPercent,
       'return_qty':
           Validators.parseFlexibleNumber(returnQtyController.text) ?? 0,
-      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
+      'rate': rate,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }

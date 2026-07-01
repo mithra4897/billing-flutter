@@ -63,6 +63,10 @@ class OrderLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() {
+    final rate = Validators.parseFlexibleNumber(rateController.text);
+    final discountPercent = Validators.parseFlexibleNumber(
+      discountController.text,
+    );
     return <String, dynamic>{
       if (salesQuotationLineId != null)
         'sales_quotation_line_id': salesQuotationLineId,
@@ -72,9 +76,8 @@ class OrderLineDraft {
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),
       'ordered_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
-      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
-      'discount_percent':
-          Validators.parseFlexibleNumber(discountController.text) ?? 0,
+      'rate': rate,
+      'discount_percent': discountPercent,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }

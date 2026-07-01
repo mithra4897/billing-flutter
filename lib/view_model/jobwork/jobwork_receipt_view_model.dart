@@ -17,8 +17,8 @@ class JobworkReceiptLineDraft {
     String? remarks,
   }) : receiptQtyController = TextEditingController(text: receiptQty ?? '1'),
        acceptedQtyController = TextEditingController(text: acceptedQty ?? '1'),
-       rejectedQtyController = TextEditingController(text: rejectedQty ?? '0'),
-       unitCostController = TextEditingController(text: unitCost ?? '0'),
+       rejectedQtyController = TextEditingController(text: rejectedQty ?? ''),
+       unitCostController = TextEditingController(text: unitCost ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
   factory JobworkReceiptLineDraft.fromModel(JobworkReceiptLineModel m) {
@@ -32,8 +32,8 @@ class JobworkReceiptLineDraft {
       outputType: m.outputType,
       receiptQty: m.receiptQty.toString(),
       acceptedQty: m.acceptedQty.toString(),
-      rejectedQty: m.rejectedQty.toString(),
-      unitCost: m.unitCost.toString(),
+      rejectedQty: m.rejectedQty == 0 ? '' : m.rejectedQty.toString(),
+      unitCost: m.unitCost == 0 ? '' : m.unitCost.toString(),
       remarks: m.remarks,
     );
   }

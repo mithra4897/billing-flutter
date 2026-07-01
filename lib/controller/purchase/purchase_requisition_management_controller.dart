@@ -50,6 +50,9 @@ class PurchaseRequisitionLineDraft {
   }
 
   Map<String, dynamic> toJson() {
+    final estimatedRate = Validators.parseFlexibleNumber(
+      estimatedRateController.text,
+    );
     return <String, dynamic>{
       'item_id': itemId,
       'warehouse_id': warehouseId,
@@ -57,8 +60,7 @@ class PurchaseRequisitionLineDraft {
       'description': nullIfEmpty(descriptionController.text),
       'requested_qty':
           Validators.parseFlexibleNumber(requestedQtyController.text) ?? 0,
-      'estimated_rate':
-          Validators.parseFlexibleNumber(estimatedRateController.text) ?? 0,
+      'estimated_rate': estimatedRate,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }

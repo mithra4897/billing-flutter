@@ -47,7 +47,7 @@ class StockDamageLineDraft {
     'batch_id': batchId,
     'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
     'damage_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()),
     'total_cost': double.tryParse(totalCostController.text.trim()),
     'reason': nullIfEmpty(reasonController.text),
     'remarks': nullIfEmpty(remarksController.text),

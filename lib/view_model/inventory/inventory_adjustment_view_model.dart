@@ -78,7 +78,7 @@ class InventoryAdjustmentLineDraft {
       'system_qty': systemQty,
       'actual_qty': actualQty,
       'adjustment_qty': adjustmentQty,
-      'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+      'unit_cost': double.tryParse(unitCostController.text.trim()),
       'total_cost': double.tryParse(totalCostController.text.trim()),
       'adjustment_direction': direction,
       'remarks': nullIfEmpty(remarksController.text),

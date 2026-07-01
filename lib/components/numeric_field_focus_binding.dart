@@ -43,9 +43,31 @@ class NumericFieldFocusBinding {
   }
 
   void _handleFocusChanged() {
+    if (_focusNode?.hasFocus ?? false) {
+      _selectAllIfZero(_controller);
+      return;
+    }
     if (!(_focusNode?.hasFocus ?? false)) {
       applyFormattedDisplay(_controller);
     }
+  }
+
+  static void _selectAllIfZero(TextEditingController? controller) {
+    if (controller == null) {
+      return;
+    }
+    final text = controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    final parsed = Validators.parseFlexibleNumber(text);
+    if (parsed == null || parsed != 0) {
+      return;
+    }
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: text.length,
+    );
   }
 
   void dispose() {

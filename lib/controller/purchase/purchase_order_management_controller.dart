@@ -74,6 +74,10 @@ class PurchaseOrderLineDraft {
   bool _disposed = false;
 
   Map<String, dynamic> toJson() {
+    final rate = Validators.parseFlexibleNumber(rateController.text);
+    final discountPercent = Validators.parseFlexibleNumber(
+      discountController.text,
+    );
     return <String, dynamic>{
       'purchase_requisition_line_id': purchaseRequisitionLineId,
       'item_id': itemId,
@@ -82,9 +86,8 @@ class PurchaseOrderLineDraft {
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),
       'ordered_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
-      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
-      'discount_percent':
-          Validators.parseFlexibleNumber(discountController.text) ?? 0,
+      'rate': rate,
+      'discount_percent': discountPercent,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }

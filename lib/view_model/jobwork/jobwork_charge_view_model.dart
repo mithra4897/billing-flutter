@@ -17,8 +17,8 @@ class JobworkChargeLineDraft {
          text: serviceDescription ?? '',
        ),
        qtyController = TextEditingController(text: qty ?? '1'),
-       rateController = TextEditingController(text: rate ?? '0'),
-       amountController = TextEditingController(text: amount ?? '0'),
+       rateController = TextEditingController(text: rate ?? ''),
+       amountController = TextEditingController(text: amount ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
   factory JobworkChargeLineDraft.fromModel(JobworkChargeLineModel m) {
@@ -28,8 +28,8 @@ class JobworkChargeLineDraft {
       taxCodeId: m.taxCodeId,
       serviceDescription: m.serviceDescription,
       qty: m.qty.toString(),
-      rate: m.rate.toString(),
-      amount: m.amount.toString(),
+      rate: m.rate == 0 ? '' : m.rate.toString(),
+      amount: m.amount == 0 ? '' : m.amount.toString(),
       remarks: m.remarks,
     );
   }

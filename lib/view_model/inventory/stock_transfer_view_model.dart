@@ -37,7 +37,7 @@ class StockTransferLineDraft {
     'to_batch_id': toBatchId,
     'to_serial_id': toSerialId,
     'transfer_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()),
     'total_cost': double.tryParse(totalCostController.text.trim()),
     'remarks': nullIfEmpty(remarksController.text),
   };
