@@ -280,6 +280,10 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
           valueBuilder: (row) => purchaseStatusLabel(
             nullableStringValue(row.toJson(), 'requisition_status'),
           ),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            nullableStringValue(row.toJson(), 'requisition_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -362,6 +366,10 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
           valueBuilder: (row) => purchaseStatusLabel(
             nullableStringValue(row.toJson(), 'order_status'),
           ),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            nullableStringValue(row.toJson(), 'order_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/orders/${intValue(row.toJson(), 'id')}',
@@ -440,6 +448,10 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
           valueBuilder: (row) => purchaseStatusLabel(
             nullableStringValue(row.toJson(), 'receipt_status'),
           ),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            nullableStringValue(row.toJson(), 'receipt_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/receipts/${intValue(row.toJson(), 'id')}',
@@ -504,6 +516,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         if (filterOverdue) {
           if (row.invoiceStatus == 'draft' ||
               row.invoiceStatus == 'paid' ||
+              row.invoiceStatus == 'partially_paid' ||
               row.invoiceStatus == 'cancelled') {
             overdueOk = false;
           } else {
@@ -578,6 +591,11 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) => purchaseStatusLabel(row.invoiceStatus),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            row.invoiceStatus,
+            dueDate: row.dueDate,
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
@@ -687,7 +705,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
                             AppSwitchTile(
                               label: 'Overdue Invoices Only',
                               subtitle:
-                                  'Show posted/partially paid invoices past their due date',
+                                  'Show posted invoices past their due date',
                               value:
                                   dialogController.customFilters['overdue']
                                       as bool? ??
@@ -810,6 +828,10 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
           valueBuilder: (row) => purchaseStatusLabel(
             nullableStringValue(row.toJson(), 'payment_status'),
           ),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            nullableStringValue(row.toJson(), 'payment_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/payments/${intValue(row.toJson(), 'id')}',
@@ -883,6 +905,10 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'return_status'),
+          ),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
             nullableStringValue(row.toJson(), 'return_status'),
           ),
         ),

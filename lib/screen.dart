@@ -28,6 +28,7 @@ export 'components/app_search_picker_field.dart';
 export 'components/app_section_card.dart';
 export 'components/app_serial_numbers_field.dart';
 export 'components/app_standalone_shell.dart';
+export 'components/app_status_badge.dart';
 export 'components/app_switch_tile.dart';
 export 'components/app_text_field.dart';
 export 'components/app_toggle_chip.dart';

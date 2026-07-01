@@ -8,6 +8,66 @@ String purchaseStatusLabel(String? status) {
   return normalized.replaceAll('_', ' ').titleCase;
 }
 
+Widget purchaseStatusBadge(
+  BuildContext context,
+  String? status, {
+  String? dueDate,
+}) {
+  var normalized = (status ?? '').trim().toLowerCase();
+
+  if (dueDate != null &&
+      dueDate.isNotEmpty &&
+      (normalized != 'draft' &&
+          normalized != 'paid' &&
+          normalized != 'partially_paid' &&
+          normalized != 'cancelled')) {
+    final parsed = DateTime.tryParse(dueDate);
+    if (parsed != null) {
+      final today = DateTime.now();
+      final normalizedToday = DateTime(today.year, today.month, today.day);
+      final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
+      if (normalizedParsed.isBefore(normalizedToday)) {
+        normalized = 'overdue';
+      }
+    }
+  }
+
+  Color color;
+  String label = purchaseStatusLabel(normalized);
+
+  switch (normalized) {
+    case 'overdue':
+    case 'returned':
+    case 'cancelled':
+      color = Theme.of(context).colorScheme.error;
+      break;
+    case 'paid':
+    case 'completed':
+      color = Colors.green.shade600;
+      break;
+    case 'partially_paid':
+    case 'partially_returned':
+      color = Colors.orange.shade600;
+      break;
+    case 'posted':
+    case 'submitted':
+      color = Colors.blue.shade600;
+      break;
+    case 'draft':
+    default:
+      color =
+          Theme.of(context).extension<AppThemeExtension>()?.mutedText ??
+          Colors.grey;
+      break;
+  }
+
+  if (label.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return AppStatusBadge(label: label, color: color);
+}
+
 bool purchaseDocumentIsDraftEditable(String? status) {
   final normalized = (status ?? '').trim().toLowerCase();
   return normalized.isEmpty || normalized == 'draft';

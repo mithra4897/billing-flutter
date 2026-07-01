@@ -5,11 +5,13 @@ class PurchaseRegisterColumn<T> {
   const PurchaseRegisterColumn({
     required this.label,
     required this.valueBuilder,
+    this.widgetBuilder,
     this.flex = 2,
   });
 
   final String label;
   final String Function(T row) valueBuilder;
+  final Widget Function(BuildContext context, T row)? widgetBuilder;
   final int flex;
 }
 
@@ -337,16 +339,21 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: widget.columns
                     .map(
-                      (column) => Expanded(
-                        flex: column.flex,
-                        child: Text(
-                          column.valueBuilder(row).trim().isEmpty
-                              ? '-'
-                              : column.valueBuilder(row),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                  (column) => Expanded(
+                    flex: column.flex,
+                    child: column.widgetBuilder != null 
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: column.widgetBuilder!(context, row),
+                          )
+                        : Text(
+                            column.valueBuilder(row).trim().isEmpty
+                                ? '-'
+                                : column.valueBuilder(row),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  ),
                     )
                     .toList(growable: false),
               ),
@@ -472,11 +479,16 @@ class _RegisterRow<T> extends StatelessWidget {
               .map(
                 (column) => Expanded(
                   flex: column.flex,
-                  child: Text(
-                    column.valueBuilder(row),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: column.widgetBuilder != null
+                      ? Align(
+                          alignment: Alignment.centerLeft,
+                          child: column.widgetBuilder!(context, row),
+                        )
+                      : Text(
+                          column.valueBuilder(row),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                 ),
               )
               .toList(growable: false),
