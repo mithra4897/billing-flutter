@@ -48,6 +48,7 @@ class SalesRegisterController<T> extends GetxController {
   String? error;
   String status = '';
   String dashboardFilter = '';
+  Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
   Worker? _refreshWorker;
 
@@ -96,6 +97,11 @@ class SalesRegisterController<T> extends GetxController {
 
   void setStatus(String value) {
     status = value;
+    update();
+  }
+
+  void setCustomFilter(String key, dynamic value) {
+    customFilters[key] = value;
     update();
   }
 
@@ -149,6 +155,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     this.queryParameters = const <String, String>{},
     this.dashboardStatusForFilter,
     this.extraActionsBuilder,
+    this.extraFiltersBuilder,
   });
 
   final String controllerName;
@@ -172,6 +179,11 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     SalesRegisterController<T> controller,
   )?
   extraActionsBuilder;
+  final List<Widget> Function(
+    BuildContext context,
+    SalesRegisterController<T> controller,
+  )?
+  extraFiltersBuilder;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -300,6 +312,14 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
         controller.dateToController.clear();
         controller.setStatus('');
       },
+      extraFilterWidget: widget.extraFiltersBuilder == null
+          ? null
+          : GetBuilder<SalesRegisterController<T>>(
+              tag: _controllerTag,
+              builder: (ctrl) => SettingsFormWrap(
+                children: widget.extraFiltersBuilder!(context, ctrl),
+              ),
+            ),
     );
   }
 }
@@ -525,7 +545,12 @@ class SalesOrderRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'order_status'),
+          valueBuilder: (row) =>
+              salesStatusLabel(stringValue(row.toJson(), 'order_status')),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            stringValue(row.toJson(), 'order_status'),
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Total',
@@ -574,8 +599,56 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+
+        final statusOk = status.isEmpty || rowStatus == status;
+        final searchOk = query.isEmpty || searchText.contains(query);
+
+        final controller = Get.find<SalesRegisterController<SalesInvoiceModel>>(
+          tag: persistentControllerTag('SalesInvoiceRegisterController'),
+        );
+
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final filterOverdue =
+            controller.customFilters['overdue'] as bool? ?? false;
+
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
+
+        var overdueOk = true;
+        if (filterOverdue) {
+          if (row.invoiceStatus == 'draft' ||
+              row.invoiceStatus == 'paid' ||
+              row.invoiceStatus == 'partially_paid' ||
+              row.invoiceStatus == 'cancelled') {
+            overdueOk = false;
+          } else {
+            final due = row.dueDate;
+            if (due == null || due.isEmpty) {
+              overdueOk = false;
+            } else {
+              final parsed = DateTime.tryParse(due);
+              if (parsed != null) {
+                final today = DateTime.now();
+                final normalizedToday = DateTime(
+                  today.year,
+                  today.month,
+                  today.day,
+                );
+                final normalizedParsed = DateTime(
+                  parsed.year,
+                  parsed.month,
+                  parsed.day,
+                );
+                overdueOk = normalizedParsed.isBefore(normalizedToday);
+              } else {
+                overdueOk = false;
+              }
+            }
+          }
+        }
+
+        return statusOk && searchOk && customerOk && overdueOk;
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -596,6 +669,36 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       extraActionsBuilder: (context, controller) => <Widget>[
         SalesInvoiceExportButton(invoices: controller.filteredRows),
       ],
+      extraFiltersBuilder: (context, controller) {
+        final Map<int, String> uniqueCustomers = {};
+        for (final row in controller.rows) {
+          final name = _salesCustomerName(row.toJson());
+          if (name.isNotEmpty) {
+            uniqueCustomers[row.customerPartyId] = name;
+          }
+        }
+
+        final customerOptions = [
+          const AppDropdownItem<int?>(value: null, label: 'All Customers'),
+          ...uniqueCustomers.entries
+              .map((e) => AppDropdownItem<int?>(value: e.key, label: e.value)),
+        ];
+
+        return [
+          AppDropdownField<int?>.fromMapped(
+            labelText: 'Customer',
+            mappedItems: customerOptions,
+            initialValue: controller.customFilters['customer_id'] as int?,
+            onChanged: (val) => controller.setCustomFilter('customer_id', val),
+          ),
+          AppSwitchTile(
+            label: 'Overdue Invoices Only',
+            subtitle: 'Show posted invoices past their due date',
+            value: controller.customFilters['overdue'] as bool? ?? false,
+            onChanged: (val) => controller.setCustomFilter('overdue', val),
+          ),
+        ];
+      },
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'open':
@@ -621,7 +724,12 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => row.invoiceStatus ?? '',
+          valueBuilder: (row) => salesStatusLabel(row.invoiceStatus),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            row.invoiceStatus,
+            dueDate: row.dueDate,
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Total',
@@ -695,7 +803,9 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'delivery_status'),
+          valueBuilder: (row) => salesStatusLabel(row.deliveryStatus),
+          widgetBuilder: (context, row) =>
+              salesStatusBadge(context, row.deliveryStatus),
         ),
       ],
       rowRoute: (row) => '/sales/deliveries/${intValue(row.toJson(), 'id')}',

@@ -1,5 +1,73 @@
 import '../../screen.dart';
 
+String salesStatusLabel(String? status) {
+  final normalized = status?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return '';
+  }
+  return normalized.replaceAll('_', ' ').titleCase;
+}
+
+Widget salesStatusBadge(
+  BuildContext context,
+  String? status, {
+  String? dueDate,
+}) {
+  var normalized = (status ?? '').trim().toLowerCase();
+
+  if (dueDate != null &&
+      dueDate.isNotEmpty &&
+      (normalized != 'draft' &&
+          normalized != 'paid' &&
+          normalized != 'partially_paid' &&
+          normalized != 'cancelled')) {
+    final parsed = DateTime.tryParse(dueDate);
+    if (parsed != null) {
+      final today = DateTime.now();
+      final normalizedToday = DateTime(today.year, today.month, today.day);
+      final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
+      if (normalizedParsed.isBefore(normalizedToday)) {
+        normalized = 'overdue';
+      }
+    }
+  }
+
+  Color color;
+  String label = salesStatusLabel(normalized);
+
+  switch (normalized) {
+    case 'overdue':
+    case 'returned':
+    case 'cancelled':
+      color = Theme.of(context).colorScheme.error;
+      break;
+    case 'paid':
+    case 'completed':
+      color = Colors.green.shade600;
+      break;
+    case 'partially_paid':
+    case 'partially_returned':
+      color = Colors.orange.shade600;
+      break;
+    case 'posted':
+    case 'submitted':
+      color = Colors.blue.shade600;
+      break;
+    case 'draft':
+    default:
+      color =
+          Theme.of(context).extension<AppThemeExtension>()?.mutedText ??
+          Colors.grey;
+      break;
+  }
+
+  if (label.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return AppStatusBadge(label: label, color: color);
+}
+
 List<PartyModel> salesCustomers({
   required List<PartyModel> parties,
   required List<PartyTypeModel> partyTypes,
@@ -75,6 +143,7 @@ Future<void> openSalesSearchStatusFilterPanel({
   )
   onApply,
   required VoidCallback onClear,
+  Widget? extraFilterWidget,
 }) async {
   final screenWidth = MediaQuery.of(context).size.width;
   final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
@@ -150,6 +219,7 @@ Future<void> openSalesSearchStatusFilterPanel({
                         });
                       },
                     ),
+                    ?extraFilterWidget,
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 12,
