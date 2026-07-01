@@ -1,5 +1,5 @@
 import '../screen.dart';
-import '../core/files/external_url_actions.dart';
+import '../core/files/pdf_web_actions.dart';
 
 class UploadPathField extends StatelessWidget {
   const UploadPathField({
@@ -147,7 +147,7 @@ class UploadPathField extends StatelessWidget {
   }
 
   Future<void> _openPreview(BuildContext context, String url) async {
-    final opened = await openExternalUrl(url);
+    final opened = await openWebUrl(url);
     if (opened || !context.mounted) {
       return;
     }

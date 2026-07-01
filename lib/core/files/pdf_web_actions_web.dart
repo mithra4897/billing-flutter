@@ -14,3 +14,12 @@ Future<void> printPdfBytes(Uint8List bytes, {String? title}) async {
     }),
   );
 }
+
+Future<bool> openWebUrl(String url, {String? title}) async {
+  final trimmed = url.trim();
+  if (trimmed.isEmpty) {
+    return false;
+  }
+  html.window.open(trimmed, title ?? '_blank');
+  return true;
+}
