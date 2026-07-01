@@ -1,0 +1,56 @@
+[GETX] Instance "_SettingsWorkspaceRouteController" with tag "SettingsWorkspaceRouteController#identity=305862646&session=2" has been initialized
+
+======== Exception caught by widgets library =======================================================
+The following assertion was thrown building RawGestureDetector(state: RawGestureDetectorState#0ed22(gestures: [tap, long press, tap and pan], excludeFromSemantics: true, behavior: translucent)):
+A TextEditingController was used after being disposed.
+
+Once you have called dispose() on a TextEditingController, it can no longer be used.
+The relevant error-causing widget was: 
+  TextFormField-[TextEditingController#67544] TextFormField:file:///C:/OfficeWork/erp/billing-flutter/lib/components/app_form_text_field.dart:166:14
+When the exception was thrown, this was the stack: 
+http://localhost:53260/dart-sdk/lib/_internal/js_dev_runtime/private/ddc_runtime/errors.dart 274:3       throw_
+package:flutter/src/foundation/change_notifier.dart 182:9                                                <fn>
+package:flutter/src/foundation/change_notifier.dart 188:14                                               debugAssertNotDisposed
+package:flutter/src/foundation/change_notifier.dart 271:27                                               addListener
+package:flutter/src/foundation/change_notifier.dart 500:14                                               addListener
+package:flutter/src/widgets/transitions.dart 119:14                                                      didUpdateWidget
+package:flutter/src/widgets/framework.dart 5991:55                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5982:11                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5529:7                                                        rebuild
+package:flutter/src/widgets/framework.dart 6007:5                                                        update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5982:11                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5529:7                                                        rebuild
+package:flutter/src/widgets/framework.dart 6007:5                                                        update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5982:11                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5529:7                                                        rebuild
+package:flutter/src/widgets/framework.dart 6007:5                                                        update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5982:11                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5529:7                                                        rebuild
+package:flutter/src/widgets/framework.dart 6007:5                                                        update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5529:7                                                        rebuild
+package:flutter/src/widgets/framework.dart 6149:5                                                        update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 7122:14                                                       update
+package:flutter/src/widgets/framework.dart 4037:14                                                       updateChild
+package:flutter/src/widgets/framework.dart 5841:16                                                       performRebuild
+package:flutter/src/widgets/framework.dart 5982:11                                                       performRebuild
