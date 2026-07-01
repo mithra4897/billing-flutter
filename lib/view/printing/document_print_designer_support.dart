@@ -283,6 +283,7 @@ Object? resolvePrintPath(Map<String, dynamic> data, String path) {
 }
 
 String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
+  final hasPlaceholders = input.contains('{{');
   var resolved = input.replaceAllMapped(RegExp(r'\{\{([^}]+)\}\}'), (match) {
     final key = match.group(1)?.trim() ?? '';
     final value = resolvePrintPath(data, key);
@@ -307,6 +308,13 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
       companyName,
     );
     resolved = resolved.replaceAll('Sakthi Controller', companyName);
+  }
+  if (hasPlaceholders && resolved.contains('\n')) {
+    resolved = resolved
+        .split('\n')
+        .map((line) => line.trimRight())
+        .where((line) => line.trim().isNotEmpty)
+        .join('\n');
   }
   return resolved;
 }

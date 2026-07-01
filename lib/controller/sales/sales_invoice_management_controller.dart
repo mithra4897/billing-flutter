@@ -2419,6 +2419,10 @@ class SalesInvoiceManagementController extends GetxController {
         .whereType<DocumentPrintLineModel>()
         .toList(growable: false);
     final taxAmount = summary.cgst + summary.sgst + summary.igst + summary.cess;
+    final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
+        ? stringValue(customerData, 'party_name')
+        : stringValue(selected, 'customer_name');
+    final hasCustomer = resolvedPartyName.trim().isNotEmpty;
 
     return DocumentPrintDataModel(
       companyName: companyNameById(companies, companyId),
@@ -2427,18 +2431,22 @@ class SalesInvoiceManagementController extends GetxController {
       documentNumber: nullIfEmpty(invoiceNoController.text) ?? 'Draft',
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: customerRefNoController.text.trim(),
-      partyName: stringValue(customerData, 'party_name').isNotEmpty
-          ? stringValue(customerData, 'party_name')
-          : stringValue(selected, 'customer_name'),
-      partyAddress: formatPartyAddress(
-        preferredAddress,
-        fallback: formatPartyAddressFromData(customerData),
-      ),
-      partyContact: resolvePartyContact(
-        customer,
-        fallback: stringValue(customerData, 'mobile_no'),
-      ),
-      partyGstin: resolveCustomerPrintGstin(customerData),
+      partyName: hasCustomer ? resolvedPartyName : 'Not provided',
+      partyAddress: hasCustomer
+          ? formatPartyAddress(
+              preferredAddress,
+              fallback: formatPartyAddressFromData(customerData),
+            )
+          : '',
+      partyContact: hasCustomer
+          ? resolvePartyContact(
+              customer,
+              fallback: stringValue(customerData, 'mobile_no'),
+            )
+          : 'Not provided',
+      partyGstin: hasCustomer
+          ? resolveCustomerPrintGstin(customerData)
+          : 'Not provided',
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(summary.gross, 2),
