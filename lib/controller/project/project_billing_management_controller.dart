@@ -13,7 +13,6 @@ class ProjectBillingManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController billingDateController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -198,7 +197,9 @@ class ProjectBillingManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    projectId =
+        constrainedProjectId ??
+        (projects.isNotEmpty ? projects.first.id : null);
     milestoneId = null;
     salesInvoiceId = null;
     billingDateController.clear();
@@ -347,7 +348,7 @@ class ProjectBillingManagementController extends GetxController {
     update();
   }
 
-  double? doubleValue(String text) => double.tryParse(text.trim());
+  double? doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String decimalText(double? value) => value == null
       ? ''
@@ -356,7 +357,6 @@ class ProjectBillingManagementController extends GetxController {
             : value.toString());
 
   Future<String?> saveBilling() async {
-    if (!formKey.currentState!.validate()) return null;
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';

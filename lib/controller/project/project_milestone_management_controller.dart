@@ -12,7 +12,6 @@ class ProjectMilestoneManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController targetDateController = TextEditingController();
   final TextEditingController completionDateController =
@@ -193,7 +192,9 @@ class ProjectMilestoneManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    projectId =
+        constrainedProjectId ??
+        (projects.isNotEmpty ? projects.first.id : null);
     nameController.clear();
     targetDateController.clear();
     completionDateController.clear();
@@ -207,9 +208,6 @@ class ProjectMilestoneManagementController extends GetxController {
   }
 
   Future<String?> saveMilestone() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';
@@ -303,7 +301,7 @@ class ProjectMilestoneManagementController extends GetxController {
     update();
   }
 
-  double? _doubleValue(String text) => double.tryParse(text.trim());
+  double? _doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String _decimalText(double? value) {
     if (value == null) {

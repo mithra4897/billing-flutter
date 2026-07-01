@@ -48,7 +48,9 @@ class _ProjectResourceUsageManagementPageState
   void didUpdateWidget(covariant ProjectResourceUsageManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
-      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+      unawaited(
+        _controller.applyProjectConstraint(widget.constrainedProjectId),
+      );
     }
   }
 
@@ -146,82 +148,93 @@ class _ProjectResourceUsageManagementPageState
       onAdd: controller.saving
           ? null
           : () => controller.startNewUsage(
-                isDesktop: Responsive.isDesktop(context),
-              ),
+              isDesktop: Responsive.isDesktop(context),
+            ),
       addEnabled: !controller.saving,
       emptyMessage: 'No resource usage found.',
-      showDraftTile:
-          controller.showDraftTile && controller.selectedRow == null,
+      showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Resource Usage',
       draftSubtitle: 'Add a resource usage entry for this project.',
       onDraftToggle: controller.hideDraftTile,
       draftChild: _buildEditorForm(context, controller),
 
-      recordTiles: controller.filteredRows.map((row) {
-        final expanded = controller.selectedRow?.usage.id == row.usage.id;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: SettingsExpandableTile(
-            key: ValueKey<String>('project-resource-usage-${row.usage.id}-$expanded'),
-            title: row.usage.resourceName ?? 'Resource Usage',
-            subtitle: [
-              row.usage.usageDate ?? '',
-              controller.assetLabel(controller.assetById(row.usage.assetId)),
-            ].where((item) => item.isNotEmpty).join(' | '),
-            detail: [
-              controller.decimalText(row.usage.usageHours),
-              controller.decimalText(row.usage.totalCost),
-            ].where((item) => item.isNotEmpty).join(' | '),
-            expanded: expanded,
-            highlighted: expanded,
-            leadingIcon: Icons.precision_manufacturing_outlined,
-            trailing: IconButton(
-              tooltip: 'Delete resource usage',
-              onPressed: controller.saving
-                  ? null
-                  : () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Delete Resource Usage'),
-                          content: const Text('Remove this resource usage entry?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(false),
-                              child: const Text('Cancel'),
+      recordTiles: controller.filteredRows
+          .map((row) {
+            final expanded = controller.selectedRow?.usage.id == row.usage.id;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                key: ValueKey<String>(
+                  'project-resource-usage-${row.usage.id}-$expanded',
+                ),
+                title: row.usage.resourceName ?? 'Resource Usage',
+                subtitle: [
+                  row.usage.usageDate ?? '',
+                  controller.assetLabel(
+                    controller.assetById(row.usage.assetId),
+                  ),
+                ].where((item) => item.isNotEmpty).join(' | '),
+                detail: [
+                  controller.decimalText(row.usage.usageHours),
+                  controller.decimalText(row.usage.totalCost),
+                ].where((item) => item.isNotEmpty).join(' | '),
+                expanded: expanded,
+                highlighted: expanded,
+                leadingIcon: Icons.precision_manufacturing_outlined,
+                trailing: IconButton(
+                  tooltip: 'Delete resource usage',
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Resource Usage'),
+                              content: const Text(
+                                'Remove this resource usage entry?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton.tonal(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
                             ),
-                            FilledButton.tonal(
-                              onPressed: () => Navigator.of(dialogContext).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) {
-                        return;
-                      }
-                      controller.selectRow(row);
-                      final message = await controller.deleteUsage();
-                      if (!mounted || message == null) {
-                        return;
-                      }
-                      appScaffoldMessengerKey.currentState
-                        ?..hideCurrentSnackBar()
-                        ..showSnackBar(SnackBar(content: Text(message)));
-                    },
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-            onToggle: () {
-              if (expanded) {
-                controller.resetForm();
-              } else {
-                controller.selectRow(row);
-              }
-            },
-            child: expanded ? _buildEditorForm(context, controller) : const SizedBox.shrink(),
-          ),
-        );
-      }).toList(growable: false),
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          controller.selectRow(row);
+                          final message = await controller.deleteUsage();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                onToggle: () {
+                  if (expanded) {
+                    controller.resetForm();
+                  } else {
+                    controller.selectRow(row);
+                  }
+                },
+                child: expanded
+                    ? _buildEditorForm(context, controller)
+                    : const SizedBox.shrink(),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -230,132 +243,138 @@ class _ProjectResourceUsageManagementPageState
     ProjectResourceUsageManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              if (!controller.isProjectConstrained)
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
+                  initialValue: controller.taskId,
+                  labelText: 'Task',
+                  mappedItems: controller.taskItems,
+                  onChanged: controller.setTaskId,
                 ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.taskId,
-                labelText: 'Task',
-                mappedItems: controller.taskItems,
-                onChanged: controller.setTaskId,
-              ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.assetId,
-                labelText: 'Asset',
-                mappedItems: controller.assetItems,
-                onChanged: controller.setAssetId,
-              ),
-              AppFormTextField(
-                controller: controller.resourceNameController,
-                labelText: 'Resource Name',
-                validator: Validators.compose([
-                  Validators.required('Resource Name'),
-                  Validators.optionalMaxLength(255, 'Resource Name'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.usageDateController,
-                labelText: 'Usage Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Usage Date'),
-                  Validators.optionalDate('Usage Date'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.usageHoursController,
-                labelText: 'Usage Hours',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.assetId,
+                  labelText: 'Asset',
+                  mappedItems: controller.assetItems,
+                  onChanged: controller.setAssetId,
                 ),
-                validator: Validators.optionalNonNegativeNumber('Usage Hours'),
-              ),
-              AppFormTextField(
-                controller: controller.usageQtyController,
-                labelText: 'Usage Qty',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.resourceNameController,
+                  labelText: 'Resource Name',
+                  validator: Validators.compose([
+                    Validators.required('Resource Name'),
+                    Validators.optionalMaxLength(255, 'Resource Name'),
+                  ]),
                 ),
-                validator: Validators.optionalNonNegativeNumber('Usage Qty'),
-              ),
-              AppFormTextField(
-                controller: controller.unitCostController,
-                labelText: 'Unit Cost',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.usageDateController,
+                  labelText: 'Usage Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Usage Date'),
+                    Validators.optionalDate('Usage Date'),
+                  ]),
                 ),
-                validator: Validators.compose([
-                  Validators.required('Unit Cost'),
-                  Validators.optionalNonNegativeNumber('Unit Cost'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.totalCostController,
-                labelText: 'Total Cost',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.usageHoursController,
+                  labelText: 'Usage Hours',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Usage Hours',
+                  ),
                 ),
-                readOnly: true,
-                validator: Validators.optionalNonNegativeNumber('Total Cost'),
-              ),
-              AppFormTextField(
-                controller: controller.voucherIdController,
-                labelText: 'Voucher ID',
-                keyboardType: TextInputType.number,
-              ),
+                AppFormTextField(
+                  controller: controller.usageQtyController,
+                  labelText: 'Usage Qty',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber('Usage Qty'),
+                ),
+                AppFormTextField(
+                  controller: controller.unitCostController,
+                  labelText: 'Unit Cost',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.compose([
+                    Validators.required('Unit Cost'),
+                    Validators.optionalNonNegativeNumber('Unit Cost'),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.totalCostController,
+                  labelText: 'Total Cost',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  readOnly: true,
+                  validator: Validators.optionalNonNegativeNumber('Total Cost'),
+                ),
+                AppFormTextField(
+                  controller: controller.voucherIdController,
+                  labelText: 'Voucher ID',
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            AppFormTextField(
+              controller: controller.remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+              validator: Validators.optionalMaxLength(500, 'Remarks'),
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-            validator: Validators.optionalMaxLength(500, 'Remarks'),
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            AppErrorStateView.inline(message: controller.formError!),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          if (!Form.of(formContext).validate()) {
+                            return;
+                          }
+                          final message = await controller.saveUsage();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: controller.selectedRow?.usage.id == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving
+                      ? 'Saving...'
+                      : 'Save Resource Usage',
+                  busy: controller.saving,
+                ),
+              ],
+            ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving
-                    ? null
-                    : () async {
-                        final message = await controller.saveUsage();
-                        if (!mounted || message == null) {
-                          return;
-                        }
-                        appScaffoldMessengerKey.currentState
-                          ?..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(message)));
-                      },
-                icon: controller.selectedRow?.usage.id == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving
-                    ? 'Saving...'
-                    : 'Save Resource Usage',
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

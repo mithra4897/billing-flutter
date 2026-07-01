@@ -14,7 +14,6 @@ class ProjectExpenseManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController expenseDateController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -220,7 +219,9 @@ class ProjectExpenseManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    projectId =
+        constrainedProjectId ??
+        (projects.isNotEmpty ? projects.first.id : null);
     taskId = null;
     supplierPartyId = null;
     purchaseInvoiceId = null;
@@ -299,9 +300,6 @@ class ProjectExpenseManagementController extends GetxController {
   }
 
   Future<String?> saveExpense() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';
@@ -420,7 +418,7 @@ class ProjectExpenseManagementController extends GetxController {
     update();
   }
 
-  double? _doubleValue(String text) => double.tryParse(text.trim());
+  double? _doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   int? _intValue(String text) => int.tryParse(text.trim());
 

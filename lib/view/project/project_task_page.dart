@@ -265,193 +265,198 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
     ProjectTaskManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              if (!controller.isProjectConstrained)
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
+                AppFormTextField(
+                  controller: controller.taskCodeController,
+                  labelText: 'Task Code',
+                  suffixIcon: controller.loadingTaskCode
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                  validator: Validators.optionalMaxLength(100, 'Task Code'),
+                ),
+                AppFormTextField(
+                  controller: controller.taskNameController,
+                  labelText: 'Task Name',
+                  validator: Validators.compose([
+                    Validators.required('Task Name'),
+                    Validators.optionalMaxLength(255, 'Task Name'),
+                  ]),
+                ),
                 AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
+                  labelText: 'Assigned Employees',
+                  mappedItems: controller.employeeItems,
+                  multiInitialValues: controller.assignedEmployeeIds,
+                  multiHintText: 'Select employees',
+                  onMultiChanged: controller.setAssignedEmployeeIds,
                 ),
-              AppFormTextField(
-                controller: controller.taskCodeController,
-                labelText: 'Task Code',
-                suffixIcon: controller.loadingTaskCode
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
-                validator: Validators.optionalMaxLength(100, 'Task Code'),
-              ),
-              AppFormTextField(
-                controller: controller.taskNameController,
-                labelText: 'Task Name',
-                validator: Validators.compose([
-                  Validators.required('Task Name'),
-                  Validators.optionalMaxLength(255, 'Task Name'),
-                ]),
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Assigned Employees',
-                mappedItems: controller.employeeItems,
-                multiInitialValues: controller.assignedEmployeeIds,
-                multiHintText: 'Select employees',
-                onMultiChanged: controller.setAssignedEmployeeIds,
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.taskStatus,
-                labelText: 'Task Status',
-                mappedItems: _taskStatusItems,
-                onChanged: (value) =>
-                    controller.setTaskStatus(value ?? controller.taskStatus),
-              ),
-              AppFormTextField(
-                controller: controller.plannedStartDateController,
-                labelText: 'Planned Start Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDate('Planned Start Date'),
-              ),
-              AppFormTextField(
-                controller: controller.plannedEndDateController,
-                labelText: 'Planned End Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDateOnOrAfter(
-                  'Planned End Date',
-                  () => controller.plannedStartDateController.text,
-                  startFieldName: 'Planned Start Date',
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.taskStatus,
+                  labelText: 'Task Status',
+                  mappedItems: _taskStatusItems,
+                  onChanged: (value) =>
+                      controller.setTaskStatus(value ?? controller.taskStatus),
                 ),
-              ),
-              AppFormTextField(
-                controller: controller.actualStartDateController,
-                labelText: 'Actual Start Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDate('Actual Start Date'),
-              ),
-              AppFormTextField(
-                controller: controller.actualEndDateController,
-                labelText: 'Actual End Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDateOnOrAfter(
-                  'Actual End Date',
-                  () => controller.actualStartDateController.text,
-                  startFieldName: 'Actual Start Date',
+                AppFormTextField(
+                  controller: controller.plannedStartDateController,
+                  labelText: 'Planned Start Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.optionalDate('Planned Start Date'),
                 ),
-              ),
-              AppFormTextField(
-                controller: controller.estimatedHoursController,
-                labelText: 'Estimated Hours',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.plannedEndDateController,
+                  labelText: 'Planned End Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.optionalDateOnOrAfter(
+                    'Planned End Date',
+                    () => controller.plannedStartDateController.text,
+                    startFieldName: 'Planned Start Date',
+                  ),
                 ),
-                validator: Validators.optionalNonNegativeNumber(
-                  'Estimated Hours',
+                AppFormTextField(
+                  controller: controller.actualStartDateController,
+                  labelText: 'Actual Start Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.optionalDate('Actual Start Date'),
                 ),
-              ),
-              AppFormTextField(
-                controller: controller.actualHoursController,
-                labelText: 'Actual Hours',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.actualEndDateController,
+                  labelText: 'Actual End Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.optionalDateOnOrAfter(
+                    'Actual End Date',
+                    () => controller.actualStartDateController.text,
+                    startFieldName: 'Actual Start Date',
+                  ),
                 ),
-                validator: Validators.optionalNonNegativeNumber('Actual Hours'),
-              ),
-              AppFormTextField(
-                controller: controller.estimatedCostController,
-                labelText: 'Estimated Cost',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.estimatedHoursController,
+                  labelText: 'Estimated Hours',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Estimated Hours',
+                  ),
                 ),
-                validator: Validators.optionalNonNegativeNumber(
-                  'Estimated Cost',
+                AppFormTextField(
+                  controller: controller.actualHoursController,
+                  labelText: 'Actual Hours',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Actual Hours',
+                  ),
                 ),
-              ),
-              AppFormTextField(
-                controller: controller.actualCostController,
-                labelText: 'Actual Cost',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.estimatedCostController,
+                  labelText: 'Estimated Cost',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Estimated Cost',
+                  ),
                 ),
-                validator: Validators.optionalNonNegativeNumber('Actual Cost'),
-              ),
-              AppFormTextField(
-                controller: controller.progressPercentController,
-                labelText: 'Progress Percent',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppFormTextField(
+                  controller: controller.actualCostController,
+                  labelText: 'Actual Cost',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Actual Cost',
+                  ),
                 ),
-                validator: Validators.optionalNonNegativeNumber(
-                  'Progress Percent',
+                AppFormTextField(
+                  controller: controller.progressPercentController,
+                  labelText: 'Progress Percent',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Progress Percent',
+                  ),
                 ),
-              ),
-              AppFormTextField(
-                controller: controller.descriptionController,
-                labelText: 'Description',
-                maxLines: 3,
-              ),
+                AppFormTextField(
+                  controller: controller.descriptionController,
+                  labelText: 'Description',
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSwitchTile(
+              label: 'Billable',
+              subtitle: 'Use this task for billable work if needed.',
+              value: controller.isBillable,
+              onChanged: controller.setIsBillable,
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            AppFormTextField(
+              controller: controller.remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+              validator: Validators.optionalMaxLength(500, 'Remarks'),
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
-          ),
-          const SizedBox(height: 12),
-          AppSwitchTile(
-            label: 'Billable',
-            subtitle: 'Use this task for billable work if needed.',
-            value: controller.isBillable,
-            onChanged: controller.setIsBillable,
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-            validator: Validators.optionalMaxLength(500, 'Remarks'),
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              controller.formError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          if (!Form.of(formContext).validate()) {
+                            return;
+                          }
+                          final message = await controller.saveTask();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: controller.selectedRow?.task.id == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving ? 'Saving...' : 'Save Task',
+                  busy: controller.saving,
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving
-                    ? null
-                    : () async {
-                        final message = await controller.saveTask();
-                        if (!mounted || message == null) {
-                          return;
-                        }
-                        appScaffoldMessengerKey.currentState
-                          ?..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(message)));
-                      },
-                icon: controller.selectedRow?.task.id == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving ? 'Saving...' : 'Save Task',
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

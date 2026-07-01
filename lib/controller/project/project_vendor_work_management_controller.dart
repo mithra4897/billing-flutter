@@ -14,7 +14,6 @@ class ProjectVendorWorkManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController voucherIdController = TextEditingController();
@@ -249,7 +248,9 @@ class ProjectVendorWorkManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    projectId =
+        constrainedProjectId ??
+        (projects.isNotEmpty ? projects.first.id : null);
     taskId = null;
     vendorPartyId = null;
     purchaseOrderId = null;
@@ -446,7 +447,7 @@ class ProjectVendorWorkManagementController extends GetxController {
 
   int? intValue(String text) => int.tryParse(text.trim());
 
-  double? doubleValue(String text) => double.tryParse(text.trim());
+  double? doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String decimalText(double? value) => value == null
       ? ''
@@ -455,9 +456,6 @@ class ProjectVendorWorkManagementController extends GetxController {
             : value.toString());
 
   Future<String?> saveVendorWork() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';

@@ -62,8 +62,9 @@ class ProjectSubtabExpandableSection extends StatelessWidget {
               Text(
                 description,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color:
-                      Theme.of(context).extension<AppThemeExtension>()!.mutedText,
+                  color: Theme.of(
+                    context,
+                  ).extension<AppThemeExtension>()!.mutedText,
                 ),
               ),
               const SizedBox(height: AppUiConstants.spacingMd),

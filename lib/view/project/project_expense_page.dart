@@ -55,7 +55,9 @@ class _ProjectExpenseManagementPageState
   void didUpdateWidget(covariant ProjectExpenseManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
-      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+      unawaited(
+        _controller.applyProjectConstraint(widget.constrainedProjectId),
+      );
     }
   }
 
@@ -153,82 +155,93 @@ class _ProjectExpenseManagementPageState
       onAdd: controller.saving
           ? null
           : () => controller.startNewExpense(
-                isDesktop: Responsive.isDesktop(context),
-              ),
+              isDesktop: Responsive.isDesktop(context),
+            ),
       addEnabled: !controller.saving,
       emptyMessage: 'No expenses found.',
-      showDraftTile:
-          controller.showDraftTile && controller.selectedRow == null,
+      showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Expense',
       draftSubtitle: 'Add an expense entry for this project.',
       onDraftToggle: controller.hideDraftTile,
       draftChild: _buildEditorForm(context, controller),
 
-      recordTiles: controller.filteredRows.map((row) {
-        final expanded = controller.selectedRow?.expense.id == row.expense.id;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: SettingsExpandableTile(
-            key: ValueKey<String>('project-expense-${row.expense.id}-$expanded'),
-            title: row.expense.expenseCategory ?? 'Expense',
-            subtitle: [
-              row.expense.expenseDate ?? '',
-              row.expense.expenseStatus ?? '',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            detail: [
-              controller.purchaseInvoiceLabel(row.expense.purchaseInvoiceId) ?? '',
-              row.expense.amount?.toString() ?? '',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            expanded: expanded,
-            highlighted: expanded,
-            leadingIcon: Icons.receipt_long_outlined,
-            trailing: IconButton(
-              tooltip: 'Delete expense',
-              onPressed: controller.saving
-                  ? null
-                  : () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Delete Expense'),
-                          content: const Text('Remove this expense entry?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(false),
-                              child: const Text('Cancel'),
+      recordTiles: controller.filteredRows
+          .map((row) {
+            final expanded =
+                controller.selectedRow?.expense.id == row.expense.id;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                key: ValueKey<String>(
+                  'project-expense-${row.expense.id}-$expanded',
+                ),
+                title: row.expense.expenseCategory ?? 'Expense',
+                subtitle: [
+                  row.expense.expenseDate ?? '',
+                  row.expense.expenseStatus ?? '',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                detail: [
+                  controller.purchaseInvoiceLabel(
+                        row.expense.purchaseInvoiceId,
+                      ) ??
+                      '',
+                  row.expense.amount?.toString() ?? '',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                expanded: expanded,
+                highlighted: expanded,
+                leadingIcon: Icons.receipt_long_outlined,
+                trailing: IconButton(
+                  tooltip: 'Delete expense',
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Expense'),
+                              content: const Text('Remove this expense entry?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton.tonal(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
                             ),
-                            FilledButton.tonal(
-                              onPressed: () => Navigator.of(dialogContext).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) {
-                        return;
-                      }
-                      controller.selectRow(row);
-                      final message = await controller.deleteExpense();
-                      if (!mounted || message == null) {
-                        return;
-                      }
-                      appScaffoldMessengerKey.currentState
-                        ?..hideCurrentSnackBar()
-                        ..showSnackBar(SnackBar(content: Text(message)));
-                    },
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-            onToggle: () {
-              if (expanded) {
-                controller.resetForm();
-              } else {
-                controller.selectRow(row);
-              }
-            },
-            child: expanded ? _buildEditorForm(context, controller) : const SizedBox.shrink(),
-          ),
-        );
-      }).toList(growable: false),
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          controller.selectRow(row);
+                          final message = await controller.deleteExpense();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                onToggle: () {
+                  if (expanded) {
+                    controller.resetForm();
+                  } else {
+                    controller.selectRow(row);
+                  }
+                },
+                child: expanded
+                    ? _buildEditorForm(context, controller)
+                    : const SizedBox.shrink(),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -237,152 +250,158 @@ class _ProjectExpenseManagementPageState
     ProjectExpenseManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              if (!controller.isProjectConstrained)
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
+                  initialValue: controller.taskId,
+                  labelText: 'Task',
+                  mappedItems: controller.taskItems,
+                  onChanged: controller.setTaskId,
                 ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.taskId,
-                labelText: 'Task',
-                mappedItems: controller.taskItems,
-                onChanged: controller.setTaskId,
-              ),
-              AppFormTextField(
-                controller: controller.expenseDateController,
-                labelText: 'Expense Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Expense Date'),
-                  Validators.optionalDate('Expense Date'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.categoryController,
-                labelText: 'Expense Category',
-                validator: Validators.compose([
-                  Validators.required('Expense Category'),
-                  Validators.optionalMaxLength(100, 'Expense Category'),
-                ]),
-              ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.supplierPartyId,
-                labelText: 'Supplier',
-                mappedItems: controller.partyItems,
-                onChanged: controller.setSupplierPartyId,
-              ),
-              AppSearchPickerField<int>(
-                labelText: 'Purchase Invoice',
-                selectedLabel: controller.purchaseInvoiceLabel(
-                  controller.purchaseInvoiceId,
+                AppFormTextField(
+                  controller: controller.expenseDateController,
+                  labelText: 'Expense Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Expense Date'),
+                    Validators.optionalDate('Expense Date'),
+                  ]),
                 ),
-                options: controller.purchaseInvoices
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppSearchPickerOption<int>(
-                        value: item.id!,
-                        label: item.invoiceNo?.trim().isNotEmpty == true
-                            ? item.invoiceNo!
-                            : 'Invoice #${item.id}',
-                        subtitle: [
-                          if (item.invoiceDate.trim().isNotEmpty)
+                AppFormTextField(
+                  controller: controller.categoryController,
+                  labelText: 'Expense Category',
+                  validator: Validators.compose([
+                    Validators.required('Expense Category'),
+                    Validators.optionalMaxLength(100, 'Expense Category'),
+                  ]),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.supplierPartyId,
+                  labelText: 'Supplier',
+                  mappedItems: controller.partyItems,
+                  onChanged: controller.setSupplierPartyId,
+                ),
+                AppSearchPickerField<int>(
+                  labelText: 'Purchase Invoice',
+                  selectedLabel: controller.purchaseInvoiceLabel(
+                    controller.purchaseInvoiceId,
+                  ),
+                  options: controller.purchaseInvoices
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppSearchPickerOption<int>(
+                          value: item.id!,
+                          label: item.invoiceNo?.trim().isNotEmpty == true
+                              ? item.invoiceNo!
+                              : 'Invoice #${item.id}',
+                          subtitle: [
+                            if (item.invoiceDate.trim().isNotEmpty)
+                              item.invoiceDate,
+                            if (item.totalAmount != null)
+                              controller
+                                      .purchaseInvoiceById(item.id)
+                                      ?.totalAmount
+                                      ?.toString() ??
+                                  '',
+                          ].where((item) => item.isNotEmpty).join(' • '),
+                          searchText: [
+                            item.invoiceNo ?? '',
                             item.invoiceDate,
-                          if (item.totalAmount != null)
-                            controller.purchaseInvoiceById(item.id)?.totalAmount
-                                    ?.toString() ??
-                                '',
-                        ].where((item) => item.isNotEmpty).join(' • '),
-                        searchText: [
-                          item.invoiceNo ?? '',
-                          item.invoiceDate,
-                          item.id.toString(),
-                        ].join(' '),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: controller.applyPurchaseInvoice,
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.status,
-                labelText: 'Status',
-                mappedItems: _statusItems,
-                onChanged: (value) =>
-                    controller.setStatus(value ?? controller.status),
-              ),
-              AppFormTextField(
-                controller: controller.amountController,
-                labelText: 'Amount',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                            item.id.toString(),
+                          ].join(' '),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: controller.applyPurchaseInvoice,
                 ),
-                validator: Validators.compose([
-                  Validators.required('Amount'),
-                  Validators.optionalNonNegativeNumber('Amount'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.voucherIdController,
-                labelText: 'Voucher ID',
-                readOnly: true,
-              ),
-              AppFormTextField(
-                controller: controller.descriptionController,
-                labelText: 'Description',
-                maxLines: 3,
-                validator: Validators.compose([
-                  Validators.required('Description'),
-                  Validators.optionalMaxLength(500, 'Description'),
-                ]),
-              ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.status,
+                  labelText: 'Status',
+                  mappedItems: _statusItems,
+                  onChanged: (value) =>
+                      controller.setStatus(value ?? controller.status),
+                ),
+                AppFormTextField(
+                  controller: controller.amountController,
+                  labelText: 'Amount',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.compose([
+                    Validators.required('Amount'),
+                    Validators.optionalNonNegativeNumber('Amount'),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.voucherIdController,
+                  labelText: 'Voucher ID',
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  controller: controller.descriptionController,
+                  labelText: 'Description',
+                  maxLines: 3,
+                  validator: Validators.compose([
+                    Validators.required('Description'),
+                    Validators.optionalMaxLength(500, 'Description'),
+                  ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            AppFormTextField(
+              controller: controller.remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+              validator: Validators.optionalMaxLength(500, 'Remarks'),
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-            validator: Validators.optionalMaxLength(500, 'Remarks'),
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            AppErrorStateView.inline(message: controller.formError!),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          if (!Form.of(formContext).validate()) {
+                            return;
+                          }
+                          final message = await controller.saveExpense();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: controller.selectedRow?.expense.id == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving ? 'Saving...' : 'Save Expense',
+                  busy: controller.saving,
+                ),
+              ],
+            ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving
-                    ? null
-                    : () async {
-                        final message = await controller.saveExpense();
-                        if (!mounted || message == null) {
-                          return;
-                        }
-                        appScaffoldMessengerKey.currentState
-                          ?..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(message)));
-                      },
-                icon: controller.selectedRow?.expense.id == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving ? 'Saving...' : 'Save Expense',
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

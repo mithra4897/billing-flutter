@@ -13,7 +13,6 @@ class ProjectTaskManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController taskCodeController = TextEditingController();
   final TextEditingController taskNameController = TextEditingController();
@@ -352,9 +351,6 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   Future<String?> saveTask() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';
@@ -491,7 +487,7 @@ class ProjectTaskManagementController extends GetxController {
     update();
   }
 
-  double? doubleValue(String text) => double.tryParse(text.trim());
+  double? doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String decimalText(double? value) {
     if (value == null) {

@@ -13,7 +13,6 @@ class ProjectResourceUsageManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController resourceNameController = TextEditingController();
   final TextEditingController usageDateController = TextEditingController();
   final TextEditingController usageHoursController = TextEditingController();
@@ -218,7 +217,9 @@ class ProjectResourceUsageManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    projectId =
+        constrainedProjectId ??
+        (projects.isNotEmpty ? projects.first.id : null);
     taskId = null;
     assetId = null;
     resourceNameController.clear();
@@ -332,7 +333,7 @@ class ProjectResourceUsageManagementController extends GetxController {
 
   int? intValue(String text) => int.tryParse(text.trim());
 
-  double? doubleValue(String text) => double.tryParse(text.trim());
+  double? doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String decimalText(double? value) => value == null
       ? ''
@@ -341,9 +342,6 @@ class ProjectResourceUsageManagementController extends GetxController {
             : value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
 
   Future<String?> saveUsage() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';

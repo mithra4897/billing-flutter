@@ -15,7 +15,6 @@ class ProjectManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final TextEditingController projectCodeController = TextEditingController();
   final TextEditingController projectNameController = TextEditingController();
@@ -267,10 +266,6 @@ class ProjectManagementController extends GetxController {
   }
 
   Future<String?> saveProject() async {
-    if (!formKey.currentState!.validate()) {
-      return null;
-    }
-
     saving = true;
     formError = null;
     update();
@@ -407,7 +402,7 @@ class ProjectManagementController extends GetxController {
     }
   }
 
-  double? _doubleValue(String text) => double.tryParse(text.trim());
+  double? _doubleValue(String text) => Validators.parseFlexibleNumber(text);
 
   String _decimalText(double? value) {
     if (value == null) {

@@ -56,7 +56,9 @@ class _ProjectVendorWorkManagementPageState
   void didUpdateWidget(covariant ProjectVendorWorkManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
-      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+      unawaited(
+        _controller.applyProjectConstraint(widget.constrainedProjectId),
+      );
     }
   }
 
@@ -117,7 +119,9 @@ class _ProjectVendorWorkManagementPageState
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Project Vendor Works',
-      editorTitle: controller.partyName(controller.selectedRow?.work.vendorPartyId),
+      editorTitle: controller.partyName(
+        controller.selectedRow?.work.vendorPartyId,
+      ),
       scrollController: controller.pageScrollController,
       list: SettingsListCard<ProjectVendorWorkRow>(
         searchController: controller.searchController,
@@ -155,81 +159,90 @@ class _ProjectVendorWorkManagementPageState
       onAdd: controller.saving
           ? null
           : () => controller.startNewVendorWork(
-                isDesktop: Responsive.isDesktop(context),
-              ),
+              isDesktop: Responsive.isDesktop(context),
+            ),
       addEnabled: !controller.saving,
       emptyMessage: 'No vendor works found.',
-      showDraftTile:
-          controller.showDraftTile && controller.selectedRow == null,
+      showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Vendor Work',
       draftSubtitle: 'Add a vendor work entry for this project.',
       onDraftToggle: controller.hideDraftTile,
       draftChild: _buildEditorForm(context, controller),
 
-      recordTiles: controller.filteredRows.map((row) {
-        final expanded = controller.selectedRow?.work.id == row.work.id;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: SettingsExpandableTile(
-            key: ValueKey<String>('project-vendor-work-${row.work.id}-$expanded'),
-            title: controller.partyName(row.work.vendorPartyId).isNotEmpty
-                ? controller.partyName(row.work.vendorPartyId)
-                : 'Vendor Work',
-            subtitle: [
-              row.work.workStatus ?? '',
-              controller.decimalText(row.work.amount),
-            ].where((item) => item.isNotEmpty).join(' | '),
-            detail: row.work.workDescription ?? '',
-            expanded: expanded,
-            highlighted: expanded,
-            leadingIcon: Icons.handyman_outlined,
-            trailing: IconButton(
-              tooltip: 'Delete vendor work',
-              onPressed: controller.saving
-                  ? null
-                  : () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Delete Vendor Work'),
-                          content: const Text('Remove this vendor work entry?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(false),
-                              child: const Text('Cancel'),
+      recordTiles: controller.filteredRows
+          .map((row) {
+            final expanded = controller.selectedRow?.work.id == row.work.id;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                key: ValueKey<String>(
+                  'project-vendor-work-${row.work.id}-$expanded',
+                ),
+                title: controller.partyName(row.work.vendorPartyId).isNotEmpty
+                    ? controller.partyName(row.work.vendorPartyId)
+                    : 'Vendor Work',
+                subtitle: [
+                  row.work.workStatus ?? '',
+                  controller.decimalText(row.work.amount),
+                ].where((item) => item.isNotEmpty).join(' | '),
+                detail: row.work.workDescription ?? '',
+                expanded: expanded,
+                highlighted: expanded,
+                leadingIcon: Icons.handyman_outlined,
+                trailing: IconButton(
+                  tooltip: 'Delete vendor work',
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Vendor Work'),
+                              content: const Text(
+                                'Remove this vendor work entry?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton.tonal(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
                             ),
-                            FilledButton.tonal(
-                              onPressed: () => Navigator.of(dialogContext).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) {
-                        return;
-                      }
-                      controller.selectRow(row);
-                      final message = await controller.deleteVendorWork();
-                      if (!mounted || message == null) {
-                        return;
-                      }
-                      appScaffoldMessengerKey.currentState
-                        ?..hideCurrentSnackBar()
-                        ..showSnackBar(SnackBar(content: Text(message)));
-                    },
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-            onToggle: () {
-              if (expanded) {
-                controller.resetForm();
-              } else {
-                controller.selectRow(row);
-              }
-            },
-            child: expanded ? _buildEditorForm(context, controller) : const SizedBox.shrink(),
-          ),
-        );
-      }).toList(growable: false),
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          controller.selectRow(row);
+                          final message = await controller.deleteVendorWork();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                onToggle: () {
+                  if (expanded) {
+                    controller.resetForm();
+                  } else {
+                    controller.selectRow(row);
+                  }
+                },
+                child: expanded
+                    ? _buildEditorForm(context, controller)
+                    : const SizedBox.shrink(),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -238,119 +251,120 @@ class _ProjectVendorWorkManagementPageState
     ProjectVendorWorkManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              if (!controller.isProjectConstrained)
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
+                  initialValue: controller.taskId,
+                  labelText: 'Task',
+                  mappedItems: controller.taskItems,
+                  onChanged: controller.setTaskId,
                 ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.taskId,
-                labelText: 'Task',
-                mappedItems: controller.taskItems,
-                onChanged: controller.setTaskId,
-              ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.vendorPartyId,
-                labelText: 'Vendor',
-                mappedItems: controller.partyItems,
-                onChanged: controller.setVendorPartyId,
-                validator: Validators.requiredSelection('Vendor'),
-              ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.purchaseOrderId,
-                labelText: 'Purchase Order',
-                mappedItems: controller.purchaseOrderItems,
-                onChanged: controller.setPurchaseOrderId,
-              ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.purchaseInvoiceId,
-                labelText: 'Purchase Invoice',
-                mappedItems: controller.purchaseInvoiceItems,
-                onChanged: controller.setPurchaseInvoiceId,
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.status,
-                labelText: 'Work Status',
-                mappedItems: _statusItems,
-                onChanged: (value) =>
-                    controller.setStatus(value ?? controller.status),
-              ),
-              AppFormTextField(
-                controller: controller.amountController,
-                labelText: 'Amount',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.vendorPartyId,
+                  labelText: 'Vendor',
+                  mappedItems: controller.partyItems,
+                  onChanged: controller.setVendorPartyId,
+                  validator: Validators.requiredSelection('Vendor'),
                 ),
-                validator: Validators.compose([
-                  Validators.required('Amount'),
-                  Validators.optionalNonNegativeNumber('Amount'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.voucherIdController,
-                labelText: 'Voucher ID',
-                keyboardType: TextInputType.number,
-              ),
-              AppFormTextField(
-                controller: controller.descriptionController,
-                labelText: 'Work Description',
-                maxLines: 3,
-                validator: Validators.compose([
-                  Validators.required('Work Description'),
-                  Validators.optionalMaxLength(500, 'Work Description'),
-                ]),
-              ),
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.purchaseOrderId,
+                  labelText: 'Purchase Order',
+                  mappedItems: controller.purchaseOrderItems,
+                  onChanged: controller.setPurchaseOrderId,
+                ),
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.purchaseInvoiceId,
+                  labelText: 'Purchase Invoice',
+                  mappedItems: controller.purchaseInvoiceItems,
+                  onChanged: controller.setPurchaseInvoiceId,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.status,
+                  labelText: 'Work Status',
+                  mappedItems: _statusItems,
+                  onChanged: (value) =>
+                      controller.setStatus(value ?? controller.status),
+                ),
+                AppFormTextField(
+                  controller: controller.amountController,
+                  labelText: 'Amount',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.compose([
+                    Validators.required('Amount'),
+                    Validators.optionalNonNegativeNumber('Amount'),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.voucherIdController,
+                  labelText: 'Voucher ID',
+                  keyboardType: TextInputType.number,
+                ),
+                AppFormTextField(
+                  controller: controller.descriptionController,
+                  labelText: 'Work Description',
+                  maxLines: 3,
+                  validator: Validators.compose([
+                    Validators.required('Work Description'),
+                    Validators.optionalMaxLength(500, 'Work Description'),
+                  ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            AppFormTextField(
+              controller: controller.remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+              validator: Validators.optionalMaxLength(500, 'Remarks'),
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-            validator: Validators.optionalMaxLength(500, 'Remarks'),
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              controller.formError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          if (!Form.of(formContext).validate()) {
+                            return;
+                          }
+                          final message = await controller.saveVendorWork();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: controller.selectedRow?.work.id == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving ? 'Saving...' : 'Save Vendor Work',
+                  busy: controller.saving,
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving
-                    ? null
-                    : () async {
-                        final message = await controller.saveVendorWork();
-                        if (!mounted || message == null) {
-                          return;
-                        }
-                        appScaffoldMessengerKey.currentState
-                          ?..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(message)));
-                      },
-                icon: controller.selectedRow?.work.id == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving ? 'Saving...' : 'Save Vendor Work',
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

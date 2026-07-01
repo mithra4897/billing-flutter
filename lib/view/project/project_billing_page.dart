@@ -64,7 +64,9 @@ class _ProjectBillingManagementPageState
   void didUpdateWidget(covariant ProjectBillingManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
-      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+      unawaited(
+        _controller.applyProjectConstraint(widget.constrainedProjectId),
+      );
     }
   }
 
@@ -162,83 +164,92 @@ class _ProjectBillingManagementPageState
       onAdd: controller.saving
           ? null
           : () => controller.startNewBilling(
-                isDesktop: Responsive.isDesktop(context),
-              ),
+              isDesktop: Responsive.isDesktop(context),
+            ),
       addEnabled: !controller.saving,
       emptyMessage: 'No billings found.',
-      showDraftTile:
-          controller.showDraftTile && controller.selectedRow == null,
+      showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Billing',
       draftSubtitle: 'Add a billing entry for this project.',
       onDraftToggle: controller.hideDraftTile,
       draftChild: _buildEditorForm(context, controller),
 
-      recordTiles: controller.filteredRows.map((row) {
-        final expanded = controller.selectedRow?.billing.id == row.billing.id;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: SettingsExpandableTile(
-            key: ValueKey<String>('project-billing-${row.billing.id}-$expanded'),
-            title: row.project.projectName ?? 'Billing',
-            subtitle: [
-              row.billing.billingDate ?? '',
-              row.billing.billingBasis ?? '',
-              row.billing.billingStatus ?? '',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            detail: [
-              controller.decimalText(row.billing.billingAmount),
-              controller.salesInvoiceLabel(row.billing.salesInvoiceId) ?? '',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            expanded: expanded,
-            highlighted: expanded,
-            leadingIcon: Icons.request_quote_outlined,
-            trailing: IconButton(
-              tooltip: 'Delete billing',
-              onPressed: controller.saving
-                  ? null
-                  : () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Delete Billing'),
-                          content: const Text('Remove this billing entry?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(false),
-                              child: const Text('Cancel'),
+      recordTiles: controller.filteredRows
+          .map((row) {
+            final expanded =
+                controller.selectedRow?.billing.id == row.billing.id;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                key: ValueKey<String>(
+                  'project-billing-${row.billing.id}-$expanded',
+                ),
+                title: row.project.projectName ?? 'Billing',
+                subtitle: [
+                  row.billing.billingDate ?? '',
+                  row.billing.billingBasis ?? '',
+                  row.billing.billingStatus ?? '',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                detail: [
+                  controller.decimalText(row.billing.billingAmount),
+                  controller.salesInvoiceLabel(row.billing.salesInvoiceId) ??
+                      '',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                expanded: expanded,
+                highlighted: expanded,
+                leadingIcon: Icons.request_quote_outlined,
+                trailing: IconButton(
+                  tooltip: 'Delete billing',
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Delete Billing'),
+                              content: const Text('Remove this billing entry?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton.tonal(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
                             ),
-                            FilledButton.tonal(
-                              onPressed: () => Navigator.of(dialogContext).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) {
-                        return;
-                      }
-                      controller.selectRow(row);
-                      final message = await controller.deleteBilling();
-                      if (!mounted || message == null) {
-                        return;
-                      }
-                      appScaffoldMessengerKey.currentState
-                        ?..hideCurrentSnackBar()
-                        ..showSnackBar(SnackBar(content: Text(message)));
-                    },
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-            onToggle: () {
-              if (expanded) {
-                controller.resetForm();
-              } else {
-                controller.selectRow(row);
-              }
-            },
-            child: expanded ? _buildEditorForm(context, controller) : const SizedBox.shrink(),
-          ),
-        );
-      }).toList(growable: false),
+                          );
+                          if (confirmed != true) {
+                            return;
+                          }
+                          controller.selectRow(row);
+                          final message = await controller.deleteBilling();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                onToggle: () {
+                  if (expanded) {
+                    controller.resetForm();
+                  } else {
+                    controller.selectRow(row);
+                  }
+                },
+                child: expanded
+                    ? _buildEditorForm(context, controller)
+                    : const SizedBox.shrink(),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -247,134 +258,138 @@ class _ProjectBillingManagementPageState
     ProjectBillingManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              if (!controller.isProjectConstrained)
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: controller.milestoneId,
-                labelText: 'Milestone',
-                mappedItems: controller.milestoneItems,
-                onChanged: controller.setMilestoneId,
-              ),
-              AppFormTextField(
-                controller: controller.billingDateController,
-                labelText: 'Billing Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Billing Date'),
-                  Validators.optionalDate('Billing Date'),
-                ]),
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.basis,
-                labelText: 'Billing Basis',
-                mappedItems: _basisItems,
-                onChanged: (value) =>
-                    controller.setBasis(value ?? controller.basis),
-              ),
-              AppFormTextField(
-                controller: controller.amountController,
-                labelText: 'Billing Amount',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: Validators.compose([
-                  Validators.required('Billing Amount'),
-                  Validators.optionalNonNegativeNumber('Billing Amount'),
-                ]),
-              ),
-              InlineFieldAction(
-                actionTooltip: 'Open sales invoices',
-                onAddNew: () => controller.openSalesInvoicePage(context),
-                field: AppSearchPickerField<int>(
-                  labelText: 'Sales Invoice',
-                  selectedLabel: controller.salesInvoiceLabel(
-                    controller.salesInvoiceId,
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
                   ),
-                  options: controller.salesInvoices
-                      .where((invoice) => invoice.id != null)
-                      .map(
-                        (invoice) => AppSearchPickerOption<int>(
-                          value: invoice.id!,
-                          label:
-                              controller.salesInvoiceLabel(invoice.id) ??
-                              'Invoice #${invoice.id}',
-                          subtitle: [
-                            invoice.invoiceDate,
-                            if (invoice.totalAmount != null)
-                              'Amount ${controller.decimalText(invoice.totalAmount)}',
-                          ].where((item) => item.isNotEmpty).join(' • '),
-                          searchText: [
-                            invoice.invoiceNo ?? '',
-                            invoice.invoiceDate,
-                            invoice.customerPartyId.toString(),
-                            invoice.totalAmount?.toString() ?? '',
-                          ].join(' '),
-                        ),
-                      )
-                      .toList(growable: false),
-                  hintText: 'Search sales invoice',
-                  onChanged: controller.applySalesInvoice,
+                AppDropdownField<int>.fromMapped(
+                  initialValue: controller.milestoneId,
+                  labelText: 'Milestone',
+                  mappedItems: controller.milestoneItems,
+                  onChanged: controller.setMilestoneId,
                 ),
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.status,
-                labelText: 'Billing Status',
-                mappedItems: _statusItems,
-                onChanged: (value) =>
-                    controller.setStatus(value ?? controller.status),
-              ),
+                AppFormTextField(
+                  controller: controller.billingDateController,
+                  labelText: 'Billing Date',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Billing Date'),
+                    Validators.optionalDate('Billing Date'),
+                  ]),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.basis,
+                  labelText: 'Billing Basis',
+                  mappedItems: _basisItems,
+                  onChanged: (value) =>
+                      controller.setBasis(value ?? controller.basis),
+                ),
+                AppFormTextField(
+                  controller: controller.amountController,
+                  labelText: 'Billing Amount',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.compose([
+                    Validators.required('Billing Amount'),
+                    Validators.optionalNonNegativeNumber('Billing Amount'),
+                  ]),
+                ),
+                InlineFieldAction(
+                  actionTooltip: 'Open sales invoices',
+                  onAddNew: () => controller.openSalesInvoicePage(context),
+                  field: AppSearchPickerField<int>(
+                    labelText: 'Sales Invoice',
+                    selectedLabel: controller.salesInvoiceLabel(
+                      controller.salesInvoiceId,
+                    ),
+                    options: controller.salesInvoices
+                        .where((invoice) => invoice.id != null)
+                        .map(
+                          (invoice) => AppSearchPickerOption<int>(
+                            value: invoice.id!,
+                            label:
+                                controller.salesInvoiceLabel(invoice.id) ??
+                                'Invoice #${invoice.id}',
+                            subtitle: [
+                              invoice.invoiceDate,
+                              if (invoice.totalAmount != null)
+                                'Amount ${controller.decimalText(invoice.totalAmount)}',
+                            ].where((item) => item.isNotEmpty).join(' • '),
+                            searchText: [
+                              invoice.invoiceNo ?? '',
+                              invoice.invoiceDate,
+                              invoice.customerPartyId.toString(),
+                              invoice.totalAmount?.toString() ?? '',
+                            ].join(' '),
+                          ),
+                        )
+                        .toList(growable: false),
+                    hintText: 'Search sales invoice',
+                    onChanged: controller.applySalesInvoice,
+                  ),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.status,
+                  labelText: 'Billing Status',
+                  mappedItems: _statusItems,
+                  onChanged: (value) =>
+                      controller.setStatus(value ?? controller.status),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            AppFormTextField(
+              controller: controller.remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+              validator: Validators.optionalMaxLength(500, 'Remarks'),
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-            validator: Validators.optionalMaxLength(500, 'Remarks'),
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            AppErrorStateView.inline(message: controller.formError!),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () async {
+                          if (!Form.of(formContext).validate()) {
+                            return;
+                          }
+                          final message = await controller.saveBilling();
+                          if (!mounted || message == null) {
+                            return;
+                          }
+                          appScaffoldMessengerKey.currentState
+                            ?..hideCurrentSnackBar()
+                            ..showSnackBar(SnackBar(content: Text(message)));
+                        },
+                  icon: controller.selectedRow?.billing.id == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving ? 'Saving...' : 'Save Billing',
+                  busy: controller.saving,
+                ),
+              ],
+            ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving
-                    ? null
-                    : () async {
-                        final message = await controller.saveBilling();
-                        if (!mounted || message == null) {
-                          return;
-                        }
-                        appScaffoldMessengerKey.currentState
-                          ?..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(content: Text(message)));
-                      },
-                icon: controller.selectedRow?.billing.id == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving ? 'Saving...' : 'Save Billing',
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
