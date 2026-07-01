@@ -34,6 +34,9 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.multiInitialValues,
+    this.onMultiChanged,
+    this.multiHintText,
   }) : records = null,
        mappedItems = null,
        valueKey = null,
@@ -55,6 +58,9 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.multiInitialValues,
+    this.onMultiChanged,
+    this.multiHintText,
   }) : items = null,
        records = null,
        valueKey = null,
@@ -78,6 +84,9 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.multiInitialValues,
+    this.onMultiChanged,
+    this.multiHintText,
   }) : items = null,
        mappedItems = null;
 
@@ -98,14 +107,19 @@ class AppDropdownField<T> extends StatelessWidget {
   final ValueChanged<String>? onNavigateToCreateNew;
   final bool allowCreate;
   final bool enabled;
+  final Set<T>? multiInitialValues;
+  final ValueChanged<Set<T>>? onMultiChanged;
+  final String? multiHintText;
   final String Function(String query, String doctypeLabel)?
   createNewLabelBuilder;
 
   @override
   Widget build(BuildContext context) {
     final options = _buildOptions();
+    final isMultiSelect = multiInitialValues != null || onMultiChanged != null;
     final selected = _resolveInitialSelection(options);
-    final effectiveEnabled = enabled && onChanged != null;
+    final effectiveEnabled =
+        enabled && (isMultiSelect ? onMultiChanged != null : onChanged != null);
 
     return ErpLinkField<T>(
       labelText: labelText,
@@ -122,6 +136,9 @@ class AppDropdownField<T> extends StatelessWidget {
       allowCreate: allowCreate,
       createNewLabelBuilder: createNewLabelBuilder,
       enabled: effectiveEnabled,
+      multiInitialSelections: multiInitialValues,
+      onMultiChanged: onMultiChanged,
+      multiHintText: multiHintText,
     );
   }
 

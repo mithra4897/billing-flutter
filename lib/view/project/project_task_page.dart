@@ -40,7 +40,9 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       'ProjectTaskManagementController',
       scope: widget.controllerScope,
     );
-    if (!Get.isRegistered<ProjectTaskManagementController>(tag: _controllerTag)) {
+    if (!Get.isRegistered<ProjectTaskManagementController>(
+      tag: _controllerTag,
+    )) {
       Get.put(
         ProjectTaskManagementController(
           constrainedProjectId: widget.constrainedProjectId,
@@ -54,7 +56,9 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
   void didUpdateWidget(covariant ProjectTaskManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
-      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+      unawaited(
+        _controller.applyProjectConstraint(widget.constrainedProjectId),
+      );
     }
   }
 
@@ -154,93 +158,105 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       onAdd: controller.saving
           ? null
           : () => controller.startNewTask(
-                isDesktop: Responsive.isDesktop(context),
-              ),
+              isDesktop: Responsive.isDesktop(context),
+            ),
       addEnabled: !controller.saving,
       emptyMessage: 'No tasks found.',
-      showDraftTile:
-          controller.showDraftTile && controller.selectedRow == null,
+      showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Task',
       draftSubtitle: 'Add a task for this project.',
       onDraftToggle: controller.hideDraftTile,
       draftChild: _buildEditorForm(context, controller),
 
-      recordTiles: controller.filteredRows.map((row) {
-        final expanded = controller.selectedRow?.task.id == row.task.id;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: SettingsExpandableTile(
-            key: ValueKey<String>('project-task-${row.task.id}-$expanded'),
-            title: row.task.taskName ?? 'Task',
-            subtitle: [
-              row.task.taskCode ?? '',
-              row.task.taskStatus ?? '',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            detail: [
-              controller.employeeName(row.task.assignedEmployeeId),
-              row.task.plannedEndDate ?? '',
-              row.task.progressPercent == null
-                  ? ''
-                  : '${controller.decimalText(row.task.progressPercent)}%',
-            ].where((item) => item.isNotEmpty).join(' | '),
-            expanded: expanded,
-            highlighted: expanded,
-            leadingIcon: Icons.task_outlined,
-            trailing: controller.canDeleteTasks
-                ? IconButton(
-                    tooltip: 'Delete task',
-                    onPressed: controller.saving
-                        ? null
-                        : () async {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Delete Task'),
-                                content: Text(
-                                  'Remove ${row.task.taskName ?? 'this task'}?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(false),
-                                    child: const Text('Cancel'),
+      recordTiles: controller.filteredRows
+          .map((row) {
+            final expanded = controller.selectedRow?.task.id == row.task.id;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                key: ValueKey<String>('project-task-${row.task.id}-$expanded'),
+                title: row.task.taskName ?? 'Task',
+                subtitle: [
+                  row.task.taskCode ?? '',
+                  row.task.taskStatus ?? '',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                detail: [
+                  controller
+                      .employeeNames(
+                        row.task.assignedEmployeeIds.isEmpty &&
+                                row.task.assignedEmployeeId != null
+                            ? <int>[row.task.assignedEmployeeId!]
+                            : row.task.assignedEmployeeIds,
+                      )
+                      .join(', '),
+                  row.task.plannedEndDate ?? '',
+                  row.task.progressPercent == null
+                      ? ''
+                      : '${controller.decimalText(row.task.progressPercent)}%',
+                ].where((item) => item.isNotEmpty).join(' | '),
+                expanded: expanded,
+                highlighted: expanded,
+                leadingIcon: Icons.task_outlined,
+                trailing: controller.canDeleteTasks
+                    ? IconButton(
+                        tooltip: 'Delete task',
+                        onPressed: controller.saving
+                            ? null
+                            : () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('Delete Task'),
+                                    content: Text(
+                                      'Remove ${row.task.taskName ?? 'this task'}?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton.tonal(
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(true),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
                                   ),
-                                  FilledButton.tonal(
-                                    onPressed: () =>
-                                        Navigator.of(dialogContext).pop(true),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirmed != true) {
-                              return;
-                            }
-                            controller.selectRow(row);
-                            final message = await controller.deleteTask();
-                            if (!mounted || message == null) {
-                              return;
-                            }
-                            appScaffoldMessengerKey.currentState
-                              ?..hideCurrentSnackBar()
-                              ..showSnackBar(
-                                SnackBar(content: Text(message)),
-                              );
-                          },
-                    icon: const Icon(Icons.remove_circle_outline),
-                  )
-                : null,
-            onToggle: () {
-              if (expanded) {
-                controller.resetForm();
-              } else {
-                controller.selectRow(row);
-              }
-            },
-            child: expanded ? _buildEditorForm(context, controller) : const SizedBox.shrink(),
-          ),
-        );
-      }).toList(growable: false),
+                                );
+                                if (confirmed != true) {
+                                  return;
+                                }
+                                controller.selectRow(row);
+                                final message = await controller.deleteTask();
+                                if (!mounted || message == null) {
+                                  return;
+                                }
+                                appScaffoldMessengerKey.currentState
+                                  ?..hideCurrentSnackBar()
+                                  ..showSnackBar(
+                                    SnackBar(content: Text(message)),
+                                  );
+                              },
+                        icon: const Icon(Icons.remove_circle_outline),
+                      )
+                    : null,
+                onToggle: () {
+                  if (expanded) {
+                    controller.resetForm();
+                  } else {
+                    controller.selectRow(row);
+                  }
+                },
+                child: expanded
+                    ? _buildEditorForm(context, controller)
+                    : const SizedBox.shrink(),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -287,10 +303,11 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                 ]),
               ),
               AppDropdownField<int>.fromMapped(
-                initialValue: controller.assignedEmployeeId,
-                labelText: 'Assigned Employee',
+                labelText: 'Assigned Employees',
                 mappedItems: controller.employeeItems,
-                onChanged: controller.setAssignedEmployeeId,
+                multiInitialValues: controller.assignedEmployeeIds,
+                multiHintText: 'Select employees',
+                onMultiChanged: controller.setAssignedEmployeeIds,
               ),
               AppDropdownField<String>.fromMapped(
                 initialValue: controller.taskStatus,

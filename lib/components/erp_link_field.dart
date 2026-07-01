@@ -42,6 +42,9 @@ class ErpLinkField<T> extends StatefulWidget {
     this.onNavigateToOption,
     this.canRemoveOption,
     this.canNavigateToOption,
+    this.multiInitialSelections,
+    this.onMultiChanged,
+    this.multiHintText,
   });
 
   final String labelText;
@@ -69,6 +72,9 @@ class ErpLinkField<T> extends StatefulWidget {
   onNavigateToOption;
   final bool Function(ErpLinkFieldOption<T> option)? canRemoveOption;
   final bool Function(ErpLinkFieldOption<T> option)? canNavigateToOption;
+  final Set<T>? multiInitialSelections;
+  final ValueChanged<Set<T>>? onMultiChanged;
+  final String? multiHintText;
 
   @override
   State<ErpLinkField<T>> createState() => _ErpLinkFieldState<T>();
@@ -93,11 +99,14 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   Timer? _blurTimer;
   List<ErpLinkFieldOption<T>> _results = <ErpLinkFieldOption<T>>[];
   ErpLinkFieldOption<T>? _selected;
+  Set<T> _multiSelectedValues = <T>{};
   bool _loading = false;
   bool _creating = false;
   bool _holdBlurClose = false;
   int _requestToken = 0;
   int _highlightedIndex = -1;
+
+  bool get _isMultiSelect => widget.onMultiChanged != null;
 
   String get _doctypeLabel =>
       (widget.doctypeLabel ?? widget.labelText).trim().isEmpty
@@ -108,7 +117,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   void initState() {
     super.initState();
     _selected = widget.initialSelection;
-    _controller.text = widget.initialSelection?.label ?? '';
+    _multiSelectedValues = Set<T>.from(widget.multiInitialSelections ?? <T>{});
+    _controller.text = _displayValueText();
     _focusNode.addListener(_handleFocusChange);
     _controller.addListener(_handleTextChanged);
     if (widget.autofocus) {
@@ -128,7 +138,22 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       if (!_focusNode.hasFocus) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && !_focusNode.hasFocus) {
-            _setControllerText(widget.initialSelection?.label ?? '');
+            _setControllerText(_displayValueText());
+          }
+        });
+      }
+    }
+    if (!setEquals(
+      oldWidget.multiInitialSelections,
+      widget.multiInitialSelections,
+    )) {
+      _multiSelectedValues = Set<T>.from(
+        widget.multiInitialSelections ?? <T>{},
+      );
+      if (!_focusNode.hasFocus) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_focusNode.hasFocus) {
+            _setControllerText(_displayValueText());
           }
         });
       }
@@ -152,6 +177,9 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     if (_focusNode.hasFocus) {
       _blurTimer?.cancel();
       _holdBlurClose = false;
+      if (_isMultiSelect) {
+        _setControllerText('');
+      }
       unawaited(_prepareDropdownForOpen());
       return;
     }
@@ -169,7 +197,9 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       return;
     }
     final typed = _controller.text.trim();
-    if (_selected != null && typed != _selected!.label.trim()) {
+    if (!_isMultiSelect &&
+        _selected != null &&
+        typed != _selected!.label.trim()) {
       _selected = null;
       _fieldState?.didChange(null);
       widget.onChanged(null);
@@ -259,8 +289,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     _holdBlurClose = false;
     _highlightedIndex = -1;
     _removeOverlay();
-    if (_selected != null && !_focusNode.hasFocus) {
-      _setControllerText(_selected!.label);
+    if (!_focusNode.hasFocus) {
+      _setControllerText(_displayValueText());
     }
   }
 
@@ -471,6 +501,20 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         if (option == null) {
           return;
         }
+        if (_isMultiSelect) {
+          final next = Set<T>.from(_multiSelectedValues);
+          if (!next.add(option.value)) {
+            next.remove(option.value);
+          }
+          setState(() {
+            _multiSelectedValues = next;
+          });
+          widget.onMultiChanged?.call(next);
+          _setControllerText('');
+          _scheduleSearch('', immediate: true);
+          _markOverlayNeedsBuild();
+          return;
+        }
         setState(() {
           _selected = option;
         });
@@ -622,6 +666,15 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                           return _ErpDropdownRow<T>(
                             entry: entry,
                             highlighted: index == _highlightedIndex,
+                            showCheckbox:
+                                _isMultiSelect &&
+                                entry.kind == _ErpMenuEntryKind.result,
+                            checked:
+                                _isMultiSelect &&
+                                entry.option != null &&
+                                _multiSelectedValues.contains(
+                                  entry.option!.value,
+                                ),
                             onPointerDown: _beginDropdownInteraction,
                             onHoverChanged: (hovered) {
                               if (!hovered) {
@@ -696,7 +749,11 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                           vertical: AppUiConstants.tableCellPaddingXs,
                         )
                       : null,
-                  hintText: widget.hintText ?? 'Search $_doctypeLabel',
+                  hintText: _isMultiSelect
+                      ? (widget.multiHintText ??
+                            widget.hintText ??
+                            'Search $_doctypeLabel')
+                      : (widget.hintText ?? 'Search $_doctypeLabel'),
                   errorText: field.errorText,
                   errorStyle: compactCellMode ? compactErrorStyle : null,
                   errorMaxLines: compactCellMode ? 1 : null,
@@ -722,7 +779,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                     FocusScope.of(context).unfocus();
                     return;
                   }
-                  if (_selected != null) {
+                  if (!_isMultiSelect && _selected != null) {
                     _controller.selection = TextSelection(
                       baseOffset: 0,
                       extentOffset: _controller.text.length,
@@ -736,6 +793,17 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         },
       ),
     );
+  }
+
+  String _displayValueText() {
+    if (_isMultiSelect) {
+      final labels = (widget.options ?? <ErpLinkFieldOption<T>>[])
+          .where((option) => _multiSelectedValues.contains(option.value))
+          .map((option) => option.label)
+          .toList(growable: false);
+      return labels.join(', ');
+    }
+    return _selected?.label ?? '';
   }
 }
 
@@ -778,6 +846,8 @@ class _ErpDropdownRow<T> extends StatelessWidget {
   const _ErpDropdownRow({
     required this.entry,
     required this.highlighted,
+    this.showCheckbox = false,
+    this.checked = false,
     this.onPointerDown,
     this.onHoverChanged,
     this.onTap,
@@ -785,6 +855,8 @@ class _ErpDropdownRow<T> extends StatelessWidget {
 
   final _ErpMenuEntry<T> entry;
   final bool highlighted;
+  final bool showCheckbox;
+  final bool checked;
   final VoidCallback? onPointerDown;
   final ValueChanged<bool>? onHoverChanged;
   final VoidCallback? onTap;
@@ -814,6 +886,21 @@ class _ErpDropdownRow<T> extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Row(
               children: [
+                if (showCheckbox) ...[
+                  IgnorePointer(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: Checkbox(
+                        value: checked,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (_) {},
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (entry.kind == _ErpMenuEntryKind.create) ...[
                   Icon(Icons.add, size: 14, color: theme.colorScheme.primary),
                   const SizedBox(width: 6),
