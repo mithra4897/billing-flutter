@@ -45,6 +45,7 @@ class PurchaseListRegisterController<T> extends GetxController {
   bool loading = true;
   String? error;
   String status = '';
+  Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
   Worker? _refreshWorker;
 
@@ -85,6 +86,11 @@ class PurchaseListRegisterController<T> extends GetxController {
     update();
   }
 
+  void setCustomFilter(String key, dynamic value) {
+    customFilters[key] = value;
+    update();
+  }
+
   Future<void> load() async {
     loading = true;
     error = null;
@@ -121,6 +127,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.statusItems,
     required this.columns,
     required this.rowRoute,
+    this.extraActionsBuilder,
   });
 
   final String controllerName;
@@ -135,6 +142,11 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final List<AppDropdownItem<String>> statusItems;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final List<Widget> Function(
+    BuildContext context,
+    PurchaseListRegisterController<T> controller,
+  )?
+  extraActionsBuilder;
 
   @override
   State<_PurchaseRegisterShell<T>> createState() =>
@@ -174,6 +186,8 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
           actions: [
+            if (widget.extraActionsBuilder != null)
+              ...widget.extraActionsBuilder!(context, controller),
             AdaptiveShellActionButton(
               onPressed: () => _openShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
@@ -472,9 +486,68 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
                 'party_name',
               ),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchaseInvoiceModel>>(
+              tag: persistentControllerTag('PurchaseInvoiceRegisterController'),
+            );
+
+        final filterSupplierId =
+            controller.customFilters['supplier_id'] as int?;
+        final filterOverdue =
+            controller.customFilters['overdue'] as bool? ?? false;
+
+        final supplierOk =
+            filterSupplierId == null || row.supplierPartyId == filterSupplierId;
+
+        var overdueOk = true;
+        if (filterOverdue) {
+          if (row.invoiceStatus == 'draft' ||
+              row.invoiceStatus == 'paid' ||
+              row.invoiceStatus == 'cancelled') {
+            overdueOk = false;
+          } else {
+            final dueDateStr = row.dueDate;
+            if (dueDateStr == null || dueDateStr.isEmpty) {
+              overdueOk = false;
+            } else {
+              final parsed = DateTime.tryParse(dueDateStr);
+              if (parsed == null) {
+                overdueOk = false;
+              } else {
+                final today = DateTime.now();
+                final normalizedToday = DateTime(
+                  today.year,
+                  today.month,
+                  today.day,
+                );
+                final normalizedParsed = DateTime(
+                  parsed.year,
+                  parsed.month,
+                  parsed.day,
+                );
+                overdueOk = normalizedParsed.isBefore(normalizedToday);
+              }
+            }
+          }
+        }
+
+        return statusOk && searchOk && supplierOk && overdueOk;
       },
       emptyMessage: 'No purchase invoices found.',
+      extraActionsBuilder: (context, controller) {
+        final hasFilters =
+            controller.customFilters['supplier_id'] != null ||
+            (controller.customFilters['overdue'] == true);
+        return [
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: hasFilters,
+          ),
+        ];
+      },
       newRoute: '/purchase/invoices/new',
       newLabel: 'New Invoice',
       searchHint: 'Search invoices',
@@ -508,6 +581,160 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    PurchaseListRegisterController<PurchaseInvoiceModel> controller,
+  ) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600
+        ? 16.0
+        : screenWidth > 800
+        ? (screenWidth - 760) / 2
+        : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final Map<int, String> uniqueSuppliers = {};
+    for (final row in controller.rows) {
+      final name = _nestedName(
+        row.toJson(),
+        'supplier_name',
+        'supplier',
+        'party_name',
+      );
+      if (name.isNotEmpty) {
+        uniqueSuppliers[row.supplierPartyId] = name;
+      }
+    }
+
+    final supplierOptions = [
+      const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+      ...uniqueSuppliers.entries.map(
+        (e) => AppDropdownItem<int?>(value: e.key, label: e.value),
+      ),
+    ];
+
+    await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child:
+                  GetBuilder<
+                    PurchaseListRegisterController<PurchaseInvoiceModel>
+                  >(
+                    tag: persistentControllerTag(
+                      'PurchaseInvoiceRegisterController',
+                    ),
+                    builder: (dialogController) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Filter Invoices',
+                                style: Theme.of(dialogContext)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(false),
+                              tooltip: 'Close',
+                              icon: const Icon(Icons.close),
+                              color: appTheme.mutedText,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SettingsFormWrap(
+                          children: [
+                            AppDropdownField<int?>.fromMapped(
+                              labelText: 'Supplier',
+                              mappedItems: supplierOptions,
+                              initialValue:
+                                  dialogController.customFilters['supplier_id']
+                                      as int?,
+                              onChanged: (val) => dialogController
+                                  .setCustomFilter('supplier_id', val),
+                            ),
+                            AppSwitchTile(
+                              label: 'Overdue Invoices Only',
+                              subtitle:
+                                  'Show posted/partially paid invoices past their due date',
+                              value:
+                                  dialogController.customFilters['overdue']
+                                      as bool? ??
+                                  false,
+                              onChanged: (val) => dialogController
+                                  .setCustomFilter('overdue', val),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop(true);
+                              },
+                              icon: const Icon(Icons.check),
+                              label: const Text('Apply Filter'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                dialogController.setCustomFilter(
+                                  'supplier_id',
+                                  null,
+                                );
+                                dialogController.setCustomFilter(
+                                  'overdue',
+                                  false,
+                                );
+                                dialogController.searchController.clear();
+                                dialogController.setStatus('');
+                                Navigator.of(dialogContext).pop(true);
+                              },
+                              icon: const Icon(Icons.clear),
+                              label: const Text('Clear Filters'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

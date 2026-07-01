@@ -52,6 +52,8 @@ class PurchaseInvoiceManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  int? filterSupplierId;
+  bool filterOverdue = false;
   List<PurchaseInvoiceModel> items = const <PurchaseInvoiceModel>[];
   List<PurchaseInvoiceModel> filteredItems = const <PurchaseInvoiceModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -430,7 +432,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    var result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -441,6 +443,40 @@ class PurchaseInvoiceManagementController extends GetxController {
         item.toJson()['supplier_name']?.toString() ?? '',
       ],
     );
+
+    if (filterSupplierId != null) {
+      result = result
+          .where((item) => item.supplierPartyId == filterSupplierId)
+          .toList();
+    }
+
+    if (filterOverdue) {
+      final today = DateTime.now();
+      final normalizedToday = DateTime(today.year, today.month, today.day);
+      result = result.where((item) {
+        if (item.invoiceStatus == 'draft' ||
+            item.invoiceStatus == 'paid' ||
+            item.invoiceStatus == 'cancelled') {
+          return false;
+        }
+        final dueDateStr = item.dueDate;
+        if (dueDateStr == null || dueDateStr.isEmpty) {
+          return false;
+        }
+        final parsed = DateTime.tryParse(dueDateStr);
+        if (parsed == null) {
+          return false;
+        }
+        final normalizedParsed = DateTime(
+          parsed.year,
+          parsed.month,
+          parsed.day,
+        );
+        return normalizedParsed.isBefore(normalizedToday);
+      }).toList();
+    }
+
+    return result;
   }
 
   void _applyFilters() {
@@ -450,6 +486,24 @@ class PurchaseInvoiceManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
+    _applyFilters();
+  }
+
+  void setFilterSupplierId(int? id) {
+    filterSupplierId = id;
+    _applyFilters();
+  }
+
+  void setFilterOverdue(bool value) {
+    filterOverdue = value;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    filterSupplierId = null;
+    filterOverdue = false;
+    statusFilter = '';
+    searchController.clear();
     _applyFilters();
   }
 
@@ -630,9 +684,9 @@ class PurchaseInvoiceManagementController extends GetxController {
         'round_off_amount': _roundOffAmountForSave(),
         'adjustment_amount': double.parse(
           ((Validators.parseFlexibleNumber(
-                        adjustmentAmountController.text.trim(),
-                      ) ??
-                      0))
+                    adjustmentAmountController.text.trim(),
+                  ) ??
+                  0))
               .toStringAsFixed(2),
         ),
       },
