@@ -72,6 +72,8 @@ class SalesRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    dateFromController.addListener(update);
+    dateToController.addListener(update);
     _refreshWorker = ever<SalesModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -87,8 +89,12 @@ class SalesRegisterController<T> extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
+    dateFromController
+      ..removeListener(update)
+      ..dispose();
+    dateToController
+      ..removeListener(update)
+      ..dispose();
     searchController
       ..removeListener(update)
       ..dispose();
@@ -155,7 +161,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     this.queryParameters = const <String, String>{},
     this.dashboardStatusForFilter,
     this.extraActionsBuilder,
-    this.extraFiltersBuilder,
+    this.customFiltersBuilder,
   });
 
   final String controllerName;
@@ -179,11 +185,11 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     SalesRegisterController<T> controller,
   )?
   extraActionsBuilder;
-  final List<Widget> Function(
+  final Widget Function(
     BuildContext context,
     SalesRegisterController<T> controller,
   )?
-  extraFiltersBuilder;
+  customFiltersBuilder;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -264,14 +270,16 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           errorMessage: controller.error,
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
+          filters:
+              widget.customFiltersBuilder?.call(context, controller) ??
+              _SalesRegisterFilters<T>(
+                controller: controller,
+                statusItems: widget.statusItems,
+                title: 'Find ${widget.title}',
+                searchHint: widget.searchHint,
+              ),
           actions: [
             ...extraActions,
-            AdaptiveShellActionButton(
-              onPressed: () => _openFilterPanel(context, controller),
-              icon: Icons.filter_alt_outlined,
-              label: 'Filter',
-              filled: false,
-            ),
             AdaptiveShellActionButton(
               onPressed: () => _openSalesShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
@@ -286,40 +294,238 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
       },
     );
   }
+}
 
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesRegisterController<T> controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter ${widget.title}',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: widget.searchHint,
-      status: controller.status,
-      statusItems: widget.statusItems,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.setStatus(status);
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.setStatus('');
-      },
-      extraFilterWidget: widget.extraFiltersBuilder == null
-          ? null
-          : GetBuilder<SalesRegisterController<T>>(
-              tag: _controllerTag,
-              builder: (ctrl) => SettingsFormWrap(
-                children: widget.extraFiltersBuilder!(context, ctrl),
+List<AppDropdownItem<int?>> _mappedCustomerItems<T>(
+  SalesRegisterController<T> controller,
+) {
+  final uniqueCustomers = <int, String>{};
+  for (final row in controller.rows) {
+    if (row is! JsonModel) {
+      continue;
+    }
+    final data = row.toJson();
+    final id = intValue(data, 'customer_party_id');
+    final name = _salesCustomerName(data);
+    if (id != null && name.isNotEmpty) {
+      uniqueCustomers[id] = name;
+    }
+  }
+  return <AppDropdownItem<int?>>[
+    const AppDropdownItem<int?>(value: null, label: 'All Customers'),
+    ...uniqueCustomers.entries.map(
+      (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+    ),
+  ];
+}
+
+class _SalesRegisterFilters<T> extends StatelessWidget {
+  const _SalesRegisterFilters({
+    required this.controller,
+    required this.statusItems,
+    required this.title,
+    required this.searchHint,
+    this.customerItemsBuilder,
+  });
+
+  final SalesRegisterController<T> controller;
+  final List<AppDropdownItem<String>> statusItems;
+  final String title;
+  final String searchHint;
+  final List<AppDropdownItem<int?>> Function(SalesRegisterController<T>)?
+  customerItemsBuilder;
+
+  void _clearFilters() {
+    controller.searchController.clear();
+    controller.dateFromController.clear();
+    controller.dateToController.clear();
+    controller.setCustomFilter('customer_id', null);
+    controller.setStatus('');
+  }
+
+  Widget _searchField() {
+    return AppFormTextField(
+      labelText: 'Search',
+      controller: controller.searchController,
+      hintText: searchHint,
+    );
+  }
+
+  Widget _customerField() {
+    return AppDropdownField<int?>.fromMapped(
+      labelText: 'Customer',
+      mappedItems: customerItemsBuilder!(controller),
+      initialValue: controller.customFilters['customer_id'] as int?,
+      onChanged: (value) => controller.setCustomFilter('customer_id', value),
+    );
+  }
+
+  Widget _statusField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Status',
+      mappedItems: statusItems,
+      initialValue: controller.status,
+      onChanged: (value) => controller.setStatus(value ?? ''),
+    );
+  }
+
+  Widget _dateField({
+    required String label,
+    required TextEditingController textController,
+  }) {
+    return AppFormTextField(
+      labelText: label,
+      controller: textController,
+      hintText: 'YYYY-MM-DD',
+      keyboardType: TextInputType.datetime,
+      inputFormatters: const [DateInputFormatter()],
+      validator: Validators.optionalDate(label),
+    );
+  }
+
+  Widget _actionField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppUiConstants.spacingXs),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: _clearFilters,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCustomer = customerItemsBuilder != null;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isWide = width >= 1320;
+        final isMedium = width >= 920 && width < 1320;
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: _searchField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              if (hasCustomer) ...[
+                Expanded(child: _customerField()),
+                const SizedBox(width: AppUiConstants.spacingMd),
+              ],
+              Expanded(child: _statusField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: _dateField(
+                  label: 'Date From',
+                  textController: controller.dateFromController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: _dateField(
+                  label: 'Date To',
+                  textController: controller.dateToController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              SizedBox(width: 160, child: _actionField(context)),
+            ],
+          );
+        }
+
+        if (isMedium) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _searchField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  if (hasCustomer) ...[
+                    Expanded(child: _customerField()),
+                    const SizedBox(width: AppUiConstants.spacingMd),
+                  ],
+                  Expanded(child: _statusField()),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _dateField(
+                      label: 'Date From',
+                      textController: controller.dateFromController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(
+                    child: _dateField(
+                      label: 'Date To',
+                      textController: controller.dateToController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _actionField(context)),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            SettingsFormWrap(
+              maxWidth: double.infinity,
+              children: [
+                _searchField(),
+                if (hasCustomer) _customerField(),
+                _statusField(),
+                _dateField(
+                  label: 'Date From',
+                  textController: controller.dateFromController,
+                ),
+                _dateField(
+                  label: 'Date To',
+                  textController: controller.dateToController,
+                ),
+                _actionField(context),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -363,8 +569,17 @@ class SalesQuotationRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
+        final controller =
+            Get.find<SalesRegisterController<SalesQuotationModel>>(
+              tag: persistentControllerTag('SalesQuotationRegisterController'),
+            );
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
         return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+            (query.isEmpty || searchText.contains(query)) &&
+            customerOk;
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -385,6 +600,13 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Quotations',
+        searchHint: 'Quotation no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       newRoute: '/sales/quotations/new',
       newLabel: 'New quotation',
       searchHint: 'Search number or customer',
@@ -471,8 +693,16 @@ class SalesOrderRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
+        final controller = Get.find<SalesRegisterController<SalesOrderModel>>(
+          tag: persistentControllerTag('SalesOrderRegisterController'),
+        );
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
         return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+            (query.isEmpty || searchText.contains(query)) &&
+            customerOk;
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -509,6 +739,13 @@ class SalesOrderRegisterPage extends StatelessWidget {
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       emptyMessage:
           'No sales orders yet. Create an order from a quote or directly.',
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Orders',
+        searchHint: 'Order no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       newRoute: '/sales/orders/new',
       newLabel: 'New order',
       searchHint: 'Search number or customer',
@@ -635,31 +872,13 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       extraActionsBuilder: (context, controller) => <Widget>[
         SalesInvoiceExportButton(invoices: controller.filteredRows),
       ],
-      extraFiltersBuilder: (context, controller) {
-        final Map<int, String> uniqueCustomers = {};
-        for (final row in controller.rows) {
-          final name = _salesCustomerName(row.toJson());
-          if (name.isNotEmpty) {
-            uniqueCustomers[row.customerPartyId] = name;
-          }
-        }
-
-        final customerOptions = [
-          const AppDropdownItem<int?>(value: null, label: 'All Customers'),
-          ...uniqueCustomers.entries.map(
-            (e) => AppDropdownItem<int?>(value: e.key, label: e.value),
-          ),
-        ];
-
-        return [
-          AppDropdownField<int?>.fromMapped(
-            labelText: 'Customer',
-            mappedItems: customerOptions,
-            initialValue: controller.customFilters['customer_id'] as int?,
-            onChanged: (val) => controller.setCustomFilter('customer_id', val),
-          ),
-        ];
-      },
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Invoices',
+        searchHint: 'Invoice no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'open':
@@ -737,12 +956,28 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
+        final controller =
+            Get.find<SalesRegisterController<SalesDeliveryModel>>(
+              tag: persistentControllerTag('SalesDeliveryRegisterController'),
+            );
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
         return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+            (query.isEmpty || searchText.contains(query)) &&
+            customerOk;
       },
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'delivery_date'),
       emptyMessage: 'No deliveries yet.',
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Deliveries',
+        searchHint: 'Delivery no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       newRoute: '/sales/deliveries/new',
       newLabel: 'New delivery',
       searchHint: 'Search number or customer',
@@ -809,8 +1044,16 @@ class SalesReceiptRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
+        final controller = Get.find<SalesRegisterController<SalesReceiptModel>>(
+          tag: persistentControllerTag('SalesReceiptRegisterController'),
+        );
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
         return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+            (query.isEmpty || searchText.contains(query)) &&
+            customerOk;
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -826,6 +1069,13 @@ class SalesReceiptRegisterPage extends StatelessWidget {
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       emptyMessage: 'No receipts yet.',
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Receipts',
+        searchHint: 'Receipt no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       newRoute: '/sales/receipts/new',
       newLabel: 'New receipt',
       searchHint: 'Search receipts',
@@ -896,12 +1146,27 @@ class SalesReturnRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
+        final controller = Get.find<SalesRegisterController<SalesReturnModel>>(
+          tag: persistentControllerTag('SalesReturnRegisterController'),
+        );
+        final filterCustomerId =
+            controller.customFilters['customer_id'] as int?;
+        final customerOk =
+            filterCustomerId == null || row.customerPartyId == filterCustomerId;
         return (status.isEmpty || rowStatus == status) &&
-            (query.isEmpty || searchText.contains(query));
+            (query.isEmpty || searchText.contains(query)) &&
+            customerOk;
       },
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       emptyMessage: 'No returns yet.',
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Returns',
+        searchHint: 'Return no or customer name',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
       newRoute: '/sales/returns/new',
       newLabel: 'New return',
       searchHint: 'Search returns',
