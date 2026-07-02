@@ -732,6 +732,9 @@ class PurchaseOrderManagementController extends GetxController {
       billingAddressId: intValue(selectedData, 'billing_address_id'),
     );
     final summary = orderTaxSummary();
+    final roundOffAmount = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
+        : 0.0;
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -793,7 +796,7 @@ class PurchaseOrderManagementController extends GetxController {
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(summary.gross, 2),
       taxAmount: roundToDouble(totalTax, 2),
-      totalAmount: roundToDouble(summary.total, 2),
+      totalAmount: roundToDouble(summary.total + roundOffAmount, 2),
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),

@@ -830,6 +830,9 @@ class SalesQuotationManagementController extends GetxController {
   DocumentPrintDataModel quotationPrintData() {
     final documentStatus = status.trim().toLowerCase();
     final summary = taxSummary();
+    final roundOffAmount = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
+        : 0.0;
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
@@ -909,7 +912,7 @@ class SalesQuotationManagementController extends GetxController {
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(summary.gross, 2),
       taxAmount: roundToDouble(totalTax, 2),
-      totalAmount: roundToDouble(summary.total, 2),
+      totalAmount: roundToDouble(summary.total + roundOffAmount, 2),
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),

@@ -2468,6 +2468,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final totals = shape.printTotal
         ? _calculatePdfColumnTotals(visibleRows, columns)
         : const <String, double>{};
+    if (useFullHeight && totals.containsKey('line_total')) {
+      totals['line_total'] = widget.documentData.totalAmount;
+    }
     final double totalRowTop = useFullHeight
         ? shape.height - headerHeight
         : usedHeight;
@@ -3975,6 +3978,12 @@ class DocumentCanvasPainter extends CustomPainter {
     if (shape.printTotal) {
       final totals = _calculateColumnTotals(rows, columns);
       if (totals.isNotEmpty) {
+        if (useFullHeight && totals.containsKey('line_total')) {
+          totals['line_total'] =
+              (resolvePrintPath(documentData, 'total_amount') as num?)
+                  ?.toDouble() ??
+              totals['line_total']!;
+        }
         final totalRowTop = useFullHeight
             ? rect.bottom - headerHeight
             : currentY;
