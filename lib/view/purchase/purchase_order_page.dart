@@ -298,6 +298,51 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         emptyMessage: 'No purchase orders found.',
         searchController: controller.searchController,
         searchHint: 'Search orders',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Order no or supplier name',
+          ),
+          AppDropdownField<int?>.fromMapped(
+            labelText: 'Supplier',
+            mappedItems: [
+              const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+              ...controller.suppliers
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem<int?>(
+                      value: item.id,
+                      label: item.toString(),
+                    ),
+                  ),
+            ],
+            initialValue: controller.filterSupplierId,
+            onChanged: controller.setFilterSupplierId,
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: controller.clearFilters,
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: PurchaseOrderManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

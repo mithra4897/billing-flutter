@@ -94,6 +94,8 @@ class PurchaseRequisitionManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController requisitionNoController = TextEditingController();
   final TextEditingController requisitionDateController =
@@ -151,6 +153,8 @@ class PurchaseRequisitionManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -160,6 +164,12 @@ class PurchaseRequisitionManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     requisitionNoController.dispose();
@@ -437,7 +447,7 @@ class PurchaseRequisitionManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    final result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -452,11 +462,27 @@ class PurchaseRequisitionManagementController extends GetxController {
         ];
       },
     );
+
+    return result.where((item) {
+      return matchesDateValueRange(
+        item.requisitionDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
   }
 
   void _applyFilters() {
     filteredItems = _filterItems(items, searchController.text, statusFilter);
     update();
+  }
+
+  void clearFilters() {
+    statusFilter = '';
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    _applyFilters();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

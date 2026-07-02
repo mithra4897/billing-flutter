@@ -78,6 +78,8 @@ class PurchasePaymentManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController paymentNoController = TextEditingController();
   final TextEditingController paymentDateController = TextEditingController();
@@ -91,6 +93,7 @@ class PurchasePaymentManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  int? filterSupplierId;
   String paymentMode = 'bank';
   List<PurchasePaymentModel> items = const <PurchasePaymentModel>[];
   List<PurchasePaymentModel> filteredItems = const <PurchasePaymentModel>[];
@@ -134,6 +137,8 @@ class PurchasePaymentManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -143,6 +148,12 @@ class PurchasePaymentManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     paymentNoController.dispose();
@@ -440,7 +451,7 @@ class PurchasePaymentManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    var result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -455,11 +466,39 @@ class PurchasePaymentManagementController extends GetxController {
         ];
       },
     );
+
+    if (filterSupplierId != null) {
+      result = result
+          .where((item) => item.supplierPartyId == filterSupplierId)
+          .toList();
+    }
+
+    return result.where((item) {
+      return matchesDateValueRange(
+        item.paymentDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
   }
 
   void _applyFilters() {
     filteredItems = _filterItems(items, searchController.text, statusFilter);
     update();
+  }
+
+  void setFilterSupplierId(int? id) {
+    filterSupplierId = id;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    filterSupplierId = null;
+    statusFilter = '';
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    _applyFilters();
   }
 
   List<DocumentSeriesModel> seriesOptions() {
@@ -514,8 +553,8 @@ class PurchasePaymentManagementController extends GetxController {
       0,
       (sum, allocation) =>
           sum +
-              (Validators.parseFlexibleNumber(allocation.amountController.text) ??
-                  0),
+          (Validators.parseFlexibleNumber(allocation.amountController.text) ??
+              0),
     );
   }
 
@@ -545,7 +584,8 @@ class PurchasePaymentManagementController extends GetxController {
 
   void syncPaidAmountFromAllocations() {
     final total = totalAllocatedAmount();
-    final current = Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final current =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
     final nextAmount = _paidAmountManuallyEdited && current > total
         ? current
         : total;
@@ -577,9 +617,11 @@ class PurchasePaymentManagementController extends GetxController {
     final outstanding = invoiceOutstanding(invoice);
     allocations[index].purchaseInvoiceId = purchaseInvoiceId;
     allocations[index].allocationType = 'against_invoice';
-      final currentAllocated =
-          Validators.parseFlexibleNumber(allocations[index].amountController.text) ??
-          0;
+    final currentAllocated =
+        Validators.parseFlexibleNumber(
+          allocations[index].amountController.text,
+        ) ??
+        0;
     final nextAllocated = currentAllocated <= 0
         ? outstanding
         : (currentAllocated > outstanding ? outstanding : currentAllocated);

@@ -276,6 +276,12 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
         filters: {'per_page': 200, 'sort_by': 'requisition_date'},
       ),
       matches: (row, query, status) {
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchaseRequisitionModel>>(
+              tag: persistentControllerTag(
+                'PurchaseRequisitionRegisterController',
+              ),
+            );
         final data = row.toJson();
         final statusOk =
             status.isEmpty || stringValue(data, 'requisition_status') == status;
@@ -289,9 +295,20 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
               stringValue(data, 'purpose'),
               stringValue(data, 'department'),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+        final dateOk = matchesDateValueRange(
+          nullableStringValue(data, 'requisition_date'),
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
+        return statusOk && searchOk && dateOk;
       },
       emptyMessage: 'No purchase requisitions found.',
+      customFiltersBuilder: (context, controller) => _PurchaseRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Requisitions',
+        searchHint: 'Requisition no, purpose, department',
+      ),
       newRoute: '/purchase/requisitions/new',
       newLabel: 'New Requisition',
       searchHint: 'Search requisitions',
@@ -359,6 +376,10 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       loader: (service) =>
           service.ordersAll(filters: {'sort_by': 'order_date'}),
       matches: (row, query, status) {
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchaseOrderModel>>(
+              tag: persistentControllerTag('PurchaseOrderRegisterController'),
+            );
         final data = row.toJson();
         final statusOk =
             status.isEmpty || stringValue(data, 'order_status') == status;
@@ -369,9 +390,26 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
               stringValue(data, 'supplier_name'),
               purchaseStatusLabel(nullableStringValue(data, 'order_status')),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+        final filterSupplierId =
+            controller.customFilters['supplier_id'] as int?;
+        final supplierOk =
+            filterSupplierId == null ||
+            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final dateOk = matchesDateValueRange(
+          nullableStringValue(data, 'order_date'),
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
+        return statusOk && searchOk && supplierOk && dateOk;
       },
       emptyMessage: 'No purchase orders found.',
+      customFiltersBuilder: (context, controller) => _PurchaseRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Orders',
+        searchHint: 'Order no or supplier name',
+        supplierItemsBuilder: _mappedSupplierItems,
+      ),
       newRoute: '/purchase/orders/new',
       newLabel: 'New Order',
       searchHint: 'Search orders',
@@ -442,6 +480,10 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
         filters: {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
       matches: (row, query, status) {
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchaseReceiptModel>>(
+              tag: persistentControllerTag('PurchaseReceiptRegisterController'),
+            );
         final data = row.toJson();
         final statusOk =
             status.isEmpty || stringValue(data, 'receipt_status') == status;
@@ -452,9 +494,26 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
               stringValue(data, 'supplier_name'),
               purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+        final filterSupplierId =
+            controller.customFilters['supplier_id'] as int?;
+        final supplierOk =
+            filterSupplierId == null ||
+            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final dateOk = matchesDateValueRange(
+          nullableStringValue(data, 'receipt_date'),
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
+        return statusOk && searchOk && supplierOk && dateOk;
       },
       emptyMessage: 'No purchase receipts found.',
+      customFiltersBuilder: (context, controller) => _PurchaseRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Receipts',
+        searchHint: 'Receipt no or supplier name',
+        supplierItemsBuilder: _mappedSupplierItems,
+      ),
       newRoute: '/purchase/receipts/new',
       newLabel: 'New Receipt',
       searchHint: 'Search receipts',
@@ -629,6 +688,10 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
         filters: {'per_page': 200, 'sort_by': 'payment_date'},
       ),
       matches: (row, query, status) {
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchasePaymentModel>>(
+              tag: persistentControllerTag('PurchasePaymentRegisterController'),
+            );
         final data = row.toJson();
         final statusOk =
             status.isEmpty || stringValue(data, 'payment_status') == status;
@@ -640,9 +703,26 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
               stringValue(data, 'reference_no'),
               purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+        final filterSupplierId =
+            controller.customFilters['supplier_id'] as int?;
+        final supplierOk =
+            filterSupplierId == null ||
+            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final dateOk = matchesDateValueRange(
+          nullableStringValue(data, 'payment_date'),
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
+        return statusOk && searchOk && supplierOk && dateOk;
       },
       emptyMessage: 'No purchase payments found.',
+      customFiltersBuilder: (context, controller) => _PurchaseRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Payments',
+        searchHint: 'Payment no, reference no, supplier',
+        supplierItemsBuilder: _mappedSupplierItems,
+      ),
       newRoute: '/purchase/payments/new',
       newLabel: 'New Payment',
       searchHint: 'Search payments',
@@ -709,6 +789,10 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
       loader: (service) =>
           service.returns(filters: {'per_page': 200, 'sort_by': 'return_date'}),
       matches: (row, query, status) {
+        final controller =
+            Get.find<PurchaseListRegisterController<PurchaseReturnModel>>(
+              tag: persistentControllerTag('PurchaseReturnRegisterController'),
+            );
         final data = row.toJson();
         final statusOk =
             status.isEmpty || stringValue(data, 'return_status') == status;
@@ -716,12 +800,30 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
             query.isEmpty ||
             [
               stringValue(data, 'return_no'),
+              stringValue(data, 'supplier_name'),
               stringValue(data, 'return_reason'),
               purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].join(' ').toLowerCase().contains(query);
-        return statusOk && searchOk;
+        final filterSupplierId =
+            controller.customFilters['supplier_id'] as int?;
+        final supplierOk =
+            filterSupplierId == null ||
+            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final dateOk = matchesDateValueRange(
+          nullableStringValue(data, 'return_date'),
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
+        return statusOk && searchOk && supplierOk && dateOk;
       },
       emptyMessage: 'No purchase returns found.',
+      customFiltersBuilder: (context, controller) => _PurchaseRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Returns',
+        searchHint: 'Return no or supplier name',
+        supplierItemsBuilder: _mappedSupplierItems,
+      ),
       newRoute: '/purchase/returns/new',
       newLabel: 'New Return',
       searchHint: 'Search returns',
@@ -812,6 +914,243 @@ class _RegisterFilters extends StatelessWidget {
   }
 }
 
+List<AppDropdownItem<int?>> _mappedSupplierItems<T>(
+  PurchaseListRegisterController<T> controller,
+) {
+  final uniqueSuppliers = <int, String>{};
+  for (final row in controller.rows) {
+    if (row is! JsonModel) {
+      continue;
+    }
+    final data = row.toJson();
+    final id = intValue(data, 'supplier_party_id');
+    final name = _nestedName(data, 'supplier_name', 'supplier', 'party_name');
+    if (id != null && name.isNotEmpty) {
+      uniqueSuppliers[id] = name;
+    }
+  }
+  return <AppDropdownItem<int?>>[
+    const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+    ...uniqueSuppliers.entries.map(
+      (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+    ),
+  ];
+}
+
+class _PurchaseRegisterFilters<T> extends StatelessWidget {
+  const _PurchaseRegisterFilters({
+    required this.controller,
+    required this.statusItems,
+    required this.title,
+    required this.searchHint,
+    this.supplierItemsBuilder,
+  });
+
+  final PurchaseListRegisterController<T> controller;
+  final List<AppDropdownItem<String>> statusItems;
+  final String title;
+  final String searchHint;
+  final List<AppDropdownItem<int?>> Function(
+    PurchaseListRegisterController<T> controller,
+  )?
+  supplierItemsBuilder;
+
+  void _clearFilters() {
+    controller.searchController.clear();
+    controller.dateFromController.clear();
+    controller.dateToController.clear();
+    controller.setCustomFilter('supplier_id', null);
+    controller.setStatus('');
+  }
+
+  Widget _searchField() {
+    return AppFormTextField(
+      labelText: 'Search',
+      controller: controller.searchController,
+      hintText: searchHint,
+    );
+  }
+
+  Widget _statusField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Status',
+      mappedItems: statusItems,
+      initialValue: controller.status,
+      onChanged: (value) => controller.setStatus(value ?? ''),
+    );
+  }
+
+  Widget _supplierField() {
+    return AppDropdownField<int?>.fromMapped(
+      labelText: 'Supplier',
+      mappedItems: supplierItemsBuilder!(controller),
+      initialValue: controller.customFilters['supplier_id'] as int?,
+      onChanged: (value) => controller.setCustomFilter('supplier_id', value),
+    );
+  }
+
+  Widget _dateField({
+    required String label,
+    required TextEditingController textController,
+  }) {
+    return AppFormTextField(
+      labelText: label,
+      controller: textController,
+      hintText: 'YYYY-MM-DD',
+      keyboardType: TextInputType.datetime,
+      inputFormatters: const [DateInputFormatter()],
+      validator: Validators.optionalDate(label),
+    );
+  }
+
+  Widget _actionField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppUiConstants.spacingXs),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: _clearFilters,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSupplier = supplierItemsBuilder != null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isWide = width >= 1320;
+        final isMedium = width >= 920 && width < 1320;
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: _searchField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              if (hasSupplier) ...[
+                Expanded(child: _supplierField()),
+                const SizedBox(width: AppUiConstants.spacingMd),
+              ],
+              Expanded(child: _statusField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: _dateField(
+                  label: 'Date From',
+                  textController: controller.dateFromController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: _dateField(
+                  label: 'Date To',
+                  textController: controller.dateToController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              SizedBox(width: 160, child: _actionField(context)),
+            ],
+          );
+        }
+
+        if (isMedium) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _searchField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  if (hasSupplier) ...[
+                    Expanded(child: _supplierField()),
+                    const SizedBox(width: AppUiConstants.spacingMd),
+                  ],
+                  Expanded(child: _statusField()),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _dateField(
+                      label: 'Date From',
+                      textController: controller.dateFromController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(
+                    child: _dateField(
+                      label: 'Date To',
+                      textController: controller.dateToController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _actionField(context)),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            SettingsFormWrap(
+              maxWidth: double.infinity,
+              children: [
+                _searchField(),
+                if (hasSupplier) _supplierField(),
+                _statusField(),
+                _dateField(
+                  label: 'Date From',
+                  textController: controller.dateFromController,
+                ),
+                _dateField(
+                  label: 'Date To',
+                  textController: controller.dateToController,
+                ),
+                _actionField(context),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _PurchaseInvoiceFilters extends StatelessWidget {
   const _PurchaseInvoiceFilters({
     required this.controller,
@@ -838,8 +1177,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     return <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
       ...uniqueSuppliers.entries.map(
-        (entry) =>
-            AppDropdownItem<int?>(value: entry.key, label: entry.value),
+        (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
       ),
     ];
   }
@@ -866,7 +1204,9 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
               ),
             ),
           ),
@@ -925,8 +1265,6 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -963,9 +1301,9 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
             children: [
               Text(
                 'Find Invoices',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Row(
@@ -998,9 +1336,9 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
           children: [
             Text(
               'Find Invoices',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(

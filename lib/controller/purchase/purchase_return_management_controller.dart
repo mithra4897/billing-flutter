@@ -146,6 +146,8 @@ class PurchaseReturnManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController returnNoController = TextEditingController();
   final TextEditingController returnDateController = TextEditingController();
@@ -158,6 +160,7 @@ class PurchaseReturnManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  int? filterSupplierId;
   List<PurchaseReturnModel> items = const <PurchaseReturnModel>[];
   List<PurchaseReturnModel> filteredItems = const <PurchaseReturnModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
@@ -202,6 +205,8 @@ class PurchaseReturnManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -211,6 +216,12 @@ class PurchaseReturnManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     returnNoController.dispose();
@@ -454,7 +465,7 @@ class PurchaseReturnManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    var result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -467,11 +478,39 @@ class PurchaseReturnManagementController extends GetxController {
         ];
       },
     );
+
+    if (filterSupplierId != null) {
+      result = result
+          .where((item) => item.supplierPartyId == filterSupplierId)
+          .toList();
+    }
+
+    return result.where((item) {
+      return matchesDateValueRange(
+        item.returnDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
   }
 
   void _applyFilters() {
     filteredItems = _filterItems(items, searchController.text, statusFilter);
     update();
+  }
+
+  void setFilterSupplierId(int? id) {
+    filterSupplierId = id;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    filterSupplierId = null;
+    statusFilter = '';
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    _applyFilters();
   }
 
   List<DocumentSeriesModel> seriesOptions() {
@@ -492,6 +531,32 @@ class PurchaseReturnManagementController extends GetxController {
   List<PurchaseInvoiceModel> get invoiceOptions => invoices
       .where((item) => companyId == null || item.companyId == companyId)
       .toList(growable: false);
+
+  List<AppDropdownItem<int?>> get supplierFilterItems {
+    final supplierMap = <int, String>{};
+    for (final invoice in invoices) {
+      final id = invoice.supplierPartyId;
+      final name = invoice.supplierName?.trim() ?? '';
+      if (name.isNotEmpty) {
+        supplierMap[id] = name;
+      }
+    }
+    for (final item in items) {
+      final id = item.supplierPartyId;
+      final name = item.supplierName?.trim() ?? '';
+      if (id != null && name.isNotEmpty) {
+        supplierMap[id] = name;
+      }
+    }
+    final entries = supplierMap.entries.toList()
+      ..sort((a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()));
+    return <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+      ...entries.map(
+        (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+      ),
+    ];
+  }
 
   String itemName(int? id) {
     if (id == null) return '';

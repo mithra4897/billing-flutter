@@ -117,6 +117,8 @@ class PurchaseReceiptManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController receiptNoController = TextEditingController();
   final TextEditingController receiptDateController = TextEditingController();
@@ -135,6 +137,7 @@ class PurchaseReceiptManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  int? filterSupplierId;
   List<PurchaseReceiptModel> items = const <PurchaseReceiptModel>[];
   List<PurchaseReceiptModel> filteredItems = const <PurchaseReceiptModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -191,6 +194,8 @@ class PurchaseReceiptManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -200,6 +205,12 @@ class PurchaseReceiptManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     receiptNoController.dispose();
@@ -590,7 +601,7 @@ class PurchaseReceiptManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    var result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -604,11 +615,39 @@ class PurchaseReceiptManagementController extends GetxController {
         ];
       },
     );
+
+    if (filterSupplierId != null) {
+      result = result
+          .where((item) => item.supplierPartyId == filterSupplierId)
+          .toList();
+    }
+
+    return result.where((item) {
+      return matchesDateValueRange(
+        item.receiptDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
   }
 
   void _applyFilters() {
     filteredItems = _filterItems(items, searchController.text, statusFilter);
     update();
+  }
+
+  void setFilterSupplierId(int? id) {
+    filterSupplierId = id;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    filterSupplierId = null;
+    statusFilter = '';
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    _applyFilters();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

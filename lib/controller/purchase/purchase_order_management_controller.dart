@@ -133,6 +133,8 @@ class PurchaseOrderManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController orderNoController = TextEditingController();
   final TextEditingController orderDateController = TextEditingController();
@@ -151,6 +153,7 @@ class PurchaseOrderManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  int? filterSupplierId;
   List<PurchaseOrderModel> items = const <PurchaseOrderModel>[];
   List<PurchaseOrderModel> filteredItems = const <PurchaseOrderModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -228,6 +231,8 @@ class PurchaseOrderManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -237,6 +242,12 @@ class PurchaseOrderManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     orderNoController.dispose();
@@ -551,7 +562,7 @@ class PurchaseOrderManagementController extends GetxController {
     String query,
     String status,
   ) {
-    return filterBySearchAndStatus(
+    var result = filterBySearchAndStatus(
       source,
       query: query,
       status: status,
@@ -566,6 +577,20 @@ class PurchaseOrderManagementController extends GetxController {
         ];
       },
     );
+
+    if (filterSupplierId != null) {
+      result = result
+          .where((item) => item.supplierPartyId == filterSupplierId)
+          .toList();
+    }
+
+    return result.where((item) {
+      return matchesDateValueRange(
+        item.orderDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
   }
 
   void _applyFilters() {
@@ -575,6 +600,20 @@ class PurchaseOrderManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
+    _applyFilters();
+  }
+
+  void setFilterSupplierId(int? id) {
+    filterSupplierId = id;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    filterSupplierId = null;
+    statusFilter = '';
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
     _applyFilters();
   }
 

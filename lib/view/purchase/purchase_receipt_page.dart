@@ -323,6 +323,51 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         emptyMessage: 'No purchase receipts found.',
         searchController: controller.searchController,
         searchHint: 'Search receipts',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Receipt no or supplier name',
+          ),
+          AppDropdownField<int?>.fromMapped(
+            labelText: 'Supplier',
+            mappedItems: [
+              const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+              ...controller.suppliers
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem<int?>(
+                      value: item.id,
+                      label: item.toString(),
+                    ),
+                  ),
+            ],
+            initialValue: controller.filterSupplierId,
+            onChanged: controller.setFilterSupplierId,
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: controller.clearFilters,
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: PurchaseReceiptManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
