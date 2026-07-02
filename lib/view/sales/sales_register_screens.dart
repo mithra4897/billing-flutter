@@ -576,6 +576,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -609,46 +610,11 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
 
         final filterCustomerId =
             controller.customFilters['customer_id'] as int?;
-        final filterOverdue =
-            controller.customFilters['overdue'] as bool? ?? false;
 
         final customerOk =
             filterCustomerId == null || row.customerPartyId == filterCustomerId;
 
-        var overdueOk = true;
-        if (filterOverdue) {
-          if (row.invoiceStatus == 'draft' ||
-              row.invoiceStatus == 'paid' ||
-              row.invoiceStatus == 'partially_paid' ||
-              row.invoiceStatus == 'cancelled') {
-            overdueOk = false;
-          } else {
-            final due = row.dueDate;
-            if (due == null || due.isEmpty) {
-              overdueOk = false;
-            } else {
-              final parsed = DateTime.tryParse(due);
-              if (parsed != null) {
-                final today = DateTime.now();
-                final normalizedToday = DateTime(
-                  today.year,
-                  today.month,
-                  today.day,
-                );
-                final normalizedParsed = DateTime(
-                  parsed.year,
-                  parsed.month,
-                  parsed.day,
-                );
-                overdueOk = normalizedParsed.isBefore(normalizedToday);
-              } else {
-                overdueOk = false;
-              }
-            }
-          }
-        }
-
-        return statusOk && searchOk && customerOk && overdueOk;
+        return statusOk && searchOk && customerOk;
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -680,8 +646,9 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
 
         final customerOptions = [
           const AppDropdownItem<int?>(value: null, label: 'All Customers'),
-          ...uniqueCustomers.entries
-              .map((e) => AppDropdownItem<int?>(value: e.key, label: e.value)),
+          ...uniqueCustomers.entries.map(
+            (e) => AppDropdownItem<int?>(value: e.key, label: e.value),
+          ),
         ];
 
         return [
@@ -690,12 +657,6 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             mappedItems: customerOptions,
             initialValue: controller.customFilters['customer_id'] as int?,
             onChanged: (val) => controller.setCustomFilter('customer_id', val),
-          ),
-          AppSwitchTile(
-            label: 'Overdue Invoices Only',
-            subtitle: 'Show posted invoices past their due date',
-            value: controller.customFilters['overdue'] as bool? ?? false,
-            onChanged: (val) => controller.setCustomFilter('overdue', val),
           ),
         ];
       },

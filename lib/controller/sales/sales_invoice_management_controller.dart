@@ -9,6 +9,7 @@ class SalesInvoiceManagementController extends GetxController {
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'overdue', label: 'Overdue'),
         AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
         AppDropdownItem(value: 'paid', label: 'Paid'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -2377,7 +2378,10 @@ class SalesInvoiceManagementController extends GetxController {
               Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
           final discountPercent =
               Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
-          final grossAmount = roundToDouble(qty > 0 && rate >= 0 ? qty * rate : 0, 2);
+          final grossAmount = roundToDouble(
+            qty > 0 && rate >= 0 ? qty * rate : 0,
+            2,
+          );
           final discountAmount = roundToDouble(
             (grossAmount * discountPercent.clamp(0, 100)) / 100,
             2,
