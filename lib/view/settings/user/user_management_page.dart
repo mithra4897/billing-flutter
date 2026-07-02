@@ -732,14 +732,305 @@ class _UserManagementPageState extends State<UserManagementPage>
       );
     }
 
-    return _historyList<AuditLogModel>(
-      context,
-      items: controller.auditLogs,
-      titleBuilder: (log) => log.description ?? log.action ?? 'Audit entry',
-      subtitleBuilder: (log) =>
-          '${log.module ?? '-'} • ${log.createdAt ?? ''}'.trim(),
-      trailingBuilder: (log) => log.action ?? '',
+    if (controller.auditLogs.isEmpty) {
+      return _emptyStateCard(
+        context,
+        icon: Icons.inbox_outlined,
+        title: 'No Audit Records Found',
+        message: 'User changes will appear here after records are created or updated.',
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      primary: false,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+      itemCount: controller.auditLogs.length,
+      separatorBuilder: (_, index) =>
+          const SizedBox(height: AppUiConstants.spacingLg),
+      itemBuilder: (context, index) =>
+          _buildAuditLogCard(context, controller.auditLogs[index]),
     );
+  }
+
+  Widget _buildAuditLogCard(BuildContext context, AuditLogModel log) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final changes = _auditChanges(log);
+    final summaryParts = <String>[
+      if ((log.createdAt ?? '').trim().isNotEmpty) log.createdAt!,
+      if ((log.module ?? '').trim().isNotEmpty) log.module!,
+      if (changes.isNotEmpty) '${changes.length} changes',
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.cardPadding,
+            vertical: AppUiConstants.spacingXs,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(
+            AppUiConstants.cardPadding,
+            0,
+            AppUiConstants.cardPadding,
+            AppUiConstants.cardPadding,
+          ),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          title: Text(
+            log.description ?? log.action ?? 'Audit entry',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: summaryParts.isEmpty
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    summaryParts.join(' • '),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: appTheme.mutedText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if ((log.action ?? '').trim().isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppUiConstants.spacingSm,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appTheme.cardBackground,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    (log.action ?? '').toUpperCase(),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: appTheme.mutedText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          children: [
+            _buildAuditMetaLine(
+              context,
+              'Entity',
+              [
+                if ((log.entityName ?? '').trim().isNotEmpty) log.entityName!,
+                if ((log.entityId ?? '').trim().isNotEmpty) '#${log.entityId}',
+              ].join(' ').trim().ifEmpty('Not available'),
+            ),
+            if ((log.ipAddress ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingXs),
+              _buildAuditMetaLine(context, 'IP', log.ipAddress!),
+            ],
+            const SizedBox(height: AppUiConstants.spacingMd),
+            if (changes.isEmpty)
+              Text(
+                'No field-level changes were captured for this entry.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              )
+            else
+              Column(
+                children: changes
+                    .map((change) => _buildAuditChangeRow(context, change))
+                    .toList(growable: false),
+              ),
+            if ((log.userAgent ?? '').trim().isNotEmpty ||
+                (log.hostName ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Divider(color: Theme.of(context).dividerColor, height: 1),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              if ((log.hostName ?? '').trim().isNotEmpty)
+                _buildAuditMetaLine(context, 'Host', log.hostName!),
+              if ((log.userAgent ?? '').trim().isNotEmpty) ...[
+                if ((log.hostName ?? '').trim().isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                _buildAuditMetaLine(context, 'User agent', log.userAgent!),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuditMetaLine(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return RichText(
+      text: TextSpan(
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditChangeRow(BuildContext context, _AuditFieldChange change) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _formatAuditFieldName(change.field),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildAuditValueBlock(
+                  context,
+                  label: 'Old',
+                  value: change.oldValue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAuditValueBlock(
+                  context,
+                  label: 'New',
+                  value: change.newValue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditValueBlock(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: appTheme.mutedText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_AuditFieldChange> _auditChanges(AuditLogModel log) {
+    final oldValues = log.oldValues ?? const <String, dynamic>{};
+    final newValues = log.newValues ?? const <String, dynamic>{};
+    final fields = <String>{...oldValues.keys, ...newValues.keys}.toList()
+      ..sort();
+
+    return fields
+        .map(
+          (field) => _AuditFieldChange(
+            field: field,
+            oldValue: _stringifyAuditValue(oldValues[field]),
+            newValue: _stringifyAuditValue(newValues[field]),
+          ),
+        )
+        .where((change) => change.oldValue != change.newValue)
+        .toList(growable: false);
+  }
+
+  String _stringifyAuditValue(dynamic value) {
+    if (value == null) {
+      return 'Empty';
+    }
+    if (value is bool) {
+      return value ? 'Yes' : 'No';
+    }
+    if (value is List) {
+      if (value.isEmpty) {
+        return '[]';
+      }
+      return value.map(_stringifyAuditValue).join(', ');
+    }
+    if (value is Map) {
+      if (value.isEmpty) {
+        return '{}';
+      }
+      return value.entries
+          .map((entry) => '${entry.key}: ${_stringifyAuditValue(entry.value)}')
+          .join(', ');
+    }
+
+    final text = value.toString().trim();
+    return text.isEmpty ? 'Empty' : text;
+  }
+
+  String _formatAuditFieldName(String field) {
+    return field
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .map(
+          (part) => '${part[0].toUpperCase()}${part.substring(1)}',
+        )
+        .join(' ');
   }
 
   Widget _buildLoginHistoryTab(
@@ -948,4 +1239,16 @@ class _UserManagementPageState extends State<UserManagementPage>
 
 extension on String {
   String ifEmpty(String fallback) => trim().isEmpty ? fallback : this;
+}
+
+class _AuditFieldChange {
+  const _AuditFieldChange({
+    required this.field,
+    required this.oldValue,
+    required this.newValue,
+  });
+
+  final String field;
+  final String oldValue;
+  final String newValue;
 }
