@@ -9,6 +9,7 @@ class PurchaseInvoiceManagementController extends GetxController {
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'overdue', label: 'Overdue'),
         AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
         AppDropdownItem(value: 'paid', label: 'Paid'),
         AppDropdownItem(
@@ -451,28 +452,8 @@ class PurchaseInvoiceManagementController extends GetxController {
     }
 
     if (filterOverdue) {
-      final today = DateTime.now();
-      final normalizedToday = DateTime(today.year, today.month, today.day);
       result = result.where((item) {
-        if (item.invoiceStatus == 'draft' ||
-            item.invoiceStatus == 'paid' ||
-            item.invoiceStatus == 'cancelled') {
-          return false;
-        }
-        final dueDateStr = item.dueDate;
-        if (dueDateStr == null || dueDateStr.isEmpty) {
-          return false;
-        }
-        final parsed = DateTime.tryParse(dueDateStr);
-        if (parsed == null) {
-          return false;
-        }
-        final normalizedParsed = DateTime(
-          parsed.year,
-          parsed.month,
-          parsed.day,
-        );
-        return normalizedParsed.isBefore(normalizedToday);
+        return item.invoiceStatus == 'overdue';
       }).toList();
     }
 

@@ -468,6 +468,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
     AppDropdownItem(value: 'partially_returned', label: 'Partially Returned'),
@@ -514,35 +515,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
 
         var overdueOk = true;
         if (filterOverdue) {
-          if (row.invoiceStatus == 'draft' ||
-              row.invoiceStatus == 'paid' ||
-              row.invoiceStatus == 'partially_paid' ||
-              row.invoiceStatus == 'cancelled') {
-            overdueOk = false;
-          } else {
-            final dueDateStr = row.dueDate;
-            if (dueDateStr == null || dueDateStr.isEmpty) {
-              overdueOk = false;
-            } else {
-              final parsed = DateTime.tryParse(dueDateStr);
-              if (parsed == null) {
-                overdueOk = false;
-              } else {
-                final today = DateTime.now();
-                final normalizedToday = DateTime(
-                  today.year,
-                  today.month,
-                  today.day,
-                );
-                final normalizedParsed = DateTime(
-                  parsed.year,
-                  parsed.month,
-                  parsed.day,
-                );
-                overdueOk = normalizedParsed.isBefore(normalizedToday);
-              }
-            }
-          }
+          overdueOk = row.invoiceStatus == 'overdue';
         }
 
         return statusOk && searchOk && supplierOk && overdueOk;

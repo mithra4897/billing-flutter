@@ -13,24 +13,7 @@ Widget purchaseStatusBadge(
   String? status, {
   String? dueDate,
 }) {
-  var normalized = (status ?? '').trim().toLowerCase();
-
-  if (dueDate != null &&
-      dueDate.isNotEmpty &&
-      (normalized != 'draft' &&
-          normalized != 'paid' &&
-          normalized != 'partially_paid' &&
-          normalized != 'cancelled')) {
-    final parsed = DateTime.tryParse(dueDate);
-    if (parsed != null) {
-      final today = DateTime.now();
-      final normalizedToday = DateTime(today.year, today.month, today.day);
-      final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
-      if (normalizedParsed.isBefore(normalizedToday)) {
-        normalized = 'overdue';
-      }
-    }
-  }
+  final normalized = (status ?? '').trim().toLowerCase();
 
   Color color;
   String label = purchaseStatusLabel(normalized);
