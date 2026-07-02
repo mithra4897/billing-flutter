@@ -41,6 +41,8 @@ class PurchaseListRegisterController<T> extends GetxController {
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
 
   bool loading = true;
   String? error;
@@ -60,6 +62,8 @@ class PurchaseListRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    dateFromController.addListener(update);
+    dateToController.addListener(update);
     _refreshWorker = ever<PurchaseModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -76,6 +80,12 @@ class PurchaseListRegisterController<T> extends GetxController {
   void onClose() {
     _refreshWorker?.dispose();
     searchController
+      ..removeListener(update)
+      ..dispose();
+    dateFromController
+      ..removeListener(update)
+      ..dispose();
+    dateToController
       ..removeListener(update)
       ..dispose();
     super.onClose();
@@ -127,7 +137,11 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.statusItems,
     required this.columns,
     required this.rowRoute,
+    this.customFiltersBuilder,
     this.extraActionsBuilder,
+    this.filterFieldsBuilder,
+    this.filterTrailingActionsBuilder,
+    this.filtersMaxWidth,
   });
 
   final String controllerName;
@@ -142,11 +156,27 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final List<AppDropdownItem<String>> statusItems;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final Widget Function(
+    BuildContext context,
+    PurchaseListRegisterController<T> controller,
+  )?
+  customFiltersBuilder;
   final List<Widget> Function(
     BuildContext context,
     PurchaseListRegisterController<T> controller,
   )?
   extraActionsBuilder;
+  final List<Widget> Function(
+    BuildContext context,
+    PurchaseListRegisterController<T> controller,
+  )?
+  filterFieldsBuilder;
+  final List<Widget> Function(
+    BuildContext context,
+    PurchaseListRegisterController<T> controller,
+  )?
+  filterTrailingActionsBuilder;
+  final double? filtersMaxWidth;
 
   @override
   State<_PurchaseRegisterShell<T>> createState() =>
@@ -194,13 +224,24 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
               label: widget.newLabel,
             ),
           ],
-          filters: _RegisterFilters(
-            searchController: controller.searchController,
-            searchHint: widget.searchHint,
-            status: controller.status,
-            statusItems: widget.statusItems,
-            onStatusChanged: (value) => controller.setStatus(value ?? ''),
-          ),
+          filters:
+              widget.customFiltersBuilder?.call(context, controller) ??
+              _RegisterFilters(
+                searchController: controller.searchController,
+                searchHint: widget.searchHint,
+                filterFields: widget.filterFieldsBuilder?.call(
+                  context,
+                  controller,
+                ),
+                trailingActions: widget.filterTrailingActionsBuilder?.call(
+                  context,
+                  controller,
+                ),
+                maxWidth: widget.filtersMaxWidth,
+                status: controller.status,
+                statusItems: widget.statusItems,
+                onStatusChanged: (value) => controller.setStatus(value ?? ''),
+              ),
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
@@ -491,7 +532,6 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             query.isEmpty ||
             [
               row.invoiceNo ?? '',
-              purchaseStatusLabel(row.invoiceStatus),
               _nestedName(
                 row.toJson(),
                 'supplier_name',
@@ -499,7 +539,6 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
                 'party_name',
               ),
             ].join(' ').toLowerCase().contains(query);
-
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseInvoiceModel>>(
               tag: persistentControllerTag('PurchaseInvoiceRegisterController'),
@@ -507,33 +546,23 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
 
         final filterSupplierId =
             controller.customFilters['supplier_id'] as int?;
-        final filterOverdue =
-            controller.customFilters['overdue'] as bool? ?? false;
 
         final supplierOk =
             filterSupplierId == null || row.supplierPartyId == filterSupplierId;
 
-        var overdueOk = true;
-        if (filterOverdue) {
-          overdueOk = row.invoiceStatus == 'overdue';
-        }
+        final dateOk = matchesDateValueRange(
+          row.invoiceDate,
+          fromValue: controller.dateFromController.text,
+          toValue: controller.dateToController.text,
+        );
 
-        return statusOk && searchOk && supplierOk && overdueOk;
+        return statusOk && searchOk && supplierOk && dateOk;
       },
       emptyMessage: 'No purchase invoices found.',
-      extraActionsBuilder: (context, controller) {
-        final hasFilters =
-            controller.customFilters['supplier_id'] != null ||
-            (controller.customFilters['overdue'] == true);
-        return [
-          AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
-            icon: Icons.filter_alt_outlined,
-            label: 'Filter',
-            filled: hasFilters,
-          ),
-        ];
-      },
+      customFiltersBuilder: (context, controller) => _PurchaseInvoiceFilters(
+        controller: controller,
+        statusItems: _statusItems,
+      ),
       newRoute: '/purchase/invoices/new',
       newLabel: 'New Invoice',
       searchHint: 'Search invoices',
@@ -572,160 +601,6 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    PurchaseListRegisterController<PurchaseInvoiceModel> controller,
-  ) async {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = screenWidth < 600
-        ? 16.0
-        : screenWidth > 800
-        ? (screenWidth - 760) / 2
-        : 24.0;
-    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
-
-    final Map<int, String> uniqueSuppliers = {};
-    for (final row in controller.rows) {
-      final name = _nestedName(
-        row.toJson(),
-        'supplier_name',
-        'supplier',
-        'party_name',
-      );
-      if (name.isNotEmpty) {
-        uniqueSuppliers[row.supplierPartyId] = name;
-      }
-    }
-
-    final supplierOptions = [
-      const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
-      ...uniqueSuppliers.entries.map(
-        (e) => AppDropdownItem<int?>(value: e.key, label: e.value),
-      ),
-    ];
-
-    await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        final appTheme = Theme.of(
-          dialogContext,
-        ).extension<AppThemeExtension>()!;
-
-        return Dialog(
-          insetPadding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 20,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                dialogPadding,
-                dialogPadding,
-                dialogPadding,
-                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
-              ),
-              child:
-                  GetBuilder<
-                    PurchaseListRegisterController<PurchaseInvoiceModel>
-                  >(
-                    tag: persistentControllerTag(
-                      'PurchaseInvoiceRegisterController',
-                    ),
-                    builder: (dialogController) => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Filter Invoices',
-                                style: Theme.of(dialogContext)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () =>
-                                  Navigator.of(dialogContext).pop(false),
-                              tooltip: 'Close',
-                              icon: const Icon(Icons.close),
-                              color: appTheme.mutedText,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        SettingsFormWrap(
-                          children: [
-                            AppDropdownField<int?>.fromMapped(
-                              labelText: 'Supplier',
-                              mappedItems: supplierOptions,
-                              initialValue:
-                                  dialogController.customFilters['supplier_id']
-                                      as int?,
-                              onChanged: (val) => dialogController
-                                  .setCustomFilter('supplier_id', val),
-                            ),
-                            AppSwitchTile(
-                              label: 'Overdue Invoices Only',
-                              subtitle:
-                                  'Show posted invoices past their due date',
-                              value:
-                                  dialogController.customFilters['overdue']
-                                      as bool? ??
-                                  false,
-                              onChanged: (val) => dialogController
-                                  .setCustomFilter('overdue', val),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop(true);
-                              },
-                              icon: const Icon(Icons.check),
-                              label: const Text('Apply Filter'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                dialogController.setCustomFilter(
-                                  'supplier_id',
-                                  null,
-                                );
-                                dialogController.setCustomFilter(
-                                  'overdue',
-                                  false,
-                                );
-                                dialogController.searchController.clear();
-                                dialogController.setStatus('');
-                                Navigator.of(dialogContext).pop(true);
-                              },
-                              icon: const Icon(Icons.clear),
-                              label: const Text('Clear Filters'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -895,6 +770,9 @@ class _RegisterFilters extends StatelessWidget {
   const _RegisterFilters({
     required this.searchController,
     required this.searchHint,
+    this.filterFields,
+    this.trailingActions,
+    this.maxWidth,
     required this.status,
     required this.statusItems,
     required this.onStatusChanged,
@@ -902,6 +780,9 @@ class _RegisterFilters extends StatelessWidget {
 
   final TextEditingController searchController;
   final String searchHint;
+  final List<Widget>? filterFields;
+  final List<Widget>? trailingActions;
+  final double? maxWidth;
   final String status;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?> onStatusChanged;
@@ -909,19 +790,233 @@ class _RegisterFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsFormWrap(
+      maxWidth: maxWidth ?? 300,
       children: [
-        AppFormTextField(
-          labelText: 'Search',
-          controller: searchController,
-          hintText: searchHint,
-        ),
+        ...(filterFields ??
+            <Widget>[
+              AppFormTextField(
+                labelText: 'Search',
+                controller: searchController,
+                hintText: searchHint,
+              ),
+            ]),
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
           mappedItems: statusItems,
           initialValue: status,
           onChanged: onStatusChanged,
         ),
+        ...?trailingActions,
       ],
+    );
+  }
+}
+
+class _PurchaseInvoiceFilters extends StatelessWidget {
+  const _PurchaseInvoiceFilters({
+    required this.controller,
+    required this.statusItems,
+  });
+
+  final PurchaseListRegisterController<PurchaseInvoiceModel> controller;
+  final List<AppDropdownItem<String>> statusItems;
+
+  List<AppDropdownItem<int?>> _supplierItems() {
+    final Map<int, String> uniqueSuppliers = <int, String>{};
+    for (final row in controller.rows) {
+      final name = _nestedName(
+        row.toJson(),
+        'supplier_name',
+        'supplier',
+        'party_name',
+      );
+      if (name.isNotEmpty) {
+        uniqueSuppliers[row.supplierPartyId] = name;
+      }
+    }
+
+    return <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+      ...uniqueSuppliers.entries.map(
+        (entry) =>
+            AppDropdownItem<int?>(value: entry.key, label: entry.value),
+      ),
+    ];
+  }
+
+  void _clearFilters() {
+    controller.searchController.clear();
+    controller.dateFromController.clear();
+    controller.dateToController.clear();
+    controller.setCustomFilter('supplier_id', null);
+    controller.setStatus('');
+  }
+
+  Widget _actionField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppUiConstants.spacingXs),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: _clearFilters,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _searchField() {
+    return AppFormTextField(
+      labelText: 'Search',
+      controller: controller.searchController,
+      hintText: 'Bill no or supplier name',
+    );
+  }
+
+  Widget _supplierField() {
+    return AppDropdownField<int?>.fromMapped(
+      labelText: 'Supplier',
+      mappedItems: _supplierItems(),
+      initialValue: controller.customFilters['supplier_id'] as int?,
+      onChanged: (value) => controller.setCustomFilter('supplier_id', value),
+    );
+  }
+
+  Widget _statusField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Status',
+      mappedItems: statusItems,
+      initialValue: controller.status,
+      onChanged: (value) => controller.setStatus(value ?? ''),
+    );
+  }
+
+  Widget _dateFromField() {
+    return AppFormTextField(
+      labelText: 'Date From',
+      controller: controller.dateFromController,
+      hintText: 'YYYY-MM-DD',
+      keyboardType: TextInputType.datetime,
+      inputFormatters: const [DateInputFormatter()],
+      validator: Validators.optionalDate('Date From'),
+    );
+  }
+
+  Widget _dateToField() {
+    return AppFormTextField(
+      labelText: 'Date To',
+      controller: controller.dateToController,
+      hintText: 'YYYY-MM-DD',
+      keyboardType: TextInputType.datetime,
+      inputFormatters: const [DateInputFormatter()],
+      validator: Validators.optionalDate('Date To'),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isWide = width >= 1320;
+        final isMedium = width >= 920 && width < 1320;
+
+        if (isWide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 2, child: _searchField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _supplierField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _statusField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _dateFromField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _dateToField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  SizedBox(width: 160, child: _actionField(context)),
+                ],
+              ),
+            ],
+          );
+        }
+
+        if (isMedium) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Find Invoices',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _searchField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _supplierField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _statusField()),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _dateFromField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _dateToField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _actionField(context)),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Find Invoices',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            SettingsFormWrap(
+              maxWidth: double.infinity,
+              children: [
+                _searchField(),
+                _supplierField(),
+                _statusField(),
+                _dateFromField(),
+                _dateToField(),
+                _actionField(context),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

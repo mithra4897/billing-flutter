@@ -334,24 +334,58 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         selectedItem: controller.selectedItem,
         emptyMessage: 'No purchase invoices found.',
         searchController: controller.searchController,
-        searchHint: 'Search invoices',
+        searchHint: 'Search by bill no or supplier',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Bill no or supplier name',
+          ),
+          AppDropdownField<int?>.fromMapped(
+            labelText: 'Supplier',
+            mappedItems: [
+              const AppDropdownItem<int?>(
+                value: null,
+                label: 'All Suppliers',
+              ),
+              ...controller.suppliers
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem<int?>(
+                      value: item.id,
+                      label: item.toString(),
+                    ),
+                  ),
+            ],
+            initialValue: controller.filterSupplierId,
+            onChanged: controller.setFilterSupplierId,
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: controller.clearFilters,
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: PurchaseInvoiceManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        headerActions: [
-          IconButton(
-            onPressed: () => _openFilterPanel(context, controller),
-            icon: Icon(
-              Icons.filter_alt_outlined,
-              color:
-                  controller.filterSupplierId != null ||
-                      controller.filterOverdue
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
-            ),
-            tooltip: 'Advanced Filters',
-          ),
-        ],
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
@@ -737,128 +771,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    PurchaseInvoiceManagementController controller,
-  ) async {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = screenWidth < 600
-        ? 16.0
-        : screenWidth > 800
-        ? (screenWidth - 760) / 2
-        : 24.0;
-    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
-
-    await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        final appTheme = Theme.of(
-          dialogContext,
-        ).extension<AppThemeExtension>()!;
-
-        return Dialog(
-          insetPadding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 20,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                dialogPadding,
-                dialogPadding,
-                dialogPadding,
-                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
-              ),
-              child: GetBuilder<PurchaseInvoiceManagementController>(
-                tag: _controllerTag,
-                builder: (dialogController) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Filter Invoices',
-                            style: Theme.of(dialogContext).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close),
-                          color: appTheme.mutedText,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SettingsFormWrap(
-                      children: [
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Supplier',
-                          mappedItems: [
-                            const AppDropdownItem<int?>(
-                              value: null,
-                              label: 'All Suppliers',
-                            ),
-                            ...dialogController.suppliers.map(
-                              (s) => AppDropdownItem<int?>(
-                                value: s.id,
-                                label: s.partyName ?? '',
-                              ),
-                            ),
-                          ],
-                          initialValue: dialogController.filterSupplierId,
-                          onChanged: dialogController.setFilterSupplierId,
-                        ),
-                        AppSwitchTile(
-                          label: 'Overdue Invoices Only',
-                          subtitle:
-                              'Show posted/partially paid invoices past their due date',
-                          value: dialogController.filterOverdue,
-                          onChanged: dialogController.setFilterOverdue,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.check),
-                          label: const Text('Apply Filter'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            dialogController.clearFilters();
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Clear Filters'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

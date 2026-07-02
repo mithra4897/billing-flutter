@@ -339,6 +339,8 @@ class PurchaseListCard<T> extends StatefulWidget {
     required this.emptyMessage,
     required this.searchController,
     required this.searchHint,
+    this.primaryFilter,
+    this.filterFields = const <Widget>[],
     this.statusValue,
     this.statusItems = const <AppDropdownItem<String>>[],
     this.onStatusChanged,
@@ -352,6 +354,8 @@ class PurchaseListCard<T> extends StatefulWidget {
   final String emptyMessage;
   final TextEditingController searchController;
   final String searchHint;
+  final Widget? primaryFilter;
+  final List<Widget> filterFields;
   final String? statusValue;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?>? onStatusChanged;
@@ -471,23 +475,29 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                 const SizedBox(height: AppUiConstants.spacingMd),
               ],
               if (widget.showInlineFilters) ...[
-                TextField(
-                  controller: widget.searchController,
-                  decoration: InputDecoration(
-                    hintText: widget.searchHint,
-                    prefixIcon: const Icon(Icons.search),
-                  ),
+                SettingsFormWrap(
+                  children: [
+                    if (widget.filterFields.isNotEmpty)
+                      ...widget.filterFields
+                    else
+                      (widget.primaryFilter ??
+                          TextField(
+                            controller: widget.searchController,
+                            decoration: InputDecoration(
+                              hintText: widget.searchHint,
+                              prefixIcon: const Icon(Icons.search),
+                            ),
+                          )),
+                    if (widget.statusItems.isNotEmpty &&
+                        widget.onStatusChanged != null)
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: widget.statusItems,
+                        initialValue: widget.statusValue,
+                        onChanged: widget.onStatusChanged!,
+                      ),
+                  ],
                 ),
-                if (widget.statusItems.isNotEmpty &&
-                    widget.onStatusChanged != null) ...[
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Status',
-                    mappedItems: widget.statusItems,
-                    initialValue: widget.statusValue,
-                    onChanged: widget.onStatusChanged!,
-                  ),
-                ],
                 const SizedBox(height: AppUiConstants.spacingMd),
               ],
               if (widget.items.isEmpty)

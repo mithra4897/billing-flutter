@@ -32,6 +32,8 @@ class PurchaseInvoiceManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController invoiceNoController = TextEditingController();
   final TextEditingController invoiceDateController = TextEditingController();
@@ -54,7 +56,6 @@ class PurchaseInvoiceManagementController extends GetxController {
   String? formError;
   String statusFilter = '';
   int? filterSupplierId;
-  bool filterOverdue = false;
   List<PurchaseInvoiceModel> items = const <PurchaseInvoiceModel>[];
   List<PurchaseInvoiceModel> filteredItems = const <PurchaseInvoiceModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -109,6 +110,8 @@ class PurchaseInvoiceManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -118,6 +121,12 @@ class PurchaseInvoiceManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
       ..removeListener(_applyFilters)
       ..dispose();
     invoiceNoController.dispose();
@@ -440,8 +449,8 @@ class PurchaseInvoiceManagementController extends GetxController {
       statusOf: (item) => item.invoiceStatus,
       searchFieldsOf: (item) => <String>[
         item.invoiceNo ?? '',
-        purchaseStatusLabel(item.invoiceStatus),
         item.toJson()['supplier_name']?.toString() ?? '',
+        purchaseStatusLabel(item.invoiceStatus),
       ],
     );
 
@@ -451,11 +460,13 @@ class PurchaseInvoiceManagementController extends GetxController {
           .toList();
     }
 
-    if (filterOverdue) {
-      result = result.where((item) {
-        return item.invoiceStatus == 'overdue';
-      }).toList();
-    }
+    result = result.where((item) {
+      return matchesDateValueRange(
+        item.invoiceDate,
+        fromValue: dateFromController.text,
+        toValue: dateToController.text,
+      );
+    }).toList();
 
     return result;
   }
@@ -475,16 +486,12 @@ class PurchaseInvoiceManagementController extends GetxController {
     _applyFilters();
   }
 
-  void setFilterOverdue(bool value) {
-    filterOverdue = value;
-    _applyFilters();
-  }
-
   void clearFilters() {
     filterSupplierId = null;
-    filterOverdue = false;
     statusFilter = '';
     searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
     _applyFilters();
   }
 
