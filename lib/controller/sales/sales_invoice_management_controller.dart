@@ -4,6 +4,8 @@ import 'sales_module_refresh_controller.dart';
 class SalesInvoiceManagementController extends GetxController {
   SalesInvoiceManagementController();
 
+  static const int _defaultDueDays = 30;
+
   static const List<AppDropdownItem<String>> listStatusFilter =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
@@ -151,6 +153,14 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   Map<String, dynamic> rowJson(SalesInvoiceModel row) => row.toJson();
+
+  String _defaultDueDateFrom(String? baseDate) {
+    final normalized = (baseDate ?? '').trim();
+    final parsed = DateTime.tryParse(normalized);
+    final effectiveBase = parsed ?? DateTime.now();
+    final dueDate = effectiveBase.add(const Duration(days: _defaultDueDays));
+    return displayDate(dueDate.toIso8601String());
+  }
 
   ItemModel? itemById(int? itemId) {
     if (itemId == null) {
@@ -2047,6 +2057,9 @@ class SalesInvoiceManagementController extends GetxController {
             .toIso8601String()
             .split('T')
             .first;
+        dueDateController.text = _defaultDueDateFrom(
+          invoiceDateController.text,
+        );
         isActive = true;
         _replaceInvoiceLines(quotationLines, notify: false);
         formError = null;
@@ -2078,6 +2091,9 @@ class SalesInvoiceManagementController extends GetxController {
             .toIso8601String()
             .split('T')
             .first;
+        dueDateController.text = _defaultDueDateFrom(
+          invoiceDateController.text,
+        );
         isActive = true;
         applyLinesFromOrderCache();
         formError = null;
@@ -2111,6 +2127,9 @@ class SalesInvoiceManagementController extends GetxController {
             .toIso8601String()
             .split('T')
             .first;
+        dueDateController.text = _defaultDueDateFrom(
+          invoiceDateController.text,
+        );
         isActive = true;
         formError = null;
       });
@@ -2200,7 +2219,7 @@ class SalesInvoiceManagementController extends GetxController {
           .toIso8601String()
           .split('T')
           .first;
-      dueDateController.clear();
+      dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
       customerRefNoController.clear();
       customerRefDateController.clear();
       roundOffController.clear();

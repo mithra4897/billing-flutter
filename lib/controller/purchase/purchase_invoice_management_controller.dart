@@ -4,6 +4,8 @@ import 'purchase_module_refresh_controller.dart';
 class PurchaseInvoiceManagementController extends GetxController {
   PurchaseInvoiceManagementController();
 
+  static const int _defaultDueDays = 30;
+
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
@@ -105,6 +107,14 @@ class PurchaseInvoiceManagementController extends GetxController {
 
   bool get isSelectedInvoiceReadOnly =>
       selectedItem != null && !canEditSelectedInvoice;
+
+  String _defaultDueDateFrom(String? baseDate) {
+    final normalized = (baseDate ?? '').trim();
+    final parsed = DateTime.tryParse(normalized);
+    final effectiveBase = parsed ?? DateTime.now();
+    final dueDate = effectiveBase.add(const Duration(days: _defaultDueDays));
+    return displayDate(dueDate.toIso8601String());
+  }
 
   @override
   void onInit() {
@@ -420,7 +430,7 @@ class PurchaseInvoiceManagementController extends GetxController {
         .toIso8601String()
         .split('T')
         .first;
-    dueDateController.clear();
+    dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
     supplierReferenceNoController.clear();
     supplierReferenceDateController.clear();
     roundOffController.clear();
@@ -1214,7 +1224,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierPartyId = receipt.supplierPartyId;
     await ensureSupplierPrintContext(supplierPartyId);
     invoiceNoController.clear();
-    dueDateController.text = displayDate(receipt.supplierInvoiceDate);
+    dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
     supplierReferenceNoController.text = receipt.supplierInvoiceNo ?? '';
     supplierReferenceDateController.text = displayDate(
       receipt.supplierInvoiceDate,
@@ -1270,9 +1280,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierPartyId = intValue(data, 'supplier_party_id');
     await ensureSupplierPrintContext(supplierPartyId);
     invoiceNoController.clear();
-    dueDateController.text = displayDate(
-      nullableStringValue(data, 'expected_receipt_date'),
-    );
+    dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
     supplierReferenceNoController.text = stringValue(
       data,
       'supplier_reference_no',
