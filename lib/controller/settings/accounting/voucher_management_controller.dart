@@ -53,7 +53,7 @@ class VoucherManagementController extends GetxController {
   static const List<AppDropdownItem<String>> postingStatusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'posted', label: 'Finished'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 

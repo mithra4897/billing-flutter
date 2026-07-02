@@ -5,6 +5,9 @@ String salesStatusLabel(String? status) {
   if (normalized == null || normalized.isEmpty) {
     return '';
   }
+  if (normalized.toLowerCase() == 'posted') {
+    return 'Finished';
+  }
   return normalized.replaceAll('_', ' ').titleCase;
 }
 

@@ -31,7 +31,7 @@ class DocumentPostingManagementController extends GetxController {
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'posted', label: 'Finished'),
         AppDropdownItem(value: 'reversed', label: 'Reversed'),
         AppDropdownItem(value: 'failed', label: 'Failed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),

@@ -5,6 +5,9 @@ String purchaseStatusLabel(String? status) {
   if (normalized == null || normalized.isEmpty) {
     return '';
   }
+  if (normalized.toLowerCase() == 'posted') {
+    return 'Finished';
+  }
   return normalized.replaceAll('_', ' ').titleCase;
 }
 
@@ -57,9 +60,13 @@ bool purchaseDocumentIsDraftEditable(String? status) {
 }
 
 String purchaseReadOnlyMessage(String documentLabel, String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
   final label = purchaseStatusLabel(status);
   if (label.isEmpty) {
     return 'This $documentLabel is read-only.';
+  }
+  if (normalized == 'posted') {
+    return 'This $documentLabel is finished and read-only.';
   }
   return 'This $documentLabel is ${label.toLowerCase()}. Details are read-only.';
 }

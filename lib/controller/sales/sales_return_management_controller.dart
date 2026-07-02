@@ -184,7 +184,7 @@ class SalesReturnManagementController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'posted', label: 'Finished'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
