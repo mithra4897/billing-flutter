@@ -202,7 +202,7 @@ class SalesDeliveryManagementController extends GetxController {
   int? customerPartyId;
   int? transporterPartyId;
   String deliveryKind = 'dc';
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<SalesDeliveryLineDraft> lines = <SalesDeliveryLineDraft>[];
@@ -998,7 +998,7 @@ class SalesDeliveryManagementController extends GetxController {
     lrNoController.clear();
     lrDateController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     termsController.clear();
     isActive = true;

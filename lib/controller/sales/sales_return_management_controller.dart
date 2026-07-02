@@ -243,7 +243,7 @@ class SalesReturnManagementController extends GetxController {
   int? salesInvoiceId;
   int? customerPartyId;
   bool isActive = true;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   List<SalesReturnLineDraft> lines = <SalesReturnLineDraft>[];
 
   bool _initialized = false;
@@ -511,7 +511,7 @@ class SalesReturnManagementController extends GetxController {
         .first;
     reasonController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     isActive = true;
     invoiceLines = const <SalesInvoiceLineModel>[];

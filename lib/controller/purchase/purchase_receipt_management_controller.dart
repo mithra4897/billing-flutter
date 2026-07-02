@@ -173,7 +173,7 @@ class PurchaseReceiptManagementController extends GetxController {
   int? purchaseOrderId;
   int? supplierPartyId;
   int? warehouseId;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   bool isActive = true;
   List<PurchaseReceiptLineDraft> lines = <PurchaseReceiptLineDraft>[];
   bool _initialized = false;
@@ -583,7 +583,7 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierDcNoController.clear();
     supplierDcDateController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     isActive = true;
     _replaceLines(const <PurchaseReceiptLineDraft>[], notify: false);

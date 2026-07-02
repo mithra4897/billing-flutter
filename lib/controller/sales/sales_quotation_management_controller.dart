@@ -155,7 +155,7 @@ class SalesQuotationManagementController extends GetxController {
   int? documentSeriesId;
   int? customerPartyId;
   bool isActive = true;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   int? crmOpportunityId;
   Map<String, dynamic>? salesChain;
   List<QuotationLineDraft> lines = <QuotationLineDraft>[];
@@ -550,7 +550,7 @@ class SalesQuotationManagementController extends GetxController {
     customerRefNoController.clear();
     customerRefDateController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     termsController.text = documentTermsDefault('sales_quotation');
     isActive = true;

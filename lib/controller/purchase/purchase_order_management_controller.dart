@@ -186,7 +186,7 @@ class PurchaseOrderManagementController extends GetxController {
   int? purchaseRequisitionId;
   int? supplierPartyId;
   bool isActive = true;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   String? selectionInfo;
   List<PurchaseOrderLineDraft> lines = <PurchaseOrderLineDraft>[];
   final Map<int, PurchaseRequisitionModel> requisitionDetailCache =
@@ -546,7 +546,7 @@ class PurchaseOrderManagementController extends GetxController {
     supplierReferenceNoController.clear();
     supplierReferenceDateController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     termsController.text = documentTermsDefault('purchase_order');
     isActive = true;

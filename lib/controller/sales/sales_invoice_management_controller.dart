@@ -102,7 +102,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? billingAddressId;
   int? shippingAddressId;
   int? adjustmentAccountId;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<InvoiceLineDraft> lines = <InvoiceLineDraft>[];
@@ -2204,7 +2204,7 @@ class SalesInvoiceManagementController extends GetxController {
       customerRefNoController.clear();
       customerRefDateController.clear();
       roundOffController.clear();
-      applyRoundOff = false;
+      applyRoundOff = true;
       adjustmentAmountController.clear();
       adjustmentRemarksController.clear();
       adjustmentAccountId = null;

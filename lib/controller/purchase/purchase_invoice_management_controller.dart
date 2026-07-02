@@ -91,7 +91,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   int? purchaseReceiptId;
   int? supplierPartyId;
   int? adjustmentAccountId;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   List<PurchaseInvoiceLineModel> lines = <PurchaseInvoiceLineModel>[];
   bool isActive = true;
   bool _initialized = false;
@@ -426,7 +426,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     roundOffController.clear();
     adjustmentAmountController.clear();
     adjustmentRemarksController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     termsController.clear();
     lines = <PurchaseInvoiceLineModel>[
@@ -1220,7 +1220,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       receipt.supplierInvoiceDate,
     );
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.text = receipt.notes?.trim().isNotEmpty == true
         ? receipt.notes!
         : stringValue(receiptOrderData, 'notes');

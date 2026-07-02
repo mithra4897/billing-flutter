@@ -184,7 +184,7 @@ class PurchaseReturnManagementController extends GetxController {
   int? purchaseInvoiceId;
   int? supplierPartyId;
   bool isActive = true;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   List<PurchaseReturnLineDraft> lines = <PurchaseReturnLineDraft>[];
 
   bool _initialized = false;
@@ -444,7 +444,7 @@ class PurchaseReturnManagementController extends GetxController {
         .first;
     returnReasonController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     isActive = true;
     invoiceLines = const <PurchaseInvoiceLineModel>[];

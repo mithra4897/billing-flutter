@@ -180,7 +180,7 @@ class SalesOrderManagementController extends GetxController {
   int? salesQuotationId;
   List<Map<String, dynamic>>? quotationLinesCache;
   Map<String, dynamic>? salesChain;
-  bool applyRoundOff = false;
+  bool applyRoundOff = true;
   bool isActive = true;
   List<OrderLineDraft> lines = <OrderLineDraft>[];
   List<String> notesImageUrls = <String>[];
@@ -892,7 +892,7 @@ class SalesOrderManagementController extends GetxController {
     customerRefNoController.clear();
     customerRefDateController.clear();
     roundOffController.clear();
-    applyRoundOff = false;
+    applyRoundOff = true;
     notesController.clear();
     notesImageUrls = <String>[];
     termsController.text = documentTermsDefault('sales_order');
