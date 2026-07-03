@@ -387,16 +387,17 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           final data = item.toJson();
           return SettingsListTile(
             title: nullableStringValue(data, 'invoice_no') ?? 'Draft Invoice',
-            subtitle: [
-              displayDate(nullableStringValue(data, 'invoice_date')),
-              purchaseStatusLabel(nullableStringValue(data, 'invoice_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'invoice_date')),
             detail: purchaseListDetailWithCancelReason(
               data,
               nullableStringValue(data, 'purchase_receipt_no') ??
                   nullableStringValue(data, 'purchase_order_no') ??
                   stringValue(data, 'supplier_name'),
               statusKey: 'invoice_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'invoice_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

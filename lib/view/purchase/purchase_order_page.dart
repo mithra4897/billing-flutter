@@ -350,14 +350,15 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'order_no', 'Draft Order'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'order_date')),
-              purchaseStatusLabel(nullableStringValue(data, 'order_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'order_date')),
             detail: purchaseListDetailWithCancelReason(
               data,
               stringValue(data, 'supplier_name'),
               statusKey: 'order_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'order_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

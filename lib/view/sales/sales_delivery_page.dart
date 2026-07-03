@@ -514,14 +514,15 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'delivery_no', 'Draft Delivery'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'delivery_date')),
-              stringValue(data, 'delivery_status'),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'delivery_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
               statusKey: 'delivery_status',
+            ),
+            trailing: salesStatusBadge(
+              context,
+              stringValue(data, 'delivery_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

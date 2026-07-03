@@ -275,15 +275,16 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: nullableStringValue(data, 'return_no') ?? 'Draft Return',
-            subtitle: [
-              displayDate(nullableStringValue(data, 'return_date')),
-              purchaseStatusLabel(nullableStringValue(data, 'return_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'return_date')),
             detail: purchaseListDetailWithCancelReason(
               data,
               nullableStringValue(data, 'purchase_invoice_no') ??
                   stringValue(data, 'supplier_name'),
               statusKey: 'return_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'return_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

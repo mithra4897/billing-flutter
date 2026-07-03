@@ -375,10 +375,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'receipt_no', 'Draft Receipt'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'receipt_date')),
-              purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'receipt_date')),
             detail: purchaseListDetailWithCancelReason(
               data,
               stringValue(
@@ -387,6 +384,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                 stringValue(data, 'supplier_name'),
               ),
               statusKey: 'receipt_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'receipt_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

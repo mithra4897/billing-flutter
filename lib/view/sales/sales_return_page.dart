@@ -260,14 +260,15 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'return_no', 'Draft Return'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'return_date')),
-              stringValue(data, 'return_status'),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'return_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
               statusKey: 'return_status',
+            ),
+            trailing: salesStatusBadge(
+              context,
+              stringValue(data, 'return_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

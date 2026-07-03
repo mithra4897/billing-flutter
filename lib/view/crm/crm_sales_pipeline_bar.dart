@@ -56,7 +56,9 @@ class CrmSalesPipelineBar extends StatelessWidget {
         .toList(growable: false);
   }
 
-  static List<Map<String, dynamic>> _uniqueDocsById(List<Map<String, dynamic>> v) {
+  static List<Map<String, dynamic>> _uniqueDocsById(
+    List<Map<String, dynamic>> v,
+  ) {
     final seen = <int>{};
     final unique = <Map<String, dynamic>>[];
     for (final row in v) {
@@ -171,7 +173,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideQuotationChip && intValue(q, 'id') != null)
           _PipelineChip(
             label: _docLabel('Quote', q, 'quotation_no'),
-            subtitle: stringValue(q, 'quotation_status'),
+            subtitle: salesStatusLabel(stringValue(q, 'quotation_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/quotations/${intValue(q, 'id')}',
@@ -181,7 +183,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideOrderChip && intValue(o, 'id') != null)
           _PipelineChip(
             label: _docLabel('Order', o, 'order_no'),
-            subtitle: stringValue(o, 'order_status'),
+            subtitle: salesStatusLabel(stringValue(o, 'order_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/orders/${intValue(o, 'id')}',
@@ -191,7 +193,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideDeliveryChip && intValue(d, 'id') != null)
           _PipelineChip(
             label: _docLabel('Delivery', d, 'delivery_no'),
-            subtitle: stringValue(d, 'delivery_status'),
+            subtitle: salesStatusLabel(stringValue(d, 'delivery_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/deliveries/${intValue(d, 'id')}',
@@ -201,7 +203,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideInvoiceChip && intValue(inv, 'id') != null)
           _PipelineChip(
             label: _docLabel('Invoice', inv, 'invoice_no'),
-            subtitle: stringValue(inv, 'invoice_status'),
+            subtitle: salesStatusLabel(stringValue(inv, 'invoice_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/invoices/${intValue(inv, 'id')}',
@@ -211,7 +213,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideReceiptChip && intValue(r, 'id') != null)
           _PipelineChip(
             label: _docLabel('Receipt', r, 'receipt_no'),
-            subtitle: stringValue(r, 'receipt_status'),
+            subtitle: salesStatusLabel(stringValue(r, 'receipt_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/receipts/${intValue(r, 'id')}',

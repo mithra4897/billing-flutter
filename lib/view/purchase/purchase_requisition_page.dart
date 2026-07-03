@@ -24,14 +24,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   PurchaseRequisitionManagementController get _controller =>
       Get.find<PurchaseRequisitionManagementController>(tag: _controllerTag);
 
-  String _statusLabel(String? status) {
-    final normalized = status?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return '';
-    }
-    return normalized.replaceAll('_', ' ').titleCase;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -287,14 +279,17 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'requisition_no', 'Draft Requisition'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'requisition_date')),
-              _statusLabel(nullableStringValue(data, 'requisition_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(
+              nullableStringValue(data, 'requisition_date'),
+            ),
             detail: purchaseListDetailWithCancelReason(
               data,
               stringValue(data, 'purpose'),
               statusKey: 'requisition_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'requisition_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

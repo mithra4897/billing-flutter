@@ -169,14 +169,15 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'receipt_no', 'Draft Receipt'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'receipt_date')),
-              stringValue(data, 'receipt_status'),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'receipt_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
               statusKey: 'receipt_status',
+            ),
+            trailing: salesStatusBadge(
+              context,
+              stringValue(data, 'receipt_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

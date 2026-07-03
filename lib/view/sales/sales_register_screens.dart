@@ -641,7 +641,12 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'quotation_status'),
+          valueBuilder: (row) =>
+              salesStatusLabel(stringValue(row.toJson(), 'quotation_status')),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            stringValue(row.toJson(), 'quotation_status'),
+          ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'quotation_status',
@@ -1125,7 +1130,12 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
+          valueBuilder: (row) =>
+              salesStatusLabel(stringValue(row.toJson(), 'receipt_status')),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            stringValue(row.toJson(), 'receipt_status'),
+          ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'receipt_status',
@@ -1208,7 +1218,12 @@ class SalesReturnRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'return_status'),
+          valueBuilder: (row) =>
+              salesStatusLabel(stringValue(row.toJson(), 'return_status')),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            stringValue(row.toJson(), 'return_status'),
+          ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'return_status',

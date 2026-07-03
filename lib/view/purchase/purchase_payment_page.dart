@@ -192,15 +192,16 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: nullableStringValue(data, 'payment_no') ?? 'Draft Payment',
-            subtitle: [
-              displayDate(nullableStringValue(data, 'payment_date')),
-              purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'payment_date')),
             detail: purchaseListDetailWithCancelReason(
               data,
               nullableStringValue(data, 'reference_no') ??
                   stringValue(data, 'supplier_name'),
               statusKey: 'payment_status',
+            ),
+            trailing: purchaseStatusBadge(
+              context,
+              nullableStringValue(data, 'payment_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

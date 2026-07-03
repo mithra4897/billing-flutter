@@ -418,14 +418,15 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'order_no', 'Draft'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'order_date')),
-              stringValue(data, 'order_status'),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'order_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
               statusKey: 'order_status',
+            ),
+            trailing: salesStatusBadge(
+              context,
+              stringValue(data, 'order_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -450,11 +451,19 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: Text(
-                  'Total: $totalStr INR · Status: ${controller.status.toUpperCase()}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                child: Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingXs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Total: $totalStr INR',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    salesStatusBadge(context, controller.status),
+                  ],
                 ),
               ),
             SettingsFormWrap(

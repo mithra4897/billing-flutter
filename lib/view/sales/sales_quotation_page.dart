@@ -329,14 +329,15 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'quotation_no', 'Draft'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'quotation_date')),
-              stringValue(data, 'quotation_status'),
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle: displayDate(nullableStringValue(data, 'quotation_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
               statusKey: 'quotation_status',
+            ),
+            trailing: salesStatusBadge(
+              context,
+              stringValue(data, 'quotation_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -361,11 +362,19 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: Text(
-                  'Total: $totalStr INR · Status: ${controller.status.toUpperCase()}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                child: Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingXs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Total: $totalStr INR',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    salesStatusBadge(context, controller.status),
+                  ],
                 ),
               ),
             SettingsFormWrap(

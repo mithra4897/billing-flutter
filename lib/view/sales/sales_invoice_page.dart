@@ -640,10 +640,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             title: (item.invoiceNo?.trim().isNotEmpty == true)
                 ? item.invoiceNo!
                 : 'Draft #${item.id}',
-            subtitle: [
-              'Date ${displayDate(item.invoiceDate.isEmpty ? null : item.invoiceDate)}',
-              if (st.isNotEmpty) 'Status ${st.toUpperCase()}',
-            ].where((value) => value.isNotEmpty).join(' · '),
+            subtitle:
+                'Date ${displayDate(item.invoiceDate.isEmpty ? null : item.invoiceDate)}',
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
@@ -653,6 +651,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                salesStatusBadge(context, st, dueDate: item.dueDate),
+                const SizedBox(height: AppUiConstants.spacingXxs),
                 Text(
                   'Total ${total.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -700,11 +700,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: Text(
-                  'Total: $totalStr INR · Status: ${controller.status.toUpperCase()}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                child: Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingXs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Total: $totalStr INR',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    salesStatusBadge(
+                      context,
+                      controller.status,
+                      dueDate: controller.dueDateController.text.trim(),
+                    ),
+                  ],
                 ),
               ),
             if (controller.selectedItem != null &&
