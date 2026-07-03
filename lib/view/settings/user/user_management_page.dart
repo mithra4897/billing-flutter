@@ -163,7 +163,11 @@ class _UserManagementPageState extends State<UserManagementPage>
             '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim().ifEmpty(
               user.username ?? 'User',
             ),
-        subtitle: user.username ?? '',
+        subtitle: [
+          user.username,
+          if ((user.employeeCode ?? '').trim().isNotEmpty) user.employeeCode,
+          if ((user.employeeName ?? '').trim().isNotEmpty) user.employeeName,
+        ].whereType<String>().join(' • '),
         detail: user.status ?? 'active',
         selected: selected,
         onTap: () {
@@ -737,7 +741,8 @@ class _UserManagementPageState extends State<UserManagementPage>
         context,
         icon: Icons.inbox_outlined,
         title: 'No Audit Records Found',
-        message: 'User changes will appear here after records are created or updated.',
+        message:
+            'User changes will appear here after records are created or updated.',
       );
     }
 
@@ -796,9 +801,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     summaryParts.join(' • '),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: appTheme.mutedText,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -846,9 +851,9 @@ class _UserManagementPageState extends State<UserManagementPage>
             if (changes.isEmpty)
               Text(
                 'No field-level changes were captured for this entry.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: appTheme.mutedText,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
               )
             else
               Column(
@@ -875,11 +880,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     );
   }
 
-  Widget _buildAuditMetaLine(
-    BuildContext context,
-    String label,
-    String value,
-  ) {
+  Widget _buildAuditMetaLine(BuildContext context, String label, String value) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
     return RichText(
@@ -969,10 +970,7 @@ class _UserManagementPageState extends State<UserManagementPage>
             ),
           ),
           const SizedBox(height: 8),
-          SelectableText(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          SelectableText(value, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
@@ -1027,9 +1025,7 @@ class _UserManagementPageState extends State<UserManagementPage>
         .replaceAll('_', ' ')
         .split(' ')
         .where((part) => part.trim().isNotEmpty)
-        .map(
-          (part) => '${part[0].toUpperCase()}${part.substring(1)}',
-        )
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
         .join(' ');
   }
 

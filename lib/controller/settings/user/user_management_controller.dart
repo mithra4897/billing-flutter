@@ -141,6 +141,8 @@ class UserManagementController extends GetxController {
     filteredUsers = users
         .where((user) {
           final label = [
+            user.employeeCode,
+            user.employeeName,
             user.username,
             user.firstName,
             user.lastName,
