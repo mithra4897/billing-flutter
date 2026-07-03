@@ -50,6 +50,15 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   DateTime _normalizeDate(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
+  DateTime? _normalizedRowDate(Map<String, dynamic> row, String key) {
+    final rawDate = nullableStringValue(row, key);
+    final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
+    if (parsed == null) {
+      return null;
+    }
+    return _normalizeDate(parsed);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -261,8 +270,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   String _cardTitle(Map<String, dynamic> row, {required String fallback}) {
-    final sourceType =
-        _normalizedStatusValue(nullableStringValue(row, 'source_type'));
+    final sourceType = _normalizedStatusValue(
+      nullableStringValue(row, 'source_type'),
+    );
     if (sourceType == 'lead_activity') {
       final leadLabel = _leadLabel(row);
       if (leadLabel.isNotEmpty) {
@@ -288,39 +298,23 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return fallback;
   }
 
-  Widget _buildFollowupHighlights(BuildContext context, Map<String, dynamic> row) {
-    final leadLabel = _leadLabel(row).trim();
+  Widget _buildFollowupHighlights(
+    BuildContext context,
+    Map<String, dynamic> row,
+  ) {
     final assignedLabel = _assignedLabel(row).trim();
-    final mutedText =
-        Theme.of(context).extension<AppThemeExtension>()!.mutedText;
+    final mutedText = Theme.of(
+      context,
+    ).extension<AppThemeExtension>()!.mutedText;
     final items = <Widget>[];
-
-    if (leadLabel.isNotEmpty) {
-      items.add(
-        RichText(
-          text: TextSpan(
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: mutedText,
-            ),
-            children: [
-              const TextSpan(text: 'Lead: '),
-              TextSpan(
-                text: leadLabel,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     if (assignedLabel.isNotEmpty) {
       items.add(
         RichText(
           text: TextSpan(
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: mutedText,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: mutedText),
             children: [
               const TextSpan(text: 'Assigned To: '),
               TextSpan(
@@ -352,18 +346,24 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       (value ?? '').trim().toLowerCase();
 
   bool _isHiddenLeadRow(Map<String, dynamic> row) {
-    final sourceType = _normalizedStatusValue(nullableStringValue(row, 'source_type'));
+    final sourceType = _normalizedStatusValue(
+      nullableStringValue(row, 'source_type'),
+    );
     if (sourceType != 'lead_activity') {
       return false;
     }
 
-    return const {'own', 'lost', 'converted'}.contains(
-      _normalizedStatusValue(nullableStringValue(row, 'lead_status')),
-    );
+    return const {
+      'own',
+      'lost',
+      'converted',
+    }.contains(_normalizedStatusValue(nullableStringValue(row, 'lead_status')));
   }
 
   bool _isHiddenOpportunityRow(Map<String, dynamic> row) {
-    final sourceType = _normalizedStatusValue(nullableStringValue(row, 'source_type'));
+    final sourceType = _normalizedStatusValue(
+      nullableStringValue(row, 'source_type'),
+    );
     if (sourceType == 'lead_activity') {
       return false;
     }
@@ -399,14 +399,21 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         if (_shouldHideRow(row)) {
           return false;
         }
-        final nextFollowup = (nullableStringValue(row, 'next_followup') ?? '')
-            .trim();
-        return nextFollowup.isNotEmpty;
+        final nextFollowup = _normalizedRowDate(row, 'next_followup');
+        if (nextFollowup == null) {
+          return false;
+        }
+        final today = _normalizeDate(DateTime.now());
+        return nextFollowup.isAfter(today);
       })
       .toList(growable: false);
 
   List<Map<String, dynamic>> get _visiblePendingFollowups {
-    final rows = _followups.where((row) {
+    final today = _normalizeDate(DateTime.now());
+    final pendingRows = <Map<String, dynamic>>[];
+    final seenKeys = <String>{};
+
+    bool addIfMatches(Map<String, dynamic> row, String key) {
       if (_shouldHideRow(row)) {
         return false;
       }
@@ -415,48 +422,54 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         return false;
       }
 
-      if (_showDueTodayOnly || _showOverdueOnly || _showUpcomingOnly) {
-        final rawDate = nullableStringValue(row, 'followup_date');
-        final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
-        if (parsed == null) {
+      final normalized = _normalizedRowDate(row, key);
+      if (normalized == null) {
+        return false;
+      }
+
+      if (_showDueTodayOnly) {
+        if (normalized != today) {
           return false;
         }
-        final normalized = _normalizeDate(parsed);
-        final today = _normalizeDate(DateTime.now());
-        if (_showDueTodayOnly) {
-          return normalized == today;
+      } else if (_showOverdueOnly) {
+        if (!normalized.isBefore(today)) {
+          return false;
         }
-        if (_showOverdueOnly) {
-          return normalized.isBefore(today);
+      } else if (_showUpcomingOnly) {
+        if (!normalized.isAfter(today)) {
+          return false;
         }
-        if (_showUpcomingOnly) {
-          return normalized.isAfter(today);
-        }
+      } else if (!_showOpenFollowupsOnly && !normalized.isBefore(today)) {
+        return false;
       }
 
-      if (!_showDueTodayOnly &&
-          !_showOverdueOnly &&
-          !_showUpcomingOnly &&
-          !_showOpenFollowupsOnly) {
-        final rawDate = nullableStringValue(row, 'followup_date');
-        final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
-        if (parsed != null) {
-          final normalized = _normalizeDate(parsed);
-          final today = _normalizeDate(DateTime.now());
-          if (normalized == today) {
-            return false;
-          }
-        }
+      final rowId = nullableStringValue(row, 'id') ?? '';
+      final sourceType = nullableStringValue(row, 'source_type') ?? '';
+      final identity = '$sourceType|$rowId|$key';
+      if (!seenKeys.add(identity)) {
+        return false;
       }
 
+      pendingRows.add(row);
       return true;
-    });
-    return rows.toList(growable: false);
+    }
+
+    for (final row in _followups) {
+      addIfMatches(row, 'followup_date');
+    }
+    for (final row in _nextFollowupRows) {
+      addIfMatches(row, 'next_followup');
+    }
+
+    return pendingRows;
   }
 
   List<Map<String, dynamic>> get _todayFollowups {
     final today = _normalizeDate(DateTime.now());
-    return _followups.where((row) {
+    final todayRows = <Map<String, dynamic>>[];
+    final seenKeys = <String>{};
+
+    bool addIfToday(Map<String, dynamic> row, String key) {
       if (_shouldHideRow(row)) {
         return false;
       }
@@ -464,14 +477,54 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         return false;
       }
 
-      final rawDate = nullableStringValue(row, 'followup_date');
-      final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
-      if (parsed == null) {
+      final normalized = _normalizedRowDate(row, key);
+      if (normalized != today) {
         return false;
       }
 
-      return _normalizeDate(parsed) == today;
-    }).toList(growable: false);
+      final rowId = nullableStringValue(row, 'id') ?? '';
+      final sourceType = nullableStringValue(row, 'source_type') ?? '';
+      final identity = '$sourceType|$rowId|$key';
+      if (!seenKeys.add(identity)) {
+        return false;
+      }
+
+      todayRows.add(row);
+      return true;
+    }
+
+    for (final row in _followups) {
+      addIfToday(row, 'followup_date');
+    }
+    for (final row in _nextFollowupRows) {
+      addIfToday(row, 'next_followup');
+    }
+
+    return todayRows;
+  }
+
+  List<Map<String, dynamic>> get _upcomingFollowups {
+    final today = _normalizeDate(DateTime.now());
+    return _followups
+        .where((row) {
+          if (_shouldHideRow(row)) {
+            return false;
+          }
+          if (crmIsCompletedFollowupStatus(
+            nullableStringValue(row, 'status'),
+          )) {
+            return false;
+          }
+
+          final rawDate = nullableStringValue(row, 'followup_date');
+          final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
+          if (parsed == null) {
+            return false;
+          }
+
+          return _normalizeDate(parsed).isAfter(today);
+        })
+        .toList(growable: false);
   }
 
   String get _pendingListTitle {
@@ -594,9 +647,6 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               row,
               icon: Icons.event_repeat_outlined,
               fallbackTitle: 'Next Followup',
-              dateText: displayDateTime(
-                nullableStringValue(row, 'followup_date'),
-              ),
               extraContent: Wrap(
                 spacing: AppUiConstants.spacingSm,
                 runSpacing: AppUiConstants.spacingSm,
@@ -606,13 +656,6 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                     label: 'Next Followup',
                     value: displayDateTime(
                       nullableStringValue(row, 'next_followup'),
-                    ),
-                  ),
-                  _buildNextFollowupDetailCard(
-                    context,
-                    label: 'Followup Date',
-                    value: displayDateTime(
-                      nullableStringValue(row, 'followup_date'),
                     ),
                   ),
                 ],
@@ -650,6 +693,52 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     );
   }
 
+  Widget _buildUpcomingFollowupList(BuildContext context) {
+    if (_upcomingFollowups.isEmpty) {
+      return const SettingsEmptyState(
+        icon: Icons.upcoming_outlined,
+        title: 'No Upcoming Followups',
+        message: 'No pending followups are scheduled after today.',
+        minHeight: 180,
+      );
+    }
+
+    return Column(
+      children: _upcomingFollowups
+          .map(
+            (row) => _buildFollowupCard(
+              context,
+              row,
+              icon: Icons.upcoming_outlined,
+              fallbackTitle: 'Upcoming Followup',
+              dateText: displayDateTime(
+                nullableStringValue(row, 'followup_date'),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Widget _buildSectionListRow(BuildContext context, {required Widget child}) {
+    final borderColor = Theme.of(
+      context,
+    ).extension<AppThemeExtension>()!.tableBorder.withValues(alpha: 0.5);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: borderColor)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppUiConstants.spacingSm,
+          vertical: AppUiConstants.spacingMd,
+        ),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildFollowupCard(
     BuildContext context,
     Map<String, dynamic> row, {
@@ -663,65 +752,61 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final title = _cardTitle(row, fallback: fallbackTitle);
     final trimmedDateText = (dateText ?? '').trim();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-      child: AppSectionCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon),
-                const SizedBox(width: AppUiConstants.spacingSm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+    return _buildSectionListRow(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (trimmedDateText.isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        trimmedDateText,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).extension<AppThemeExtension>()!.mutedText,
                         ),
                       ),
-                      if (trimmedDateText.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          trimmedDateText,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .extension<AppThemeExtension>()!
-                                .mutedText,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      _buildFollowupHighlights(context, row),
-                      if (notes.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(notes),
-                      ],
                     ],
-                  ),
+                    const SizedBox(height: 8),
+                    _buildFollowupHighlights(context, row),
+                    if (notes.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(notes),
+                    ],
+                  ],
                 ),
-                if (detailRoute != null)
-                  AppActionButton(
-                    icon: Icons.open_in_new_outlined,
-                    label: 'Open',
-                    filled: false,
-                    onPressed: () => _openCrmFollowupShellRoute(
-                      context,
-                      detailRoute,
-                    ),
-                  ),
-              ],
-            ),
-            if (extraContent != null) ...[
-              const SizedBox(height: AppUiConstants.spacingSm),
-              extraContent,
+              ),
+              if (detailRoute != null)
+                AppActionButton(
+                  icon: Icons.open_in_new_outlined,
+                  label: 'Open',
+                  filled: false,
+                  onPressed: () =>
+                      _openCrmFollowupShellRoute(context, detailRoute),
+                ),
             ],
+          ),
+          if (extraContent != null) ...[
+            const SizedBox(height: AppUiConstants.spacingSm),
+            extraContent,
           ],
-        ),
+        ],
       ),
     );
   }
@@ -770,9 +855,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   Widget _buildGapList(BuildContext context) {
-    final visibleGaps = _gaps.where((row) => !_shouldHideRow(row)).toList(
-      growable: false,
-    );
+    final visibleGaps = _gaps
+        .where((row) => !_shouldHideRow(row))
+        .toList(growable: false);
 
     if (visibleGaps.isEmpty) {
       return const SettingsEmptyState(
@@ -792,95 +877,93 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               return const SizedBox.shrink();
             }
             final saving = _savingOpportunityIds.contains(opportunityId);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              child: AppSectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                [
-                                      stringValue(row, 'opportunity_no'),
-                                      stringValue(row, 'customer_name'),
-                                    ]
-                                    .where((value) => value.trim().isNotEmpty)
-                                    .join(' • '),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                [
-                                      stringValue(row, 'lead_name'),
-                                      _assignedLabel(row),
-                                    ]
-                                    .where((value) => value.trim().isNotEmpty)
-                                    .join(' • '),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .extension<AppThemeExtension>()!
-                                          .mutedText,
-                                    ),
-                              ),
-                            ],
-                          ),
+            return _buildSectionListRow(
+              context,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              [
+                                    stringValue(row, 'opportunity_no'),
+                                    stringValue(row, 'customer_name'),
+                                  ]
+                                  .where((value) => value.trim().isNotEmpty)
+                                  .join(' • '),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              [
+                                    stringValue(row, 'lead_name'),
+                                    _assignedLabel(row),
+                                  ]
+                                  .where((value) => value.trim().isNotEmpty)
+                                  .join(' • '),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).extension<AppThemeExtension>()!.mutedText,
+                                  ),
+                            ),
+                          ],
                         ),
-                        AppActionButton(
-                          icon: Icons.open_in_new_outlined,
-                          label: 'Open',
-                          filled: false,
-                          onPressed: () => _openCrmFollowupShellRoute(
-                            context,
-                            '/crm/opportunities/$opportunityId',
-                          ),
+                      ),
+                      AppActionButton(
+                        icon: Icons.open_in_new_outlined,
+                        label: 'Open',
+                        filled: false,
+                        onPressed: () => _openCrmFollowupShellRoute(
+                          context,
+                          '/crm/opportunities/$opportunityId',
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                    SettingsFormWrap(
-                      children: [
-                        AppDateTimeSelectorField(
-                          controller: _followupDateControllers[opportunityId]!,
-                          labelText: 'Followup Date',
-                          hintText: 'YYYY-MM-DD HH:MM:SS',
-                          onTap: () => _pickDateTime(
-                            context,
-                            _followupDateControllers[opportunityId]!,
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  SettingsFormWrap(
+                    children: [
+                      AppDateTimeSelectorField(
+                        controller: _followupDateControllers[opportunityId]!,
+                        labelText: 'Followup Date',
+                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        onTap: () => _pickDateTime(
+                          context,
+                          _followupDateControllers[opportunityId]!,
                         ),
-                        AppDateTimeSelectorField(
-                          controller: _nextFollowupControllers[opportunityId]!,
-                          labelText: 'Next Followup',
-                          hintText: 'YYYY-MM-DD HH:MM:SS',
-                          onTap: () => _pickDateTime(
-                            context,
-                            _nextFollowupControllers[opportunityId]!,
-                          ),
+                      ),
+                      AppDateTimeSelectorField(
+                        controller: _nextFollowupControllers[opportunityId]!,
+                        labelText: 'Next Followup',
+                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        onTap: () => _pickDateTime(
+                          context,
+                          _nextFollowupControllers[opportunityId]!,
                         ),
-                        AppFormTextField(
-                          controller: _notesControllers[opportunityId]!,
-                          labelText: 'Notes',
-                          maxLines: 2,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                    AppActionButton(
-                      icon: Icons.save_outlined,
-                      label: 'Create Followup',
-                      onPressed: saving ? null : () => _createFollowup(row),
-                      busy: saving,
-                    ),
-                  ],
-                ),
+                      ),
+                      AppFormTextField(
+                        controller: _notesControllers[opportunityId]!,
+                        labelText: 'Notes',
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: 'Create Followup',
+                    onPressed: saving ? null : () => _createFollowup(row),
+                    busy: saving,
+                  ),
+                ],
               ),
             );
           })
@@ -904,26 +987,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _pendingSectionTitle,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppUiConstants.spacingSm),
-                _buildPendingList(context),
-              ],
-            ),
-          ),
           if (!_showDueTodayOnly &&
               !_showOverdueOnly &&
               !_showUpcomingOnly &&
               !_showOpenFollowupsOnly) ...[
-            const SizedBox(height: AppUiConstants.spacingMd),
             AppSectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -936,6 +1003,38 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   _buildTodayFollowupList(context),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _pendingSectionTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  _buildPendingList(context),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upcoming Followups',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  _buildUpcomingFollowupList(context),
                 ],
               ),
             ),
@@ -968,6 +1067,22 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   _buildGapList(context),
+                ],
+              ),
+            ),
+          ] else ...[
+            AppSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _pendingSectionTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  _buildPendingList(context),
                 ],
               ),
             ),
