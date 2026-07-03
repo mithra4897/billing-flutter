@@ -138,33 +138,34 @@ class GstSummaryCard extends StatelessWidget {
       return DecoratedBox(
         decoration: BoxDecoration(
           color: emphasize
-              ? colorScheme.primary.withValues(alpha: 0.08)
-              : appTheme.subtleFill.withValues(alpha: 0.65),
-          borderRadius: BorderRadius.circular(AppUiConstants.spacingSm),
+              ? colorScheme.primary.withValues(alpha: 0.12)
+              : appTheme.subtleFill.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
           border: Border.all(
             color: emphasize
-                ? colorScheme.primary.withValues(alpha: 0.18)
-                : colorScheme.outline.withValues(alpha: 0.12),
+                ? colorScheme.primary.withValues(alpha: 0.24)
+                : colorScheme.outline.withValues(alpha: 0.10),
           ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppUiConstants.spacingMd,
-            vertical: AppUiConstants.spacingSm,
+            vertical: AppUiConstants.spacingMd,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 label,
                 textAlign: TextAlign.right,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: appTheme.mutedText,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
                 ),
               ),
-              const SizedBox(height: AppUiConstants.spacingXs),
+              const SizedBox(height: AppUiConstants.spacingSm),
               Text(
                 value.toStringAsFixed(2),
                 textAlign: TextAlign.right,
@@ -182,48 +183,117 @@ class GstSummaryCard extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: AppSectionCard(
+        padding: const EdgeInsets.fromLTRB(
+          AppUiConstants.cardPadding,
+          AppUiConstants.spacingLg,
+          AppUiConstants.cardPadding,
+          AppUiConstants.cardPadding,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'GST Summary',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: appTheme.tableTitleText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppUiConstants.spacingSm,
+                    vertical: AppUiConstants.spacingXs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appTheme.subtleFill.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.pillRadius,
+                    ),
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  child: Text(
+                    currencyCode.trim().toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: appTheme.mutedText,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
             LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
-                final columns = width >= 900
+                final columns = width >= 1080
+                    ? 6
+                    : width >= 860
                     ? 3
                     : width >= 560
                     ? 2
                     : 1;
-                final ratio = width >= 900
-                    ? 3.3
-                    : width >= 560
-                    ? 2.9
-                    : 4.2;
+                final gap = AppUiConstants.spacingSm;
+                final tileWidth = columns == 1
+                    ? width
+                    : (width - (gap * (columns - 1))) / columns;
 
-                return GridView.count(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: AppUiConstants.spacingSm,
-                  mainAxisSpacing: AppUiConstants.spacingSm,
-                  childAspectRatio: ratio,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    metric('Taxable', taxable),
-                    metric('CGST', cgst),
-                    metric('SGST', sgst),
-                    metric('IGST', igst),
-                    metric('CESS', cess),
-                    metric('Grand Total', total, emphasize: true),
-                  ],
+                final tiles = <Widget>[
+                  metric('Taxable', taxable),
+                  metric('CGST', cgst),
+                  metric('SGST', sgst),
+                  metric('IGST', igst),
+                  metric('CESS', cess),
+                  metric('Grand Total', total, emphasize: true),
+                ];
+
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: tiles
+                      .map(
+                        (tile) => SizedBox(
+                          width: tileWidth,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 86),
+                            child: tile,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
                 );
               },
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Text(
-              _amountInWords(total),
-              textAlign: TextAlign.right,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: appTheme.mutedText,
-                fontWeight: FontWeight.w600,
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppUiConstants.spacingMd,
+                vertical: AppUiConstants.spacingSm,
+              ),
+              decoration: BoxDecoration(
+                color: appTheme.subtleFill.withValues(alpha: 0.28),
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+              ),
+              child: Text(
+                _amountInWords(total),
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: appTheme.mutedText,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
