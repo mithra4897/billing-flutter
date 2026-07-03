@@ -129,6 +129,7 @@ class ErpDashboardTrendCardData {
         'Trend data will appear here once analytics is available.',
     this.color = const Color(0xFF2F6FED),
     this.chartStyle = ErpDashboardTrendChartStyle.line,
+    this.isCurrency = false,
   });
 
   final String title;
@@ -137,6 +138,7 @@ class ErpDashboardTrendCardData {
   final String emptyMessage;
   final Color color;
   final ErpDashboardTrendChartStyle chartStyle;
+  final bool isCurrency;
 }
 
 class ErpDashboardTrendPoint {
@@ -858,6 +860,9 @@ class _DashboardTrendCard extends StatelessWidget {
                         gridColor: Theme.of(
                           context,
                         ).dividerColor.withValues(alpha: 0.12),
+                        isCurrency: data.isCurrency,
+                        textColor: Theme.of(context).textTheme.bodySmall?.color ?? Colors.black87,
+                        cardColor: Theme.of(context).cardColor,
                       )
                     : _TrendChartPainter(
                         points: data.points,
@@ -865,6 +870,9 @@ class _DashboardTrendCard extends StatelessWidget {
                         gridColor: Theme.of(
                           context,
                         ).dividerColor.withValues(alpha: 0.12),
+                        isCurrency: data.isCurrency,
+                        textColor: Theme.of(context).textTheme.bodySmall?.color ?? Colors.black87,
+                        cardColor: Theme.of(context).cardColor,
                       ),
                 child: const SizedBox.expand(),
               ),
@@ -1360,11 +1368,17 @@ class _TrendChartPainter extends CustomPainter {
     required this.points,
     required this.color,
     required this.gridColor,
+    required this.isCurrency,
+    required this.textColor,
+    required this.cardColor,
   });
 
   final List<ErpDashboardTrendPoint> points;
   final Color color;
   final Color gridColor;
+  final bool isCurrency;
+  final Color textColor;
+  final Color cardColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1373,7 +1387,7 @@ class _TrendChartPainter extends CustomPainter {
     }
 
     const horizontalPadding = 12.0;
-    const verticalPadding = 18.0;
+    const verticalPadding = 28.0;
     final chartWidth = size.width - (horizontalPadding * 2);
     final chartHeight = size.height - (verticalPadding * 2);
     if (chartWidth <= 0 || chartHeight <= 0) {
@@ -1462,6 +1476,34 @@ class _TrendChartPainter extends CustomPainter {
         7,
         Paint()..color = color.withValues(alpha: 0.16),
       );
+
+      // Draw value label above each dot
+      final pointValue = points[index].value;
+      final labelText = _formatTrendLabel(pointValue, isCurrency: isCurrency);
+      final valuePainter = TextPainter(
+        text: TextSpan(
+          text: labelText,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            shadows: [
+              Shadow(color: cardColor, offset: const Offset(-1.5, -1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(1.5, -1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(1.5, 1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(-1.5, 1.5), blurRadius: 1),
+            ],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      valuePainter.paint(
+        canvas,
+        Offset(
+          dx - valuePainter.width / 2,
+          math.max(0, dy - valuePainter.height - 10),
+        ),
+      );
     }
   }
 
@@ -1469,7 +1511,26 @@ class _TrendChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _TrendChartPainter other) {
     return other.points != points ||
         other.color != color ||
-        other.gridColor != gridColor;
+        other.gridColor != gridColor ||
+        other.isCurrency != isCurrency ||
+        other.textColor != textColor ||
+        other.cardColor != cardColor;
+  }
+}
+
+String _formatTrendLabel(double value, {required bool isCurrency}) {
+  final prefix = isCurrency ? '₹' : '';
+  if (value >= 10000000) {
+    return '$prefix${(value / 10000000).toStringAsFixed(1)}Cr';
+  } else if (value >= 100000) {
+    return '$prefix${(value / 100000).toStringAsFixed(1)}L';
+  } else if (value >= 1000) {
+    return '$prefix${(value / 1000).toStringAsFixed(1)}K';
+  } else {
+    if (value == value.roundToDouble()) {
+      return '$prefix${value.toInt().toString()}';
+    }
+    return '$prefix${value.toStringAsFixed(1)}';
   }
 }
 
@@ -1478,11 +1539,17 @@ class _TrendBarChartPainter extends CustomPainter {
     required this.points,
     required this.color,
     required this.gridColor,
+    required this.isCurrency,
+    required this.textColor,
+    required this.cardColor,
   });
 
   final List<ErpDashboardTrendPoint> points;
   final Color color;
   final Color gridColor;
+  final bool isCurrency;
+  final Color textColor;
+  final Color cardColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1491,7 +1558,7 @@ class _TrendBarChartPainter extends CustomPainter {
     }
 
     const horizontalPadding = 20.0;
-    const verticalPadding = 18.0;
+    const verticalPadding = 28.0;
     const minBarWidth = 22.0;
     final chartWidth = size.width - (horizontalPadding * 2);
     final chartHeight = size.height - (verticalPadding * 2);
@@ -1538,13 +1605,17 @@ class _TrendBarChartPainter extends CustomPainter {
 
       final countPainter = TextPainter(
         text: TextSpan(
-          text: point.value == point.value.roundToDouble()
-              ? point.value.toStringAsFixed(0)
-              : point.value.toStringAsFixed(1),
+          text: _formatTrendLabel(point.value, isCurrency: isCurrency),
           style: TextStyle(
-            color: barColor,
+            color: textColor,
             fontSize: 12,
             fontWeight: FontWeight.w700,
+            shadows: [
+              Shadow(color: cardColor, offset: const Offset(-1.5, -1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(1.5, -1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(1.5, 1.5), blurRadius: 1),
+              Shadow(color: cardColor, offset: const Offset(-1.5, 1.5), blurRadius: 1),
+            ],
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -1563,7 +1634,10 @@ class _TrendBarChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _TrendBarChartPainter other) {
     return other.points != points ||
         other.color != color ||
-        other.gridColor != gridColor;
+        other.gridColor != gridColor ||
+        other.isCurrency != isCurrency ||
+        other.textColor != textColor ||
+        other.cardColor != cardColor;
   }
 }
 

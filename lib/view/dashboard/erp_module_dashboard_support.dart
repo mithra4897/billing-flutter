@@ -675,12 +675,14 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard({
     ],
     trend: _buildMonthlyTrendCard(
       title: 'Monthly Billing Trend',
-      subtitle: 'Live monthly voucher activity from accounting records.',
+      subtitle: 'Total transaction value (₹) per period from live vouchers.',
       trendFilter: trendFilter,
+      isCurrency: true,
       sources: <_TrendSource>[
         _TrendSource(
           records: voucherRows.map((item) => item.toJson()),
           dateKeys: const ['voucher_date', 'posting_date', 'created_at'],
+          amountKey: 'total_debit',
         ),
       ],
     ),
@@ -1104,26 +1106,16 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         ),
       ],
       trend: _buildMonthlyTrendCard(
-        title: 'Monthly Sales Trend',
+        title: 'Monthly Sales Revenue',
         subtitle:
-            'Live monthly sales activity from quotations, orders, invoices, and receipts.',
+            'Total invoiced amount (₹) per period from live sales invoices.',
         trendFilter: trendFilter,
+        isCurrency: true,
         sources: <_TrendSource>[
-          _TrendSource(
-            records: orderJsonRows,
-            dateKeys: const ['order_date', 'delivery_date', 'created_at'],
-          ),
           _TrendSource(
             records: invoiceJsonRows,
             dateKeys: const ['invoice_date', 'due_date', 'created_at'],
-          ),
-          _TrendSource(
-            records: receiptJsonRows,
-            dateKeys: const ['receipt_date', 'created_at'],
-          ),
-          _TrendSource(
-            records: quotationJsonRows,
-            dateKeys: const ['quotation_date', 'valid_until', 'created_at'],
+            amountKey: 'total_amount',
           ),
         ],
       ),
@@ -2951,10 +2943,16 @@ class _DashboardStatSpec {
 }
 
 class _TrendSource {
-  const _TrendSource({required this.records, required this.dateKeys});
+  const _TrendSource({
+    required this.records,
+    required this.dateKeys,
+    this.amountKey,
+  });
 
   final Iterable<Map<String, dynamic>> records;
   final List<String> dateKeys;
+  /// If set, the trend will sum this field's numeric value instead of counting records.
+  final String? amountKey;
 }
 
 ErpDashboardListItem _genericListItem({
@@ -3007,6 +3005,7 @@ ErpDashboardTrendCardData _buildMonthlyTrendCard({
   ErpDashboardTrendFilter? trendFilter,
   String emptyMessage = 'No real trend data is available yet for this module.',
   Color color = const Color(0xFF2F6FED),
+  bool isCurrency = false,
 }) {
   return ErpDashboardTrendCardData(
     title: title,
@@ -3014,6 +3013,7 @@ ErpDashboardTrendCardData _buildMonthlyTrendCard({
     points: _trendPointsFromSources(sources, trendFilter: trendFilter),
     emptyMessage: emptyMessage,
     color: color,
+    isCurrency: isCurrency,
   );
 }
 
@@ -3028,7 +3028,7 @@ List<ErpDashboardTrendPoint> _trendPointsFromSources(
   if (buckets.isEmpty) {
     return const <ErpDashboardTrendPoint>[];
   }
-  final counts = List<int>.filled(buckets.length, 0);
+  final totals = List<double>.filled(buckets.length, 0);
   final rangeStart = buckets.first.start;
   final rangeEnd = buckets.last.endExclusive;
 
@@ -3045,7 +3045,16 @@ List<ErpDashboardTrendPoint> _trendPointsFromSources(
         final bucket = buckets[index];
         if (!parsed.isBefore(bucket.start) &&
             parsed.isBefore(bucket.endExclusive)) {
-          counts[index] += 1;
+          final amountKey = source.amountKey;
+          if (amountKey != null) {
+            final rawAmount = record[amountKey];
+            final amount = rawAmount is num
+                ? rawAmount.toDouble()
+                : double.tryParse(rawAmount?.toString() ?? '') ?? 0;
+            totals[index] += amount;
+          } else {
+            totals[index] += 1;
+          }
           break;
         }
       }
@@ -3055,7 +3064,7 @@ List<ErpDashboardTrendPoint> _trendPointsFromSources(
   return List<ErpDashboardTrendPoint>.generate(buckets.length, (index) {
     return ErpDashboardTrendPoint(
       label: buckets[index].label,
-      value: counts[index].toDouble(),
+      value: totals[index],
     );
   }, growable: false);
 }
