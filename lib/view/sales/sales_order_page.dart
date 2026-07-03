@@ -1,5 +1,6 @@
 import '../../controller/sales/sales_order_management_controller.dart';
 import '../../screen.dart';
+import '../../core/files/pdf_web_actions.dart';
 
 class SalesOrderPage extends StatefulWidget {
   const SalesOrderPage({
@@ -68,47 +69,66 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Uploaded note images',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: AppUiConstants.spacingXs),
         Wrap(
           spacing: AppUiConstants.spacingSm,
           runSpacing: AppUiConstants.spacingSm,
           children: imageUrls
-              .map((url) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.fieldRadius,
-                  ),
-                  child: Image.network(
-                    url,
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 96,
-                      height: 96,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).extension<AppThemeExtension>()!.subtleFill,
-                        borderRadius: BorderRadius.circular(
-                          AppUiConstants.fieldRadius,
-                        ),
-                      ),
-                      child: const Icon(Icons.broken_image_outlined),
-                    ),
-                  ),
-                );
-              })
+              .map((url) => _buildNotesImageTile(context, url))
               .toList(growable: false),
         ),
       ],
+    );
+  }
+
+  Widget _buildNotesImageTile(BuildContext context, String url) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => unawaited(_openNotesImage(context, url)),
+          borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
+            child: Image.network(
+              url,
+              width: 96,
+              height: 96,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 96,
+                height: 96,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: appTheme.subtleFill,
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.fieldRadius,
+                  ),
+                ),
+                child: const Icon(Icons.broken_image_outlined),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        TextButton.icon(
+          onPressed: () => unawaited(_openNotesImage(context, url)),
+          icon: const Icon(Icons.visibility_outlined, size: 16),
+          label: const Text('View'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openNotesImage(BuildContext context, String url) async {
+    final opened = await openWebUrl(url, title: 'Sales order note image');
+    if (opened || !context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Image preview is supported in the web app browser.'),
+      ),
     );
   }
 
