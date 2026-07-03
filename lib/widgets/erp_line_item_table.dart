@@ -325,6 +325,9 @@ class ErpLineItemTable extends StatefulWidget {
 }
 
 class _ErpLineItemTableState extends State<ErpLineItemTable> {
+  static const double _tableEdgeWhitespaceHeight =
+      AppUiConstants.tableCompactFieldHeight +
+      (AppUiConstants.tableToolbarHeight * 2);
   static const Map<String, double> _columnWidths = <String, double>{
     'no': 56,
     'source': 184,
@@ -644,11 +647,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppUiConstants.tableToolbarPadding,
-                      AppUiConstants.tableToolbarHeight,
-                      AppUiConstants.tableToolbarPadding,
-                      AppUiConstants.tableToolbarHeight,
+                    height: _tableEdgeWhitespaceHeight,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.tableToolbarPadding,
                     ),
                     decoration: BoxDecoration(
                       color: appTheme.cardBackground,
@@ -657,29 +658,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                       ),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppUiConstants.spacingSm,
-                            vertical: AppUiConstants.spacingXs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: appTheme.tableHeaderBackground,
-                            borderRadius: BorderRadius.circular(
-                              AppUiConstants.pillRadius,
-                            ),
-                            border: Border.all(color: appTheme.tableBorder),
-                          ),
-                          child: Text(
-                            '${widget.lines.length} row${widget.lines.length == 1 ? '' : 's'}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: appTheme.tableMutedText,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
                         const Spacer(),
                         if (widget.onAddLine != null)
                           TextButton.icon(
@@ -743,6 +723,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                                     appTheme,
                                     extraWidthPerWeight,
                                   ),
+                                const SizedBox(
+                                  height: _tableEdgeWhitespaceHeight,
+                                ),
                               ],
                             ),
                           ),
