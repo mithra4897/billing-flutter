@@ -411,6 +411,8 @@ class SalesDeliveryManagementController extends GetxController {
   bool isBatchManagedItem(int? itemId) => itemById(itemId)?.hasBatch == true;
   bool isStockTrackedItem(int? itemId) =>
       itemById(itemId)?.trackInventory == true;
+  bool lineRequiresWarehouse(SalesDeliveryLineDraft line) =>
+      isStockTrackedItem(line.itemId);
 
   String batchCacheKey(int? itemId, int? warehouseId) =>
       '${itemId ?? 0}:${warehouseId ?? 0}:${companyId ?? 0}';
