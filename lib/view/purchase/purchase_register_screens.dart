@@ -5,6 +5,41 @@ typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(PurchaseService service);
 typedef PurchaseRegisterMatcher<T> =
     bool Function(T row, String query, String status);
+typedef PurchaseRegisterDateValue<T> = String? Function(T row);
+typedef PurchaseRegisterDocumentValue<T> = String Function(T row);
+typedef PurchaseRegisterBalanceValue<T> = double? Function(T row);
+
+const _purchaseRegisterSortItems = <AppDropdownItem<String>>[
+  AppDropdownItem(value: '', label: 'Default order'),
+  AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+  AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+  AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
+  AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+];
+
+const _purchaseInvoiceRegisterSortItems = <AppDropdownItem<String>>[
+  AppDropdownItem(value: '', label: 'Default order'),
+  AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+  AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+  AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
+  AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+  AppDropdownItem(value: 'balance_desc', label: 'High outstanding to low'),
+];
+
+int _comparePurchaseRegisterStrings(String? left, String? right) {
+  final leftValue = (left ?? '').trim().toLowerCase();
+  final rightValue = (right ?? '').trim().toLowerCase();
+  if (leftValue.isEmpty && rightValue.isEmpty) {
+    return 0;
+  }
+  if (leftValue.isEmpty) {
+    return 1;
+  }
+  if (rightValue.isEmpty) {
+    return -1;
+  }
+  return leftValue.compareTo(rightValue);
+}
 
 void _openShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -33,10 +68,19 @@ String _nestedName(
 }
 
 class PurchaseListRegisterController<T> extends GetxController {
-  PurchaseListRegisterController({required this.loader, required this.matches});
+  PurchaseListRegisterController({
+    required this.loader,
+    required this.matches,
+    required this.dateValueOf,
+    required this.documentValueOf,
+    this.balanceValueOf,
+  });
 
   final PurchaseRegisterLoader<T> loader;
   final PurchaseRegisterMatcher<T> matches;
+  final PurchaseRegisterDateValue<T> dateValueOf;
+  final PurchaseRegisterDocumentValue<T> documentValueOf;
+  final PurchaseRegisterBalanceValue<T>? balanceValueOf;
   final PurchaseService _service = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
@@ -47,15 +91,18 @@ class PurchaseListRegisterController<T> extends GetxController {
   bool loading = true;
   String? error;
   String status = '';
+  String sort = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
   Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
-    return rows
+    final filtered = rows
         .where((row) => matches(row, query, status))
         .toList(growable: false);
+    filtered.sort(_compareRows);
+    return filtered;
   }
 
   @override
@@ -96,9 +143,57 @@ class PurchaseListRegisterController<T> extends GetxController {
     update();
   }
 
+  void setSort(String value) {
+    sort = value;
+    update();
+  }
+
   void setCustomFilter(String key, dynamic value) {
     customFilters[key] = value;
     update();
+  }
+
+  int _compareRows(T left, T right) {
+    switch (sort) {
+      case 'date_desc':
+        return _comparePurchaseRegisterStrings(
+          dateValueOf(right),
+          dateValueOf(left),
+        );
+      case 'date_asc':
+        return _comparePurchaseRegisterStrings(
+          dateValueOf(left),
+          dateValueOf(right),
+        );
+      case 'doc_asc':
+        return _comparePurchaseRegisterStrings(
+          documentValueOf(left),
+          documentValueOf(right),
+        );
+      case 'doc_desc':
+        return _comparePurchaseRegisterStrings(
+          documentValueOf(right),
+          documentValueOf(left),
+        );
+      case 'balance_desc':
+        return _compareBalanceValues(
+          balanceValueOf?.call(right),
+          balanceValueOf?.call(left),
+        );
+      case 'balance_asc':
+        return _compareBalanceValues(
+          balanceValueOf?.call(left),
+          balanceValueOf?.call(right),
+        );
+      default:
+        return 0;
+    }
+  }
+
+  int _compareBalanceValues(double? left, double? right) {
+    final leftValue = left ?? -1;
+    final rightValue = right ?? -1;
+    return leftValue.compareTo(rightValue);
   }
 
   Future<void> load() async {
@@ -130,6 +225,9 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.embedded,
     required this.loader,
     required this.matches,
+    required this.dateValueOf,
+    required this.documentValueOf,
+    this.balanceValueOf,
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -149,6 +247,9 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final bool embedded;
   final PurchaseRegisterLoader<T> loader;
   final PurchaseRegisterMatcher<T> matches;
+  final PurchaseRegisterDateValue<T> dateValueOf;
+  final PurchaseRegisterDocumentValue<T> documentValueOf;
+  final PurchaseRegisterBalanceValue<T>? balanceValueOf;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -197,6 +298,9 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
         PurchaseListRegisterController<T>(
           loader: widget.loader,
           matches: widget.matches,
+          dateValueOf: widget.dateValueOf,
+          documentValueOf: widget.documentValueOf,
+          balanceValueOf: widget.balanceValueOf,
         ),
         tag: _controllerTag,
       );
@@ -275,6 +379,9 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       loader: (service) => service.requisitions(
         filters: {'per_page': 200, 'sort_by': 'requisition_date'},
       ),
+      dateValueOf: (row) =>
+          nullableStringValue(row.toJson(), 'requisition_date'),
+      documentValueOf: (row) => stringValue(row.toJson(), 'requisition_no'),
       matches: (row, query, status) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseRequisitionModel>>(
@@ -379,6 +486,8 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       embedded: embedded,
       loader: (service) =>
           service.ordersAll(filters: {'sort_by': 'order_date'}),
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
+      documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
       matches: (row, query, status) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseOrderModel>>(
@@ -487,6 +596,8 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
       loader: (service) => service.receipts(
         filters: {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
+      documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
       matches: (row, query, status) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseReceiptModel>>(
@@ -597,6 +708,9 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       loader: (service) => service.invoices(
         filters: {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
+      dateValueOf: (row) => row.invoiceDate,
+      documentValueOf: (row) => row.invoiceNo ?? '',
+      balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, status) {
         final statusOk = status.isEmpty || row.invoiceStatus == status;
         final searchOk =
@@ -703,6 +817,8 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
       loader: (service) => service.payments(
         filters: {'per_page': 200, 'sort_by': 'payment_date'},
       ),
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'payment_date'),
+      documentValueOf: (row) => stringValue(row.toJson(), 'payment_no'),
       matches: (row, query, status) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchasePaymentModel>>(
@@ -808,6 +924,8 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
       embedded: embedded,
       loader: (service) =>
           service.returns(filters: {'per_page': 200, 'sort_by': 'return_date'}),
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
+      documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
       matches: (row, query, status) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseReturnModel>>(
@@ -984,7 +1102,9 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     controller.dateFromController.clear();
     controller.dateToController.clear();
     controller.setCustomFilter('supplier_id', null);
+    controller.setCustomFilter('balance_filter', '');
     controller.setStatus('');
+    controller.setSort('');
   }
 
   Widget _searchField() {
@@ -1001,6 +1121,15 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
       mappedItems: statusItems,
       initialValue: controller.status,
       onChanged: (value) => controller.setStatus(value ?? ''),
+    );
+  }
+
+  Widget _sortField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Sort',
+      mappedItems: _purchaseRegisterSortItems,
+      initialValue: controller.sort,
+      onChanged: (value) => controller.setSort(value ?? ''),
     );
   }
 
@@ -1059,8 +1188,8 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final isWide = width >= 1320;
-        final isMedium = width >= 920 && width < 1320;
+        final isWide = width >= 1480;
+        final isMedium = width >= 920 && width < 1480;
 
         if (isWide) {
           return Row(
@@ -1073,6 +1202,8 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
                 const SizedBox(width: AppUiConstants.spacingMd),
               ],
               Expanded(child: _statusField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(child: _sortField()),
               const SizedBox(width: AppUiConstants.spacingMd),
               Expanded(
                 child: _dateField(
@@ -1114,6 +1245,8 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
                     const SizedBox(width: AppUiConstants.spacingMd),
                   ],
                   Expanded(child: _statusField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _sortField()),
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
@@ -1157,6 +1290,7 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
                 _searchField(),
                 if (hasSupplier) _supplierField(),
                 _statusField(),
+                _sortField(),
                 _dateField(
                   label: 'Date From',
                   textController: controller.dateFromController,
@@ -1212,6 +1346,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('supplier_id', null);
     controller.setStatus('');
+    controller.setSort('');
   }
 
   Widget _actionField(BuildContext context) {
@@ -1265,6 +1400,15 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     );
   }
 
+  Widget _sortField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Sort',
+      mappedItems: _purchaseInvoiceRegisterSortItems,
+      initialValue: controller.sort,
+      onChanged: (value) => controller.setSort(value ?? ''),
+    );
+  }
+
   Widget _dateFromField() {
     return AppFormTextField(
       labelText: 'Date From',
@@ -1308,6 +1452,8 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
                   const SizedBox(width: AppUiConstants.spacingMd),
                   Expanded(child: _statusField()),
                   const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _sortField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
                   Expanded(child: _dateFromField()),
                   const SizedBox(width: AppUiConstants.spacingMd),
                   Expanded(child: _dateToField()),
@@ -1338,6 +1484,8 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
                   Expanded(child: _supplierField()),
                   const SizedBox(width: AppUiConstants.spacingMd),
                   Expanded(child: _statusField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _sortField()),
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
@@ -1371,6 +1519,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
                 _searchField(),
                 _supplierField(),
                 _statusField(),
+                _sortField(),
                 _dateFromField(),
                 _dateToField(),
                 _actionField(context),

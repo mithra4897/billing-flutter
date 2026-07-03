@@ -7,6 +7,40 @@ typedef SalesRegisterMatcher<T> =
 typedef SalesRegisterDashboardMatcher<T> =
     bool Function(T row, String dashboardFilter);
 typedef SalesRegisterDateValue<T> = String? Function(T row);
+typedef SalesRegisterDocumentValue<T> = String Function(T row);
+typedef SalesRegisterBalanceValue<T> = double? Function(T row);
+
+const _salesRegisterSortItems = <AppDropdownItem<String>>[
+  AppDropdownItem(value: '', label: 'Default order'),
+  AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+  AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+  AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
+  AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+];
+
+const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
+  AppDropdownItem(value: '', label: 'Default order'),
+  AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+  AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+  AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
+  AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+  AppDropdownItem(value: 'balance_desc', label: 'High outstanding'),
+];
+
+int _compareRegisterStrings(String? left, String? right) {
+  final leftValue = (left ?? '').trim().toLowerCase();
+  final rightValue = (right ?? '').trim().toLowerCase();
+  if (leftValue.isEmpty && rightValue.isEmpty) {
+    return 0;
+  }
+  if (leftValue.isEmpty) {
+    return 1;
+  }
+  if (rightValue.isEmpty) {
+    return -1;
+  }
+  return leftValue.compareTo(rightValue);
+}
 
 void _openSalesShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -31,12 +65,18 @@ class SalesRegisterController<T> extends GetxController {
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
+    required this.documentValueOf,
+    this.balanceValueOf,
+    this.initialSort = '',
   });
 
   final SalesRegisterLoader<T> loader;
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesRegisterDateValue<T> dateValueOf;
+  final SalesRegisterDocumentValue<T> documentValueOf;
+  final SalesRegisterBalanceValue<T>? balanceValueOf;
+  final String initialSort;
   final SalesService _service = SalesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
@@ -47,6 +87,7 @@ class SalesRegisterController<T> extends GetxController {
   bool loading = true;
   String? error;
   String status = '';
+  String sort = '';
   String dashboardFilter = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
@@ -54,7 +95,7 @@ class SalesRegisterController<T> extends GetxController {
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
-    return rows
+    final filtered = rows
         .where(
           (row) =>
               matches(row, query, status) &&
@@ -66,11 +107,14 @@ class SalesRegisterController<T> extends GetxController {
               dashboardMatches(row, dashboardFilter),
         )
         .toList(growable: false);
+    filtered.sort(_compareRows);
+    return filtered;
   }
 
   @override
   void onInit() {
     super.onInit();
+    sort = initialSort;
     searchController.addListener(update);
     dateFromController.addListener(update);
     dateToController.addListener(update);
@@ -106,6 +150,11 @@ class SalesRegisterController<T> extends GetxController {
     update();
   }
 
+  void setSort(String value) {
+    sort = value;
+    update();
+  }
+
   void setCustomFilter(String key, dynamic value) {
     customFilters[key] = value;
     update();
@@ -114,10 +163,48 @@ class SalesRegisterController<T> extends GetxController {
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
     dashboardFilter = value.trim();
     status = statusOverride;
+    sort = initialSort;
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
     update();
+  }
+
+  int _compareRows(T left, T right) {
+    switch (sort) {
+      case 'date_desc':
+        return _compareRegisterStrings(dateValueOf(right), dateValueOf(left));
+      case 'date_asc':
+        return _compareRegisterStrings(dateValueOf(left), dateValueOf(right));
+      case 'doc_asc':
+        return _compareRegisterStrings(
+          documentValueOf(left),
+          documentValueOf(right),
+        );
+      case 'doc_desc':
+        return _compareRegisterStrings(
+          documentValueOf(right),
+          documentValueOf(left),
+        );
+      case 'balance_desc':
+        return _compareBalanceValues(
+          balanceValueOf?.call(right),
+          balanceValueOf?.call(left),
+        );
+      case 'balance_asc':
+        return _compareBalanceValues(
+          balanceValueOf?.call(left),
+          balanceValueOf?.call(right),
+        );
+      default:
+        return 0;
+    }
+  }
+
+  int _compareBalanceValues(double? left, double? right) {
+    final leftValue = left ?? -1;
+    final rightValue = right ?? -1;
+    return leftValue.compareTo(rightValue);
   }
 
   Future<void> load() async {
@@ -151,6 +238,9 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
+    required this.documentValueOf,
+    this.balanceValueOf,
+    this.initialSort = '',
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -171,6 +261,9 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesRegisterDateValue<T> dateValueOf;
+  final SalesRegisterDocumentValue<T> documentValueOf;
+  final SalesRegisterBalanceValue<T>? balanceValueOf;
+  final String initialSort;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -222,6 +315,9 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           matches: widget.matches,
           dashboardMatches: widget.dashboardMatches,
           dateValueOf: widget.dateValueOf,
+          documentValueOf: widget.documentValueOf,
+          balanceValueOf: widget.balanceValueOf,
+          initialSort: widget.initialSort,
         ),
         tag: _controllerTag,
       );
@@ -326,6 +422,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     required this.title,
     required this.searchHint,
     this.customerItemsBuilder,
+    this.sortItems = _salesRegisterSortItems,
   });
 
   final SalesRegisterController<T> controller;
@@ -334,6 +431,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   final String searchHint;
   final List<AppDropdownItem<int?>> Function(SalesRegisterController<T>)?
   customerItemsBuilder;
+  final List<AppDropdownItem<String>> sortItems;
 
   void _clearFilters() {
     controller.searchController.clear();
@@ -341,6 +439,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('customer_id', null);
     controller.setStatus('');
+    controller.setSort('');
   }
 
   Widget _searchField() {
@@ -366,6 +465,15 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
       mappedItems: statusItems,
       initialValue: controller.status,
       onChanged: (value) => controller.setStatus(value ?? ''),
+    );
+  }
+
+  Widget _sortField() {
+    return AppDropdownField<String>.fromMapped(
+      labelText: 'Sort',
+      mappedItems: sortItems,
+      initialValue: controller.sort,
+      onChanged: (value) => controller.setSort(value ?? ''),
     );
   }
 
@@ -414,8 +522,8 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final isWide = width >= 1320;
-        final isMedium = width >= 920 && width < 1320;
+        final isWide = width >= 1480;
+        final isMedium = width >= 920 && width < 1480;
 
         if (isWide) {
           return Row(
@@ -428,6 +536,8 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
                 const SizedBox(width: AppUiConstants.spacingMd),
               ],
               Expanded(child: _statusField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(child: _sortField()),
               const SizedBox(width: AppUiConstants.spacingMd),
               Expanded(
                 child: _dateField(
@@ -469,6 +579,8 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
                     const SizedBox(width: AppUiConstants.spacingMd),
                   ],
                   Expanded(child: _statusField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: _sortField()),
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
@@ -512,6 +624,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
                 _searchField(),
                 if (hasCustomer) _customerField(),
                 _statusField(),
+                _sortField(),
                 _dateField(
                   label: 'Date From',
                   textController: controller.dateFromController,
@@ -561,6 +674,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       loader: (service) => service.quotations(
         filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
       ),
+      documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'quotation_status');
@@ -694,6 +808,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
       loader: (service) => service.orders(
         filters: const {'per_page': 200, 'sort_by': 'order_date'},
       ),
+      documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'order_status');
@@ -842,6 +957,9 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       loader: (service) => service.invoices(
         filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
+      initialSort: 'balance_desc',
+      documentValueOf: (row) => row.invoiceNo ?? '',
+      balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = row.invoiceStatus ?? '';
@@ -891,6 +1009,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         title: 'Find Invoices',
         searchHint: 'Invoice no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
+        sortItems: _salesInvoiceRegisterSortItems,
       ),
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
@@ -965,6 +1084,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
       loader: (service) => service.deliveries(
         filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
       ),
+      documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'delivery_status');
@@ -1057,6 +1177,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
       loader: (service) => service.receipts(
         filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
+      documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'receipt_status');
@@ -1168,6 +1289,7 @@ class SalesReturnRegisterPage extends StatelessWidget {
       loader: (service) => service.returns(
         filters: const {'per_page': 200, 'sort_by': 'return_date'},
       ),
+      documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
       matches: (row, query, status) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'return_status');
