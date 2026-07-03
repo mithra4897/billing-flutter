@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockDamageTypeItems =
@@ -46,9 +46,9 @@ class StockDamageLineDraft {
     'uom_id': uomId,
     'batch_id': batchId,
     'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
-    'damage_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()),
-    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'damage_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text),
+    'total_cost': Validators.parseFlexibleNumber(totalCostController.text),
     'reason': nullIfEmpty(reasonController.text),
     'remarks': nullIfEmpty(remarksController.text),
   };
@@ -726,9 +726,9 @@ class StockDamageViewModel extends GetxController {
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
       final lineNo = i + 1;
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
       final totalCost = totalCostText.isEmpty
           ? null
@@ -816,8 +816,8 @@ class StockDamageViewModel extends GetxController {
       }
       final serialIds = lineSerialIds(line);
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
-      final totalCost = double.tryParse(line.totalCostController.text.trim());
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
+      final totalCost = Validators.parseFlexibleNumber(line.totalCostController.text);
       final reason = nullIfEmpty(line.reasonController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final serialId in serialIds) {

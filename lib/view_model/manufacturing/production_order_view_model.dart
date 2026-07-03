@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionOrderViewModel extends GetxController {
@@ -515,7 +515,7 @@ class ProductionOrderViewModel extends GetxController {
     if (warehouseId == null) {
       return 'Warehouse is required.';
     }
-    if ((double.tryParse(plannedQtyController.text.trim()) ?? 0) <= 0) {
+    if ((Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0) <= 0) {
       return 'Planned quantity must be greater than zero.';
     }
     return null;
@@ -543,7 +543,7 @@ class ProductionOrderViewModel extends GetxController {
       'bom_id': bomId,
       'output_item_id': outputItemId,
       'output_uom_id': outputUomId,
-      'planned_qty': double.tryParse(plannedQtyController.text.trim()) ?? 0,
+      'planned_qty': Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0,
       'warehouse_id': warehouseId,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive ? 1 : 0,

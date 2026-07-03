@@ -1,4 +1,4 @@
-import '../../controller/sales/sales_invoice_management_controller.dart';
+﻿import '../../controller/sales/sales_invoice_management_controller.dart';
 import '../../screen.dart';
 
 class SalesInvoicePage extends StatefulWidget {
@@ -172,7 +172,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     const currency = 'INR';
     final isInterState = controller.isInterStateForSummary();
     final roundOff = controller.applyRoundOff
-        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        ? (Validators.parseFlexibleNumber(controller.roundOffController.text) ?? 0)
         : 0;
     return GstSummaryCard(
       taxable: summary.taxable,

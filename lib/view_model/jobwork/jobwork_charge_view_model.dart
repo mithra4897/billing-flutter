@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkChargeLineDraft {
@@ -45,9 +45,9 @@ class JobworkChargeLineDraft {
   final TextEditingController remarksController;
 
   JobworkChargeLineModel toModel() {
-    final q = double.tryParse(qtyController.text.trim()) ?? 0;
-    final r = double.tryParse(rateController.text.trim()) ?? 0;
-    var amt = double.tryParse(amountController.text.trim());
+    final q = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
+    final r = Validators.parseFlexibleNumber(rateController.text) ?? 0;
+    var amt = Validators.parseFlexibleNumber(amountController.text);
     if (amt == null || amt == 0) {
       amt = (q * r);
     }
@@ -581,9 +581,9 @@ class JobworkChargeViewModel extends GetxController {
       purchaseTaxCodeById(taxCodes, taxCodeId);
 
   PurchaseLineTaxBreakdown lineTaxBreakdown(JobworkChargeLineDraft line) {
-    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-    final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-    final amount = double.tryParse(line.amountController.text.trim());
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+    final amount = Validators.parseFlexibleNumber(line.amountController.text);
     final taxableAmount = amount == null || amount <= 0 ? qty * rate : amount;
     final normalizedRate = qty > 0 ? taxableAmount / qty : taxableAmount;
     return computePurchaseLineTaxBreakdown(
@@ -615,7 +615,7 @@ class JobworkChargeViewModel extends GetxController {
         if (d.serviceDescriptionController.text.trim().isEmpty) {
           return 'Each line needs a service description.';
         }
-        final q = double.tryParse(d.qtyController.text.trim()) ?? 0;
+        final q = Validators.parseFlexibleNumber(d.qtyController.text) ?? 0;
         if (q <= 0) {
           return 'Each line needs a positive quantity.';
         }

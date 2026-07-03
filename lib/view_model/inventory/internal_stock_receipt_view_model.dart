@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 /// Backend `receipt_source` enum values; labels are UI-facing.
@@ -58,9 +58,9 @@ class InternalStockReceiptLineDraft {
     'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
     if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
       'serial_no': serialNumbers.first.trim(),
-    'receipt_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()),
-    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'receipt_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text),
+    'total_cost': Validators.parseFlexibleNumber(totalCostController.text),
     'remarks': nullIfEmpty(remarksController.text),
   };
 
@@ -855,9 +855,9 @@ class InternalStockReceiptViewModel extends GetxController {
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
       final lineNo = i + 1;
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
       final totalCost = totalCostText.isEmpty
           ? null
@@ -962,8 +962,8 @@ class InternalStockReceiptViewModel extends GetxController {
           .where((value) => value.isNotEmpty)
           .toList(growable: false);
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
-      final totalCost = double.tryParse(line.totalCostController.text.trim());
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
+      final totalCost = Validators.parseFlexibleNumber(line.totalCostController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
       for (var index = 0; index < serialEntries.length; index++) {
         expanded.add(<String, dynamic>{

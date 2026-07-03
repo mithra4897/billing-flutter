@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class BudgetLineDraft {
@@ -306,7 +306,7 @@ class BudgetManagementController extends GetxController {
   Map<String, dynamic> _payload() {
     final payloadLines = <Map<String, dynamic>>[];
     for (final line in lines) {
-      final amount = double.tryParse(line.amountController.text.trim()) ?? 0;
+      final amount = Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
       if (line.accountId == null || amount <= 0) {
         continue;
       }

@@ -1,4 +1,4 @@
-import '../../controller/parties/party_management_controller.dart';
+﻿import '../../controller/parties/party_management_controller.dart';
 import '../../screen.dart';
 
 class PartyManagementPage extends StatefulWidget {
@@ -784,7 +784,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       pan: nullIfEmpty(_panController.text),
       aadhaar: nullIfEmpty(_aadhaarController.text),
       defaultCurrency: nullIfEmpty(_currencyController.text) ?? 'INR',
-      openingBalance: double.tryParse(_openingBalanceController.text.trim()),
+      openingBalance: Validators.parseFlexibleNumber(_openingBalanceController.text),
       openingBalanceType: _openingBalanceType,
       remarks: nullIfEmpty(_remarksController.text),
       isActive: _partyActive,
@@ -1271,7 +1271,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       final body = PartyCreditLimitModel.fromJson({
         if (intValue(_selectedCreditLimit?.toJson() ?? const {}, 'id') != null)
           'id': intValue(_selectedCreditLimit!.toJson(), 'id'),
-        'credit_limit': double.tryParse(_creditLimitController.text.trim()),
+        'credit_limit': Validators.parseFlexibleNumber(_creditLimitController.text),
         'credit_days': int.tryParse(_creditDaysController.text.trim()),
         'effective_from': nullIfEmpty(_creditFromController.text),
         'effective_to': nullIfEmpty(_creditToController.text),

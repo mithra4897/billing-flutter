@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class CashSessionManagementController extends GetxController {
@@ -292,7 +292,7 @@ class CashSessionManagementController extends GetxController {
           cashAccountId: cashAccountId,
           openingDatetime: openingDatetimeController.text.trim(),
           openingBalance:
-              double.tryParse(openingBalanceController.text.trim()) ?? 0,
+              Validators.parseFlexibleNumber(openingBalanceController.text) ?? 0,
           remarks: nullIfEmpty(remarksController.text),
         ),
       );

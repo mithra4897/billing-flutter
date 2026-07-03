@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionMaterialIssueLineDraft {
@@ -53,8 +53,8 @@ class ProductionMaterialIssueLineDraft {
     'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
     'uom_id': uomId,
     'warehouse_id': warehouseId,
-    'issue_qty': double.tryParse(issueQtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'issue_qty': Validators.parseFlexibleNumber(issueQtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text) ?? 0,
     'remarks': nullIfEmpty(remarksController.text),
   };
 
@@ -958,7 +958,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
         }
       }
       final issueQty =
-          double.tryParse(line.issueQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.issueQtyController.text) ?? 0;
       if (issueQty <= 0) {
         return 'Line ${i + 1}: issue qty must be > 0.';
       }
@@ -1047,7 +1047,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       }
       final selectedSerialIds = lineSerialIds(line);
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final selectedSerialId in selectedSerialIds) {
         expanded.add(<String, dynamic>{

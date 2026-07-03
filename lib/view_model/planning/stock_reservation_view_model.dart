@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class StockReservationViewModel extends GetxController {
   static const List<AppDropdownItem<String>> referenceTypeItems =
@@ -343,7 +343,7 @@ class StockReservationViewModel extends GetxController {
     if ((int.tryParse(referenceIdController.text.trim()) ?? 0) <= 0) {
       return 'Reference id is required.';
     }
-    if ((double.tryParse(reservedQtyController.text.trim()) ?? 0) <= 0) {
+    if ((Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0) <= 0) {
       return 'Reserved quantity must be greater than zero.';
     }
     return null;
@@ -371,7 +371,7 @@ class StockReservationViewModel extends GetxController {
       'reference_line_id': nullIfEmpty(referenceLineIdController.text) == null
           ? null
           : int.tryParse(referenceLineIdController.text.trim()),
-      'reserved_qty': double.tryParse(reservedQtyController.text.trim()) ?? 0,
+      'reserved_qty': Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0,
       'status': status,
       'remarks': nullIfEmpty(remarksController.text),
     };
@@ -403,7 +403,7 @@ class StockReservationViewModel extends GetxController {
   Future<void> release() async {
     final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     if (id == null) return;
-    final qty = double.tryParse(releaseQtyController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(releaseQtyController.text) ?? 0;
     if (qty <= 0) {
       formError = 'Released quantity must be greater than zero.';
       update();

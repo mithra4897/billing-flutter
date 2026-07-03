@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> kQcInspectionScopeItems =
@@ -555,7 +555,7 @@ class QcInspectionViewModel extends GetxController {
   Map<String, dynamic> _buildPayload({required bool forCreate}) {
     final srcId = int.tryParse(sourceDocumentIdController.text.trim());
     final lineId = int.tryParse(sourceLineIdController.text.trim());
-    final iq = double.tryParse(inspectedQtyController.text.trim()) ?? 0;
+    final iq = Validators.parseFlexibleNumber(inspectedQtyController.text) ?? 0;
     final lotNo = lotNoController.text.trim();
     final payload = <String, dynamic>{
       'company_id': companyId,
@@ -574,11 +574,11 @@ class QcInspectionViewModel extends GetxController {
       'qc_plan_id': ?qcPlanId,
       'warehouse_id': ?warehouseId,
       if (lotNo.isNotEmpty) 'lot_no': lotNo,
-      'sample_size': double.tryParse(sampleSizeController.text.trim()) ?? 0,
-      'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,
-      'rejected_qty': double.tryParse(rejectedQtyController.text.trim()) ?? 0,
-      'hold_qty': double.tryParse(holdQtyController.text.trim()) ?? 0,
-      'rework_qty': double.tryParse(reworkQtyController.text.trim()) ?? 0,
+      'sample_size': Validators.parseFlexibleNumber(sampleSizeController.text) ?? 0,
+      'accepted_qty': Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
+      'rejected_qty': Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
+      'hold_qty': Validators.parseFlexibleNumber(holdQtyController.text) ?? 0,
+      'rework_qty': Validators.parseFlexibleNumber(reworkQtyController.text) ?? 0,
       if (remarksController.text.trim().isNotEmpty)
         'remarks': remarksController.text.trim(),
       'is_active': isActive ? 1 : 0,
@@ -613,7 +613,7 @@ class QcInspectionViewModel extends GetxController {
     if (srcId == null || srcId <= 0) {
       return 'Source document id is required.';
     }
-    final iq = double.tryParse(inspectedQtyController.text.trim()) ?? 0;
+    final iq = Validators.parseFlexibleNumber(inspectedQtyController.text) ?? 0;
     if (iq <= 0) {
       return 'Inspected quantity must be greater than zero.';
     }

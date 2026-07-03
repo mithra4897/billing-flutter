@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class UomManagementController extends GetxController {
   UomManagementController({required this.initialTabIndex});
@@ -305,7 +305,7 @@ class UomManagementController extends GetxController {
     }
 
     final targetUomId = conversionTargetUomId;
-    final displayFactor = double.tryParse(conversionFactorController.text.trim());
+    final displayFactor = Validators.parseFlexibleNumber(conversionFactorController.text);
     if (targetUomId == null || displayFactor == null || displayFactor <= 0) {
       conversionError = 'Target UOM and valid conversion factor are required.';
       update();

@@ -1,4 +1,4 @@
-import '../../screen.dart';
+﻿import '../../screen.dart';
 import 'service_module_refresh_controller.dart';
 
 class ServiceContractViewModel extends GetxController {
@@ -357,8 +357,8 @@ class ServiceContractViewModel extends GetxController {
   }
 
   Map<String, dynamic> _amounts() {
-    final cv = double.tryParse(contractValueController.text.trim()) ?? 0;
-    final tax = double.tryParse(taxAmountController.text.trim()) ?? 0;
+    final cv = Validators.parseFlexibleNumber(contractValueController.text) ?? 0;
+    final tax = Validators.parseFlexibleNumber(taxAmountController.text) ?? 0;
     return <String, dynamic>{
       'contract_value': cv,
       'tax_amount': tax,

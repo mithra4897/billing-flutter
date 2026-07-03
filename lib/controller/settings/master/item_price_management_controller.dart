@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class ItemPriceManagementController extends GetxController {
   ItemPriceManagementController({
@@ -325,7 +325,7 @@ class ItemPriceManagementController extends GetxController {
       itemId: itemId,
       priceType: priceType,
       uomId: uomId,
-      price: double.tryParse(priceController.text.trim()),
+      price: Validators.parseFlexibleNumber(priceController.text),
       validFrom: nullIfEmpty(validFromController.text),
       validTo: nullIfEmpty(validToController.text),
       isDefault: isDefault,

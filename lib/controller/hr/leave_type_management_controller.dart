@@ -1,4 +1,4 @@
-import '../../screen.dart';
+﻿import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class LeaveTypeManagementController extends GetxController {
@@ -148,7 +148,7 @@ class LeaveTypeManagementController extends GetxController {
     final model = LeaveTypeModel(
       id: selectedLeaveType?.id,
       leaveName: leaveNameController.text.trim(),
-      maxDaysPerYear: double.tryParse(maxDaysController.text.trim()),
+      maxDaysPerYear: Validators.parseFlexibleNumber(maxDaysController.text),
       isPaid: isPaid,
     );
 

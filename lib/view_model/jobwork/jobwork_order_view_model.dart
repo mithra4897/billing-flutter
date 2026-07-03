@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkMaterialDraft {
@@ -50,7 +50,7 @@ class JobworkMaterialDraft {
   double standardAmount;
 
   JobworkOrderMaterialModel toModel() {
-    final planned = double.tryParse(plannedQtyController.text.trim()) ?? 0;
+    final planned = Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
     final pending = pendingWithVendorQty > 0 ? pendingWithVendorQty : planned;
     return JobworkOrderMaterialModel(
       itemId: itemId,
@@ -117,7 +117,7 @@ class JobworkOutputDraft {
   double standardAmount;
 
   JobworkOrderOutputModel toModel() {
-    final planned = double.tryParse(plannedQtyController.text.trim()) ?? 0;
+    final planned = Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
     final acc = acceptedQty > 0 ? acceptedQty : planned;
     return JobworkOrderOutputModel(
       itemId: itemId,
@@ -778,14 +778,14 @@ class JobworkOrderViewModel extends GetxController {
       for (final d in materialDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (double.tryParse(d.plannedQtyController.text.trim()) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ?? 0) <= 0) {
           return 'Each material line needs item, UOM and planned quantity.';
         }
       }
       for (final d in outputDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (double.tryParse(d.plannedQtyController.text.trim()) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ?? 0) <= 0) {
           return 'Each output line needs item, UOM and planned quantity.';
         }
       }

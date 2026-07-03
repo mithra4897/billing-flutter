@@ -1,4 +1,4 @@
-import '../../screen.dart';
+﻿import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class HrPtSlabControllers {
@@ -256,10 +256,10 @@ class HrStatutorySettingsController extends GetxController {
       final slab = ptSlabs[i];
       final upper = slab.grossTo.text.trim();
       pt.add(<String, dynamic>{
-        'gross_from': double.tryParse(slab.grossFrom.text.trim()) ?? 0,
+        'gross_from': Validators.parseFlexibleNumber(slab.grossFrom.text) ?? 0,
         'gross_to': upper.isEmpty ? null : double.tryParse(upper),
-        'employee_tax_monthly': double.tryParse(slab.empTax.text.trim()) ?? 0,
-        'employer_tax_monthly': double.tryParse(slab.erTax.text.trim()) ?? 0,
+        'employee_tax_monthly': Validators.parseFlexibleNumber(slab.empTax.text) ?? 0,
+        'employer_tax_monthly': Validators.parseFlexibleNumber(slab.erTax.text) ?? 0,
         'sort_order': i,
       });
     }
@@ -280,19 +280,19 @@ class HrStatutorySettingsController extends GetxController {
           ? null
           : professionalTaxStateCode,
       'pf': <String, dynamic>{
-        'employee_percent': double.tryParse(pfEmpCtrl.text.trim()) ?? 0,
-        'employer_percent': double.tryParse(pfErCtrl.text.trim()) ?? 0,
+        'employee_percent': Validators.parseFlexibleNumber(pfEmpCtrl.text) ?? 0,
+        'employer_percent': Validators.parseFlexibleNumber(pfErCtrl.text) ?? 0,
         'wage_ceiling': pfCeilCtrl.text.trim().isEmpty
             ? null
-            : double.tryParse(pfCeilCtrl.text.trim()),
+            : Validators.parseFlexibleNumber(pfCeilCtrl.text),
         'calculate_on': pfOn,
       },
       'esi': <String, dynamic>{
-        'employee_percent': double.tryParse(esiEmpCtrl.text.trim()) ?? 0,
-        'employer_percent': double.tryParse(esiErCtrl.text.trim()) ?? 0,
+        'employee_percent': Validators.parseFlexibleNumber(esiEmpCtrl.text) ?? 0,
+        'employer_percent': Validators.parseFlexibleNumber(esiErCtrl.text) ?? 0,
         'gross_ceiling': esiCeilCtrl.text.trim().isEmpty
             ? null
-            : double.tryParse(esiCeilCtrl.text.trim()),
+            : Validators.parseFlexibleNumber(esiCeilCtrl.text),
         'calculate_on': esiOn,
       },
       'pt_slabs': pt,

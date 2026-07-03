@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockMovementTypeItems =
@@ -358,9 +358,9 @@ class StockMovementViewModel extends GetxController {
     if (!stockEffectItems.any((e) => e.value == stockEffect)) {
       return 'Invalid stock effect.';
     }
-    final qty = double.tryParse(qtyController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
     if (qty <= 0) return 'Quantity must be greater than zero.';
-    final rate = double.tryParse(rateController.text.trim()) ?? 0;
+    final rate = Validators.parseFlexibleNumber(rateController.text) ?? 0;
     if (rate < 0) return 'Rate cannot be negative.';
     final amountText = amountController.text.trim();
     if (amountText.isNotEmpty) {
@@ -406,11 +406,11 @@ class StockMovementViewModel extends GetxController {
       'reference_id': int.tryParse(referenceIdController.text.trim()),
       'reference_no': nullIfEmpty(referenceNoController.text),
       'voucher_date': voucherDateController.text.trim(),
-      'qty': double.tryParse(qtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
       'amount': nullIfEmpty(amountController.text) == null
           ? null
-          : double.tryParse(amountController.text.trim()),
+          : Validators.parseFlexibleNumber(amountController.text),
       'stock_effect': stockEffect,
       'source_warehouse_id': sourceWarehouseId,
       'destination_warehouse_id': destinationWarehouseId,

@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class BomLineDraft {
@@ -39,9 +39,9 @@ class BomLineDraft {
   Map<String, dynamic> toJson() => <String, dynamic>{
     'item_id': itemId,
     'uom_id': uomId,
-    'required_qty': double.tryParse(requiredQtyController.text.trim()) ?? 0,
+    'required_qty': Validators.parseFlexibleNumber(requiredQtyController.text) ?? 0,
     'wastage_percent':
-        double.tryParse(wastagePercentController.text.trim()) ?? 0,
+        Validators.parseFlexibleNumber(wastagePercentController.text) ?? 0,
     'line_type': nullIfEmpty(lineTypeController.text) ?? 'raw_material',
     'remarks': nullIfEmpty(remarksController.text),
   };
@@ -91,8 +91,8 @@ class BomOperationDraft {
     'operation_name': nullIfEmpty(operationNameController.text),
     'work_center': nullIfEmpty(workCenterController.text),
     'setup_time_minutes':
-        double.tryParse(setupMinutesController.text.trim()) ?? 0,
-    'run_time_minutes': double.tryParse(runMinutesController.text.trim()) ?? 0,
+        Validators.parseFlexibleNumber(setupMinutesController.text) ?? 0,
+    'run_time_minutes': Validators.parseFlexibleNumber(runMinutesController.text) ?? 0,
   };
 
   void dispose() {
@@ -637,11 +637,11 @@ class BomViewModel extends GetxController {
       'output_item_id': outputItemId,
       'output_uom_id': outputUomId,
       'version_no': nullIfEmpty(versionNoController.text),
-      'batch_size': double.tryParse(batchSizeController.text.trim()) ?? 0,
+      'batch_size': Validators.parseFlexibleNumber(batchSizeController.text) ?? 0,
       'standard_output_qty':
-          double.tryParse(standardOutputQtyController.text.trim()) ?? 0,
-      'scrap_percent': double.tryParse(scrapPercentController.text.trim()) ?? 0,
-      'yield_percent': double.tryParse(yieldPercentController.text.trim()) ?? 0,
+          Validators.parseFlexibleNumber(standardOutputQtyController.text) ?? 0,
+      'scrap_percent': Validators.parseFlexibleNumber(scrapPercentController.text) ?? 0,
+      'yield_percent': Validators.parseFlexibleNumber(yieldPercentController.text) ?? 0,
       'effective_from': nullIfEmpty(effectiveFromController.text),
       'effective_to': nullIfEmpty(effectiveToController.text),
       'notes': nullIfEmpty(notesController.text),

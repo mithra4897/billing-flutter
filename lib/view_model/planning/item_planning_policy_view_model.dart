@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class ItemPlanningPolicyViewModel extends GetxController {
   final PlanningService _service = PlanningService();
@@ -384,15 +384,15 @@ class ItemPlanningPolicyViewModel extends GetxController {
       'planning_method': nullIfEmpty(planningMethodController.text),
       'procurement_type': nullIfEmpty(procurementTypeController.text),
       'lead_time_days': int.tryParse(leadTimeDaysController.text.trim()),
-      'safety_stock_qty': double.tryParse(safetyStockQtyController.text.trim()),
+      'safety_stock_qty': Validators.parseFlexibleNumber(safetyStockQtyController.text),
       'reorder_level_qty': double.tryParse(
         reorderLevelQtyController.text.trim(),
       ),
-      'reorder_qty': double.tryParse(reorderQtyController.text.trim()),
+      'reorder_qty': Validators.parseFlexibleNumber(reorderQtyController.text),
       'minimum_order_qty': double.tryParse(
         minimumOrderQtyController.text.trim(),
       ),
-      'max_order_qty': double.tryParse(maxOrderQtyController.text.trim()),
+      'max_order_qty': Validators.parseFlexibleNumber(maxOrderQtyController.text),
       'order_multiple_qty': double.tryParse(
         orderMultipleQtyController.text.trim(),
       ),

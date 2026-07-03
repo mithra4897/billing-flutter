@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
@@ -97,11 +97,11 @@ class ProduceTrackingLineDraft {
   final TextEditingController remarksController;
 
   void _syncBalanceQty() {
-    final trackedQty = double.tryParse(trackedQtyController.text.trim()) ?? 0;
+    final trackedQty = Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0;
     final deliveredQty =
-        double.tryParse(deliveredQtyController.text.trim()) ?? 0;
+        Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0;
     final receivedQty =
-        double.tryParse(receivedQtyController.text.trim()) ?? 0;
+        Validators.parseFlexibleNumber(receivedQtyController.text) ?? 0;
     final balanceQty =
         math.max(trackedQty - math.max(deliveredQty, receivedQty), 0)
             .toDouble();
@@ -128,10 +128,10 @@ class ProduceTrackingLineDraft {
     'uom_id': uomId,
     'batch_id': batchId,
     'serial_id': serialId,
-    'tracked_qty': double.tryParse(trackedQtyController.text.trim()) ?? 0,
-    'delivered_qty': double.tryParse(deliveredQtyController.text.trim()) ?? 0,
-    'received_qty': double.tryParse(receivedQtyController.text.trim()) ?? 0,
-    'balance_qty': double.tryParse(balanceQtyController.text.trim()) ?? 0,
+    'tracked_qty': Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0,
+    'delivered_qty': Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0,
+    'received_qty': Validators.parseFlexibleNumber(receivedQtyController.text) ?? 0,
+    'balance_qty': Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
     'line_status': lineStatus,
     'current_location': nullIfEmpty(currentLocationController.text),
     'remarks': nullIfEmpty(remarksController.text),
@@ -1127,11 +1127,11 @@ class ProduceTrackingViewModel extends GetxController {
       final line = lines[i];
       final lineNo = i + 1;
       final trackedQty =
-          double.tryParse(line.trackedQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.trackedQtyController.text) ?? 0;
       final deliveredQty =
-          double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
       final receivedQty =
-          double.tryParse(line.receivedQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.receivedQtyController.text) ?? 0;
       if (line.itemId == null || line.warehouseId == null || line.uomId == null) {
         return 'Item, warehouse, and UOM are required at line $lineNo.';
       }
@@ -1208,7 +1208,7 @@ class ProduceTrackingViewModel extends GetxController {
       'lr_date': nullIfEmpty(lrDateController.text),
       'tracking_status': trackingStatus,
       'current_location': nullIfEmpty(currentLocationController.text),
-      'current_latitude': double.tryParse(currentLatitudeController.text.trim()),
+      'current_latitude': Validators.parseFlexibleNumber(currentLatitudeController.text),
       'current_longitude': double.tryParse(
         currentLongitudeController.text.trim(),
       ),

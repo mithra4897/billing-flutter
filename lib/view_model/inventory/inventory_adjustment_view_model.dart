@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> inventoryAdjustmentTypeItems =
@@ -61,8 +61,8 @@ class InventoryAdjustmentLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() {
-    final systemQty = double.tryParse(systemQtyController.text.trim()) ?? 0;
-    final actualQty = double.tryParse(actualQtyController.text.trim()) ?? 0;
+    final systemQty = Validators.parseFlexibleNumber(systemQtyController.text) ?? 0;
+    final actualQty = Validators.parseFlexibleNumber(actualQtyController.text) ?? 0;
     final adjustmentQtyText = adjustmentQtyController.text.trim();
     final adjustmentQty = adjustmentQtyText.isEmpty
         ? actualQty - systemQty
@@ -78,8 +78,8 @@ class InventoryAdjustmentLineDraft {
       'system_qty': systemQty,
       'actual_qty': actualQty,
       'adjustment_qty': adjustmentQty,
-      'unit_cost': double.tryParse(unitCostController.text.trim()),
-      'total_cost': double.tryParse(totalCostController.text.trim()),
+      'unit_cost': Validators.parseFlexibleNumber(unitCostController.text),
+      'total_cost': Validators.parseFlexibleNumber(totalCostController.text),
       'adjustment_direction': direction,
       'remarks': nullIfEmpty(remarksController.text),
     };
@@ -826,9 +826,9 @@ class InventoryAdjustmentViewModel extends GetxController {
       final line = lines[i];
       final lineNo = i + 1;
       final systemQty =
-          double.tryParse(line.systemQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.systemQtyController.text) ?? 0;
       final actualQty =
-          double.tryParse(line.actualQtyController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.actualQtyController.text) ?? 0;
       final adjustmentQtyText = line.adjustmentQtyController.text.trim();
       final adjustmentQty = adjustmentQtyText.isEmpty
           ? actualQty - systemQty

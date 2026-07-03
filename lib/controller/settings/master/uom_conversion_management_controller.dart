@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class UomConversionManagementController extends GetxController {
   UomConversionManagementController();
@@ -186,7 +186,7 @@ class UomConversionManagementController extends GetxController {
       id: selectedItem?.id,
       fromUomId: fromUomId,
       toUomId: toUomId,
-      conversionFactor: double.tryParse(factorController.text.trim()),
+      conversionFactor: Validators.parseFlexibleNumber(factorController.text),
       isActive: isActive,
     );
 

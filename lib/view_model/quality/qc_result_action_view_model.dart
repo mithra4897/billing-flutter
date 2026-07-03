@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 const Set<String> _resultActionInspectionStatuses = <String>{
@@ -249,7 +249,7 @@ class QcResultActionViewModel extends GetxController {
     if (qcInspectionId == null) {
       return 'QC inspection is required.';
     }
-    final qty = double.tryParse(actionQtyController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(actionQtyController.text) ?? 0;
     if (qty <= 0) {
       return 'Action quantity must be greater than zero.';
     }
@@ -257,7 +257,7 @@ class QcResultActionViewModel extends GetxController {
   }
 
   QcResultActionModel _buildDocument() {
-    final qty = double.tryParse(actionQtyController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(actionQtyController.text) ?? 0;
     final refId = int.tryParse(referenceDocIdController.text.trim());
     return QcResultActionModel(
       qcInspectionId: qcInspectionId,

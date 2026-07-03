@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 class StockBatchViewModel extends GetxController {
@@ -242,12 +242,12 @@ class StockBatchViewModel extends GetxController {
     if (batchNoController.text.trim().isEmpty) {
       return 'Batch no is required.';
     }
-    final inward = double.tryParse(inwardQtyController.text.trim()) ?? 0;
-    final outward = double.tryParse(outwardQtyController.text.trim()) ?? 0;
-    final balance = double.tryParse(balanceQtyController.text.trim()) ?? 0;
-    final purchaseRate = double.tryParse(purchaseRateController.text.trim());
-    final salesRate = double.tryParse(salesRateController.text.trim());
-    final mrp = double.tryParse(mrpController.text.trim());
+    final inward = Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0;
+    final outward = Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0;
+    final balance = Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0;
+    final purchaseRate = Validators.parseFlexibleNumber(purchaseRateController.text);
+    final salesRate = Validators.parseFlexibleNumber(salesRateController.text);
+    final mrp = Validators.parseFlexibleNumber(mrpController.text);
     if (inward < 0 || outward < 0 || balance < 0) {
       return 'Quantities cannot be negative.';
     }
@@ -283,18 +283,18 @@ class StockBatchViewModel extends GetxController {
       'batch_no': batchNoController.text.trim(),
       'mfg_date': nullIfEmpty(mfgDateController.text),
       'expiry_date': nullIfEmpty(expiryDateController.text),
-      'inward_qty': double.tryParse(inwardQtyController.text.trim()) ?? 0,
-      'outward_qty': double.tryParse(outwardQtyController.text.trim()) ?? 0,
-      'balance_qty': double.tryParse(balanceQtyController.text.trim()) ?? 0,
+      'inward_qty': Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0,
+      'outward_qty': Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0,
+      'balance_qty': Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
       'purchase_rate': nullIfEmpty(purchaseRateController.text) == null
           ? null
-          : double.tryParse(purchaseRateController.text.trim()),
+          : Validators.parseFlexibleNumber(purchaseRateController.text),
       'sales_rate': nullIfEmpty(salesRateController.text) == null
           ? null
-          : double.tryParse(salesRateController.text.trim()),
+          : Validators.parseFlexibleNumber(salesRateController.text),
       'mrp': nullIfEmpty(mrpController.text) == null
           ? null
-          : double.tryParse(mrpController.text.trim()),
+          : Validators.parseFlexibleNumber(mrpController.text),
       'is_active': isActive,
       'remarks': nullIfEmpty(remarksController.text),
     };

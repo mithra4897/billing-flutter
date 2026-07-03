@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 class QcPlanLineDraft {
@@ -57,8 +57,8 @@ class QcPlanLineDraft {
 
   QcPlanLineModel toModel() {
     final seq = int.tryParse(sequenceNoController.text.trim()) ?? 1;
-    final tMin = double.tryParse(toleranceMinController.text.trim());
-    final tMax = double.tryParse(toleranceMaxController.text.trim());
+    final tMin = Validators.parseFlexibleNumber(toleranceMinController.text);
+    final tMax = Validators.parseFlexibleNumber(toleranceMaxController.text);
     return QcPlanLineModel(
       checkpointName: checkpointNameController.text.trim(),
       checkpointType: checkpointType,
@@ -527,7 +527,7 @@ class QcPlanViewModel extends GetxController {
       return 'QC scope is required.';
     }
     if (acceptanceBasis == 'min_pass_percent') {
-      final p = double.tryParse(minPassPercentController.text.trim()) ?? 0;
+      final p = Validators.parseFlexibleNumber(minPassPercentController.text) ?? 0;
       if (p <= 0 || p > 100) {
         return 'Minimum pass percent must be between 1 and 100.';
       }
@@ -537,8 +537,8 @@ class QcPlanViewModel extends GetxController {
         if (d.checkpointNameController.text.trim().isEmpty) {
           return 'Each checkpoint needs a name.';
         }
-        final tMin = double.tryParse(d.toleranceMinController.text.trim());
-        final tMax = double.tryParse(d.toleranceMaxController.text.trim());
+        final tMin = Validators.parseFlexibleNumber(d.toleranceMinController.text);
+        final tMax = Validators.parseFlexibleNumber(d.toleranceMaxController.text);
         if (tMin != null && tMax != null && tMin > tMax) {
           return 'Tolerance min cannot exceed tolerance max.';
         }
@@ -550,7 +550,7 @@ class QcPlanViewModel extends GetxController {
   QcPlanModel _buildDocument() {
     final lines = lineDrafts.map((d) => d.toModel()).toList();
     final mp = acceptanceBasis == 'min_pass_percent'
-        ? double.tryParse(minPassPercentController.text.trim())
+        ? Validators.parseFlexibleNumber(minPassPercentController.text)
         : null;
     return QcPlanModel(
       companyId: companyId,

@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockSerialStatusItems =
@@ -333,8 +333,8 @@ class StockSerialViewModel extends GetxController {
     if (!stockSerialStatusItems.any((e) => e.value == status)) {
       return 'Invalid status.';
     }
-    final purchaseRate = double.tryParse(purchaseRateController.text.trim());
-    final salesRate = double.tryParse(salesRateController.text.trim());
+    final purchaseRate = Validators.parseFlexibleNumber(purchaseRateController.text);
+    final salesRate = Validators.parseFlexibleNumber(salesRateController.text);
     if (purchaseRate != null && purchaseRate < 0) {
       return 'Purchase rate cannot be negative.';
     }
@@ -375,10 +375,10 @@ class StockSerialViewModel extends GetxController {
       'outward_date': nullIfEmpty(outwardDateController.text),
       'purchase_rate': nullIfEmpty(purchaseRateController.text) == null
           ? null
-          : double.tryParse(purchaseRateController.text.trim()),
+          : Validators.parseFlexibleNumber(purchaseRateController.text),
       'sales_rate': nullIfEmpty(salesRateController.text) == null
           ? null
-          : double.tryParse(salesRateController.text.trim()),
+          : Validators.parseFlexibleNumber(salesRateController.text),
       'is_active': isActive,
       'remarks': nullIfEmpty(remarksController.text),
     };

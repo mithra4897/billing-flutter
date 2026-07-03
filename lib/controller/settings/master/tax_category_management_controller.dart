@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class TaxCategoryManagementController extends GetxController {
   static const List<AppDropdownItem<String>> taxTypeItems =
@@ -177,8 +177,8 @@ class TaxCategoryManagementController extends GetxController {
       taxCode: codeController.text.trim(),
       taxName: nameController.text.trim(),
       taxType: taxType,
-      taxRate: double.tryParse(rateController.text.trim()),
-      cessRate: double.tryParse(cessRateController.text.trim()),
+      taxRate: Validators.parseFlexibleNumber(rateController.text),
+      cessRate: Validators.parseFlexibleNumber(cessRateController.text),
       hsnSacCode: nullIfEmpty(hsnSacController.text),
       remarks: nullIfEmpty(remarksController.text),
       isActive: isActive,

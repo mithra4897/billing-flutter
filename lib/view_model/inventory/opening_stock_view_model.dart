@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import '../../model/inventory/opening_stock_item_model.dart';
 import 'inventory_module_refresh_controller.dart';
 
@@ -47,9 +47,9 @@ class OpeningStockLineDraft {
     if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
       'serial_no': serialNumbers.first.trim(),
     'uom_id': uomId,
-    'qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()),
-    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text),
+    'total_cost': Validators.parseFlexibleNumber(totalCostController.text),
     'remarks': nullIfEmpty(remarksController.text),
   };
 
@@ -566,8 +566,9 @@ class OpeningStockViewModel extends GetxController {
   }
 
   void _recalculateLineTotal(OpeningStockLineDraft line) {
-    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-    final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final unitCost =
+        Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
     line.totalCostController.text = _formatDraftNumber(qty * unitCost);
   }
 
@@ -863,7 +864,8 @@ class OpeningStockViewModel extends GetxController {
     if (!isSerialManagedItem(_effectiveItemIdForLine(line))) {
       return 0;
     }
-    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+    final qty =
+        Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
     if (qty <= 0) {
       return 0;
     }
@@ -1102,13 +1104,14 @@ class OpeningStockViewModel extends GetxController {
       final line = lines[i];
       final itemId = _effectiveItemIdForLine(line);
       final lineNo = i + 1;
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final qty =
+          Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
       final totalCost = totalCostText.isEmpty
           ? null
-          : double.tryParse(totalCostText);
+          : Validators.parseFlexibleNumber(totalCostText);
       if (itemId == null || line.warehouseId == null || line.uomId == null) {
         return 'Item, warehouse, and UOM are required at line $lineNo.';
       }
@@ -1260,7 +1263,7 @@ class OpeningStockViewModel extends GetxController {
       }
 
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final remarks = nullIfEmpty(line.remarksController.text);
       for (var index = 0; index < serialNumbers.length; index++) {
         final serialNo = serialNumbers[index];

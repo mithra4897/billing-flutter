@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class ItemManagementController extends GetxController {
   static const List<AppDropdownItem<String>> itemTypeItems =
@@ -382,16 +382,16 @@ class ItemManagementController extends GetxController {
       sku: nullIfEmpty(skuController.text),
       barcode: nullIfEmpty(barcodeController.text),
       hsnSacCode: nullIfEmpty(hsnController.text),
-      standardCost: double.tryParse(standardCostController.text.trim()),
+      standardCost: Validators.parseFlexibleNumber(standardCostController.text),
       standardSellingPrice: double.tryParse(
         standardSellingPriceController.text.trim(),
       ),
-      mrp: double.tryParse(mrpController.text.trim()),
-      minStockLevel: double.tryParse(minStockController.text.trim()),
-      reorderLevel: double.tryParse(reorderLevelController.text.trim()),
-      reorderQty: double.tryParse(reorderQtyController.text.trim()),
-      weight: double.tryParse(weightController.text.trim()),
-      volume: double.tryParse(volumeController.text.trim()),
+      mrp: Validators.parseFlexibleNumber(mrpController.text),
+      minStockLevel: Validators.parseFlexibleNumber(minStockController.text),
+      reorderLevel: Validators.parseFlexibleNumber(reorderLevelController.text),
+      reorderQty: Validators.parseFlexibleNumber(reorderQtyController.text),
+      weight: Validators.parseFlexibleNumber(weightController.text),
+      volume: Validators.parseFlexibleNumber(volumeController.text),
       imagePath: nullIfEmpty(imagePathController.text),
       description: nullIfEmpty(descriptionController.text),
       hasBatch: hasBatch,

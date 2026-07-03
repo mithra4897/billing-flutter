@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'maintenance_module_refresh_controller.dart';
 
 class MaintenanceWorkOrderViewModel extends GetxController {
@@ -614,8 +614,8 @@ class MaintenanceWorkOrderViewModel extends GetxController {
   }
 
   Map<String, dynamic> _buildCreatePayload() {
-    final labor = double.tryParse(laborCostController.text.trim()) ?? 0;
-    final other = double.tryParse(otherCostController.text.trim()) ?? 0;
+    final labor = Validators.parseFlexibleNumber(laborCostController.text) ?? 0;
+    final other = Validators.parseFlexibleNumber(otherCostController.text) ?? 0;
     return <String, dynamic>{
       'company_id': companyId,
       'asset_id': assetId,
@@ -654,18 +654,18 @@ class MaintenanceWorkOrderViewModel extends GetxController {
   Map<String, dynamic> _buildUpdatePayload() {
     final data = selected?.toJson() ?? const <String, dynamic>{};
     final labor =
-        double.tryParse(laborCostController.text.trim()) ??
+        Validators.parseFlexibleNumber(laborCostController.text) ??
         double.tryParse(_numStr(data, 'labor_cost')) ??
         0;
     final other =
-        double.tryParse(otherCostController.text.trim()) ??
+        Validators.parseFlexibleNumber(otherCostController.text) ??
         double.tryParse(_numStr(data, 'other_cost')) ??
         0;
     final spare = double.tryParse(_numStr(data, 'spare_cost')) ?? 0;
     final ext = double.tryParse(_numStr(data, 'external_service_cost')) ?? 0;
     final total = double.tryParse(_numStr(data, 'total_cost')) ?? 0;
     final dm =
-        double.tryParse(downtimeMinutesController.text.trim()) ??
+        Validators.parseFlexibleNumber(downtimeMinutesController.text) ??
         double.tryParse(_numStr(data, 'downtime_minutes'));
 
     return <String, dynamic>{

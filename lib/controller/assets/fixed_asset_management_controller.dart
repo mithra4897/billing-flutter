@@ -1,4 +1,4 @@
-import '../../screen.dart';
+﻿import '../../screen.dart';
 import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? fixedAssetJsonMap(dynamic value) {
@@ -554,17 +554,17 @@ class FixedAssetManagementController extends GetxController {
           'department_name': departmentController.text.trim(),
         if (nullIfEmpty(employeeController.text.trim()) != null)
           'employee_name': employeeController.text.trim(),
-        if (double.tryParse(acquisitionCostController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(acquisitionCostController.text) != null)
           'acquisition_cost': double.parse(
             acquisitionCostController.text.trim(),
           ),
-        if (double.tryParse(additionalCostController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(additionalCostController.text) != null)
           'additional_cost': double.parse(additionalCostController.text.trim()),
-        if (double.tryParse(capitalizationValueController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(capitalizationValueController.text) != null)
           'capitalization_value': double.parse(
             capitalizationValueController.text.trim(),
           ),
-        if (double.tryParse(salvageValueController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(salvageValueController.text) != null)
           'salvage_value': double.parse(salvageValueController.text.trim()),
         if (nullIfEmpty(warrantyStartController.text.trim()) != null)
           'warranty_start_date': warrantyStartController.text.trim(),

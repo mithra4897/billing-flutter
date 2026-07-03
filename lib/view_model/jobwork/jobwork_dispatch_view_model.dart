@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkDispatchLineDraft {
@@ -42,8 +42,8 @@ class JobworkDispatchLineDraft {
   final TextEditingController remarksController;
 
   JobworkDispatchLineModel toModel({required int? headerWarehouseId}) {
-    final qty = double.tryParse(qtyController.text.trim()) ?? 0;
-    final uc = double.tryParse(unitCostController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
+    final uc = Validators.parseFlexibleNumber(unitCostController.text) ?? 0;
     final tc = (qty * uc).toStringAsFixed(2);
     return JobworkDispatchLineModel(
       jobworkOrderMaterialId: jobworkOrderMaterialId,
@@ -799,7 +799,7 @@ class JobworkDispatchViewModel extends GetxController {
       for (final d in lineDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (double.tryParse(d.qtyController.text.trim()) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.qtyController.text) ?? 0) <= 0) {
           return 'Each line needs item, UOM and quantity.';
         }
         if (itemHasBatch(d.itemId) && d.batchId == null) {

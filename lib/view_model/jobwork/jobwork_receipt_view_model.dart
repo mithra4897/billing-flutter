@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkReceiptLineDraft {
@@ -53,10 +53,10 @@ class JobworkReceiptLineDraft {
   final TextEditingController remarksController;
 
   JobworkReceiptLineModel toModel({required int? headerWarehouseId}) {
-    final rq = double.tryParse(receiptQtyController.text.trim()) ?? 0;
-    final aq = double.tryParse(acceptedQtyController.text.trim()) ?? rq;
-    final rjq = double.tryParse(rejectedQtyController.text.trim()) ?? 0;
-    final uc = double.tryParse(unitCostController.text.trim()) ?? 0;
+    final rq = Validators.parseFlexibleNumber(receiptQtyController.text) ?? 0;
+    final aq = Validators.parseFlexibleNumber(acceptedQtyController.text) ?? rq;
+    final rjq = Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0;
+    final uc = Validators.parseFlexibleNumber(unitCostController.text) ?? 0;
     final tc = (aq * uc).toStringAsFixed(2);
     return JobworkReceiptLineModel(
       jobworkOrderOutputId: jobworkOrderOutputId,
@@ -835,7 +835,7 @@ class JobworkReceiptViewModel extends GetxController {
       for (final d in lineDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (double.tryParse(d.receiptQtyController.text.trim()) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.receiptQtyController.text) ?? 0) <= 0) {
           return 'Each line needs item, UOM and receipt quantity.';
         }
         if (itemHasBatch(d.itemId) && d.batchId == null) {

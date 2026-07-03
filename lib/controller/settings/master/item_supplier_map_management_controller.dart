@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 
 class ItemSupplierMapManagementController extends GetxController {
   ItemSupplierMapManagementController({
@@ -417,9 +417,9 @@ class ItemSupplierMapManagementController extends GetxController {
       supplierItemCode: nullIfEmpty(supplierItemCodeController.text),
       supplierItemName: nullIfEmpty(supplierItemNameController.text),
       purchaseUomId: purchaseUomId,
-      supplierRate: double.tryParse(supplierRateController.text.trim()),
+      supplierRate: Validators.parseFlexibleNumber(supplierRateController.text),
       leadTimeDays: int.tryParse(leadTimeDaysController.text.trim()),
-      minOrderQty: double.tryParse(minOrderQtyController.text.trim()),
+      minOrderQty: Validators.parseFlexibleNumber(minOrderQtyController.text),
       isPrimarySupplier: isPrimarySupplier,
       isActive: isActive,
       remarks: nullIfEmpty(remarksController.text),

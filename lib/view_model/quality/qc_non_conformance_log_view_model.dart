@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 class QcNcLineOption {
@@ -281,7 +281,7 @@ class QcNonConformanceLogViewModel extends GetxController {
     if (defectNameController.text.trim().isEmpty) {
       return 'Defect name is required.';
     }
-    final dq = double.tryParse(defectQtyController.text.trim()) ?? 0;
+    final dq = Validators.parseFlexibleNumber(defectQtyController.text) ?? 0;
     if (dq <= 0) {
       return 'Defect quantity must be greater than zero.';
     }
@@ -289,7 +289,7 @@ class QcNonConformanceLogViewModel extends GetxController {
   }
 
   QcNonConformanceLogModel _buildDocument() {
-    final dq = double.tryParse(defectQtyController.text.trim()) ?? 0;
+    final dq = Validators.parseFlexibleNumber(defectQtyController.text) ?? 0;
     final assigned = int.tryParse(assignedToController.text.trim());
     return QcNonConformanceLogModel(
       qcInspectionId: qcInspectionId,

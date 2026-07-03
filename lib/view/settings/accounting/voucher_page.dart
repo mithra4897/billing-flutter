@@ -1,4 +1,4 @@
-import '../../../controller/settings/accounting/voucher_management_controller.dart';
+﻿import '../../../controller/settings/accounting/voucher_management_controller.dart';
 import '../../../screen.dart';
 
 class VoucherManagementPage extends StatefulWidget {
@@ -537,9 +537,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     final totals = controller.usesQuickEntry
         ? <String, double>{
             'debit':
-                double.tryParse(controller.amountController.text.trim()) ?? 0,
+                Validators.parseFlexibleNumber(controller.amountController.text) ?? 0,
             'credit':
-                double.tryParse(controller.amountController.text.trim()) ?? 0,
+                Validators.parseFlexibleNumber(controller.amountController.text) ?? 0,
           }
         : <String, double>{
             'debit': controller.totalDebit,

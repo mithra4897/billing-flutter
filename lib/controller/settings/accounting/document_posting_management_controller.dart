@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class DocumentPostingLineDraft {
@@ -431,7 +431,7 @@ class DocumentPostingManagementController extends GetxController {
     final payloadLines = <Map<String, dynamic>>[];
     var index = 1;
     for (final line in lines) {
-      final amount = double.tryParse(line.amountController.text.trim()) ?? 0;
+      final amount = Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
       if (line.accountId == null || amount <= 0) {
         continue;
       }

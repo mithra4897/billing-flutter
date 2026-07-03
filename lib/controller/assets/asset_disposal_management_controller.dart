@@ -1,4 +1,4 @@
-import '../../screen.dart';
+﻿import '../../screen.dart';
 import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? assetDisposalJsonMap(dynamic value) {
@@ -400,9 +400,9 @@ class AssetDisposalManagementController extends GetxController {
         if (disposalNo.isNotEmpty) 'disposal_no': disposalNo,
         if (documentSeriesId != null) 'document_series_id': documentSeriesId,
         if (salePartyId != null) 'sale_party_id': salePartyId,
-        if (double.tryParse(disposalValueController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(disposalValueController.text) != null)
           'disposal_value': double.parse(disposalValueController.text.trim()),
-        if (double.tryParse(expenseController.text.trim()) != null)
+        if (Validators.parseFlexibleNumber(expenseController.text) != null)
           'disposal_expense': double.parse(expenseController.text.trim()),
         if (nullIfEmpty(remarksController.text.trim()) != null)
           'remarks': remarksController.text.trim(),

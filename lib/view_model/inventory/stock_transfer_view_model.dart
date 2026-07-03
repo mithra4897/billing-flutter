@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 class StockTransferLineDraft {
@@ -36,9 +36,9 @@ class StockTransferLineDraft {
     'from_serial_id': fromSerialId,
     'to_batch_id': toBatchId,
     'to_serial_id': toSerialId,
-    'transfer_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()),
-    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'transfer_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text),
+    'total_cost': Validators.parseFlexibleNumber(totalCostController.text),
     'remarks': nullIfEmpty(remarksController.text),
   };
 
@@ -729,9 +729,9 @@ class StockTransferViewModel extends GetxController {
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
       final lineNo = i + 1;
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
       final unitCost =
-          double.tryParse(line.unitCostController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
       final totalCost = totalCostText.isEmpty
           ? null

@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'asset_module_refresh_controller.dart';
 
 class AssetCategoryViewModel extends GetxController {
@@ -190,11 +190,11 @@ class AssetCategoryViewModel extends GetxController {
     if (life != null) {
       body['default_useful_life_months'] = life;
     }
-    final sav = double.tryParse(defaultSalvageValueController.text.trim());
+    final sav = Validators.parseFlexibleNumber(defaultSalvageValueController.text);
     if (sav != null) {
       body['default_salvage_value'] = sav;
     }
-    final cap = double.tryParse(capitalizationThresholdController.text.trim());
+    final cap = Validators.parseFlexibleNumber(capitalizationThresholdController.text);
     if (cap != null) {
       body['capitalization_threshold'] = cap;
     }

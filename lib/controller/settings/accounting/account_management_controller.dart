@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class AccountManagementController extends GetxController {
@@ -302,7 +302,7 @@ class AccountManagementController extends GetxController {
       accountGroupId: accountGroupId,
       accountType: accountType,
       openingBalance:
-          double.tryParse(openingBalanceController.text.trim()) ?? 0,
+          Validators.parseFlexibleNumber(openingBalanceController.text) ?? 0,
       openingBalanceType: openingBalanceType,
       currencyCode: currencyCodeController.text.trim(),
       allowManualEntries: allowManualEntries,

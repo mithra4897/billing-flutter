@@ -1,4 +1,4 @@
-import '../../../screen.dart';
+﻿import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionReceiptLineDraft {
@@ -43,10 +43,10 @@ class ProductionReceiptLineDraft {
     'item_id': itemId,
     'uom_id': uomId,
     'warehouse_id': warehouseId,
-    'receipt_qty': double.tryParse(receiptQtyController.text.trim()) ?? 0,
-    'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,
-    'rejected_qty': double.tryParse(rejectedQtyController.text.trim()) ?? 0,
-    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'receipt_qty': Validators.parseFlexibleNumber(receiptQtyController.text) ?? 0,
+    'accepted_qty': Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
+    'rejected_qty': Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
+    'unit_cost': Validators.parseFlexibleNumber(unitCostController.text) ?? 0,
     'remarks': nullIfEmpty(remarksController.text),
   };
 
@@ -372,7 +372,7 @@ class ProductionReceiptViewModel extends GetxController {
           line.warehouseId == null) {
         return 'Line ${i + 1}: item, UOM and warehouse are required.';
       }
-      if ((double.tryParse(line.receiptQtyController.text.trim()) ?? 0) <= 0) {
+      if ((Validators.parseFlexibleNumber(line.receiptQtyController.text) ?? 0) <= 0) {
         return 'Line ${i + 1}: receipt qty must be > 0.';
       }
     }
