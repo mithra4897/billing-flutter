@@ -658,8 +658,9 @@ class SalesReceiptManagementController extends GetxController {
     allocation.salesInvoiceId = value;
     final invoice = invoiceById(value);
     final balance = invoiceOutstandingAmount(invoice);
-    allocation.amountController.text =
-        balance <= 0 ? '' : formatReceiptAmount(balance);
+    allocation.amountController.text = balance <= 0
+        ? ''
+        : formatReceiptAmount(balance);
     if ((allocation.remarksController.text).trim().isEmpty && invoice != null) {
       allocation.remarksController.text =
           'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}';
@@ -821,12 +822,19 @@ class SalesReceiptManagementController extends GetxController {
     if (id == null) {
       return;
     }
+    final reason = await promptCancellationReason(
+      context,
+      title: 'Cancel receipt',
+      subjectLabel: selectedItem?.toString() ?? 'this sales receipt',
+    );
+    if (reason == null || !context.mounted) {
+      return;
+    }
     await docAction(
       context,
-      () => _salesService.cancelReceipt(
-        id,
-        SalesReceiptModel.fromJson(const <String, dynamic>{}),
-      ),
+      () => _salesService.cancelReceipt(id, <String, dynamic>{
+        'cancel_reason': reason,
+      }),
     );
   }
 

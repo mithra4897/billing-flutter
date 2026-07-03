@@ -1507,12 +1507,17 @@ class SalesOrderManagementController extends GetxController {
   Future<void> cancelSelected(BuildContext context) async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) return;
+    final reason = await promptCancellationReason(
+      context,
+      title: 'Cancel order',
+      subjectLabel: selectedItem?.toString() ?? 'this sales order',
+    );
+    if (reason == null || !context.mounted) return;
     await docAction(
       context,
-      () => _salesService.cancelOrder(
-        id,
-        SalesOrderModel.fromJson(const <String, dynamic>{}),
-      ),
+      () => _salesService.cancelOrder(id, <String, dynamic>{
+        'cancel_reason': reason,
+      }),
     );
   }
 

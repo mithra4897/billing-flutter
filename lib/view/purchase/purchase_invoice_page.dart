@@ -344,10 +344,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           AppDropdownField<int?>.fromMapped(
             labelText: 'Supplier',
             mappedItems: [
-              const AppDropdownItem<int?>(
-                value: null,
-                label: 'All Suppliers',
-              ),
+              const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
               ...controller.suppliers
                   .where((item) => item.id != null)
                   .map(
@@ -755,12 +752,25 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             icon: Icons.cancel_outlined,
                             label: 'Cancel',
                             filled: false,
-                            onPressed: () => controller.docAction(
-                              context,
-                              () => PurchaseService().cancelInvoice(
-                                controller.selectedItem!.id!,
-                              ),
-                            ),
+                            onPressed: () async {
+                              final reason = await promptCancellationReason(
+                                context,
+                                title: 'Cancel invoice',
+                                subjectLabel:
+                                    controller.selectedItem?.toString() ??
+                                    'this purchase invoice',
+                              );
+                              if (reason == null || !context.mounted) {
+                                return;
+                              }
+                              await controller.docAction(
+                                context,
+                                () => PurchaseService().cancelInvoice(
+                                  controller.selectedItem!.id!,
+                                  <String, dynamic>{'cancel_reason': reason},
+                                ),
+                              );
+                            },
                           ),
                       ],
                     );

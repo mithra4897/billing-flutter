@@ -533,15 +533,28 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                         icon: Icons.cancel_outlined,
                         label: 'Cancel',
                         filled: false,
-                        onPressed: () => controller.docAction(
-                          context,
-                          () => PurchaseService().cancelPayment(
-                            intValue(controller.selectedItem!.toJson(), 'id')!,
-                            PurchasePaymentModel.fromJson(
-                              const <String, dynamic>{},
+                        onPressed: () async {
+                          final reason = await promptCancellationReason(
+                            context,
+                            title: 'Cancel payment',
+                            subjectLabel:
+                                controller.selectedItem?.toString() ??
+                                'this purchase payment',
+                          );
+                          if (reason == null || !context.mounted) {
+                            return;
+                          }
+                          await controller.docAction(
+                            context,
+                            () => PurchaseService().cancelPayment(
+                              intValue(
+                                controller.selectedItem!.toJson(),
+                                'id',
+                              )!,
+                              <String, dynamic>{'cancel_reason': reason},
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
                 );

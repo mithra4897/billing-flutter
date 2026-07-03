@@ -1065,12 +1065,19 @@ class SalesReturnManagementController extends GetxController {
     if (id == null) {
       return;
     }
+    final reason = await promptCancellationReason(
+      context,
+      title: 'Cancel return',
+      subjectLabel: selectedItem?.toString() ?? 'this sales return',
+    );
+    if (reason == null || !context.mounted) {
+      return;
+    }
     await docAction(
       context,
-      () => _salesService.cancelReturn(
-        id,
-        SalesReturnModel.fromJson(const <String, dynamic>{}),
-      ),
+      () => _salesService.cancelReturn(id, <String, dynamic>{
+        'cancel_reason': reason,
+      }),
     );
   }
 

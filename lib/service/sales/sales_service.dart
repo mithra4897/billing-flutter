@@ -92,7 +92,7 @@ class SalesService extends ErpModuleService {
 
   Future<ApiResponse<SalesQuotationModel>> cancelQuotation(
     int id,
-    SalesQuotationModel body,
+    dynamic body,
   ) => actionModel<SalesQuotationModel>(
     '/sales/quotations/$id/cancel',
     body: body,
@@ -148,14 +148,12 @@ class SalesService extends ErpModuleService {
     fromJson: SalesOrderModel.fromJson,
   );
 
-  Future<ApiResponse<SalesOrderModel>> cancelOrder(
-    int id,
-    SalesOrderModel body,
-  ) => actionModel<SalesOrderModel>(
-    '/sales/orders/$id/cancel',
-    body: body,
-    fromJson: SalesOrderModel.fromJson,
-  );
+  Future<ApiResponse<SalesOrderModel>> cancelOrder(int id, dynamic body) =>
+      actionModel<SalesOrderModel>(
+        '/sales/orders/$id/cancel',
+        body: body,
+        fromJson: SalesOrderModel.fromJson,
+      );
 
   Future<ApiResponse<SalesOrderModel>> closeOrder(
     int id,
@@ -218,7 +216,7 @@ class SalesService extends ErpModuleService {
 
   Future<ApiResponse<SalesDeliveryModel>> cancelDelivery(
     int id,
-    SalesDeliveryModel body,
+    dynamic body,
   ) => actionModel<SalesDeliveryModel>(
     '/sales/deliveries/$id/cancel',
     body: body,
@@ -296,9 +294,10 @@ class SalesService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<SalesInvoiceModel>> cancelInvoice(int id) {
+  Future<ApiResponse<SalesInvoiceModel>> cancelInvoice(int id, dynamic body) {
     return client.post<SalesInvoiceModel>(
       '${ApiEndpoints.salesInvoices}/$id/cancel',
+      body: body,
       fromData: (json) =>
           SalesInvoiceModel.fromJson(json as Map<String, dynamic>),
     );
@@ -355,14 +354,12 @@ class SalesService extends ErpModuleService {
     fromJson: SalesReceiptModel.fromJson,
   );
 
-  Future<ApiResponse<SalesReceiptModel>> cancelReceipt(
-    int id,
-    SalesReceiptModel body,
-  ) => actionModel<SalesReceiptModel>(
-    '/sales/receipts/$id/cancel',
-    body: body,
-    fromJson: SalesReceiptModel.fromJson,
-  );
+  Future<ApiResponse<SalesReceiptModel>> cancelReceipt(int id, dynamic body) =>
+      actionModel<SalesReceiptModel>(
+        '/sales/receipts/$id/cancel',
+        body: body,
+        fromJson: SalesReceiptModel.fromJson,
+      );
 
   Future<PaginatedResponse<SalesReturnModel>> returns({
     Map<String, dynamic>? filters,
@@ -414,12 +411,10 @@ class SalesService extends ErpModuleService {
     fromJson: SalesReturnModel.fromJson,
   );
 
-  Future<ApiResponse<SalesReturnModel>> cancelReturn(
-    int id,
-    SalesReturnModel body,
-  ) => actionModel<SalesReturnModel>(
-    '/sales/returns/$id/cancel',
-    body: body,
-    fromJson: SalesReturnModel.fromJson,
-  );
+  Future<ApiResponse<SalesReturnModel>> cancelReturn(int id, dynamic body) =>
+      actionModel<SalesReturnModel>(
+        '/sales/returns/$id/cancel',
+        body: body,
+        fromJson: SalesReturnModel.fromJson,
+      );
 }

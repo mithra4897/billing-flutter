@@ -56,7 +56,7 @@ class PurchaseService extends ErpModuleService {
 
   Future<ApiResponse<PurchaseRequisitionModel>> cancelRequisition(
     int id,
-    PurchaseRequisitionModel body,
+    dynamic body,
   ) => actionModel<PurchaseRequisitionModel>(
     '${ApiEndpoints.purchaseRequisitions}/$id/cancel',
     body: body,
@@ -123,14 +123,12 @@ class PurchaseService extends ErpModuleService {
     fromJson: PurchaseOrderModel.fromJson,
   );
 
-  Future<ApiResponse<PurchaseOrderModel>> cancelOrder(
-    int id,
-    PurchaseOrderModel body,
-  ) => actionModel<PurchaseOrderModel>(
-    '${ApiEndpoints.purchaseOrders}/$id/cancel',
-    body: body,
-    fromJson: PurchaseOrderModel.fromJson,
-  );
+  Future<ApiResponse<PurchaseOrderModel>> cancelOrder(int id, dynamic body) =>
+      actionModel<PurchaseOrderModel>(
+        '${ApiEndpoints.purchaseOrders}/$id/cancel',
+        body: body,
+        fromJson: PurchaseOrderModel.fromJson,
+      );
 
   Future<ApiResponse<PurchaseOrderModel>> closeOrder(
     int id,
@@ -194,7 +192,7 @@ class PurchaseService extends ErpModuleService {
 
   Future<ApiResponse<PurchaseReceiptModel>> cancelReceipt(
     int id,
-    PurchaseReceiptModel body,
+    dynamic body,
   ) => actionModel<PurchaseReceiptModel>(
     '${ApiEndpoints.purchaseReceipts}/$id/cancel',
     body: body,
@@ -267,9 +265,13 @@ class PurchaseService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<PurchaseInvoiceModel>> cancelInvoice(int id) {
+  Future<ApiResponse<PurchaseInvoiceModel>> cancelInvoice(
+    int id,
+    dynamic body,
+  ) {
     return client.post<PurchaseInvoiceModel>(
       '${ApiEndpoints.purchaseInvoices}/$id/cancel',
+      body: body,
       fromData: (json) =>
           PurchaseInvoiceModel.fromJson(json as Map<String, dynamic>),
     );
@@ -328,7 +330,7 @@ class PurchaseService extends ErpModuleService {
 
   Future<ApiResponse<PurchasePaymentModel>> cancelPayment(
     int id,
-    PurchasePaymentModel body,
+    dynamic body,
   ) => actionModel<PurchasePaymentModel>(
     '${ApiEndpoints.purchasePayments}/$id/cancel',
     body: body,
@@ -386,12 +388,10 @@ class PurchaseService extends ErpModuleService {
     fromJson: PurchaseReturnModel.fromJson,
   );
 
-  Future<ApiResponse<PurchaseReturnModel>> cancelReturn(
-    int id,
-    PurchaseReturnModel body,
-  ) => actionModel<PurchaseReturnModel>(
-    '${ApiEndpoints.purchaseReturns}/$id/cancel',
-    body: body,
-    fromJson: PurchaseReturnModel.fromJson,
-  );
+  Future<ApiResponse<PurchaseReturnModel>> cancelReturn(int id, dynamic body) =>
+      actionModel<PurchaseReturnModel>(
+        '${ApiEndpoints.purchaseReturns}/$id/cancel',
+        body: body,
+        fromJson: PurchaseReturnModel.fromJson,
+      );
 }

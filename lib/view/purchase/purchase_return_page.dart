@@ -464,15 +464,28 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                         icon: Icons.cancel_outlined,
                         label: 'Cancel',
                         filled: false,
-                        onPressed: () => controller.docAction(
-                          context,
-                          () => PurchaseService().cancelReturn(
-                            intValue(controller.selectedItem!.toJson(), 'id')!,
-                            PurchaseReturnModel.fromJson(
-                              const <String, dynamic>{},
+                        onPressed: () async {
+                          final reason = await promptCancellationReason(
+                            context,
+                            title: 'Cancel return',
+                            subjectLabel:
+                                controller.selectedItem?.toString() ??
+                                'this purchase return',
+                          );
+                          if (reason == null || !context.mounted) {
+                            return;
+                          }
+                          await controller.docAction(
+                            context,
+                            () => PurchaseService().cancelReturn(
+                              intValue(
+                                controller.selectedItem!.toJson(),
+                                'id',
+                              )!,
+                              <String, dynamic>{'cancel_reason': reason},
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
                 );

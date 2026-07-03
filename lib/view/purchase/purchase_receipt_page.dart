@@ -615,15 +615,28 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                         icon: Icons.cancel_outlined,
                         label: 'Cancel',
                         filled: false,
-                        onPressed: () => controller.docAction(
-                          context,
-                          () => PurchaseService().cancelReceipt(
-                            intValue(controller.selectedItem!.toJson(), 'id')!,
-                            PurchaseReceiptModel.fromJson(
-                              const <String, dynamic>{},
+                        onPressed: () async {
+                          final reason = await promptCancellationReason(
+                            context,
+                            title: 'Cancel receipt',
+                            subjectLabel:
+                                controller.selectedItem?.toString() ??
+                                'this purchase receipt',
+                          );
+                          if (reason == null || !context.mounted) {
+                            return;
+                          }
+                          await controller.docAction(
+                            context,
+                            () => PurchaseService().cancelReceipt(
+                              intValue(
+                                controller.selectedItem!.toJson(),
+                                'id',
+                              )!,
+                              <String, dynamic>{'cancel_reason': reason},
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                   ],
                 );

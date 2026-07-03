@@ -2784,8 +2784,10 @@ class SalesInvoiceManagementController extends GetxController {
     return salesService.postInvoice(id);
   }
 
-  Future<ApiResponse<SalesInvoiceModel>> cancelInvoice(int id) {
-    return salesService.cancelInvoice(id);
+  Future<ApiResponse<SalesInvoiceModel>> cancelInvoice(int id, String reason) {
+    return salesService.cancelInvoice(id, <String, dynamic>{
+      'cancel_reason': reason,
+    });
   }
 }
 

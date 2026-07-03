@@ -1050,12 +1050,25 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       icon: Icons.block_outlined,
                       label: 'Cancel invoice',
                       filled: false,
-                      onPressed: () => controller.docAction(
-                        context,
-                        () => controller.cancelInvoice(
-                          controller.selectedItem!.id!,
-                        ),
-                      ),
+                      onPressed: () async {
+                        final reason = await promptCancellationReason(
+                          context,
+                          title: 'Cancel invoice',
+                          subjectLabel:
+                              controller.selectedItem?.toString() ??
+                              'this sales invoice',
+                        );
+                        if (reason == null || !context.mounted) {
+                          return;
+                        }
+                        await controller.docAction(
+                          context,
+                          () => controller.cancelInvoice(
+                            controller.selectedItem!.id!,
+                            reason,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ],

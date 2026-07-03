@@ -502,18 +502,28 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                           AppActionButton(
                             icon: Icons.cancel_outlined,
                             label: 'Cancel',
-                            onPressed: () => controller.executeAction(
-                              context,
-                              () => PurchaseService().cancelRequisition(
-                                intValue(
-                                  controller.selectedItem!.toJson(),
-                                  'id',
-                                )!,
-                                PurchaseRequisitionModel.fromJson(
-                                  const <String, dynamic>{},
+                            onPressed: () async {
+                              final reason = await promptCancellationReason(
+                                context,
+                                title: 'Cancel requisition',
+                                subjectLabel:
+                                    controller.selectedItem?.toString() ??
+                                    'this purchase requisition',
+                              );
+                              if (reason == null || !context.mounted) {
+                                return;
+                              }
+                              await controller.executeAction(
+                                context,
+                                () => PurchaseService().cancelRequisition(
+                                  intValue(
+                                    controller.selectedItem!.toJson(),
+                                    'id',
+                                  )!,
+                                  <String, dynamic>{'cancel_reason': reason},
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                             filled: false,
                           ),
                       ],

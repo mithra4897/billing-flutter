@@ -1642,12 +1642,19 @@ class SalesDeliveryManagementController extends GetxController {
   Future<void> cancelSelected(BuildContext context) async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) return;
+    final reason = await promptCancellationReason(
+      context,
+      title: 'Cancel delivery',
+      subjectLabel: selectedItem?.toString() ?? 'this delivery challan',
+      warningMessage:
+          'Warning: if this DC has a linked sales invoice, cancel the sales invoice first before cancelling the DC.',
+    );
+    if (reason == null || !context.mounted) return;
     await docAction(
       context,
-      () => _salesService.cancelDelivery(
-        id,
-        SalesDeliveryModel.fromJson(const <String, dynamic>{}),
-      ),
+      () => _salesService.cancelDelivery(id, <String, dynamic>{
+        'cancel_reason': reason,
+      }),
     );
   }
 
