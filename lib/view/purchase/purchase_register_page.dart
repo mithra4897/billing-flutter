@@ -6,12 +6,14 @@ class PurchaseRegisterColumn<T> {
     required this.label,
     required this.valueBuilder,
     this.widgetBuilder,
+    this.detailBuilder,
     this.flex = 2,
   });
 
   final String label;
   final String Function(T row) valueBuilder;
   final Widget Function(BuildContext context, T row)? widgetBuilder;
+  final String Function(T row)? detailBuilder;
   final int flex;
 }
 
@@ -339,21 +341,10 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: widget.columns
                     .map(
-                  (column) => Expanded(
-                    flex: column.flex,
-                    child: column.widgetBuilder != null 
-                        ? Align(
-                            alignment: Alignment.centerLeft,
-                            child: column.widgetBuilder!(context, row),
-                          )
-                        : Text(
-                            column.valueBuilder(row).trim().isEmpty
-                                ? '-'
-                                : column.valueBuilder(row),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                  ),
+                      (column) => Expanded(
+                        flex: column.flex,
+                        child: _RegisterCell<T>(column: column, row: row),
+                      ),
                     )
                     .toList(growable: false),
               ),
@@ -404,9 +395,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             padding: const EdgeInsets.only(
                               bottom: AppUiConstants.spacingXs,
                             ),
-                            child: Text(
-                              '${column.label}: ${column.valueBuilder(row).trim().isEmpty ? '-' : column.valueBuilder(row)}',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                            child: _MobileRegisterField<T>(
+                              column: column,
+                              row: row,
                             ),
                           ),
                         ),
@@ -479,19 +470,121 @@ class _RegisterRow<T> extends StatelessWidget {
               .map(
                 (column) => Expanded(
                   flex: column.flex,
-                  child: column.widgetBuilder != null
-                      ? Align(
-                          alignment: Alignment.centerLeft,
-                          child: column.widgetBuilder!(context, row),
-                        )
-                      : Text(
-                          column.valueBuilder(row),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  child: _RegisterCell<T>(column: column, row: row),
                 ),
               )
               .toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _RegisterCell<T> extends StatelessWidget {
+  const _RegisterCell({required this.column, required this.row});
+
+  final PurchaseRegisterColumn<T> column;
+  final T row;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryValue = column.valueBuilder(row);
+    final detailValue = column.detailBuilder?.call(row).trim() ?? '';
+    final primaryWidget = column.widgetBuilder != null
+        ? Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 1,
+            child: column.widgetBuilder!(context, row),
+          )
+        : Text(
+            primaryValue.trim().isEmpty ? '-' : primaryValue,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          );
+
+    if (detailValue.isEmpty) {
+      return primaryWidget;
+    }
+
+    return Wrap(
+      spacing: AppUiConstants.spacingXs,
+      runSpacing: AppUiConstants.spacingXxs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        primaryWidget,
+        _DetailInfoButton(detailValue: detailValue),
+      ],
+    );
+  }
+}
+
+class _MobileRegisterField<T> extends StatelessWidget {
+  const _MobileRegisterField({required this.column, required this.row});
+
+  final PurchaseRegisterColumn<T> column;
+  final T row;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryValue = column.valueBuilder(row).trim();
+    final detailValue = column.detailBuilder?.call(row).trim() ?? '';
+    final textTheme = Theme.of(context).textTheme;
+    final appTheme = Theme.of(context).extension<AppThemeExtension>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                '${column.label}: ${primaryValue.isEmpty ? '-' : primaryValue}',
+                style: textTheme.bodyMedium,
+              ),
+            ),
+            if (detailValue.isNotEmpty) ...[
+              const SizedBox(width: AppUiConstants.spacingXs),
+              _DetailInfoButton(
+                detailValue: detailValue,
+                iconColor: appTheme?.mutedText,
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailInfoButton extends StatelessWidget {
+  const _DetailInfoButton({required this.detailValue, this.iconColor});
+
+  final String detailValue;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: detailValue,
+      waitDuration: const Duration(milliseconds: 150),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 13,
+            color: iconColor ?? Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
     );

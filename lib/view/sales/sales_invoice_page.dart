@@ -644,7 +644,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               'Date ${displayDate(item.invoiceDate.isEmpty ? null : item.invoiceDate)}',
               if (st.isNotEmpty) 'Status ${st.toUpperCase()}',
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'invoice_status',
+            ),
             trailing: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,

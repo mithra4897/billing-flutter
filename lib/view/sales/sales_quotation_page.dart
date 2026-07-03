@@ -333,7 +333,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               displayDate(nullableStringValue(data, 'quotation_date')),
               stringValue(data, 'quotation_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'quotation_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

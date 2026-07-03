@@ -342,6 +342,10 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
             context,
             nullableStringValue(row.toJson(), 'requisition_status'),
           ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'requisition_status',
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -449,6 +453,10 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
             context,
             nullableStringValue(row.toJson(), 'order_status'),
           ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'order_status',
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/orders/${intValue(row.toJson(), 'id')}',
@@ -551,6 +559,10 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
           widgetBuilder: (context, row) => purchaseStatusBadge(
             context,
             nullableStringValue(row.toJson(), 'receipt_status'),
+          ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'receipt_status',
           ),
         ),
       ],
@@ -657,6 +669,10 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             row.invoiceStatus,
             dueDate: row.dueDate,
           ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'invoice_status',
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
@@ -760,6 +776,10 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
             context,
             nullableStringValue(row.toJson(), 'payment_status'),
           ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'payment_status',
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/payments/${intValue(row.toJson(), 'id')}',
@@ -860,6 +880,10 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
           widgetBuilder: (context, row) => purchaseStatusBadge(
             context,
             nullableStringValue(row.toJson(), 'return_status'),
+          ),
+          detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'return_status',
           ),
         ),
       ],

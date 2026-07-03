@@ -422,7 +422,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               displayDate(nullableStringValue(data, 'order_date')),
               stringValue(data, 'order_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'order_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

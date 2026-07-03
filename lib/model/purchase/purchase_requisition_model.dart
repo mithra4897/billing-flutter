@@ -15,6 +15,7 @@ class PurchaseRequisitionModel extends JsonModel {
     this.department,
     this.purpose,
     this.requisitionStatus,
+    this.cancelReason,
     this.notes,
     this.approvedBy,
     this.approvedAt,
@@ -37,6 +38,7 @@ class PurchaseRequisitionModel extends JsonModel {
   final String? department;
   final String? purpose;
   final String? requisitionStatus;
+  final String? cancelReason;
   final String? notes;
   final int? approvedBy;
   final String? approvedAt;
@@ -62,6 +64,7 @@ class PurchaseRequisitionModel extends JsonModel {
       department: json['department']?.toString(),
       purpose: json['purpose']?.toString(),
       requisitionStatus: json['requisition_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
@@ -85,7 +88,6 @@ class PurchaseRequisitionModel extends JsonModel {
     requiredDate,
   ], defaultValue: 'Purchase Requisition');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -101,6 +103,7 @@ class PurchaseRequisitionModel extends JsonModel {
     if (department != null) 'department': department,
     if (purpose != null) 'purpose': purpose,
     if (requisitionStatus != null) 'requisition_status': requisitionStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (approvedBy != null) 'approved_by': approvedBy,
     if (approvedAt != null) 'approved_at': approvedAt,

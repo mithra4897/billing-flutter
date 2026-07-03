@@ -71,6 +71,32 @@ Widget salesStatusBadge(
   return AppStatusBadge(label: label, color: color);
 }
 
+String salesListDetailWithCancelReason(
+  Map<String, dynamic> data,
+  String baseDetail, {
+  required String statusKey,
+}) {
+  final details = <String>[if (baseDetail.trim().isNotEmpty) baseDetail.trim()];
+  final status = stringValue(data, statusKey).trim().toLowerCase();
+  final cancelReason = stringValue(data, 'cancel_reason').trim();
+  if (status == 'cancelled' && cancelReason.isNotEmpty) {
+    details.add('Cancel reason: $cancelReason');
+  }
+  return details.join('\n');
+}
+
+String salesRegisterCancelReasonDetail(
+  Map<String, dynamic> data, {
+  required String statusKey,
+}) {
+  final status = stringValue(data, statusKey).trim().toLowerCase();
+  final cancelReason = stringValue(data, 'cancel_reason').trim();
+  if (status == 'cancelled' && cancelReason.isNotEmpty) {
+    return 'Cancel reason: $cancelReason';
+  }
+  return '';
+}
+
 List<PartyModel> salesCustomers({
   required List<PartyModel> parties,
   required List<PartyTypeModel> partyTypes,

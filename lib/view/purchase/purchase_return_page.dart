@@ -279,9 +279,12 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               displayDate(nullableStringValue(data, 'return_date')),
               purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail:
-                nullableStringValue(data, 'purchase_invoice_no') ??
-                stringValue(data, 'supplier_name'),
+            detail: purchaseListDetailWithCancelReason(
+              data,
+              nullableStringValue(data, 'purchase_invoice_no') ??
+                  stringValue(data, 'supplier_name'),
+              statusKey: 'return_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

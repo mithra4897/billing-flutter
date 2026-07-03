@@ -27,6 +27,7 @@ class PurchaseReceiptModel extends JsonModel {
     this.roundOffAmount,
     this.voucherId,
     this.receiptStatus,
+    this.cancelReason,
     this.notes,
     this.postedBy,
     this.postedAt,
@@ -61,6 +62,7 @@ class PurchaseReceiptModel extends JsonModel {
   final double? roundOffAmount;
   final int? voucherId;
   final String? receiptStatus;
+  final String? cancelReason;
   final String? notes;
   final int? postedBy;
   final String? postedAt;
@@ -98,6 +100,7 @@ class PurchaseReceiptModel extends JsonModel {
       roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       receiptStatus: json['receipt_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
@@ -149,6 +152,7 @@ class PurchaseReceiptModel extends JsonModel {
     if (roundOffAmount != null) 'round_off_amount': roundOffAmount,
     if (voucherId != null) 'voucher_id': voucherId,
     if (receiptStatus != null) 'receipt_status': receiptStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,

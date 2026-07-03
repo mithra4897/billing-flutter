@@ -354,7 +354,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
               displayDate(nullableStringValue(data, 'order_date')),
               purchaseStatusLabel(nullableStringValue(data, 'order_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(data, 'supplier_name'),
+            detail: purchaseListDetailWithCancelReason(
+              data,
+              stringValue(data, 'supplier_name'),
+              statusKey: 'order_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

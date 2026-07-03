@@ -25,6 +25,7 @@ class SalesDeliveryModel extends JsonModel {
     this.roundOffAmount,
     this.voucherId,
     this.deliveryStatus,
+    this.cancelReason,
     this.notes,
     this.termsConditions,
     this.postedBy,
@@ -59,6 +60,7 @@ class SalesDeliveryModel extends JsonModel {
   final double? roundOffAmount;
   final int? voucherId;
   final String? deliveryStatus;
+  final String? cancelReason;
   final String? notes;
   final String? termsConditions;
   final int? postedBy;
@@ -96,6 +98,7 @@ class SalesDeliveryModel extends JsonModel {
       roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       deliveryStatus: json['delivery_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
       postedBy: JsonModel.nullableInt(json['posted_by']),
@@ -143,6 +146,7 @@ class SalesDeliveryModel extends JsonModel {
     if (roundOffAmount != null) 'round_off_amount': roundOffAmount,
     if (voucherId != null) 'voucher_id': voucherId,
     if (deliveryStatus != null) 'delivery_status': deliveryStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (termsConditions != null) 'terms_conditions': termsConditions,
     if (postedBy != null) 'posted_by': postedBy,

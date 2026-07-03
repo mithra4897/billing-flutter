@@ -31,6 +31,7 @@ class SalesQuotationModel extends JsonModel {
     this.roundOffAmount,
     this.totalAmount,
     this.quotationStatus,
+    this.cancelReason,
     this.notes,
     this.termsConditions,
     this.approvedBy,
@@ -70,6 +71,7 @@ class SalesQuotationModel extends JsonModel {
   final double? roundOffAmount;
   final double? totalAmount;
   final String? quotationStatus;
+  final String? cancelReason;
   final String? notes;
   final String? termsConditions;
   final int? approvedBy;
@@ -112,6 +114,7 @@ class SalesQuotationModel extends JsonModel {
       roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       totalAmount: JsonModel.nullableDouble(json['total_amount']),
       quotationStatus: json['quotation_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
       approvedBy: JsonModel.nullableInt(json['approved_by']),
@@ -165,6 +168,7 @@ class SalesQuotationModel extends JsonModel {
     if (roundOffAmount != null) 'round_off_amount': roundOffAmount,
     if (totalAmount != null) 'total_amount': totalAmount,
     if (quotationStatus != null) 'quotation_status': quotationStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (termsConditions != null) 'terms_conditions': termsConditions,
     if (approvedBy != null) 'approved_by': approvedBy,

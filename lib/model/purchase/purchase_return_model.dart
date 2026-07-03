@@ -30,6 +30,7 @@ class PurchaseReturnModel extends JsonModel {
     this.voucherId,
     this.returnReason,
     this.returnStatus,
+    this.cancelReason,
     this.notes,
     this.postedBy,
     this.postedAt,
@@ -67,6 +68,7 @@ class PurchaseReturnModel extends JsonModel {
   final int? voucherId;
   final String? returnReason;
   final String? returnStatus;
+  final String? cancelReason;
   final String? notes;
   final int? postedBy;
   final String? postedAt;
@@ -107,6 +109,7 @@ class PurchaseReturnModel extends JsonModel {
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       returnReason: json['return_reason']?.toString(),
       returnStatus: json['return_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
@@ -157,6 +160,7 @@ class PurchaseReturnModel extends JsonModel {
     if (voucherId != null) 'voucher_id': voucherId,
     if (returnReason != null) 'return_reason': returnReason,
     if (returnStatus != null) 'return_status': returnStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,

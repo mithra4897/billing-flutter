@@ -28,6 +28,7 @@ class SalesInvoiceModel extends JsonModel {
     this.totalAmount,
     this.balanceAmount,
     this.invoiceStatus,
+    this.cancelReason,
     this.notes,
     this.termsConditions,
     this.customerReferenceNo,
@@ -61,6 +62,7 @@ class SalesInvoiceModel extends JsonModel {
   final double? totalAmount;
   final double? balanceAmount;
   final String? invoiceStatus;
+  final String? cancelReason;
   final String? notes;
   final String? termsConditions;
   final String? customerReferenceNo;
@@ -97,6 +99,7 @@ class SalesInvoiceModel extends JsonModel {
       totalAmount: _nullableDouble(json['total_amount']),
       balanceAmount: _nullableDouble(json['balance_amount']),
       invoiceStatus: json['invoice_status']?.toString(),
+      cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
       customerReferenceNo: json['customer_reference_no']?.toString(),
@@ -156,6 +159,7 @@ class SalesInvoiceModel extends JsonModel {
     if (totalAmount != null) 'total_amount': totalAmount,
     if (balanceAmount != null) 'balance_amount': balanceAmount,
     if (invoiceStatus != null) 'invoice_status': invoiceStatus,
+    if (cancelReason != null) 'cancel_reason': cancelReason,
     if (voucher != null) 'voucher': voucher!.toJson(),
   };
 

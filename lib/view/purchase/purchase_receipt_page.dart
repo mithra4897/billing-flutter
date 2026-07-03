@@ -379,10 +379,14 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
               displayDate(nullableStringValue(data, 'receipt_date')),
               purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(
+            detail: purchaseListDetailWithCancelReason(
               data,
-              'purchase_order_no',
-              stringValue(data, 'supplier_name'),
+              stringValue(
+                data,
+                'purchase_order_no',
+                stringValue(data, 'supplier_name'),
+              ),
+              statusKey: 'receipt_status',
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

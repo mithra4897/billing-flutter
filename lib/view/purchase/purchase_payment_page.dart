@@ -196,9 +196,12 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               displayDate(nullableStringValue(data, 'payment_date')),
               purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail:
-                nullableStringValue(data, 'reference_no') ??
-                stringValue(data, 'supplier_name'),
+            detail: purchaseListDetailWithCancelReason(
+              data,
+              nullableStringValue(data, 'reference_no') ??
+                  stringValue(data, 'supplier_name'),
+              statusKey: 'payment_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

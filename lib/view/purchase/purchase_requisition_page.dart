@@ -291,7 +291,11 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
               displayDate(nullableStringValue(data, 'requisition_date')),
               _statusLabel(nullableStringValue(data, 'requisition_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(data, 'purpose'),
+            detail: purchaseListDetailWithCancelReason(
+              data,
+              stringValue(data, 'purpose'),
+              statusKey: 'requisition_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

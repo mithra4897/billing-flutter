@@ -264,7 +264,11 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
               displayDate(nullableStringValue(data, 'return_date')),
               stringValue(data, 'return_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'return_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

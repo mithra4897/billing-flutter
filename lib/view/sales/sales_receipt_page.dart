@@ -173,7 +173,11 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               displayDate(nullableStringValue(data, 'receipt_date')),
               stringValue(data, 'receipt_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'receipt_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

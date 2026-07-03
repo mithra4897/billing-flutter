@@ -518,7 +518,11 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               displayDate(nullableStringValue(data, 'delivery_date')),
               stringValue(data, 'delivery_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: quotationCustomerLabel(data),
+            detail: salesListDetailWithCancelReason(
+              data,
+              quotationCustomerLabel(data),
+              statusKey: 'delivery_status',
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );
