@@ -65,6 +65,7 @@ class ErpLineItemTextCell extends StatefulWidget {
     this.readOnly = false,
     this.enabled = true,
     this.height = AppUiConstants.tableCompactFieldHeight,
+    this.textAlign,
   }) : assert(
          controller != null || initialValue != null || readOnly,
          'Either a controller, an initialValue, or readOnly mode is required.',
@@ -80,6 +81,7 @@ class ErpLineItemTextCell extends StatefulWidget {
   final bool readOnly;
   final bool enabled;
   final double? height;
+  final TextAlign? textAlign;
 
   @override
   State<ErpLineItemTextCell> createState() => _ErpLineItemTextCellState();
@@ -175,6 +177,9 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
         keyboardType: widget.keyboardType,
         onChanged: widget.onChanged,
         validator: widget.validator,
+        textAlign:
+            widget.textAlign ??
+            (_isNumericField ? TextAlign.right : TextAlign.start),
         textAlignVertical: TextAlignVertical.center,
         inputFormatters: widget.keyboardType == null
             ? null
@@ -1222,6 +1227,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     FormFieldValidator<String>? validator,
     TextInputType? keyboardType,
     int maxLines = 1,
+    TextAlign? textAlign,
   }) {
     return _ErpCompactTextField(
       controller: controller,
@@ -1230,6 +1236,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       validator: validator,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      textAlign: textAlign,
     );
   }
 
@@ -1262,7 +1269,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           bottom: BorderSide.none,
         ),
       ),
-      child: Text(label, style: style),
+      child: Center(
+        child: Text(label, style: style, textAlign: TextAlign.center),
+      ),
     );
   }
 
@@ -1294,6 +1303,7 @@ class _ErpCompactTextField extends StatefulWidget {
     this.validator,
     this.keyboardType,
     this.maxLines = 1,
+    this.textAlign,
   });
 
   final TextEditingController controller;
@@ -1302,6 +1312,7 @@ class _ErpCompactTextField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final TextInputType? keyboardType;
   final int maxLines;
+  final TextAlign? textAlign;
 
   @override
   State<_ErpCompactTextField> createState() => _ErpCompactTextFieldState();
@@ -1385,6 +1396,9 @@ class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
           keyboardType: widget.keyboardType,
           onChanged: widget.onChanged,
           validator: widget.validator,
+          textAlign:
+              widget.textAlign ??
+              (_isNumericField ? TextAlign.right : TextAlign.start),
           textAlignVertical: TextAlignVertical.center,
           style: tableCellStyle,
           inputFormatters: widget.keyboardType == null
