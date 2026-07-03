@@ -20,12 +20,6 @@ class SalesLedgerRegisterPage extends StatefulWidget {
 }
 
 class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
-  static const List<AppDropdownItem<String>> _statusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All status'),
-        AppDropdownItem(value: 'active', label: 'Active'),
-        AppDropdownItem(value: 'inactive', label: 'Inactive'),
-      ];
   static const List<AppDropdownItem<String>> _balanceItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All balances'),
@@ -37,34 +31,59 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   final AccountsService _accountsService = AccountsService();
   final SalesService _salesService = SalesService();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
 
   bool _loading = true;
   String? _errorMessage;
-  String _status = '';
-  String _balanceFilter = '';
+  String _balanceFilter = 'receivable';
+  int? _customerId;
   List<_SalesLedgerRegisterRow> _rows = const <_SalesLedgerRegisterRow>[];
+
+  List<AppDropdownItem<int?>> get _customerItems {
+    final customers = _rows
+        .where((row) => row.customerId != null && row.customerName.isNotEmpty)
+        .map((row) => MapEntry<int, String>(row.customerId!, row.customerName))
+        .toList(growable: false);
+    final uniqueCustomers = <int, String>{
+      for (final entry in customers) entry.key: entry.value,
+    };
+    return <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All Customers'),
+      ...uniqueCustomers.entries.map(
+        (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+      ),
+    ];
+  }
 
   List<_SalesLedgerRegisterRow> get _filteredRows {
     final query = _searchController.text.trim().toLowerCase();
+    final dateFrom = _normalizedFilterDate(_dateFromController.text);
+    final dateTo = _normalizedFilterDate(_dateToController.text);
     return _rows
         .where((row) {
-          final statusOk =
-              _status.isEmpty ||
-              (_status == 'active' ? row.isActive : !row.isActive);
           final balanceOk =
               _balanceFilter.isEmpty ||
               (_balanceFilter == 'receivable' && row.receivableAmount > 0) ||
               (_balanceFilter == 'advance' && row.advanceAmount > 0) ||
               (_balanceFilter == 'settled' && row.outstanding == 0);
+          final customerOk =
+              _customerId == null || row.customerId == _customerId;
+          final activityDate = row.lastActivityDate;
+          final dateOk =
+              (dateFrom == null ||
+                  (activityDate.isNotEmpty &&
+                      activityDate.compareTo(dateFrom) >= 0)) &&
+              (dateTo == null ||
+                  (activityDate.isNotEmpty &&
+                      activityDate.compareTo(dateTo) <= 0));
           final searchOk =
               query.isEmpty ||
               [
                 row.customerCode,
                 row.customerName,
-                row.ledgerCode,
-                row.ledgerName,
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && balanceOk && searchOk;
+          return balanceOk && customerOk && dateOk && searchOk;
         })
         .toList(growable: false);
   }
@@ -73,12 +92,20 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   void initState() {
     super.initState();
     _searchController.addListener(_handleSearchChanged);
+    _dateFromController.addListener(_handleSearchChanged);
+    _dateToController.addListener(_handleSearchChanged);
     unawaited(_loadRows());
   }
 
   @override
   void dispose() {
     _searchController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
+    _dateFromController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
+    _dateToController
       ..removeListener(_handleSearchChanged)
       ..dispose();
     super.dispose();
@@ -167,10 +194,9 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           .map(
             (item) => _SalesLedgerRegisterRow(
               id: item.id!,
+              customerId: item.partyId,
               customerCode: item.partyCode ?? '',
               customerName: item.partyName ?? '',
-              ledgerCode: item.accountCode ?? '',
-              ledgerName: item.accountName ?? '',
               isActive: item.isActive,
               invoiceTotal: invoiceTotals[item.partyId ?? -1] ?? 0,
               receiptTotal: receiptTotals[item.partyId ?? -1] ?? 0,
@@ -199,15 +225,15 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     }
   }
 
-  void _setStatus(String? value) {
-    setState(() {
-      _status = value ?? '';
-    });
-  }
-
   void _setBalanceFilter(String? value) {
     setState(() {
       _balanceFilter = value ?? '';
+    });
+  }
+
+  void _setCustomerId(int? value) {
+    setState(() {
+      _customerId = value;
     });
   }
 
@@ -230,9 +256,11 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
       ],
       filters: _SalesLedgerFilters(
         searchController: _searchController,
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: _setStatus,
+        dateFromController: _dateFromController,
+        dateToController: _dateToController,
+        customerId: _customerId,
+        customerItems: _customerItems,
+        onCustomerChanged: _setCustomerId,
         balanceFilter: _balanceFilter,
         balanceItems: _balanceItems,
         onBalanceChanged: _setBalanceFilter,
@@ -247,15 +275,6 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           label: 'Customer Name',
           flex: 3,
           valueBuilder: (row) => row.customerName,
-        ),
-        PurchaseRegisterColumn(
-          label: 'Ledger Code',
-          valueBuilder: (row) => row.ledgerCode,
-        ),
-        PurchaseRegisterColumn(
-          label: 'Ledger Name',
-          flex: 3,
-          valueBuilder: (row) => row.ledgerName,
         ),
         PurchaseRegisterColumn(
           label: 'Receivable',
@@ -273,10 +292,6 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Last Receipt',
           valueBuilder: (row) => displayDate(row.lastReceiptDate),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Status',
-          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
         ),
       ],
       onRowTap: (row) =>
@@ -344,7 +359,9 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
         throw Exception('Sales ledger account is not configured.');
       }
 
-      final accountResponse = await _accountsService.account(mapping.accountId!);
+      final accountResponse = await _accountsService.account(
+        mapping.accountId!,
+      );
       final account = accountResponse.data;
       if (account?.id == null || account?.companyId == null) {
         throw Exception('Sales ledger account details are incomplete.');
@@ -362,22 +379,24 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
       final reportData = reportResponse.data?.data ?? const <String, dynamic>{};
       final summary = _ledgerMap(reportData['summary']);
       final lines = _ledgerList(reportData['lines']);
-      final statementRows = lines
-          .map(
-            (line) => _SalesStatementRowSortWrapper(
-              sortDate: line['voucher_date']?.toString() ?? '',
-              row: LedgerStatementRowData(
-                date: displayDate(line['voucher_date']?.toString()),
-                code: _ledgerCode(line),
-                ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-                cashBankLedger: _ledgerDescriptor(line),
-                credit: _ledgerAmountText(line['credit']),
-                debit: _ledgerAmountText(line['debit']),
-              ),
-            ),
-          )
-          .toList(growable: false)
-        ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
+      final statementRows =
+          lines
+              .map(
+                (line) => _SalesStatementRowSortWrapper(
+                  sortDate: line['voucher_date']?.toString() ?? '',
+                  row: LedgerStatementRowData(
+                    date: displayDate(line['voucher_date']?.toString()),
+                    code: _ledgerCode(line),
+                    ledgerName:
+                        mapping.accountName ?? mapping.accountCode ?? '-',
+                    cashBankLedger: _ledgerDescriptor(line),
+                    credit: _ledgerAmountText(line['credit']),
+                    debit: _ledgerAmountText(line['debit']),
+                  ),
+                ),
+              )
+              .toList(growable: false)
+            ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
 
       if (!mounted) {
         return;
@@ -470,15 +489,6 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
                   width: 280,
                 ),
                 _SalesSummaryTile(
-                  label: 'Ledger Code',
-                  value: mapping.accountCode ?? '-',
-                ),
-                _SalesSummaryTile(
-                  label: 'Ledger Name',
-                  value: mapping.accountName ?? '-',
-                  width: 280,
-                ),
-                _SalesSummaryTile(
                   label: 'Opening Balance',
                   value: _formatSalesLedgerAmount(_openingBalance),
                 ),
@@ -517,55 +527,206 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
 class _SalesLedgerFilters extends StatelessWidget {
   const _SalesLedgerFilters({
     required this.searchController,
-    required this.status,
-    required this.statusItems,
-    required this.onStatusChanged,
+    required this.dateFromController,
+    required this.dateToController,
+    required this.customerId,
+    required this.customerItems,
+    required this.onCustomerChanged,
     required this.balanceFilter,
     required this.balanceItems,
     required this.onBalanceChanged,
   });
 
   final TextEditingController searchController;
-  final String status;
-  final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
+  final TextEditingController dateFromController;
+  final TextEditingController dateToController;
+  final int? customerId;
+  final List<AppDropdownItem<int?>> customerItems;
+  final ValueChanged<int?> onCustomerChanged;
   final String balanceFilter;
   final List<AppDropdownItem<String>> balanceItems;
   final ValueChanged<String?> onBalanceChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppUiConstants.spacingMd,
-      runSpacing: AppUiConstants.spacingMd,
-      children: [
-        SizedBox(
-          width: 320,
-          child: AppFormTextField(
-            controller: searchController,
-            labelText: 'Search',
-            hintText: 'Customer, code, or ledger',
+    Widget searchField() {
+      return AppFormTextField(
+        controller: searchController,
+        labelText: 'Search',
+        hintText: 'Customer name or code',
+      );
+    }
+
+    Widget customerField() {
+      return AppDropdownField<int?>.fromMapped(
+        labelText: 'Customer',
+        mappedItems: customerItems,
+        initialValue: customerId,
+        onChanged: onCustomerChanged,
+      );
+    }
+
+    Widget balanceField() {
+      return AppDropdownField<String>.fromMapped(
+        labelText: 'Ledger Balance',
+        mappedItems: balanceItems,
+        initialValue: balanceFilter,
+        onChanged: onBalanceChanged,
+      );
+    }
+
+    Widget dateField({
+      required String label,
+      required TextEditingController controller,
+    }) {
+      return AppFormTextField(
+        labelText: label,
+        controller: controller,
+        hintText: 'YYYY-MM-DD',
+        keyboardType: TextInputType.datetime,
+        inputFormatters: const [DateInputFormatter()],
+        validator: Validators.optionalDate(label),
+      );
+    }
+
+    void clearFilters() {
+      searchController.clear();
+      dateFromController.clear();
+      dateToController.clear();
+      onCustomerChanged(null);
+      onBalanceChanged('');
+    }
+
+    Widget actionField() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppUiConstants.spacingXs),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: clearFilters,
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-        SizedBox(
-          width: 220,
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Status',
-            mappedItems: statusItems,
-            initialValue: status,
-            onChanged: onStatusChanged,
-          ),
-        ),
-        SizedBox(
-          width: 220,
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Ledger Balance',
-            mappedItems: balanceItems,
-            initialValue: balanceFilter,
-            onChanged: onBalanceChanged,
-          ),
-        ),
-      ],
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isWide = width >= 1480;
+        final isMedium = width >= 920 && width < 1480;
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: searchField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(child: customerField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(child: balanceField()),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: dateField(
+                  label: 'Date From',
+                  controller: dateFromController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              Expanded(
+                child: dateField(
+                  label: 'Date To',
+                  controller: dateToController,
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingMd),
+              SizedBox(width: 160, child: actionField()),
+            ],
+          );
+        }
+
+        if (isMedium) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Find Sales Ledger',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: searchField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: customerField()),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(child: balanceField()),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: dateField(
+                      label: 'Date From',
+                      controller: dateFromController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  Expanded(
+                    child: dateField(
+                      label: 'Date To',
+                      controller: dateToController,
+                    ),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingMd),
+                  SizedBox(width: 160, child: actionField()),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Find Sales Ledger',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            SettingsFormWrap(
+              maxWidth: double.infinity,
+              children: [
+                searchField(),
+                customerField(),
+                balanceField(),
+                dateField(label: 'Date From', controller: dateFromController),
+                dateField(label: 'Date To', controller: dateToController),
+                actionField(),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -612,10 +773,9 @@ class _SalesSummaryTile extends StatelessWidget {
 class _SalesLedgerRegisterRow {
   const _SalesLedgerRegisterRow({
     required this.id,
+    required this.customerId,
     required this.customerCode,
     required this.customerName,
-    required this.ledgerCode,
-    required this.ledgerName,
     required this.isActive,
     required this.invoiceTotal,
     required this.receiptTotal,
@@ -624,10 +784,9 @@ class _SalesLedgerRegisterRow {
   });
 
   final int id;
+  final int? customerId;
   final String customerCode;
   final String customerName;
-  final String ledgerCode;
-  final String ledgerName;
   final bool isActive;
   final double invoiceTotal;
   final double receiptTotal;
@@ -637,6 +796,17 @@ class _SalesLedgerRegisterRow {
   double get outstanding => invoiceTotal - receiptTotal;
   double get receivableAmount => outstanding > 0 ? outstanding : 0;
   double get advanceAmount => outstanding < 0 ? outstanding.abs() : 0;
+  String get lastActivityDate {
+    final invoiceDate = lastInvoiceDate.trim();
+    final receiptDate = lastReceiptDate.trim();
+    if (invoiceDate.isEmpty) {
+      return receiptDate;
+    }
+    if (receiptDate.isEmpty) {
+      return invoiceDate;
+    }
+    return invoiceDate.compareTo(receiptDate) >= 0 ? invoiceDate : receiptDate;
+  }
 }
 
 class _SalesStatementRowSortWrapper {
@@ -663,14 +833,24 @@ String _formatSalesRegisterAmount(double value) {
 String _ledgerHistoryDateTo() =>
     DateTime.now().toIso8601String().split('T').first;
 
+String? _normalizedFilterDate(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  final parsed = DateTime.tryParse(trimmed);
+  if (parsed == null) {
+    return null;
+  }
+  return parsed.toIso8601String().split('T').first;
+}
+
 Map<String, dynamic> _ledgerMap(dynamic value) {
   if (value is Map<String, dynamic>) {
     return value;
   }
   if (value is Map) {
-    return value.map(
-      (key, entry) => MapEntry(key.toString(), entry),
-    );
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
   }
   return const <String, dynamic>{};
 }
