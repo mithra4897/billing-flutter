@@ -110,7 +110,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             onPressed: () =>
                 _openCrmShellRoute(context, '/crm/opportunities/new'),
             icon: Icons.add_outlined,
-            label: 'New Opportunity',
+            label: 'New Enquiry',
           ),
         ];
         final content = _buildContent(context, controller);
@@ -118,7 +118,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           return ShellPageActions(actions: actions, child: content);
         }
         return AppStandaloneShell(
-          title: 'CRM Opportunities',
+          title: 'CRM Enquiries',
           scrollController: controller.pageScrollController,
           actions: actions,
           child: content,
@@ -167,7 +167,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     children: [
                       Expanded(
                         child: Text(
-                          'Filter CRM Opportunities',
+                          'Filter CRM Enquiries',
                           style: Theme.of(dialogContext).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -335,7 +335,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final now = DateTime.now();
     final selected = await showAppDatePickerDialog(
       context: context,
-      title: 'Select Opportunity Date',
+      title: 'Select Enquiry Date',
       initialDate:
           tryParseCalendarDate(controller.enquiryDateController.text) ?? now,
       firstDate: DateTime(now.year - 5, 1, 1),
@@ -410,11 +410,11 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     CrmEnquiriesController controller,
   ) {
     if (controller.initialLoading) {
-      return const AppLoadingView(message: 'Loading CRM opportunities...');
+      return const AppLoadingView(message: 'Loading CRM enquiries...');
     }
     if (controller.pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load CRM opportunities',
+        title: 'Unable to load CRM enquiries',
         message: controller.pageError!,
         onRetry: controller.loadPage,
       );
@@ -426,11 +426,11 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
     // Migrated page/form state now lives in CrmEnquiriesController.
     return SettingsWorkspace(
-      title: 'CRM Opportunities',
+      title: 'CRM Enquiries',
       scrollController: controller.pageScrollController,
       controller: controller.workspaceController,
       editorOnly: widget.editorOnly,
-      editorTitle: controller.selectedItem?.toString() ?? 'New Opportunity',
+      editorTitle: controller.selectedItem?.toString() ?? 'New Enquiry',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -446,10 +446,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmEnquiryModel>(
             searchController: controller.searchController,
-            searchHint: 'Search opportunities',
+            searchHint: 'Search enquiries',
             items: controller.filteredItems,
             selectedItem: controller.selectedItem,
-            emptyMessage: 'No CRM opportunities found.',
+            emptyMessage: 'No CRM enquiries found.',
             itemBuilder: (item, selected) {
               final data = item.toJson();
               final id = intValue(data, 'id');
@@ -512,14 +512,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       ? _buildDependentTabPlaceholder(
                           title: 'Lines',
                           message:
-                              'Save this opportunity first to manage requested items and descriptions.',
+                              'Save this enquiry first to manage requested items and descriptions.',
                         )
                       : _buildLinesTab(context, controller, formContext),
                   controller.selectedItem?.toJson()['id'] == null
                       ? _buildDependentTabPlaceholder(
                           title: 'Followups',
                           message:
-                              'Save this opportunity first to manage follow-up dates, notes, and next actions.',
+                              'Save this enquiry first to manage follow-up dates, notes, and next actions.',
                         )
                       : _buildFollowupsTab(context, controller, formContext),
                 ],
@@ -627,12 +627,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             children: [
               AppFormTextField(
                 controller: controller.enquiryNoController,
-                labelText: 'Opportunity No',
+                labelText: 'Enquiry No',
                 hintText: 'Leave blank - we assign a number for you',
               ),
               AppDateSelectorField(
                 controller: controller.enquiryDateController,
-                labelText: 'Opportunity Date',
+                labelText: 'Enquiry Date',
                 onTap: () => _pickEnquiryDate(context, controller),
               ),
               ConstrainedBox(
@@ -729,8 +729,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               AppActionButton(
                 icon: Icons.save_outlined,
                 label: controller.selectedItem == null
-                    ? 'Save Opportunity'
-                    : 'Update Opportunity',
+                    ? 'Save Enquiry'
+                    : 'Update Enquiry',
                 onPressed: controller.save,
                 busy: controller.saving,
               ),
@@ -876,8 +876,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           AppActionButton(
             icon: Icons.save_outlined,
             label: controller.selectedItem == null
-                ? 'Save Opportunity'
-                : 'Update Opportunity',
+                ? 'Save Enquiry'
+                : 'Update Enquiry',
             onPressed: controller.save,
             busy: controller.saving,
           ),
@@ -1021,8 +1021,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           AppActionButton(
             icon: Icons.save_outlined,
             label: controller.selectedItem == null
-                ? 'Save Opportunity'
-                : 'Update Opportunity',
+                ? 'Save Enquiry'
+                : 'Update Enquiry',
             onPressed: controller.save,
             busy: controller.saving,
           ),

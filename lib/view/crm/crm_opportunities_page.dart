@@ -135,7 +135,7 @@ class _CrmOpportunityRegisterPageState
                         children: [
                           Expanded(
                             child: Text(
-                              'Filter CRM Opportunities',
+                              'Filter CRM Enquiries',
                               style: Theme.of(dialogContext)
                                   .textTheme
                                   .titleLarge
@@ -340,14 +340,14 @@ class _CrmOpportunityRegisterPageState
   @override
   Widget build(BuildContext context) {
     return PurchaseRegisterPage<CrmOpportunityModel>(
-      title: 'CRM Opportunities',
+      title: 'CRM Enquiries',
       embedded: widget.embedded,
       fullPageStyle: true,
       loading: _loading,
       errorMessage: _error,
       onRetry: _load,
       emptyMessage:
-          'No CRM opportunities yet. Create a new opportunity to get started.',
+          'No CRM enquiries yet. Create a new enquiry to get started.',
       actions: [
         AdaptiveShellActionButton(
           onPressed: () => _openRegisterFilterPanel(context),
@@ -359,13 +359,13 @@ class _CrmOpportunityRegisterPageState
           onPressed: () =>
               _openCrmOpportunityShellRoute(context, '/crm/opportunities/new'),
           icon: Icons.add_outlined,
-          label: 'New opportunity',
+          label: 'New enquiry',
         ),
       ],
       rows: _filtered,
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
-          label: 'Opportunity No',
+          label: 'Enquiry No',
           flex: 2,
           valueBuilder: (row) => stringValue(row.toJson(), 'enquiry_no'),
         ),
@@ -436,8 +436,7 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
         AppFormTextField(
           labelText: 'Search',
           controller: searchController,
-          hintText:
-              'Search opportunity, number, customer, stage, owner, or lead',
+          hintText: 'Search enquiry, number, customer, stage, owner, or lead',
         ),
         AppDateField(labelText: 'From Date', controller: dateFromController),
         AppDateField(labelText: 'To Date', controller: dateToController),
@@ -586,7 +585,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               _openCrmOpportunityShellRoute(context, '/crm/opportunities/new');
             },
             icon: Icons.add_outlined,
-            label: 'New Opportunity',
+            label: 'New Enquiry',
           ),
         ];
 
@@ -595,7 +594,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           return ShellPageActions(actions: actions, child: content);
         }
         return AppStandaloneShell(
-          title: 'CRM Opportunities',
+          title: 'CRM Enquiries',
           scrollController: controller.pageScrollController,
           actions: actions,
           child: content,
@@ -645,7 +644,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                     children: [
                       Expanded(
                         child: Text(
-                          'Filter CRM Opportunities',
+                          'Filter CRM Enquiries',
                           style: Theme.of(dialogContext).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -810,11 +809,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     CrmOpportunitiesController controller,
   ) {
     if (controller.initialLoading) {
-      return const AppLoadingView(message: 'Loading CRM opportunities...');
+      return const AppLoadingView(message: 'Loading CRM enquiries...');
     }
     if (controller.pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load CRM opportunities',
+        title: 'Unable to load CRM enquiries',
         message: controller.pageError!,
         onRetry: controller.loadPage,
       );
@@ -826,11 +825,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
 
     // Migrated page/form state now lives in CrmOpportunitiesController.
     return SettingsWorkspace(
-      title: 'CRM Opportunities',
+      title: 'CRM Enquiries',
       scrollController: controller.pageScrollController,
       controller: controller.workspaceController,
       editorOnly: widget.editorOnly,
-      editorTitle: controller.selectedItem?.toString() ?? 'New Opportunity',
+      editorTitle: controller.selectedItem?.toString() ?? 'New Enquiry',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -871,7 +870,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 ? _buildDependentTabPlaceholder(
                     title: 'Followups',
                     message:
-                        'Save this opportunity first to manage calls and followups.',
+                        'Save this enquiry first to manage calls and followups.',
                   )
                 : _buildFollowupsTab(context, controller)
           else if (controller.activeTabIndex == 2)
@@ -879,7 +878,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 ? _buildDependentTabPlaceholder(
                     title: 'Products',
                     message:
-                        'Save this opportunity first to manage opportunity products.',
+                        'Save this enquiry first to manage enquiry products.',
                   )
                 : _buildLinesTab(context, controller)
           else
@@ -887,7 +886,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 ? _buildDependentTabPlaceholder(
                     title: 'Suggested Products',
                     message:
-                        'Save this opportunity first to manage suggested products.',
+                        'Save this enquiry first to manage suggested products.',
                   )
                 : _buildProductsTab(context, controller),
         ],
@@ -1028,7 +1027,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             controller: controller.searchController,
             decoration: const InputDecoration(
               hintText:
-                  'Search opportunity, number, customer, stage, owner, or lead',
+                  'Search enquiry, number, customer, stage, owner, or lead',
               prefixIcon: Icon(Icons.search),
             ),
           ),
@@ -1036,7 +1035,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           if (controller.filteredItems.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingXl),
-              child: Text('No CRM opportunities found.'),
+              child: Text('No CRM enquiries found.'),
             )
           else
             Scrollbar(
@@ -1054,7 +1053,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                     columns: [
                       DataColumn(
                         label: _tableHeader(
-                          'Opportunity No',
+                          'Enquiry No',
                           _opportunityColumnWidth,
                         ),
                       ),
@@ -1230,7 +1229,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             const SizedBox(height: AppUiConstants.spacingSm),
             if (isLocked) ...[
               Text(
-                'This opportunity is read-only because it is won or lost.',
+                'This enquiry is read-only because it is won or lost.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -1310,8 +1309,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 ),
                 AppFormTextField(
                   controller: controller.nameController,
-                  labelText: 'Opportunity Name',
-                  validator: Validators.required('Opportunity Name'),
+                  labelText: 'Enquiry Name',
+                  validator: Validators.required('Enquiry Name'),
                 ),
                 AppFormTextField(
                   controller: controller.expectedValueController,
@@ -1370,8 +1369,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null
-                      ? 'Save Opportunity'
-                      : 'Update Opportunity',
+                      ? 'Save Enquiry'
+                      : 'Update Enquiry',
                   onPressed: controller.save,
                   busy: controller.saving,
                 ),
@@ -1504,7 +1503,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                           context,
                           title: 'Delete Suggested Product?',
                           message:
-                              'This suggested product will be removed from the opportunity.',
+                              'This suggested product will be removed from the enquiry.',
                           onConfirm: () => controller.removeProduct(index),
                         ),
                   visualDensity: VisualDensity.compact,
@@ -1621,7 +1620,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                           context,
                           title: 'Delete Product?',
                           message:
-                              'This product row will be removed from the opportunity.',
+                              'This product row will be removed from the enquiry.',
                           onConfirm: () => controller.removeLine(index),
                         ),
                   visualDensity: VisualDensity.compact,
@@ -1685,9 +1684,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     final isLocked = controller.isSelectedOpportunityReadOnly;
     if (!controller.canManageFollowups) {
       return _buildDependentTabPlaceholder(
-        title: 'Save Opportunity First',
+        title: 'Save Enquiry First',
         message:
-            'Save the opportunity header before adding follow-ups. Follow-ups are tracked against an existing opportunity.',
+            'Save the enquiry header before adding follow-ups. Follow-ups are tracked against an existing enquiry.',
       );
     }
 
@@ -1746,7 +1745,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                           context,
                           title: 'Delete Followup?',
                           message:
-                              'This followup will be removed from the opportunity.',
+                              'This followup will be removed from the enquiry.',
                           onConfirm: () => controller.removeFollowup(index),
                         ),
                   visualDensity: VisualDensity.compact,
@@ -1830,8 +1829,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     return AppActionButton(
       icon: Icons.save_outlined,
       label: controller.selectedItem == null
-          ? 'Save Opportunity'
-          : 'Update Opportunity',
+          ? 'Save Enquiry'
+          : 'Update Enquiry',
       filled: false,
       onPressed: controller.save,
       busy: controller.saving,

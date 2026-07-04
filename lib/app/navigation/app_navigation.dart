@@ -508,7 +508,7 @@ class AppNavigation {
         ),
         AppNavigationItem(
           key: 'crm-opportunities',
-          title: 'Opportunities',
+          title: 'Enquiries',
           icon: Icons.auto_graph_outlined,
           path: '/crm/opportunities',
           requiredPermissions: ['crm.view'],

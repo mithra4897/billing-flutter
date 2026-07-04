@@ -1548,7 +1548,7 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/crm/opportunities/') ||
         path.startsWith('/crm/enquiries/')) {
-      return 'CRM Opportunity';
+      return 'CRM Enquiry';
     }
     if (path.startsWith('/purchase/requisitions/')) {
       return 'Purchase Requisition';

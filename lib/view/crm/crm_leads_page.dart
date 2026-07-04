@@ -855,7 +855,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               if (controller.isSelectedLeadReadOnly) ...[
                 Text(
                   controller.effectiveLeadStatus() == 'converted'
-                      ? 'This lead already has an opportunity. Details are read-only. Open the linked opportunity to continue the sales process.'
+                      ? 'This lead already has an enquiry. Details are read-only. Open the linked enquiry to continue the sales process.'
                       : 'This lead is lost. Details are read-only.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -957,7 +957,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   if (controller.canCreateOpportunityForSelectedLead) ...[
                     AppActionButton(
                       icon: Icons.forward_outlined,
-                      label: 'Create Opportunity',
+                      label: 'Create Enquiry',
                       onPressed: () {
                         final leadId = intValue(
                           controller.selectedItem?.toJson() ??
@@ -997,7 +997,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                           null)
                     AppActionButton(
                       icon: Icons.open_in_new_outlined,
-                      label: 'Open Opportunity',
+                      label: 'Open Enquiry',
                       onPressed: () => _openCrmShellRoute(
                         context,
                         '/crm/opportunities/${controller.opportunityIdFromSalesChain() ?? controller.enquiryIdFromSalesChain()}',

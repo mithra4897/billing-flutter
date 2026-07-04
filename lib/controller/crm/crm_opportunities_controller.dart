@@ -429,10 +429,7 @@ class CrmOpportunitiesController extends GetxController {
     if (notify) update();
   }
 
-  Future<void> startNewDraft({
-    int? leadId,
-    bool notify = true,
-  }) async {
+  Future<void> startNewDraft({int? leadId, bool notify = true}) async {
     resetForm(notify: false);
     await applyInitialOpportunityDraft(leadId: leadId, notify: false);
     if (notify) {
@@ -447,10 +444,7 @@ class CrmOpportunitiesController extends GetxController {
     final lead = await _resolveInitialLead(leadId: leadId);
     selectedItem = null;
     companyId =
-        initialCompanyId ??
-        lead?.companyId ??
-        companyId ??
-        contextCompanyId;
+        initialCompanyId ?? lead?.companyId ?? companyId ?? contextCompanyId;
     this.leadId = leadId ?? initialLeadId ?? this.leadId;
     assignedTo = initialAssignedTo ?? lead?.assignedTo ?? assignedTo;
     _applyLeadAutofill(lead, forceTextValues: true);
@@ -467,7 +461,8 @@ class CrmOpportunitiesController extends GetxController {
     }
 
     final listLead = leads.cast<CrmLeadModel?>().firstWhere(
-      (item) => intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') ==
+      (item) =>
+          intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') ==
           requestedLeadId,
       orElse: () => null,
     );
@@ -488,15 +483,13 @@ class CrmOpportunitiesController extends GetxController {
     }
 
     return leads.cast<CrmLeadModel?>().firstWhere(
-      (item) => intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') == id,
+      (item) =>
+          intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') == id,
       orElse: () => null,
     );
   }
 
-  void _applyLeadAutofill(
-    CrmLeadModel? lead, {
-    bool forceTextValues = false,
-  }) {
+  void _applyLeadAutofill(CrmLeadModel? lead, {bool forceTextValues = false}) {
     if (lead == null) {
       _autofilledOpportunityName = null;
       _autofilledRemarks = null;
@@ -915,7 +908,7 @@ class OpportunityProductDraft {
       (entry) => entry?.id == itemId,
       orElse: () => null,
     );
-    return item?.toString() ?? 'Opportunity Product';
+    return item?.toString() ?? 'Enquiry Product';
   }
 
   String get qtySummary {

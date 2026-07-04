@@ -608,7 +608,7 @@ class SalesQuotationManagementController extends GetxController {
         unawaited(ensureCustomerPrintContext(partyId));
       }
       final note =
-          'Linked CRM opportunity: ${stringValue(opportunityData, 'opportunity_name')}'
+          'Linked CRM enquiry: ${stringValue(opportunityData, 'opportunity_name')}'
               .trim();
       if (note.isNotEmpty && notesController.text.trim().isEmpty) {
         notesController.text = note;

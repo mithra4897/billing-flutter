@@ -153,7 +153,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         ),
       if (showEnquiryChip)
         _PipelineChip(
-          label: _docLabel('Opportunity', enquiry, 'enquiry_no'),
+          label: _docLabel('Enquiry', enquiry, 'enquiry_no'),
           subtitle: _crmStatusLabel(stringValue(enquiry, 'enquiry_status')),
           onTap: () => openModuleShellRoute(
             context,
@@ -162,7 +162,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         ),
       if (showOpportunityChip)
         _PipelineChip(
-          label: _docLabel('Opportunity', opportunity, 'opportunity_name'),
+          label: _docLabel('Enquiry', opportunity, 'opportunity_name'),
           subtitle: _crmStatusLabel(stringValue(opportunity, 'status')),
           onTap: () => openModuleShellRoute(
             context,

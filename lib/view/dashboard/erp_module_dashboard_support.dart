@@ -112,12 +112,18 @@ CrmFollowupTimingBucket? _crmBoardFollowupBucket(
     return null;
   }
 
+  final localParsed = parsed.isUtc ? parsed.toLocal() : parsed;
+
   final normalizedCurrent = DateTime(
     currentDate.year,
     currentDate.month,
     currentDate.day,
   );
-  final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
+  final normalizedParsed = DateTime(
+    localParsed.year,
+    localParsed.month,
+    localParsed.day,
+  );
   if (normalizedParsed == normalizedCurrent) {
     return CrmFollowupTimingBucket.today;
   }
@@ -239,7 +245,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   return ErpDashboardSnapshot(
     title: 'CRM Dashboard',
     subtitle:
-        'Live lead, opportunity, and follow-up activity in a reusable ERP dashboard layout.',
+        'Live lead, enquiry, and follow-up activity in a reusable ERP dashboard layout.',
     actions: const <ErpDashboardAction>[
       ErpDashboardAction(
         label: 'New lead',
@@ -247,7 +253,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         route: '/crm/leads',
       ),
       ErpDashboardAction(
-        label: 'New opportunity',
+        label: 'New enquiry',
         icon: Icons.add_comment_outlined,
         route: '/crm/opportunities',
       ),
@@ -262,7 +268,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         route: '/crm/leads?dashboard_filter=pending',
       ),
       ErpDashboardStat(
-        label: 'Total Pending Opportunities',
+        label: 'Total Pending Enquiries',
         value: _formatInt(
           openOpportunityResponse.meta?.total ??
               openOpportunityResponse.data?.length ??
@@ -978,116 +984,129 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         )
         .length;
 
-    final outstandingAmount = invoices.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-            if (status == 'cancelled' || status == 'paid') {
-              return sum;
-            }
-            return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
-          },
-        ) ??
-        0.0;
-
-    final pipelineValue = quotations.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final status = (item.quotationStatus ?? '').trim().toLowerCase();
-            if (const <String>{
-              'accepted',
-              'rejected',
-              'expired',
-              'cancelled',
-            }.contains(status)) {
-              return sum;
-            }
-            return sum + (item.totalAmount ?? 0.0);
-          },
-        ) ??
-        0.0;
-
-    final thisMonthSales = invoices.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final dateStr = item.invoiceDate;
-            final date = DateTime.tryParse(dateStr);
-            if (date == null) return sum;
-            final now = DateTime.now();
-            if (date.year == now.year && date.month == now.month) {
-              final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-              if (status == 'cancelled') return sum;
-              return sum + (item.totalAmount ?? 0.0);
-            }
+    final outstandingAmount =
+        invoices.data?.fold<double>(0.0, (sum, item) {
+          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled' || status == 'paid') {
             return sum;
-          },
-        ) ??
+          }
+          return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+        }) ??
         0.0;
 
-    final bookedValue = orders.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final status = (item.orderStatus ?? '').trim().toLowerCase();
-            if (status == 'cancelled' || status == 'completed' || status == 'closed') {
-              return sum;
-            }
+    final pipelineValue =
+        quotations.data?.fold<double>(0.0, (sum, item) {
+          final status = (item.quotationStatus ?? '').trim().toLowerCase();
+          if (const <String>{
+            'accepted',
+            'rejected',
+            'expired',
+            'cancelled',
+          }.contains(status)) {
+            return sum;
+          }
+          return sum + (item.totalAmount ?? 0.0);
+        }) ??
+        0.0;
+
+    final thisMonthSales =
+        invoices.data?.fold<double>(0.0, (sum, item) {
+          final dateStr = item.invoiceDate;
+          final date = DateTime.tryParse(dateStr);
+          if (date == null) return sum;
+          final now = DateTime.now();
+          if (date.year == now.year && date.month == now.month) {
+            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+            if (status == 'cancelled') return sum;
             return sum + (item.totalAmount ?? 0.0);
-          },
-        ) ??
+          }
+          return sum;
+        }) ??
         0.0;
 
-    final collectedValue = receipts.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final status = (item.receiptStatus ?? '').trim().toLowerCase();
-            if (status == 'cancelled') {
-              return sum;
-            }
-            return sum + (item.paidAmount ?? 0.0);
-          },
-        ) ??
+    final bookedValue =
+        orders.data?.fold<double>(0.0, (sum, item) {
+          final status = (item.orderStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled' ||
+              status == 'completed' ||
+              status == 'closed') {
+            return sum;
+          }
+          return sum + (item.totalAmount ?? 0.0);
+        }) ??
+        0.0;
+
+    final collectedValue =
+        receipts.data?.fold<double>(0.0, (sum, item) {
+          final status = (item.receiptStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled') {
+            return sum;
+          }
+          return sum + (item.paidAmount ?? 0.0);
+        }) ??
         0.0;
 
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day);
 
-    final overdueInvoicesCount = invoices.data?.where((item) {
+    final overdueInvoicesCount =
+        invoices.data?.where((item) {
           final status = (item.invoiceStatus ?? '').trim().toLowerCase();
           if (status == 'cancelled' || status == 'paid') return false;
           final dueDate = DateTime.tryParse(item.dueDate ?? '');
           if (dueDate == null) return false;
-          final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+          final normalizedDue = DateTime(
+            dueDate.year,
+            dueDate.month,
+            dueDate.day,
+          );
           return normalizedDue.isBefore(normalizedToday);
         }).length ??
         0;
 
-    final overdueInvoicesAmount = invoices.data?.fold<double>(
-          0.0,
-          (sum, item) {
-            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-            if (status == 'cancelled' || status == 'paid') return sum;
-            final dueDate = DateTime.tryParse(item.dueDate ?? '');
-            if (dueDate == null) return sum;
-            final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
-            if (normalizedDue.isBefore(normalizedToday)) {
-              return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
-            }
-            return sum;
-          },
-        ) ??
+    final overdueInvoicesAmount =
+        invoices.data?.fold<double>(0.0, (sum, item) {
+          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled' || status == 'paid') return sum;
+          final dueDate = DateTime.tryParse(item.dueDate ?? '');
+          if (dueDate == null) return sum;
+          final normalizedDue = DateTime(
+            dueDate.year,
+            dueDate.month,
+            dueDate.day,
+          );
+          if (normalizedDue.isBefore(normalizedToday)) {
+            return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+          }
+          return sum;
+        }) ??
         0.0;
 
-    final delayedOrdersCount = orders.data?.where((item) {
+    final delayedOrdersCount =
+        orders.data?.where((item) {
           final status = (item.orderStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' || status == 'completed' || status == 'closed') return false;
-          final deliveryDate = DateTime.tryParse(item.expectedDeliveryDate ?? '');
-          if (deliveryDate == null) return false;
-          final normalizedDelivery = DateTime(deliveryDate.year, deliveryDate.month, deliveryDate.day);
+          if (status == 'cancelled' ||
+              status == 'completed' ||
+              status == 'closed') {
+            return false;
+          }
+          final deliveryDate = DateTime.tryParse(
+            item.expectedDeliveryDate ?? '',
+          );
+          if (deliveryDate == null) {
+            return false;
+          }
+          final normalizedDelivery = DateTime(
+            deliveryDate.year,
+            deliveryDate.month,
+            deliveryDate.day,
+          );
           return normalizedDelivery.isBefore(normalizedToday);
         }).length ??
         0;
 
-    final draftInvoicesCount = invoices.data?.where((item) {
+    final draftInvoicesCount =
+        invoices.data?.where((item) {
           final status = (item.invoiceStatus ?? '').trim().toLowerCase();
           return status == 'draft';
         }).length ??
@@ -3057,6 +3076,7 @@ class _TrendSource {
 
   final Iterable<Map<String, dynamic>> records;
   final List<String> dateKeys;
+
   /// If set, the trend will sum this field's numeric value instead of counting records.
   final String? amountKey;
 }

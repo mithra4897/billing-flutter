@@ -811,7 +811,7 @@ class EnquiryLineDraft {
       return itemLabel!.trim();
     }
     final description = descriptionController.text.trim();
-    return description.isNotEmpty ? description : 'Opportunity Line';
+    return description.isNotEmpty ? description : 'Enquiry Line';
   }
 
   String get qtySummary {
