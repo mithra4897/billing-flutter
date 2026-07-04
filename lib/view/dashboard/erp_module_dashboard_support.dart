@@ -1072,7 +1072,10 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                 .take(4)
                 .map(
                   (order) => ErpDashboardListItem(
-                    title: stringValue(order, 'order_no', 'Sales order'),
+                    title: () {
+                      final no = stringValue(order, 'order_no', '');
+                      return no.isEmpty ? 'Sales Order' : 'Sales Order - $no';
+                    }(),
                     subtitle: [
                       displayDate(nullableStringValue(order, 'order_date')),
                       _customerName(order),
@@ -1087,7 +1090,10 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                 ),
             ...invoiceJsonRows.take(2).map((json) {
               return ErpDashboardListItem(
-                title: stringValue(json, 'invoice_no', 'Sales invoice'),
+                title: () {
+                  final no = stringValue(json, 'invoice_no', '');
+                  return no.isEmpty ? 'Sales Invoice' : 'Sales Invoice - $no';
+                }(),
                 subtitle: [
                   displayDate(nullableStringValue(json, 'invoice_date')),
                   _customerName(json),
@@ -3310,8 +3316,14 @@ Map<String, dynamic> _safeMap(Map<String, dynamic> Function() builder) {
 }
 
 String _statusLabel(Map<String, dynamic> data, List<String> keys) {
-  final value = _firstString(data, keys, fallback: 'Open');
-  return value.trim().isEmpty ? 'OPEN' : value.toUpperCase();
+  final value = _firstString(data, keys, fallback: 'Open').trim();
+  if (value.isEmpty) {
+    return 'Open';
+  }
+  if (value.toLowerCase() == 'posted') {
+    return 'Finished';
+  }
+  return value.replaceAll('_', ' ').titleCase;
 }
 
 String _supplierName(Map<String, dynamic> data) {
