@@ -1,6 +1,16 @@
 import '../../screen.dart';
 import 'sales_module_refresh_controller.dart';
 
+String _positiveReceiptAmountText(double? amount) {
+  if (amount == null || amount <= 0) {
+    return '';
+  }
+  final normalized = roundToDouble(amount, 2);
+  return normalized == normalized.roundToDouble()
+      ? normalized.round().toString()
+      : normalized.toStringAsFixed(2);
+}
+
 class SalesReceiptAllocationDraft {
   SalesReceiptAllocationDraft({
     this.salesInvoiceId,
@@ -14,7 +24,9 @@ class SalesReceiptAllocationDraft {
     return SalesReceiptAllocationDraft(
       salesInvoiceId: intValue(json, 'sales_invoice_id'),
       allocationType: stringValue(json, 'allocation_type', 'against_invoice'),
-      allocatedAmount: stringValue(json, 'allocated_amount'),
+      allocatedAmount: _positiveReceiptAmountText(
+        Validators.parseFlexibleNumber(json['allocated_amount']?.toString()),
+      ),
       remarks: stringValue(json, 'remarks'),
     );
   }
@@ -50,9 +62,9 @@ class SalesReceiptManagementController extends GetxController {
         AppDropdownItem(value: 'posted', label: 'Finished'),
         AppDropdownItem(
           value: 'partially_allocated',
-          label: 'Partially Allocated',
+          label: 'Partially Completed',
         ),
-        AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
+        AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
@@ -400,6 +412,7 @@ class SalesReceiptManagementController extends GetxController {
     customerPartyId = intValue(data, 'customer_party_id');
     accountId = intValue(data, 'account_id');
     paymentMode = stringValue(data, 'payment_mode', 'bank');
+    clearAccountIfInvalidForReceipt();
     receiptNoController.text = stringValue(data, 'receipt_no');
     receiptDateController.text = displayDate(
       nullableStringValue(data, 'receipt_date'),
@@ -411,7 +424,9 @@ class SalesReceiptManagementController extends GetxController {
     paymentReferenceDateController.text = displayDate(
       nullableStringValue(data, 'payment_reference_date'),
     );
-    paidAmountController.text = stringValue(data, 'paid_amount', '0');
+    paidAmountController.text = _positiveReceiptAmountText(
+      Validators.parseFlexibleNumber(data['paid_amount']?.toString()),
+    );
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceAllocations(nextAllocations, notify: false);

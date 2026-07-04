@@ -1,6 +1,16 @@
 import '../../screen.dart';
 import 'purchase_module_refresh_controller.dart';
 
+String _positivePaymentAmountText(double? amount) {
+  if (amount == null || amount <= 0) {
+    return '';
+  }
+  final normalized = roundToDouble(amount, 2);
+  return normalized == normalized.roundToDouble()
+      ? normalized.round().toString()
+      : normalized.toStringAsFixed(2);
+}
+
 class PaymentAllocationDraft {
   PaymentAllocationDraft({
     this.purchaseInvoiceId,
@@ -14,7 +24,9 @@ class PaymentAllocationDraft {
     return PaymentAllocationDraft(
       purchaseInvoiceId: intValue(json, 'purchase_invoice_id'),
       allocationType: stringValue(json, 'allocation_type', 'against_invoice'),
-      allocatedAmount: stringValue(json, 'allocated_amount'),
+      allocatedAmount: _positivePaymentAmountText(
+        Validators.parseFlexibleNumber(json['allocated_amount']?.toString()),
+      ),
       remarks: stringValue(json, 'remarks'),
     );
   }
@@ -50,9 +62,9 @@ class PurchasePaymentManagementController extends GetxController {
         AppDropdownItem(value: 'posted', label: 'Finished'),
         AppDropdownItem(
           value: 'partially_allocated',
-          label: 'Partially Allocated',
+          label: 'Partially Completed',
         ),
-        AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
+        AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
@@ -352,7 +364,9 @@ class PurchasePaymentManagementController extends GetxController {
     referenceDateController.text = displayDate(
       nullableStringValue(data, 'reference_date'),
     );
-    paidAmountController.text = stringValue(data, 'paid_amount', '0');
+    paidAmountController.text = _positivePaymentAmountText(
+      Validators.parseFlexibleNumber(data['paid_amount']?.toString()),
+    );
     _paidAmountManuallyEdited = false;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);

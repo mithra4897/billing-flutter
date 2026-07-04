@@ -52,6 +52,7 @@ class AppFormTextField extends StatefulWidget {
 
 class _AppFormTextFieldState extends State<AppFormTextField> {
   final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
+  TextEditingController? _displayController;
 
   bool get _isAutoDateField =>
       !widget.readOnly &&
@@ -74,6 +75,53 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
 
+  bool get _looksLikeAmountOrAccountField {
+    final label = widget.labelText.trim().toLowerCase();
+    return label.contains('amount') ||
+        label.contains('account') ||
+        label.contains('ledger') ||
+        label.contains('balance') ||
+        label.contains('paid');
+  }
+
+  bool get _useSanitizedReadOnlyDisplay =>
+      (widget.readOnly || widget.enabled == false) &&
+      (widget.controller != null || widget.initialValue != null);
+
+  String _sanitizedReadOnlyValue(String? rawValue) {
+    final raw = (rawValue ?? '').trim();
+    if (raw.isEmpty || raw == '-') {
+      return '';
+    }
+    if (_looksLikeAmountOrAccountField) {
+      final parsed = Validators.parseFlexibleNumber(raw);
+      if (parsed != null && parsed <= 0) {
+        return '';
+      }
+    }
+    return raw;
+  }
+
+  void _syncDisplayController() {
+    if (!_useSanitizedReadOnlyDisplay) {
+      _displayController?.dispose();
+      _displayController = null;
+      return;
+    }
+    final nextValue = _sanitizedReadOnlyValue(
+      widget.controller?.text ?? widget.initialValue,
+    );
+    _displayController ??= TextEditingController(text: nextValue);
+    if (_displayController!.text == nextValue) {
+      return;
+    }
+    _displayController!.value = _displayController!.value.copyWith(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+      composing: TextRange.empty,
+    );
+  }
+
   List<TextInputFormatter>? _effectiveInputFormatters() {
     final formatters = <TextInputFormatter>[
       if (_isNumericField) const NumericInputFormatter(),
@@ -85,9 +133,12 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   @override
   void initState() {
     super.initState();
+    _syncDisplayController();
     final created = _numericBinding.sync(
       enable: _isNumericField,
-      controller: widget.controller,
+      controller: _useSanitizedReadOnlyDisplay
+          ? _displayController
+          : widget.controller,
     );
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -101,9 +152,12 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   @override
   void didUpdateWidget(covariant AppFormTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncDisplayController();
     final created = _numericBinding.sync(
       enable: _isNumericField,
-      controller: widget.controller,
+      controller: _useSanitizedReadOnlyDisplay
+          ? _displayController
+          : widget.controller,
     );
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -117,6 +171,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   @override
   void dispose() {
     _numericBinding.dispose();
+    _displayController?.dispose();
     super.dispose();
   }
 
@@ -164,14 +219,24 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         widget.readOnly ||
         visuallyReadOnly ||
         (autoPickerEnabled && !widget.allowType);
+    final effectiveController = _useSanitizedReadOnlyDisplay
+        ? _displayController
+        : widget.controller;
+    final effectiveInitialValue = _useSanitizedReadOnlyDisplay
+        ? _sanitizedReadOnlyValue(widget.initialValue)
+        : widget.initialValue;
 
     return AppFieldBox(
       width: widget.width,
       child: TextFormField(
-        key: widget.controller != null ? ObjectKey(widget.controller) : null,
-        controller: widget.controller,
+        key: effectiveController != null
+            ? ObjectKey(effectiveController)
+            : null,
+        controller: effectiveController,
         focusNode: _numericBinding.focusNode,
-        initialValue: widget.controller == null ? widget.initialValue : null,
+        initialValue: effectiveController == null
+            ? effectiveInitialValue
+            : null,
         maxLines: widget.maxLines,
         keyboardType: widget.keyboardType,
         textInputAction: widget.textInputAction,

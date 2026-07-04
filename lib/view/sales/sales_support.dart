@@ -5,8 +5,15 @@ String salesStatusLabel(String? status) {
   if (normalized == null || normalized.isEmpty) {
     return '';
   }
-  if (normalized.toLowerCase() == 'posted') {
+  final lower = normalized.toLowerCase();
+  if (lower == 'posted') {
     return 'Finished';
+  }
+  if (lower == 'partially_allocated') {
+    return 'Partially Completed';
+  }
+  if (lower == 'fully_allocated') {
+    return 'Completed';
   }
   return normalized.replaceAll('_', ' ').titleCase;
 }
@@ -46,10 +53,12 @@ Widget salesStatusBadge(
       break;
     case 'paid':
     case 'completed':
+    case 'fully_allocated':
       color = Colors.green.shade600;
       break;
     case 'partially_paid':
     case 'partially_returned':
+    case 'partially_allocated':
       color = Colors.orange.shade600;
       break;
     case 'posted':

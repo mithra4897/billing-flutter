@@ -97,6 +97,14 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
   TextEditingController? get _effectiveController =>
       widget.controller ?? _internalController;
 
+  String _normalizedInitialValue() {
+    final raw = (widget.initialValue ?? '').trim();
+    if (widget.readOnly && raw == '-') {
+      return '';
+    }
+    return raw;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,7 +126,7 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
       return;
     }
 
-    final nextValue = widget.initialValue ?? '';
+    final nextValue = _normalizedInitialValue();
     _internalController ??= TextEditingController(text: nextValue);
     if (previousInitialValue == widget.initialValue) {
       return;

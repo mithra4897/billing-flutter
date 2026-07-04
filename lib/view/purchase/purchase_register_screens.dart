@@ -803,8 +803,8 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(value: 'partially_allocated', label: 'Partially Allocated'),
-    AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
+    AppDropdownItem(value: 'partially_allocated', label: 'Partially Completed'),
+    AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
