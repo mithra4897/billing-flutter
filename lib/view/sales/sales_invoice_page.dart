@@ -1,4 +1,4 @@
-﻿import '../../controller/sales/sales_invoice_management_controller.dart';
+import '../../controller/sales/sales_invoice_management_controller.dart';
 import '../../screen.dart';
 
 class SalesInvoicePage extends StatefulWidget {
@@ -687,6 +687,18 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (controller.selectedItem != null && !controller.canEdit) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                child: Text(
+                  'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
             if (controller.formError != null) ...[
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),

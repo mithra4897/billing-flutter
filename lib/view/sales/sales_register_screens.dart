@@ -856,6 +856,26 @@ class SalesOrderRegisterPage extends StatelessWidget {
             return parsed.year == now.year &&
                 parsed.month == now.month &&
                 parsed.day == now.day;
+          case 'delayed':
+            final status = stringValue(
+              row.toJson(),
+              'order_status',
+            ).trim().toLowerCase();
+            final isClosed = status.isEmpty ||
+                const <String>{
+                  'fully_delivered',
+                  'fully_invoiced',
+                  'closed',
+                  'cancelled',
+                }.contains(status);
+            if (isClosed) return false;
+            final raw = nullableStringValue(row.toJson(), 'expected_delivery_date');
+            final parsed = raw == null ? null : DateTime.tryParse(raw);
+            if (parsed == null) return false;
+            final today = DateTime.now();
+            final normalizedToday = DateTime(today.year, today.month, today.day);
+            final normalizedDelivery = DateTime(parsed.year, parsed.month, parsed.day);
+            return normalizedDelivery.isBefore(normalizedToday);
           default:
             return true;
         }
@@ -990,6 +1010,20 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
             return status.isNotEmpty &&
                 !<String>{'paid', 'cancelled'}.contains(status);
+          case 'overdue':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            if (status == 'paid' || status == 'cancelled') return false;
+            final dueDateStr = row.dueDate;
+            if (dueDateStr == null) return false;
+            final dueDate = DateTime.tryParse(dueDateStr);
+            if (dueDate == null) return false;
+            final today = DateTime.now();
+            final normalizedToday = DateTime(today.year, today.month, today.day);
+            final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            return normalizedDue.isBefore(normalizedToday);
+          case 'draft':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            return status == 'draft';
           default:
             return true;
         }

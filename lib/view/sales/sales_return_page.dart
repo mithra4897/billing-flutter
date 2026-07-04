@@ -82,6 +82,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   }
 
   Widget _buildLineItemTable(SalesReturnManagementController controller) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'return_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+
     final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
       index,
     ) {
@@ -90,17 +94,17 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       return ErpLineItemTableRow(
         rowKey: line,
         rateController: line.rateController,
-        onRateChanged: (_) => controller.refreshLineState(),
+        onRateChanged: canEdit ? (_) => controller.refreshLineState() : null,
         rateValidator: Validators.optionalNonNegativeNumber('Rate'),
         qtyController: line.returnQtyController,
-        onQtyChanged: (_) => controller.refreshLineState(),
+        onQtyChanged: canEdit ? (_) => controller.refreshLineState() : null,
         qtyValidator: Validators.compose([
           Validators.required('Return Qty'),
           Validators.optionalNonNegativeNumber('Return Qty'),
         ]),
         remarksController: line.remarksController,
         amount: breakdown.taxable,
-        deleteEnabled: controller.lines.length > 1,
+        deleteEnabled: canEdit && controller.lines.length > 1,
         cellWidgets: <ErpLineItemTableColumn, Widget>{
           ErpLineItemTableColumn.item: ErpLineItemTextCell(
             controller: line.itemNameController,
@@ -117,36 +121,39 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         },
         customCells: <String, Widget>{
           'invoice_line': ErpLineItemCellFrame(
-            child: AppSearchPickerField<int>(
-              labelText: '',
-              selectedLabel: (() {
-                final selected = controller.invoiceLineOptions
-                    .cast<SalesInvoiceLineModel?>()
-                    .firstWhere(
-                      (item) => item?.id == line.salesInvoiceLineId,
-                      orElse: () => null,
-                    );
-                if (selected == null) {
-                  return null;
-                }
-                return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
-              })(),
-              options: controller.invoiceLineOptions
-                  .where((item) => item.id != null)
-                  .map(
-                    (item) => AppSearchPickerOption<int>(
-                      value: item.id!,
-                      label:
-                          '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
-                      subtitle:
-                          '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) => controller.handleLineSelected(index, value),
-              validator: (_) => Validators.requiredSelectionField(
-                line.salesInvoiceLineId,
-                'Sales invoice line',
+            child: IgnorePointer(
+              ignoring: !canEdit,
+              child: AppSearchPickerField<int>(
+                labelText: '',
+                selectedLabel: (() {
+                  final selected = controller.invoiceLineOptions
+                      .cast<SalesInvoiceLineModel?>()
+                      .firstWhere(
+                        (item) => item?.id == line.salesInvoiceLineId,
+                        orElse: () => null,
+                      );
+                  if (selected == null) {
+                    return null;
+                  }
+                  return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+                })(),
+                options: controller.invoiceLineOptions
+                    .where((item) => item.id != null)
+                    .map(
+                      (item) => AppSearchPickerOption<int>(
+                        value: item.id!,
+                        label:
+                            '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                        subtitle:
+                            '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) => controller.handleLineSelected(index, value),
+                validator: (_) => Validators.requiredSelectionField(
+                  line.salesInvoiceLineId,
+                  'Sales invoice line',
+                ),
               ),
             ),
           ),
@@ -177,8 +184,8 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     return ErpLineItemTable(
       title: 'Lines',
       lines: rows,
-      onAddLine: controller.addLine,
-      onDeleteLine: controller.removeLine,
+      onAddLine: canEdit ? controller.addLine : null,
+      onDeleteLine: canEdit ? controller.removeLine : null,
       visibleColumns: const <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
@@ -213,6 +220,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         ),
       ],
       footer: _buildTaxSummaryCard(controller),
+      enabled: canEdit,
     );
   }
 
@@ -280,6 +288,18 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (controller.selectedItem != null && !canEdit) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                child: Text(
+                  'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
             if (controller.formError != null) ...[
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),

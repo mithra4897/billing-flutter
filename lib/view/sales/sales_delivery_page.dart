@@ -147,6 +147,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   }
 
   Widget _buildDeliveryLineTable(SalesDeliveryManagementController controller) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'delivery_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+
     final itemOptions = controller.itemPickerOptions
         .map(
           (option) => ErpLinkFieldOption<int>(
@@ -176,7 +180,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           )
           .toList(growable: false);
 
-      if (uomOptions.length == 1) {
+      if (canEdit && uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
         if (line.uomId != onlyId) {
           line.uomId = onlyId;
@@ -195,16 +199,17 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         itemId: line.itemId,
         itemSelection: itemSelection,
         itemOptions: itemOptions,
-        onItemChanged: (value) => controller.setLineItemId(index, value),
+        onItemChanged: canEdit ? (value) => controller.setLineItemId(index, value) : null,
         itemValidator: (_) =>
             Validators.requiredSelectionField(line.itemId, 'Item'),
         warehouseId: line.warehouseId,
         warehouseOptions: controller.warehouseDropdownItems,
-        onWarehouseChanged: (value) =>
-            unawaited(controller.setLineWarehouseId(index, value)),
+        onWarehouseChanged: canEdit
+            ? (value) => unawaited(controller.setLineWarehouseId(index, value))
+            : null,
         uomId: line.uomId,
         uomOptions: uomOptions,
-        onUomChanged: (value) => controller.setLineUomId(index, value),
+        onUomChanged: canEdit ? (value) => controller.setLineUomId(index, value) : null,
         uomValidator: (_) => Validators.dependentSelectionField(
           prerequisite: line.itemId,
           prerequisiteName: 'item',
@@ -266,14 +271,17 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               return _buildGridHintCell(context, 'No batches');
             }
             return ErpLineItemCellFrame(
-              child: AppDropdownField<int>.fromMapped(
-                labelText: '',
-                hintText: 'Batch',
-                fieldPadding: EdgeInsets.zero,
-                mappedItems: batchItems,
-                initialValue: line.batchId,
-                onChanged: (value) =>
-                    unawaited(controller.setLineBatchId(index, value)),
+              child: IgnorePointer(
+                ignoring: !canEdit,
+                child: AppDropdownField<int>.fromMapped(
+                  labelText: '',
+                  hintText: 'Batch',
+                  fieldPadding: EdgeInsets.zero,
+                  mappedItems: batchItems,
+                  initialValue: line.batchId,
+                  onChanged: (value) =>
+                      unawaited(controller.setLineBatchId(index, value)),
+                ),
               ),
             );
           }(),
@@ -293,41 +301,44 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             }
             return ErpLineItemCellFrame(
               height: null,
-              child: AppSerialNumbersField(
-                labelText: '',
-                emptyText: 'Add serials',
-                countSummaryBuilder: (count) => '$count serials',
-                values: line.serialNumbers,
-                canOpen:
-                    ((controller.isBatchManagedItem(line.itemId)
-                        ? line.batchId != null
-                        : line.warehouseId != null) ||
-                    line.serialNumbers.isNotEmpty),
-                beforeOpen: () => controller.syncSerialOptionsForLine(line),
-                validator: (values) {
-                  if (line.warehouseId == null) {
-                    return 'Select warehouse first';
-                  }
-                  if (controller.isBatchManagedItem(line.itemId) &&
-                      line.batchId == null) {
-                    return 'Select batch first';
-                  }
-                  final serialOptions = controller.serialOptionsForLine(line);
-                  if (serialOptions.isEmpty) {
-                    return 'No serials found in backend for the selected warehouse.';
-                  }
-                  final serialLabelSet = controller.serialLabelSetForLine(line);
-                  for (final value in values) {
-                    if (!serialLabelSet.contains(value.trim().toLowerCase())) {
-                      return 'Serial "$value" is not available for the selected warehouse/batch.';
+              child: IgnorePointer(
+                ignoring: !canEdit,
+                child: AppSerialNumbersField(
+                  labelText: '',
+                  emptyText: 'Add serials',
+                  countSummaryBuilder: (count) => '$count serials',
+                  values: line.serialNumbers,
+                  canOpen:
+                      ((controller.isBatchManagedItem(line.itemId)
+                          ? line.batchId != null
+                          : line.warehouseId != null) ||
+                      line.serialNumbers.isNotEmpty),
+                  beforeOpen: () => controller.syncSerialOptionsForLine(line),
+                  validator: (values) {
+                    if (line.warehouseId == null) {
+                      return 'Select warehouse first';
                     }
-                  }
-                  return null;
-                },
-                onChanged: (values) {
-                  controller.setLineSerialNumbers(line, values);
-                  controller.refreshState();
-                },
+                    if (controller.isBatchManagedItem(line.itemId) &&
+                        line.batchId == null) {
+                      return 'Select batch first';
+                    }
+                    final serialOptions = controller.serialOptionsForLine(line);
+                    if (serialOptions.isEmpty) {
+                      return 'No serials found in backend for the selected warehouse.';
+                    }
+                    final serialLabelSet = controller.serialLabelSetForLine(line);
+                    for (final value in values) {
+                      if (!serialLabelSet.contains(value.trim().toLowerCase())) {
+                        return 'Serial "$value" is not available for the selected warehouse/batch.';
+                      }
+                    }
+                    return null;
+                  },
+                  onChanged: (values) {
+                    controller.setLineSerialNumbers(line, values);
+                    controller.refreshState();
+                  },
+                ),
               ),
             );
           }(),
@@ -338,8 +349,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     return ErpLineItemTable(
       title: 'Delivery Items',
       lines: rows,
-      onAddLine: controller.addLine,
-      onDeleteLine: controller.removeLine,
+      onAddLine: canEdit ? controller.addLine : null,
+      onDeleteLine: canEdit ? controller.removeLine : null,
       visibleColumns: const <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
@@ -367,10 +378,15 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           insertAfter: ErpLineItemTableColumn.warehouse,
         ),
       ],
+      enabled: canEdit,
     );
   }
 
   Widget _buildReturnableDcTable(SalesDeliveryManagementController controller) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'delivery_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+
     final itemOptions = controller.itemPickerOptions
         .map(
           (option) => ErpLinkFieldOption<int>(
@@ -396,7 +412,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             )
             .toList(growable: false);
 
-        if (uomOptions.length == 1) {
+        if (canEdit && uomOptions.length == 1) {
           final onlyId = uomOptions.first.value;
           if (row.uomId != onlyId) {
             row.uomId = onlyId;
@@ -415,12 +431,14 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           itemId: row.itemId,
           itemSelection: itemSelection,
           itemOptions: itemOptions,
-          onItemChanged: (value) =>
-              controller.setReturnableDcItemId(index, value),
+          onItemChanged: canEdit
+              ? (value) => controller.setReturnableDcItemId(index, value)
+              : null,
           uomId: row.uomId,
           uomOptions: uomOptions,
-          onUomChanged: (value) =>
-              controller.setReturnableDcUomId(index, value),
+          onUomChanged: canEdit
+              ? (value) => controller.setReturnableDcUomId(index, value)
+              : null,
           uomValidator: (_) => row.uomId == null ? 'UOM is required' : null,
           qtyController: row.qtyController,
           qtyValidator: (_) => Validators.requiredPositiveNumberField(
@@ -435,6 +453,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             'item_name': ErpLineItemTextCell(
               controller: row.itemNameController,
               hintText: 'Use when item is not in item master',
+              enabled: canEdit,
             ),
           },
         );
@@ -444,8 +463,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     return ErpLineItemTable(
       title: 'Returnable Items',
       lines: rows,
-      onAddLine: controller.addReturnableDc,
-      onDeleteLine: controller.removeReturnableDc,
+      onAddLine: canEdit ? controller.addReturnableDc : null,
+      onDeleteLine: canEdit ? controller.removeReturnableDc : null,
       addButtonLabel: 'Add Returnable Item',
       visibleColumns: const <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
@@ -462,7 +481,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           insertAfter: ErpLineItemTableColumn.item,
         ),
       ],
-      enabled: true,
+      enabled: canEdit,
     );
   }
 
@@ -534,6 +553,18 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (controller.selectedItem != null && !canEdit) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                child: Text(
+                  'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
             if (controller.formError != null) ...[
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),

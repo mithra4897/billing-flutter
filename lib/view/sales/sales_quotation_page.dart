@@ -349,6 +349,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (controller.selectedItem != null && !controller.canEdit) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                child: Text(
+                  'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
             if (controller.formError != null) ...[
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
@@ -517,7 +529,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       allowTemplateEditing: controller.status != 'draft',
                     ),
                   ),
-                if (controller.selectedItem != null)
+                if (controller.selectedItem != null && controller.status != 'cancelled')
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
                     label: 'Revise quote',
