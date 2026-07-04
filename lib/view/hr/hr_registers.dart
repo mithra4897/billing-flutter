@@ -1123,6 +1123,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
             ),
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Net',
+              alignRight: true,
               valueBuilder: (row) => row.netSalary?.toStringAsFixed(2) ?? '',
             ),
           ],

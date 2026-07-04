@@ -768,7 +768,15 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Total',
-          valueBuilder: (row) => stringValue(row.toJson(), 'total_amount'),
+          alignRight: true,
+          valueBuilder: (row) {
+            final raw = row.toJson()['total_amount'];
+            final amount = raw is num
+                ? raw.toDouble()
+                : double.tryParse(raw?.toString() ?? '');
+            if (amount == null) return '-';
+            return amount.toStringAsFixed(2);
+          },
         ),
       ],
       rowRoute: (row) => '/sales/quotations/${intValue(row.toJson(), 'id')}',
@@ -939,7 +947,15 @@ class SalesOrderRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Total',
-          valueBuilder: (row) => stringValue(row.toJson(), 'total_amount'),
+          alignRight: true,
+          valueBuilder: (row) {
+            final raw = row.toJson()['total_amount'];
+            final amount = raw is num
+                ? raw.toDouble()
+                : double.tryParse(raw?.toString() ?? '');
+            if (amount == null) return '-';
+            return amount.toStringAsFixed(2);
+          },
         ),
       ],
       rowRoute: (row) => '/sales/orders/${intValue(row.toJson(), 'id')}',
@@ -1083,11 +1099,21 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Total',
-          valueBuilder: (row) => row.totalAmount?.toString() ?? '',
+          alignRight: true,
+          valueBuilder: (row) {
+            final amount = row.totalAmount;
+            if (amount == null) return '-';
+            return amount.toStringAsFixed(2);
+          },
         ),
         PurchaseRegisterColumn(
           label: 'Balance',
-          valueBuilder: (row) => row.balanceAmount?.toString() ?? '',
+          alignRight: true,
+          valueBuilder: (row) {
+            final amount = row.balanceAmount;
+            if (amount == null) return '-';
+            return amount.toStringAsFixed(2);
+          },
         ),
       ],
       rowRoute: (row) => '/sales/invoices/${intValue(row.toJson(), 'id')}',
@@ -1280,10 +1306,6 @@ class SalesReceiptRegisterPage extends StatelessWidget {
           valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
-          label: 'Amount',
-          valueBuilder: (row) => stringValue(row.toJson(), 'paid_amount'),
-        ),
-        PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) =>
               salesStatusLabel(stringValue(row.toJson(), 'receipt_status')),
@@ -1295,6 +1317,18 @@ class SalesReceiptRegisterPage extends StatelessWidget {
             row.toJson(),
             statusKey: 'receipt_status',
           ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Amount',
+          alignRight: true,
+          valueBuilder: (row) {
+            final raw = row.toJson()['paid_amount'];
+            final amount = raw is num
+                ? raw.toDouble()
+                : double.tryParse(raw?.toString() ?? '');
+            if (amount == null) return '-';
+            return amount.toStringAsFixed(2);
+          },
         ),
       ],
       rowRoute: (row) => '/sales/receipts/${intValue(row.toJson(), 'id')}',

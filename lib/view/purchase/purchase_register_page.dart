@@ -8,6 +8,7 @@ class PurchaseRegisterColumn<T> {
     this.widgetBuilder,
     this.detailBuilder,
     this.flex = 2,
+    this.alignRight = false,
   });
 
   final String label;
@@ -15,6 +16,7 @@ class PurchaseRegisterColumn<T> {
   final Widget Function(BuildContext context, T row)? widgetBuilder;
   final String Function(T row)? detailBuilder;
   final int flex;
+  final bool alignRight;
 }
 
 class PurchaseRegisterPage<T> extends StatefulWidget {
@@ -316,6 +318,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                     flex: column.flex,
                     child: Text(
                       column.label,
+                      textAlign: column.alignRight
+                          ? TextAlign.right
+                          : TextAlign.left,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -430,6 +435,8 @@ class _RegisterHeader<T> extends StatelessWidget {
                 flex: column.flex,
                 child: Text(
                   column.label,
+                  textAlign:
+                      column.alignRight ? TextAlign.right : TextAlign.left,
                   style: Theme.of(
                     context,
                   ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -492,7 +499,9 @@ class _RegisterCell<T> extends StatelessWidget {
     final detailValue = column.detailBuilder?.call(row).trim() ?? '';
     final primaryWidget = column.widgetBuilder != null
         ? Align(
-            alignment: Alignment.centerLeft,
+            alignment: column.alignRight
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
             widthFactor: 1,
             child: column.widgetBuilder!(context, row),
           )
@@ -500,6 +509,8 @@ class _RegisterCell<T> extends StatelessWidget {
             primaryValue.trim().isEmpty ? '-' : primaryValue,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+            textAlign:
+                column.alignRight ? TextAlign.right : TextAlign.left,
           );
 
     if (detailValue.isEmpty) {
