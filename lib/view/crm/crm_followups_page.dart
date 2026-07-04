@@ -556,19 +556,21 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       }
 
       return Column(
-        children: _visiblePendingFollowups
-            .map(
-              (entry) => _buildFollowupCard(
-                context,
-                entry.row,
-                icon: Icons.alarm_outlined,
-                fallbackTitle: 'Pending Followup',
-                dateText: displayDateTime(
-                  nullableStringValue(entry.row, entry.dateKey),
-                ),
-              ),
-            )
-            .toList(growable: false),
+        children: List<Widget>.generate(_visiblePendingFollowups.length, (
+          index,
+        ) {
+          final entry = _visiblePendingFollowups[index];
+          return _buildFollowupCard(
+            context,
+            entry.row,
+            icon: Icons.alarm_outlined,
+            fallbackTitle: 'Pending Followup',
+            dateText: displayDateTime(
+              nullableStringValue(entry.row, entry.dateKey),
+            ),
+            showBottomBorder: index != _visiblePendingFollowups.length - 1,
+          );
+        }),
       );
     }
 
@@ -582,19 +584,19 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     return Column(
-      children: _visiblePendingFollowups
-          .map(
-            (entry) => _buildFollowupCard(
-              context,
-              entry.row,
-              icon: Icons.alarm_outlined,
-              fallbackTitle: 'Pending Followup',
-              dateText: displayDateTime(
-                nullableStringValue(entry.row, entry.dateKey),
-              ),
-            ),
-          )
-          .toList(growable: false),
+      children: List<Widget>.generate(_visiblePendingFollowups.length, (index) {
+        final entry = _visiblePendingFollowups[index];
+        return _buildFollowupCard(
+          context,
+          entry.row,
+          icon: Icons.alarm_outlined,
+          fallbackTitle: 'Pending Followup',
+          dateText: displayDateTime(
+            nullableStringValue(entry.row, entry.dateKey),
+          ),
+          showBottomBorder: index != _visiblePendingFollowups.length - 1,
+        );
+      }),
     );
   }
 
@@ -609,19 +611,19 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     return Column(
-      children: _todayFollowups
-          .map(
-            (entry) => _buildFollowupCard(
-              context,
-              entry.row,
-              icon: Icons.today_outlined,
-              fallbackTitle: 'Today Followup',
-              dateText: displayDateTime(
-                nullableStringValue(entry.row, entry.dateKey),
-              ),
-            ),
-          )
-          .toList(growable: false),
+      children: List<Widget>.generate(_todayFollowups.length, (index) {
+        final entry = _todayFollowups[index];
+        return _buildFollowupCard(
+          context,
+          entry.row,
+          icon: Icons.today_outlined,
+          fallbackTitle: 'Today Followup',
+          dateText: displayDateTime(
+            nullableStringValue(entry.row, entry.dateKey),
+          ),
+          showBottomBorder: index != _todayFollowups.length - 1,
+        );
+      }),
     );
   }
 
@@ -636,19 +638,19 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     return Column(
-      children: _upcomingFollowups
-          .map(
-            (entry) => _buildFollowupCard(
-              context,
-              entry.row,
-              icon: Icons.upcoming_outlined,
-              fallbackTitle: 'Upcoming Followup',
-              dateText: displayDateTime(
-                nullableStringValue(entry.row, entry.dateKey),
-              ),
-            ),
-          )
-          .toList(growable: false),
+      children: List<Widget>.generate(_upcomingFollowups.length, (index) {
+        final entry = _upcomingFollowups[index];
+        return _buildFollowupCard(
+          context,
+          entry.row,
+          icon: Icons.upcoming_outlined,
+          fallbackTitle: 'Upcoming Followup',
+          dateText: displayDateTime(
+            nullableStringValue(entry.row, entry.dateKey),
+          ),
+          showBottomBorder: index != _upcomingFollowups.length - 1,
+        );
+      }),
     );
   }
 
@@ -687,6 +689,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     required String fallbackTitle,
     String? dateText,
     String? inlineDetailText,
+    bool showBottomBorder = true,
   }) {
     final detailRoute = _detailRouteForRow(row);
     final notes = stringValue(row, 'notes');
@@ -702,7 +705,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return _buildSectionListRow(
       context,
       compact: true,
-      showBottomBorder: false,
+      showBottomBorder: showBottomBorder,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

@@ -10,6 +10,20 @@ void _openCrmShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
+String _crmStageLabel(String? raw) {
+  final value = (raw ?? '').trim();
+  if (value.isEmpty) {
+    return '';
+  }
+
+  const suffix = ' - opportunity';
+  final normalized = value.toLowerCase();
+  if (normalized.endsWith(suffix)) {
+    return value.substring(0, value.length - suffix.length).trimRight();
+  }
+  return value;
+}
+
 class CrmEnquiriesPage extends StatefulWidget {
   const CrmEnquiriesPage({
     super.key,
@@ -227,7 +241,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                                 .map(
                                   (item) => AppDropdownItem<int>(
                                     value: intValue(item.toJson(), 'id')!,
-                                    label: item.toString(),
+                                    label: _crmStageLabel(item.toString()),
                                   ),
                                 ),
                           ],
@@ -541,7 +555,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       if (controller.filterCustomerPartyId != null || controller.filtersApplied)
         'Customer: ${controller.filterCustomerPartyId == null ? 'All' : controller.customers.cast<PartyModel?>().firstWhere((item) => item?.id == controller.filterCustomerPartyId, orElse: () => null)?.toString() ?? controller.filterCustomerPartyId}',
       if (controller.filterStageId != null || controller.filtersApplied)
-        'Stage: ${controller.filterStageId == null ? 'All' : controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString() ?? controller.filterStageId}',
+        'Stage: ${controller.filterStageId == null ? 'All' : _crmStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString())}',
       if (controller.filterAssignedTo != null || controller.filtersApplied)
         'Assigned: ${controller.filterAssignedTo == null ? 'All' : controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.username ?? controller.filterAssignedTo}',
       if ((controller.filterEnquiryStatus ?? '').isNotEmpty ||
@@ -682,7 +696,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     .map(
                       (item) => AppDropdownItem(
                         value: intValue(item.toJson(), 'id')!,
-                        label: item.toString(),
+                        label: _crmStageLabel(item.toString()),
                       ),
                     )
                     .toList(growable: false),

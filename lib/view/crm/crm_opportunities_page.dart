@@ -10,6 +10,20 @@ void _openCrmOpportunityShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
+String _crmOpportunityStageLabel(String? raw) {
+  final value = (raw ?? '').trim();
+  if (value.isEmpty) {
+    return '';
+  }
+
+  const suffix = ' - opportunity';
+  final normalized = value.toLowerCase();
+  if (normalized.endsWith(suffix)) {
+    return value.substring(0, value.length - suffix.length).trimRight();
+  }
+  return value;
+}
+
 class CrmOpportunityRegisterPage extends StatefulWidget {
   const CrmOpportunityRegisterPage({
     super.key,
@@ -302,9 +316,11 @@ class _CrmOpportunityRegisterPageState
   }
 
   String _stageLabel(Map<String, dynamic> data) {
-    return stringValue(
+    return _crmOpportunityStageLabel(
+      stringValue(
       JsonModel.mapOf(data['stage']) ?? const <String, dynamic>{},
       'stage_name',
+      ),
     );
   }
 
@@ -682,7 +698,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                                 .map(
                                   (item) => AppDropdownItem<int>(
                                     value: intValue(item.toJson(), 'id')!,
-                                    label: item.toString(),
+                                    label: _crmOpportunityStageLabel(
+                                      item.toString(),
+                                    ),
                                   ),
                                 ),
                           ],
@@ -902,7 +920,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       if (controller.searchController.text.trim().isNotEmpty)
         'Search: ${controller.searchController.text.trim()}',
       if (controller.filterStageId != null || controller.filtersApplied)
-        'Stage: ${controller.filterStageId == null ? 'All' : controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString() ?? controller.filterStageId}',
+        'Stage: ${controller.filterStageId == null ? 'All' : _crmOpportunityStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString())}',
       if ((controller.filterStatus ?? '').isNotEmpty ||
           controller.filtersApplied)
         'Status: ${(controller.filterStatus ?? CrmOpportunitiesController.allFilterStringValue) == CrmOpportunitiesController.allFilterStringValue ? 'All' : controller.filterStatus}',
@@ -1326,7 +1344,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       .map(
                         (item) => AppDropdownItem(
                           value: intValue(item.toJson(), 'id')!,
-                          label: item.toString(),
+                          label: _crmOpportunityStageLabel(item.toString()),
                         ),
                       )
                       .toList(growable: false),
