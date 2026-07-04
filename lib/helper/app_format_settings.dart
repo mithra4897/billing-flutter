@@ -82,6 +82,20 @@ class AppFormatSettings extends GetxController {
   }
 }
 
+extension AppFormattedNumber on num {
+  String appFixed({int? decimals}) {
+    return AppFormatSettings.fixedNumber(toDouble(), decimals: decimals);
+  }
+
+  double appRounded({int? decimals}) {
+    return AppFormatSettings.roundedNumber(toDouble(), decimals: decimals);
+  }
+
+  String appAmount() {
+    return formatAmount(toDouble());
+  }
+}
+
 String displayDate(String? value) {
   if (value == null || value.trim().isEmpty) return '';
   final raw = value.split('T').first.split(' ').first.trim();
@@ -115,7 +129,7 @@ String formatAmount(double? value) {
   final grouping =
       settings?.amountGrouping.value ?? AppFormatSettings.defaultAmountGrouping;
 
-  final fixed = AppFormatSettings.fixedNumber(value, decimals: decimals);
+  final fixed = value.appFixed(decimals: decimals);
   final dotIndex = fixed.indexOf('.');
   final intPart = dotIndex >= 0 ? fixed.substring(0, dotIndex) : fixed;
   final decPart = dotIndex >= 0 ? fixed.substring(dotIndex) : '';

@@ -1249,5 +1249,5 @@ class _ProductionMaterialIssueGroupedLine {
 }
 
 String _productionIssueFormatNumber(double value) {
-  return AppFormatSettings.fixedNumber(value);
+  return value.appFixed();
 }

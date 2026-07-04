@@ -555,5 +555,5 @@ class ServiceContractViewModel extends GetxController {
 }
 
 double _roundAmountForCompanyFormat(double value) {
-  return AppFormatSettings.roundedNumber(value);
+  return value.appRounded();
 }

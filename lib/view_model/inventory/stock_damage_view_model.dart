@@ -1016,5 +1016,5 @@ class _StockDamageGroupedLine {
 }
 
 String _stockDamageFormatNumber(double value) {
-  return AppFormatSettings.fixedNumber(value);
+  return value.appFixed();
 }

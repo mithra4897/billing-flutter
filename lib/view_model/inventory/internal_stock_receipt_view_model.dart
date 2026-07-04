@@ -1185,5 +1185,5 @@ class _InternalStockReceiptGroupedLine {
 }
 
 String _internalReceiptFormatNumber(double value) {
-  return AppFormatSettings.fixedNumber(value);
+  return value.appFixed();
 }

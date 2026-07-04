@@ -85,7 +85,7 @@ class JobworkReceiptLineDraft {
 }
 
 double _roundAmountForCompanyFormat(double value) {
-  return AppFormatSettings.roundedNumber(value);
+  return value.appRounded();
 }
 
 class JobworkReceiptViewModel extends GetxController {

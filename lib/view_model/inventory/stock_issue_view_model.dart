@@ -1055,5 +1055,5 @@ class _StockIssueGroupedLine {
 }
 
 String _stockIssueFormatNumber(double value) {
-  return AppFormatSettings.fixedNumber(value);
+  return value.appFixed();
 }

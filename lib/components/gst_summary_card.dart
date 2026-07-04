@@ -109,9 +109,7 @@ class GstSummaryCard extends StatelessWidget {
   }
 
   String _amountInWords(double amount) {
-    final normalized = amount.isNegative
-        ? 0
-        : double.parse(amount.toStringAsFixed(2));
+    final normalized = amount.isNegative ? 0 : amount.appRounded();
     var whole = normalized.floor();
     var fraction = ((normalized - whole) * 100).round();
     if (fraction == 100) {

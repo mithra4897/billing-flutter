@@ -67,7 +67,7 @@ class JobworkDispatchLineDraft {
 }
 
 double _roundAmountForCompanyFormat(double value) {
-  return AppFormatSettings.roundedNumber(value);
+  return value.appRounded();
 }
 
 class JobworkDispatchViewModel extends GetxController {

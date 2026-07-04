@@ -1495,5 +1495,5 @@ class _OpeningStockGroupedLine {
 }
 
 String _formatDraftNumber(double value) {
-  return AppFormatSettings.fixedNumber(value);
+  return value.appFixed();
 }

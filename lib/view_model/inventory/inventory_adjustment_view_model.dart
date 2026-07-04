@@ -731,7 +731,7 @@ class InventoryAdjustmentViewModel extends GetxController {
   }
 
   String _formatQuantity(double value) {
-    return AppFormatSettings.fixedNumber(value);
+    return value.appFixed();
   }
 
   void _reconcileLineSerialSelection(InventoryAdjustmentLineDraft line) {
