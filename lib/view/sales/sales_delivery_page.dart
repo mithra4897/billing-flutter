@@ -190,16 +190,28 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       final itemSelection = line.itemId == null
           ? null
           : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
-              (item) => item?.value == line.itemId,
-              orElse: () => null,
-            );
+                  (item) => item?.value == line.itemId,
+                  orElse: () => null,
+                ) ??
+                ErpLinkFieldOption<int>(
+                  value: line.itemId!,
+                  label:
+                      controller.itemLabelById(line.itemId) ??
+                      (() {
+                        final fallback = line.descriptionController.text.trim();
+                        return fallback.isEmpty ? 'Item' : fallback;
+                      })(),
+                  subtitle: line.itemId!.toString(),
+                );
 
       return ErpLineItemTableRow(
         rowKey: line,
         itemId: line.itemId,
         itemSelection: itemSelection,
         itemOptions: itemOptions,
-        onItemChanged: canEdit ? (value) => controller.setLineItemId(index, value) : null,
+        onItemChanged: canEdit
+            ? (value) => controller.setLineItemId(index, value)
+            : null,
         itemValidator: (_) =>
             Validators.requiredSelectionField(line.itemId, 'Item'),
         warehouseId: line.warehouseId,
@@ -209,7 +221,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             : null,
         uomId: line.uomId,
         uomOptions: uomOptions,
-        onUomChanged: canEdit ? (value) => controller.setLineUomId(index, value) : null,
+        onUomChanged: canEdit
+            ? (value) => controller.setLineUomId(index, value)
+            : null,
         uomValidator: (_) => Validators.dependentSelectionField(
           prerequisite: line.itemId,
           prerequisiteName: 'item',
@@ -326,9 +340,13 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     if (serialOptions.isEmpty) {
                       return 'No serials found in backend for the selected warehouse.';
                     }
-                    final serialLabelSet = controller.serialLabelSetForLine(line);
+                    final serialLabelSet = controller.serialLabelSetForLine(
+                      line,
+                    );
                     for (final value in values) {
-                      if (!serialLabelSet.contains(value.trim().toLowerCase())) {
+                      if (!serialLabelSet.contains(
+                        value.trim().toLowerCase(),
+                      )) {
                         return 'Serial "$value" is not available for the selected warehouse/batch.';
                       }
                     }
@@ -555,13 +573,15 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           children: [
             if (controller.selectedItem != null && !canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

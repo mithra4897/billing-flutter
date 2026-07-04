@@ -750,7 +750,7 @@ class SalesDeliveryManagementController extends GetxController {
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
         _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
+          filters: const {'per_page': 1000, 'sort_by': 'item_name'},
         ),
         _inventoryService.itemPrices(
           filters: const {
