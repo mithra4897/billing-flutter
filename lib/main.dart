@@ -6,6 +6,7 @@ import 'app/constants/app_config.dart';
 import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'core/navigation/app_route_state.dart';
+import 'helper/app_format_settings.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/app_shell_page.dart';
@@ -37,7 +38,7 @@ void main() {
   if (kIsWeb) {
     usePathUrlStrategy();
   }
-
+  AppFormatSettings.ensureRegistered();
   runApp(const BillingApp());
 }
 

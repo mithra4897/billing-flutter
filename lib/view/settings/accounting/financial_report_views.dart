@@ -769,7 +769,7 @@ class FinancialReportViews {
     if (n == 0) {
       return '';
     }
-    return n.toStringAsFixed(2);
+    return formatAmount(n);
   }
 
   static String _balance(dynamic amount, dynamic side) {
@@ -808,31 +808,8 @@ class FinancialReportViews {
     if (raw.isEmpty || raw == '-') {
       return '-';
     }
-
-    DateTime? parsed = DateTime.tryParse(raw);
-    parsed ??= DateTime.tryParse(raw.replaceFirst(' ', 'T'));
-    if (parsed == null) {
-      return raw;
-    }
-
-    final months = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final day = parsed.day.toString().padLeft(2, '0');
-    final month = months[parsed.month - 1];
-    final year = parsed.year.toString();
-    return '$day $month $year';
+    final displayed = displayDate(raw);
+    return displayed.isEmpty ? raw : displayed;
   }
 
   static String _bucketLabel(dynamic value) {

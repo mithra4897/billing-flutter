@@ -167,7 +167,7 @@ class GstSummaryCard extends StatelessWidget {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
               Text(
-                value.toStringAsFixed(2),
+                formatAmount(value),
                 textAlign: TextAlign.right,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,

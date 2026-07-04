@@ -774,8 +774,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
             final amount = raw is num
                 ? raw.toDouble()
                 : double.tryParse(raw?.toString() ?? '');
-            if (amount == null) return '-';
-            return amount.toStringAsFixed(2);
+            return formatAmount(amount);
           },
         ),
       ],
@@ -869,7 +868,8 @@ class SalesOrderRegisterPage extends StatelessWidget {
               row.toJson(),
               'order_status',
             ).trim().toLowerCase();
-            final isClosed = status.isEmpty ||
+            final isClosed =
+                status.isEmpty ||
                 const <String>{
                   'fully_delivered',
                   'fully_invoiced',
@@ -877,12 +877,23 @@ class SalesOrderRegisterPage extends StatelessWidget {
                   'cancelled',
                 }.contains(status);
             if (isClosed) return false;
-            final raw = nullableStringValue(row.toJson(), 'expected_delivery_date');
+            final raw = nullableStringValue(
+              row.toJson(),
+              'expected_delivery_date',
+            );
             final parsed = raw == null ? null : DateTime.tryParse(raw);
             if (parsed == null) return false;
             final today = DateTime.now();
-            final normalizedToday = DateTime(today.year, today.month, today.day);
-            final normalizedDelivery = DateTime(parsed.year, parsed.month, parsed.day);
+            final normalizedToday = DateTime(
+              today.year,
+              today.month,
+              today.day,
+            );
+            final normalizedDelivery = DateTime(
+              parsed.year,
+              parsed.month,
+              parsed.day,
+            );
             return normalizedDelivery.isBefore(normalizedToday);
           default:
             return true;
@@ -953,8 +964,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
             final amount = raw is num
                 ? raw.toDouble()
                 : double.tryParse(raw?.toString() ?? '');
-            if (amount == null) return '-';
-            return amount.toStringAsFixed(2);
+            return formatAmount(amount);
           },
         ),
       ],
@@ -1034,8 +1044,16 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             final dueDate = DateTime.tryParse(dueDateStr);
             if (dueDate == null) return false;
             final today = DateTime.now();
-            final normalizedToday = DateTime(today.year, today.month, today.day);
-            final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            final normalizedToday = DateTime(
+              today.year,
+              today.month,
+              today.day,
+            );
+            final normalizedDue = DateTime(
+              dueDate.year,
+              dueDate.month,
+              dueDate.day,
+            );
             return normalizedDue.isBefore(normalizedToday);
           case 'draft':
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
@@ -1100,20 +1118,12 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
-          valueBuilder: (row) {
-            final amount = row.totalAmount;
-            if (amount == null) return '-';
-            return amount.toStringAsFixed(2);
-          },
+          valueBuilder: (row) => formatAmount(row.totalAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Balance',
           alignRight: true,
-          valueBuilder: (row) {
-            final amount = row.balanceAmount;
-            if (amount == null) return '-';
-            return amount.toStringAsFixed(2);
-          },
+          valueBuilder: (row) => formatAmount(row.balanceAmount),
         ),
       ],
       rowRoute: (row) => '/sales/invoices/${intValue(row.toJson(), 'id')}',
@@ -1326,8 +1336,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
             final amount = raw is num
                 ? raw.toDouble()
                 : double.tryParse(raw?.toString() ?? '');
-            if (amount == null) return '-';
-            return amount.toStringAsFixed(2);
+            return formatAmount(amount);
           },
         ),
       ],

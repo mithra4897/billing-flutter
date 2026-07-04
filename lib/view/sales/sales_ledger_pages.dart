@@ -340,13 +340,12 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Receivable',
           alignRight: true,
-          valueBuilder: (row) =>
-              _formatSalesRegisterAmount(row.receivableAmount),
+          valueBuilder: (row) => formatAmount(row.receivableAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Advance',
           alignRight: true,
-          valueBuilder: (row) => _formatSalesRegisterAmount(row.advanceAmount),
+          valueBuilder: (row) => formatAmount(row.advanceAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Last Invoice',
@@ -943,16 +942,9 @@ class _SalesStatementRowSortWrapper {
   final LedgerStatementRowData row;
 }
 
-String _formatSalesLedgerAmount(double value) => value.toStringAsFixed(2);
+String _formatSalesLedgerAmount(double value) => formatAmount(value);
 
 const String _ledgerHistoryDateFrom = '2000-01-01';
-
-String _formatSalesRegisterAmount(double value) {
-  if (value == 0) {
-    return '';
-  }
-  return value.toStringAsFixed(2);
-}
 
 String _ledgerHistoryDateTo() =>
     DateTime.now().toIso8601String().split('T').first;
@@ -994,7 +986,7 @@ String _ledgerAmountText(dynamic value) {
   if (amount == 0) {
     return '';
   }
-  return amount.toStringAsFixed(2);
+  return formatAmount(amount);
 }
 
 String _ledgerCode(Map<String, dynamic> line) {

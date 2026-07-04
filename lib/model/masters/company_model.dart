@@ -30,6 +30,9 @@ class CompanyModel extends JsonModel {
     this.countryCode,
     this.remarks,
     this.isActive = true,
+    this.dateFormat,
+    this.amountGrouping,
+    this.decimalPlaces,
   });
   final String? code;
   final String? legalName;
@@ -58,6 +61,10 @@ class CompanyModel extends JsonModel {
   final String? countryCode;
   final String? remarks;
   final bool isActive;
+
+  final String? dateFormat;
+  final String? amountGrouping;
+  final int? decimalPlaces;
 
   @override
   String toString() => tradeName ?? legalName ?? code ?? 'New Company';
@@ -92,6 +99,11 @@ class CompanyModel extends JsonModel {
       countryCode: json['country_code']?.toString(),
       remarks: json['remarks']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
+      dateFormat: json['date_format']?.toString(),
+      amountGrouping: json['amount_grouping']?.toString(),
+      decimalPlaces: json['decimal_places'] is int
+          ? json['decimal_places'] as int
+          : int.tryParse(json['decimal_places']?.toString() ?? ''),
     );
   }
 
@@ -126,6 +138,9 @@ class CompanyModel extends JsonModel {
       if (countryCode != null) 'country_code': countryCode,
       'is_active': isActive,
       if (remarks != null) 'remarks': remarks,
+      if (dateFormat != null) 'date_format': dateFormat,
+      if (amountGrouping != null) 'amount_grouping': amountGrouping,
+      if (decimalPlaces != null) 'decimal_places': decimalPlaces,
     };
   }
 

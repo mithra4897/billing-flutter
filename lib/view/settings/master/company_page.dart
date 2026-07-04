@@ -31,7 +31,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
       tag: _controllerTag,
     permanent: true,
     );
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         _controller.setActiveTabIndex(_tabController.index);
@@ -128,7 +128,11 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
               controller: _tabController,
               onTap: controller.setActiveTabIndex,
               isScrollable: true,
-              tabs: const [Tab(text: 'Primary'), Tab(text: 'Financial Years')],
+              tabs: const [
+                Tab(text: 'Primary'),
+                Tab(text: 'Financial Years'),
+                Tab(text: 'Formats'),
+              ],
             ),
             const SizedBox(height: 20),
             IndexedStack(
@@ -145,6 +149,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                         embedded: true,
                         fixedCompanyId: controller.selectedCompany!.id,
                       ),
+                _buildFormatsTab(context, controller),
               ],
             ),
           ],
@@ -277,6 +282,176 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
       title: title,
       message: message,
       minHeight: 240,
+    );
+  }
+
+  Widget _buildFormatsTab(
+    BuildContext context,
+    CompanyManagementController controller,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        Text(
+          'These format settings apply globally across the entire application whenever this company is active.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context)
+                .extension<AppThemeExtension>()
+                ?.mutedText,
+          ),
+        ),
+        const SizedBox(height: 20),
+        SettingsFormWrap(
+          children: [
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Date Format',
+              mappedItems: AppFormatSettings.dateFormatItems,
+              initialValue: controller.formatDate,
+              onChanged: controller.setFormatDate,
+            ),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Amount Format',
+              mappedItems: AppFormatSettings.amountGroupingItems,
+              initialValue: controller.formatAmountGrouping,
+              onChanged: controller.setFormatAmountGrouping,
+            ),
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Decimal Places',
+              mappedItems: AppFormatSettings.decimalPlacesItems,
+              initialValue: controller.formatDecimalPlaces,
+              onChanged: controller.setFormatDecimalPlaces,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _FormatPreviewCard(controller: controller),
+        const SizedBox(height: 16),
+        if ((controller.formError ?? '').isNotEmpty) ...[
+          Text(
+            controller.formError!,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            AppActionButton(
+              onPressed: controller.saving ? null : controller.save,
+              icon: Icons.save_outlined,
+              label: controller.saving ? 'Saving...' : 'Save Formats',
+              busy: controller.saving,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FormatPreviewCard extends StatelessWidget {
+  const _FormatPreviewCard({required this.controller});
+
+  final CompanyManagementController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>();
+    final sampleDate = '2026-07-04';
+    final sampleAmount = 123456.789;
+
+    final previewDate = _previewDate(sampleDate, controller.formatDate);
+    final previewAmount = _previewAmount(
+      sampleAmount,
+      controller.formatAmountGrouping,
+      controller.formatDecimalPlaces,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appTheme?.subtleFill,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Preview',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _PreviewItem(
+                  label: 'Date',
+                  value: previewDate,
+                ),
+              ),
+              Expanded(
+                child: _PreviewItem(
+                  label: 'Amount',
+                  value: previewAmount,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _previewDate(String raw, String fmt) {
+    final parts = raw.split('-');
+    if (parts.length != 3) return raw;
+    return fmt
+        .replaceAll('yyyy', parts[0])
+        .replaceAll('MM', parts[1])
+        .replaceAll('dd', parts[2]);
+  }
+
+  static String _previewAmount(double value, String grouping, int decimals) {
+    return formatAmount(value);
+  }
+}
+
+class _PreviewItem extends StatelessWidget {
+  const _PreviewItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(
+              context,
+            ).extension<AppThemeExtension>()?.mutedText,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

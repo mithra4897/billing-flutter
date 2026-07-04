@@ -47,10 +47,14 @@ class CompanyManagementController extends GetxController {
   String companyType = 'private_limited';
   int activeTabIndex = 0;
 
+  String formatDate = 'dd/MM/yyyy';
+  String formatAmountGrouping = 'indian';
+  int formatDecimalPlaces = 2;
+
   @override
   void onInit() {
     super.onInit();
-    activeTabIndex = initialTabIndex.clamp(0, 1);
+    activeTabIndex = initialTabIndex.clamp(0, 2);
     searchController.addListener(_applySearch);
     loadCompanies();
   }
@@ -149,6 +153,12 @@ class CompanyManagementController extends GetxController {
     remarksController.text = company.remarks ?? '';
     companyType = company.companyType ?? 'private_limited';
     isActive = company.isActive;
+    // Format settings
+    formatDate = company.dateFormat ?? 'dd/MM/yyyy';
+    formatAmountGrouping = company.amountGrouping ?? 'indian';
+    formatDecimalPlaces = company.decimalPlaces ?? 2;
+    // Apply globally so the whole app reacts
+    AppFormatSettings.to.applyFromCompany(company);
     formError = null;
     if (notify) {
       update();
@@ -171,6 +181,9 @@ class CompanyManagementController extends GetxController {
     remarksController.clear();
     companyType = 'private_limited';
     isActive = true;
+    formatDate = 'dd/MM/yyyy';
+    formatAmountGrouping = 'indian';
+    formatDecimalPlaces = 2;
     formError = null;
     unawaited(_primeCodeSuggestion());
     if (notify) {
@@ -229,6 +242,9 @@ class CompanyManagementController extends GetxController {
       baseCurrency: nullIfEmpty(currencyController.text) ?? 'INR',
       remarks: nullIfEmpty(remarksController.text),
       isActive: isActive,
+      dateFormat: formatDate,
+      amountGrouping: formatAmountGrouping,
+      decimalPlaces: formatDecimalPlaces,
     );
 
     try {
@@ -245,6 +261,8 @@ class CompanyManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      // Update local context cache with newly saved data
+      await AppSessionService.instance.refreshUserAccess();
       await loadCompanies(selectId: saved.id);
     } catch (error) {
       formError = error.toString();
@@ -274,6 +292,21 @@ class CompanyManagementController extends GetxController {
 
   void setActiveTabIndex(int index) {
     activeTabIndex = index;
+    update();
+  }
+
+  void setFormatDate(String? value) {
+    if (value != null) formatDate = value;
+    update();
+  }
+
+  void setFormatAmountGrouping(String? value) {
+    if (value != null) formatAmountGrouping = value;
+    update();
+  }
+
+  void setFormatDecimalPlaces(int? value) {
+    if (value != null) formatDecimalPlaces = value;
     update();
   }
 }

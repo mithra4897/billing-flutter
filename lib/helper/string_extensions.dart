@@ -21,13 +21,8 @@ extension StringExtensions on String {
   }
 }
 
-String displayDate(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return '';
-  }
 
-  return value.split('T').first.split(' ').first;
-}
+
 
 String displayDateTime(String? value) {
   if (value == null || value.trim().isEmpty) {

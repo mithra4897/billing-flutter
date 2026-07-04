@@ -352,7 +352,9 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
         throw Exception('Purchase ledger account is not configured.');
       }
 
-      final accountResponse = await _accountsService.account(mapping.accountId!);
+      final accountResponse = await _accountsService.account(
+        mapping.accountId!,
+      );
       final account = accountResponse.data;
       if (account?.id == null || account?.companyId == null) {
         throw Exception('Purchase ledger account details are incomplete.');
@@ -370,22 +372,24 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
       final reportData = reportResponse.data?.data ?? const <String, dynamic>{};
       final summary = _ledgerMap(reportData['summary']);
       final lines = _ledgerList(reportData['lines']);
-      final statementRows = lines
-          .map(
-            (line) => _StatementRowSortWrapper(
-              sortDate: line['voucher_date']?.toString() ?? '',
-              row: LedgerStatementRowData(
-                date: displayDate(line['voucher_date']?.toString()),
-                code: _ledgerCode(line),
-                ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-                cashBankLedger: _ledgerDescriptor(line),
-                credit: _ledgerAmountText(line['credit']),
-                debit: _ledgerAmountText(line['debit']),
-              ),
-            ),
-          )
-          .toList(growable: false)
-        ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
+      final statementRows =
+          lines
+              .map(
+                (line) => _StatementRowSortWrapper(
+                  sortDate: line['voucher_date']?.toString() ?? '',
+                  row: LedgerStatementRowData(
+                    date: displayDate(line['voucher_date']?.toString()),
+                    code: _ledgerCode(line),
+                    ledgerName:
+                        mapping.accountName ?? mapping.accountCode ?? '-',
+                    cashBankLedger: _ledgerDescriptor(line),
+                    credit: _ledgerAmountText(line['credit']),
+                    debit: _ledgerAmountText(line['debit']),
+                  ),
+                ),
+              )
+              .toList(growable: false)
+            ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
 
       if (!mounted) {
         return;
@@ -658,7 +662,7 @@ class _StatementRowSortWrapper {
   final LedgerStatementRowData row;
 }
 
-String _formatAmount(double value) => value.toStringAsFixed(2);
+String _formatAmount(double value) => formatAmount(value);
 
 const String _ledgerHistoryDateFrom = '2000-01-01';
 
@@ -666,7 +670,7 @@ String _formatPurchaseRegisterAmount(double value) {
   if (value == 0) {
     return '';
   }
-  return value.toStringAsFixed(2);
+  return formatAmount(value);
 }
 
 String _ledgerHistoryDateTo() =>
@@ -677,9 +681,7 @@ Map<String, dynamic> _ledgerMap(dynamic value) {
     return value;
   }
   if (value is Map) {
-    return value.map(
-      (key, entry) => MapEntry(key.toString(), entry),
-    );
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
   }
   return const <String, dynamic>{};
 }
@@ -699,7 +701,7 @@ String _ledgerAmountText(dynamic value) {
   if (amount == 0) {
     return '';
   }
-  return amount.toStringAsFixed(2);
+  return formatAmount(amount);
 }
 
 String _ledgerCode(Map<String, dynamic> line) {

@@ -56,6 +56,18 @@ class AppShellController extends GetxController {
 
     branding = nextBranding ?? branding;
     authContext = nextAuthContext;
+
+    final companyId = await SessionStorage.getCurrentCompanyId();
+    if (companyId != null && nextAuthContext != null) {
+      final activeCompany = nextAuthContext.companies.cast<CompanyModel?>().firstWhere(
+        (c) => c?.id == companyId,
+        orElse: () => null,
+      );
+      if (activeCompany != null) {
+        AppFormatSettings.to.applyFromCompany(activeCompany);
+      }
+    }
+
     update();
 
     ensureCurrentRouteAllowed(

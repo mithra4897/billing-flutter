@@ -1107,7 +1107,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                row.amount.toStringAsFixed(2),
+                formatAmount(row.amount),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: appTheme.tableCellText,

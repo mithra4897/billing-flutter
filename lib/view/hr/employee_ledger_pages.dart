@@ -301,8 +301,7 @@ class _EmployeeLedgerRegisterPageState
         ),
         PurchaseRegisterColumn(
           label: 'Salary Posted',
-          valueBuilder: (row) =>
-              _formatEmployeeRegisterAmount(row.salaryTotal),
+          valueBuilder: (row) => _formatEmployeeRegisterAmount(row.salaryTotal),
         ),
         PurchaseRegisterColumn(
           label: 'Reimbursed',
@@ -426,7 +425,9 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
         reimbursementReport['summary'],
       );
       final salaryLines = _employeeLedgerList(salaryReport['lines']);
-      final reimbursementLines = _employeeLedgerList(reimbursementReport['lines']);
+      final reimbursementLines = _employeeLedgerList(
+        reimbursementReport['lines'],
+      );
       final statementRows = <_StatementRowSortWrapper>[
         ..._employeeStatementRows(
           salaryLines,
@@ -772,9 +773,9 @@ class _StatementRowSortWrapper {
 const String _employeeLedgerHistoryDateFrom = '2000-01-01';
 
 EmployeeAccountModel? _preferredEmployeeAccount(
-  List<EmployeeAccountModel> accounts,
-  {List<String> preferredPurposes = const <String>[]}
-) {
+  List<EmployeeAccountModel> accounts, {
+  List<String> preferredPurposes = const <String>[],
+}) {
   if (accounts.isEmpty) {
     return null;
   }
@@ -819,9 +820,7 @@ Map<String, dynamic> _employeeLedgerMap(dynamic value) {
     return value;
   }
   if (value is Map) {
-    return value.map(
-      (key, entry) => MapEntry(key.toString(), entry),
-    );
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
   }
   return const <String, dynamic>{};
 }
@@ -880,16 +879,16 @@ String _employeeLedgerAmountText(dynamic value) {
   if (amount == 0) {
     return '';
   }
-  return amount.toStringAsFixed(2);
+  return formatAmount(amount);
 }
 
-String _formatLedgerAmount(double value) => value.toStringAsFixed(2);
+String _formatLedgerAmount(double value) => formatAmount(value);
 
 String _formatEmployeeRegisterAmount(double value) {
   if (value == 0) {
     return '';
   }
-  return value.toStringAsFixed(2);
+  return formatAmount(value);
 }
 
 String _employeeLedgerCoverageLabel(

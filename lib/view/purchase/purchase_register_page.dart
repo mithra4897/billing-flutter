@@ -435,8 +435,9 @@ class _RegisterHeader<T> extends StatelessWidget {
                 flex: column.flex,
                 child: Text(
                   column.label,
-                  textAlign:
-                      column.alignRight ? TextAlign.right : TextAlign.left,
+                  textAlign: column.alignRight
+                      ? TextAlign.right
+                      : TextAlign.left,
                   style: Theme.of(
                     context,
                   ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -509,8 +510,7 @@ class _RegisterCell<T> extends StatelessWidget {
             primaryValue.trim().isEmpty ? '-' : primaryValue,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            textAlign:
-                column.alignRight ? TextAlign.right : TextAlign.left,
+            textAlign: column.alignRight ? TextAlign.right : TextAlign.left,
           );
 
     if (detailValue.isEmpty) {
