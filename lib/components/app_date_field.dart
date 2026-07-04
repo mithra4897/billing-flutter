@@ -24,6 +24,13 @@ class AppDateField extends StatelessWidget {
   final DateTime? lastDate;
   final bool allowType;
 
+  String get _dateHint {
+    final format = Get.isRegistered<AppFormatSettings>()
+        ? AppFormatSettings.to.dateFormat.value
+        : AppFormatSettings.defaultDateFormat;
+    return format.replaceAll('yyyy', 'YYYY').replaceAll('dd', 'DD');
+  }
+
   DateTime get _effectiveFirstDate =>
       firstDate ?? DateTime(DateTime.now().year - 10);
 
@@ -61,7 +68,7 @@ class AppDateField extends StatelessWidget {
       controller: controller,
       width: width,
       enabled: enabled,
-      hintText: hintText ?? 'YYYY-MM-DD',
+      hintText: hintText ?? _dateHint,
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: validator,

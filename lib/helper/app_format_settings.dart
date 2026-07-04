@@ -98,7 +98,8 @@ extension AppFormattedNumber on num {
 
 String displayDate(String? value) {
   if (value == null || value.trim().isEmpty) return '';
-  final raw = value.split('T').first.split(' ').first.trim();
+  final normalized = normalizeDateForApi(value);
+  final raw = normalized.split('T').first.split(' ').first.trim();
   if (raw.isEmpty) return '';
 
   final parts = raw.split('-');

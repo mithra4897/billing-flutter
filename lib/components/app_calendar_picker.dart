@@ -363,7 +363,7 @@ class _AppCalendarPane extends StatelessWidget {
 String formatCalendarDate(DateTime value) {
   final month = value.month.toString().padLeft(2, '0');
   final day = value.day.toString().padLeft(2, '0');
-  return '${value.year}-$month-$day';
+  return displayDate('${value.year}-$month-$day');
 }
 
 String formatCalendarDateTime(DateTime value) {
@@ -376,11 +376,7 @@ String formatCalendarDateTime(DateTime value) {
 }
 
 DateTime? tryParseCalendarDate(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(trimmed);
+  return parseNormalizedDateValue(raw);
 }
 
 DateTime? tryParseCalendarDateTime(String raw) {

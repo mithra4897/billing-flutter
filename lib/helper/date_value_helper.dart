@@ -1,18 +1,105 @@
+import 'package:get/get.dart';
+
+import 'app_format_settings.dart';
+
 String normalizeDateValue(String? value) {
-  final text = (value ?? '').trim();
-  if (text.isEmpty) {
+  final normalized = normalizeDateForApi(value);
+  final raw = normalized.split('T').first.split(' ').first.trim();
+  if (raw.isEmpty) {
     return '';
   }
+  final parts = raw.split('-');
+  if (parts.length != 3) {
+    return raw;
+  }
+  final year = parts[0];
+  final month = parts[1];
+  final day = parts[2];
+  final fmt = Get.isRegistered<AppFormatSettings>()
+      ? AppFormatSettings.to.dateFormat.value
+      : AppFormatSettings.defaultDateFormat;
+  return fmt
+      .replaceAll('yyyy', year)
+      .replaceAll('MM', month)
+      .replaceAll('dd', day);
+}
 
-  return text.length >= 10 ? text.substring(0, 10) : text;
+String normalizeDateForApi(String? value) {
+  final parsed = parseNormalizedDateValue(value);
+  if (parsed == null) {
+    return (value ?? '').trim();
+  }
+  final year = parsed.year.toString().padLeft(4, '0');
+  final month = parsed.month.toString().padLeft(2, '0');
+  final day = parsed.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }
 
 DateTime? parseNormalizedDateValue(String? value) {
-  final normalized = normalizeDateValue(value);
-  if (normalized.isEmpty) {
+  final text = (value ?? '').trim();
+  if (text.isEmpty) {
     return null;
   }
-  return DateTime.tryParse(normalized);
+
+  final raw = text.split('T').first.split(' ').first.trim();
+  if (raw.isEmpty) {
+    return null;
+  }
+
+  final isoParsed = DateTime.tryParse(raw);
+  if (isoParsed != null) {
+    return DateTime(isoParsed.year, isoParsed.month, isoParsed.day);
+  }
+
+  final fmt = Get.isRegistered<AppFormatSettings>()
+      ? AppFormatSettings.to.dateFormat.value
+      : AppFormatSettings.defaultDateFormat;
+  final separatorMatch = RegExp(r'[^A-Za-z]').firstMatch(fmt);
+  final separator = separatorMatch?.group(0);
+  if (separator == null || separator.isEmpty) {
+    return null;
+  }
+
+  final formatParts = fmt.split(separator);
+  final valueParts = raw.split(separator);
+  if (formatParts.length != 3 || valueParts.length != 3) {
+    return null;
+  }
+
+  int? year;
+  int? month;
+  int? day;
+  for (var index = 0; index < 3; index++) {
+    final token = formatParts[index];
+    final part = valueParts[index].trim();
+    final parsed = int.tryParse(part);
+    if (parsed == null) {
+      return null;
+    }
+    switch (token) {
+      case 'yyyy':
+        year = parsed;
+        break;
+      case 'MM':
+        month = parsed;
+        break;
+      case 'dd':
+        day = parsed;
+        break;
+      default:
+        return null;
+    }
+  }
+
+  if (year == null || month == null || day == null) {
+    return null;
+  }
+
+  final parsed = DateTime(year, month, day);
+  if (parsed.year != year || parsed.month != month || parsed.day != day) {
+    return null;
+  }
+  return parsed;
 }
 
 bool matchesDateValueRange(

@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'date_value_helper.dart';
+
 class Validators {
   const Validators._();
 
@@ -8,7 +10,6 @@ class Validators {
     caseSensitive: false,
   );
   static final RegExp _wholeNumberPattern = RegExp(r'^\d+$');
-  static final RegExp _datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
   static final RegExp _mobilePattern = RegExp(r'^[6-9]\d{9}$');
   static final RegExp _phoneAllowedCharsPattern = RegExp(r'^[0-9+\-\s()]+$');
   static final RegExp _phoneDigitPattern = RegExp(r'^\d{6,15}$');
@@ -380,11 +381,7 @@ class Validators {
       return null;
     }
 
-    if (!_datePattern.hasMatch(trimmed)) {
-      return '$fieldName must be in YYYY-MM-DD format';
-    }
-
-    final parsed = DateTime.tryParse(trimmed);
+    final parsed = parseNormalizedDateValue(trimmed);
     if (parsed == null) {
       return '$fieldName must be a valid date';
     }
@@ -432,8 +429,8 @@ class Validators {
       return null;
     }
 
-    final start = DateTime.tryParse(startText);
-    final end = DateTime.tryParse(endText);
+    final start = parseNormalizedDateValue(startText);
+    final end = parseNormalizedDateValue(endText);
 
     if (start != null && end != null && end.isBefore(start)) {
       return '$fieldName must be on or after $startFieldName';
