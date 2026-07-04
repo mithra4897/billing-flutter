@@ -41,6 +41,7 @@ class VoucherManagementController extends GetxController {
   VoucherManagementController();
 
   static const String _refreshSource = 'VoucherManagementController';
+  static const int _defaultVoucherListLimit = 200;
 
   static const List<AppDropdownItem<String>> approvalStatusItems =
       <AppDropdownItem<String>>[
@@ -119,6 +120,7 @@ class VoucherManagementController extends GetxController {
   String? pageError;
   String? formError;
   List<VoucherModel> vouchers = const <VoucherModel>[];
+  List<VoucherModel> allVouchers = const <VoucherModel>[];
   List<VoucherModel> filteredVouchers = const <VoucherModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<VoucherTypeModel> voucherTypes = const <VoucherTypeModel>[];
@@ -210,8 +212,12 @@ class VoucherManagementController extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _accountsService.vouchers(
-          filters: const {'per_page': 200, 'sort_by': 'voucher_date'},
+          filters: const {
+            'per_page': _defaultVoucherListLimit,
+            'sort_by': 'voucher_date',
+          },
         ),
+        _accountsService.vouchersAll(filters: const {'sort_by': 'voucher_date'}),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
@@ -245,35 +251,38 @@ class VoucherManagementController extends GetxController {
       final nextVouchers =
           (responses[0] as PaginatedResponse<VoucherModel>).data ??
           const <VoucherModel>[];
+      final nextAllVouchers =
+          (responses[1] as ApiResponse<List<VoucherModel>>).data ??
+          const <VoucherModel>[];
       final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          (responses[2] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
       final branches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
+          (responses[3] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          (responses[4] as PaginatedResponse<BusinessLocationModel>).data ??
           const <BusinessLocationModel>[];
       final years =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+          (responses[5] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
       final nextSeries =
-          (responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+          (responses[6] as PaginatedResponse<DocumentSeriesModel>).data ??
           const <DocumentSeriesModel>[];
       final nextVoucherTypes =
-          (responses[6] as ApiResponse<List<VoucherTypeModel>>).data ??
+          (responses[7] as ApiResponse<List<VoucherTypeModel>>).data ??
           const <VoucherTypeModel>[];
       final nextParties =
-          (responses[7] as PaginatedResponse<PartyModel>).data ??
+          (responses[8] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       final nextCostCenters =
-          (responses[8] as PaginatedResponse<CostCenterModel>).data ??
+          (responses[9] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
       final nextDepartments =
-          (responses[9] as PaginatedResponse<DepartmentModel>).data ??
+          (responses[10] as PaginatedResponse<DepartmentModel>).data ??
           const <DepartmentModel>[];
       final nextProjects =
-          (responses[10] as PaginatedResponse<ProjectModel>).data ??
+          (responses[11] as PaginatedResponse<ProjectModel>).data ??
           const <ProjectModel>[];
 
       final activeCompanies = companies.where((item) => item.isActive).toList();
@@ -302,7 +311,15 @@ class VoucherManagementController extends GetxController {
       permissionCodes = permissionCodesResponse.toSet();
       isSuperAdmin = superAdmin;
       vouchers = nextVouchers;
-      filteredVouchers = filterVouchers(nextVouchers, searchController.text);
+      allVouchers = nextAllVouchers;
+      filteredVouchers = filterVouchers(
+        _searchSource(
+          visibleItems: nextVouchers,
+          fullItems: nextAllVouchers,
+          query: searchController.text,
+        ),
+        searchController.text,
+      );
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -331,7 +348,7 @@ class VoucherManagementController extends GetxController {
       update();
 
       if (selectId != null) {
-        final selected = nextVouchers.cast<VoucherModel?>().firstWhere(
+        final selected = nextAllVouchers.cast<VoucherModel?>().firstWhere(
           (item) => item?.id == selectId,
           orElse: () => null,
         );
@@ -341,7 +358,7 @@ class VoucherManagementController extends GetxController {
           resetForm(notify: false);
         }
       } else if (selectedVoucher?.id != null) {
-        final reselect = nextVouchers.cast<VoucherModel?>().firstWhere(
+        final reselect = nextAllVouchers.cast<VoucherModel?>().firstWhere(
           (item) => item?.id == selectedVoucher?.id,
           orElse: () => null,
         );
@@ -372,8 +389,26 @@ class VoucherManagementController extends GetxController {
     });
   }
 
+  List<VoucherModel> _searchSource({
+    required List<VoucherModel> visibleItems,
+    required List<VoucherModel> fullItems,
+    required String query,
+  }) {
+    if (query.trim().isEmpty) {
+      return visibleItems;
+    }
+    return fullItems;
+  }
+
   void applySearch() {
-    filteredVouchers = filterVouchers(vouchers, searchController.text);
+    filteredVouchers = filterVouchers(
+      _searchSource(
+        visibleItems: vouchers,
+        fullItems: allVouchers,
+        query: searchController.text,
+      ),
+      searchController.text,
+    );
     update();
   }
 

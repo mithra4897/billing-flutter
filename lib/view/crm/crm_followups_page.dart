@@ -656,6 +656,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     BuildContext context, {
     required Widget child,
     bool compact = false,
+    bool showBottomBorder = true,
   }) {
     final borderColor = Theme.of(
       context,
@@ -663,7 +664,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: borderColor)),
+        border: showBottomBorder
+            ? Border(bottom: BorderSide(color: borderColor))
+            : null,
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -699,6 +702,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return _buildSectionListRow(
       context,
       compact: true,
+      showBottomBorder: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -925,22 +929,6 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   _buildUpcomingFollowupList(context),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Needs Followup',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildGapList(context),
                 ],
               ),
             ),
