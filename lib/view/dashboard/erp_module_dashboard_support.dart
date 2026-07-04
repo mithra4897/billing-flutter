@@ -972,47 +972,57 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
     final invoiceJsonRows = (invoices.data ?? const <SalesInvoiceModel>[])
         .map((item) => _safeMap(() => item.toJson()))
         .toList(growable: false);
-    final receiptJsonRows = (receipts.data ?? const <SalesReceiptModel>[])
-        .map((item) => _safeMap(item.toJson))
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
-    final quotationJsonRows = (quotations.data ?? const <SalesQuotationModel>[])
-        .map((item) => _safeMap(item.toJson))
-        .where((item) => item.isNotEmpty)
-        .toList(growable: false);
     final pendingOrders = orderJsonRows
         .where(
           (item) => !_isClosedStatus(item, const ['order_status', 'status']),
         )
         .length;
-    final openQuotations = quotationJsonRows.where((item) {
-      final status = _statusLabel(item, const [
-        'quotation_status',
-        'status',
-      ]).trim().toLowerCase();
-      return status.isNotEmpty &&
-          !<String>{
-            'accepted',
-            'rejected',
-            'expired',
-            'cancelled',
-          }.contains(status);
-    }).length;
-    final openInvoices = invoiceJsonRows.where((item) {
-      final status = _statusLabel(item, const [
-        'invoice_status',
-        'status',
-      ]).trim().toLowerCase();
-      return status.isNotEmpty &&
-          !<String>{'paid', 'cancelled'}.contains(status);
-    }).length;
-    final postedReceipts = receiptJsonRows.where((item) {
-      final status = _statusLabel(item, const [
-        'receipt_status',
-        'status',
-      ]).trim().toLowerCase();
-      return status == 'posted';
-    }).length;
+
+    final outstandingAmount = invoices.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+            if (status == 'cancelled' || status == 'paid') {
+              return sum;
+            }
+            return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+          },
+        ) ??
+        0.0;
+
+    final pipelineValue = quotations.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final status = (item.quotationStatus ?? '').trim().toLowerCase();
+            if (const <String>{
+              'accepted',
+              'rejected',
+              'expired',
+              'cancelled',
+            }.contains(status)) {
+              return sum;
+            }
+            return sum + (item.totalAmount ?? 0.0);
+          },
+        ) ??
+        0.0;
+
+    final thisMonthSales = invoices.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final dateStr = item.invoiceDate;
+            final date = DateTime.tryParse(dateStr);
+            if (date == null) return sum;
+            final now = DateTime.now();
+            if (date.year == now.year && date.month == now.month) {
+              final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+              if (status == 'cancelled') return sum;
+              return sum + (item.totalAmount ?? 0.0);
+            }
+            return sum;
+          },
+        ) ??
+        0.0;
 
     return ErpDashboardSnapshot(
       title: 'Sales Dashboard',
@@ -1031,13 +1041,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
       ],
       stats: <ErpDashboardStat>[
         ErpDashboardStat(
-          label: 'Open Quotations',
-          value: _formatInt(openQuotations),
-          helper: 'Active sales pipeline documents',
-          icon: Icons.request_quote_outlined,
-          route: '/sales/quotations?dashboard_filter=open',
-        ),
-        ErpDashboardStat(
           label: 'Pending Orders',
           value: _formatInt(pendingOrders),
           helper: 'Orders still to be fulfilled',
@@ -1046,20 +1049,28 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
           route: '/sales/orders?dashboard_filter=pending',
         ),
         ErpDashboardStat(
-          label: 'Open Invoices',
-          value: _formatInt(openInvoices),
-          helper: 'Invoices awaiting full payment',
-          icon: Icons.receipt_long_outlined,
+          label: 'Outstanding Balance',
+          value: _formatCurrency(outstandingAmount),
+          helper: 'Awaiting customer payments',
+          icon: Icons.payments_outlined,
           color: const Color(0xFFDA4D78),
           route: '/sales/invoices?dashboard_filter=open',
         ),
         ErpDashboardStat(
-          label: 'Posted Receipts',
-          value: _formatInt(postedReceipts),
-          helper: 'Customer collections recorded',
-          icon: Icons.payments_outlined,
-          color: const Color(0xFF19A7B8),
-          route: '/sales/receipts?dashboard_filter=posted',
+          label: 'Active Pipeline',
+          value: _formatCurrency(pipelineValue),
+          helper: 'Active sales quotations',
+          icon: Icons.request_quote_outlined,
+          color: const Color(0xFF2F6FED),
+          route: '/sales/quotations?dashboard_filter=open',
+        ),
+        ErpDashboardStat(
+          label: 'Monthly Sales',
+          value: _formatCurrency(thisMonthSales),
+          helper: 'Total invoiced this month',
+          icon: Icons.trending_up_outlined,
+          color: const Color(0xFF1FA971),
+          route: '/sales/invoices',
         ),
       ],
       primarySections: <ErpDashboardListSection>[
