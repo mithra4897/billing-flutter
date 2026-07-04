@@ -285,15 +285,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     }
 
     final selected = controller.selectedItem?.toJson() ?? const {};
-    final roundOff = controller.applyRoundOff
+    final double roundOff = controller.applyRoundOff
         ? (Validators.parseFlexibleNumber(
-                controller.roundOffController.text.trim(),
-              ) ??
-              0)
-        : 0;
-    final totalStr = (controller.taxSummary().total + roundOff).toStringAsFixed(
-      2,
-    );
+                    controller.roundOffController.text.trim(),
+                  ) ??
+                  0)
+              .toDouble()
+        : 0.0;
+    final totalStr = formatAmount(controller.taxSummary().total + roundOff);
     final selectedQuotationId = intValue(selected, 'id');
     final chainOrders =
         ((controller.salesChain?['orders'] as List?) ?? const [])
@@ -351,13 +350,15 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           children: [
             if (controller.selectedItem != null && !controller.canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -529,7 +530,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       allowTemplateEditing: controller.status != 'draft',
                     ),
                   ),
-                if (controller.selectedItem != null && controller.status != 'cancelled')
+                if (controller.selectedItem != null &&
+                    controller.status != 'cancelled')
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
                     label: 'Revise quote',
@@ -618,12 +620,13 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   Widget _buildTaxSummaryCard(SalesQuotationManagementController controller) {
     final summary = controller.taxSummary();
-    final roundOff = controller.applyRoundOff
+    final double roundOff = controller.applyRoundOff
         ? (Validators.parseFlexibleNumber(
-                controller.roundOffController.text.trim(),
-              ) ??
-              0)
-        : 0;
+                    controller.roundOffController.text.trim(),
+                  ) ??
+                  0)
+              .toDouble()
+        : 0.0;
     return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
@@ -634,7 +637,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       currencyCode: controller.currencyCodeForTaxSummary,
       subtitle: roundOff == 0
           ? null
-          : 'Includes round off ${roundOff.toStringAsFixed(2)}',
+          : 'Includes round off ${formatAmount(roundOff)}',
     );
   }
 }

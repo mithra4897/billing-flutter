@@ -83,7 +83,7 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
           title: item.leaveName ?? '-',
           subtitle: [
             if (item.maxDaysPerYear != null)
-              'Max ${item.maxDaysPerYear! % 1 == 0 ? item.maxDaysPerYear!.toStringAsFixed(0) : item.maxDaysPerYear!.toStringAsFixed(2)} days',
+              'Max ${formatAmount(item.maxDaysPerYear)} days',
             item.isPaid ? 'Paid' : 'Unpaid',
           ].join(' • '),
           selected: selected,

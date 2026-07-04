@@ -1,4 +1,4 @@
-﻿import '../../screen.dart';
+import '../../screen.dart';
 
 String _contractListTitle(ServiceContractModel row) {
   final data = row.toJson();
@@ -211,9 +211,11 @@ class _ServiceContractEditor extends StatelessWidget {
     }
 
     final edit = vm.canEdit;
-    final cv = Validators.parseFlexibleNumber(vm.contractValueController.text) ?? 0;
-    final tax = Validators.parseFlexibleNumber(vm.taxAmountController.text) ?? 0;
-    final total = (cv + tax).toStringAsFixed(2);
+    final cv =
+        Validators.parseFlexibleNumber(vm.contractValueController.text) ?? 0;
+    final tax =
+        Validators.parseFlexibleNumber(vm.taxAmountController.text) ?? 0;
+    final total = formatAmount(cv + tax);
 
     return Form(
       child: Builder(

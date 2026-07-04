@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockDamageTypeItems =
@@ -590,7 +590,9 @@ class StockDamageViewModel extends GetxController {
     lines[index].serialIds = List<int>.from(normalized);
     lines[index].serialId = normalized.length == 1 ? normalized.first : null;
     if (itemHasSerial(lines[index].itemId)) {
-      lines[index].qtyController.text = normalized.length.toString();
+      lines[index].qtyController.text = _stockDamageFormatNumber(
+        normalized.length.toDouble(),
+      );
     }
     update();
   }
@@ -614,7 +616,9 @@ class StockDamageViewModel extends GetxController {
       line.serialId = nextSerialIds.first;
     }
     if (itemHasSerial(line.itemId)) {
-      line.qtyController.text = nextSerialIds.length.toString();
+      line.qtyController.text = _stockDamageFormatNumber(
+        nextSerialIds.length.toDouble(),
+      );
     }
   }
 
@@ -817,7 +821,9 @@ class StockDamageViewModel extends GetxController {
       final serialIds = lineSerialIds(line);
       final unitCost =
           Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
-      final totalCost = Validators.parseFlexibleNumber(line.totalCostController.text);
+      final totalCost = Validators.parseFlexibleNumber(
+        line.totalCostController.text,
+      );
       final reason = nullIfEmpty(line.reasonController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final serialId in serialIds) {
@@ -1010,8 +1016,5 @@ class _StockDamageGroupedLine {
 }
 
 String _stockDamageFormatNumber(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
-  }
-  return value.toString();
+  return AppFormatSettings.fixedNumber(value);
 }

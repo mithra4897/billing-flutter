@@ -44,7 +44,7 @@ class JobworkDispatchLineDraft {
   JobworkDispatchLineModel toModel({required int? headerWarehouseId}) {
     final qty = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
     final uc = Validators.parseFlexibleNumber(unitCostController.text) ?? 0;
-    final tc = (qty * uc).toStringAsFixed(2);
+    final tc = _roundAmountForCompanyFormat(qty * uc);
     return JobworkDispatchLineModel(
       jobworkOrderMaterialId: jobworkOrderMaterialId,
       itemId: itemId,
@@ -54,7 +54,7 @@ class JobworkDispatchLineDraft {
       serialId: serialId,
       dispatchQty: qty,
       unitCost: uc,
-      totalCost: double.tryParse(tc) ?? 0,
+      totalCost: tc,
       remarks: nullIfEmpty(remarksController.text),
     );
   }
@@ -64,6 +64,10 @@ class JobworkDispatchLineDraft {
     unitCostController.dispose();
     remarksController.dispose();
   }
+}
+
+double _roundAmountForCompanyFormat(double value) {
+  return AppFormatSettings.roundedNumber(value);
 }
 
 class JobworkDispatchViewModel extends GetxController {

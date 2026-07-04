@@ -1454,7 +1454,7 @@ class _SalesLedgerExcelCell {
       _SalesLedgerExcelCell._(value: value, isNumber: false, styleIndex: 1);
 
   factory _SalesLedgerExcelCell.number(num value) => _SalesLedgerExcelCell._(
-    value: value.toStringAsFixed(2),
+    value: AppFormatSettings.fixedNumber(value.toDouble()),
     isNumber: true,
     styleIndex: 2,
   );

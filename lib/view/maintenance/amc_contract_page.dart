@@ -1,4 +1,4 @@
-﻿import '../../screen.dart';
+import '../../screen.dart';
 
 class AmcContractPage extends StatefulWidget {
   const AmcContractPage({
@@ -30,7 +30,7 @@ class _AmcContractPageState extends State<AmcContractPage> {
     _viewModel = Get.put(
       AmcContractViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -218,9 +218,11 @@ class _AmcContractEditor extends StatelessWidget {
     }
 
     final edit = vm.canEdit;
-    final cv = Validators.parseFlexibleNumber(vm.contractValueController.text) ?? 0;
-    final tax = Validators.parseFlexibleNumber(vm.taxAmountController.text) ?? 0;
-    final total = (cv + tax).toStringAsFixed(2);
+    final cv =
+        Validators.parseFlexibleNumber(vm.contractValueController.text) ?? 0;
+    final tax =
+        Validators.parseFlexibleNumber(vm.taxAmountController.text) ?? 0;
+    final total = formatAmount(cv + tax);
 
     return Form(
       child: Builder(

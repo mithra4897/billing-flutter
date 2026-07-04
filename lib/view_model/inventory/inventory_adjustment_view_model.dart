@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> inventoryAdjustmentTypeItems =
@@ -61,8 +61,10 @@ class InventoryAdjustmentLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() {
-    final systemQty = Validators.parseFlexibleNumber(systemQtyController.text) ?? 0;
-    final actualQty = Validators.parseFlexibleNumber(actualQtyController.text) ?? 0;
+    final systemQty =
+        Validators.parseFlexibleNumber(systemQtyController.text) ?? 0;
+    final actualQty =
+        Validators.parseFlexibleNumber(actualQtyController.text) ?? 0;
     final adjustmentQtyText = adjustmentQtyController.text.trim();
     final adjustmentQty = adjustmentQtyText.isEmpty
         ? actualQty - systemQty
@@ -729,12 +731,7 @@ class InventoryAdjustmentViewModel extends GetxController {
   }
 
   String _formatQuantity(double value) {
-    return value % 1 == 0
-        ? value.toStringAsFixed(0)
-        : value
-              .toStringAsFixed(6)
-              .replaceFirst(RegExp(r'0+$'), '')
-              .replaceFirst(RegExp(r'\.$'), '');
+    return AppFormatSettings.fixedNumber(value);
   }
 
   void _reconcileLineSerialSelection(InventoryAdjustmentLineDraft line) {

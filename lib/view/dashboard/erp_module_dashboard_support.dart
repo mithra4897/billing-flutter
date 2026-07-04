@@ -3579,10 +3579,7 @@ String _formatCurrency(double? value) {
 }
 
 String _formatQuantity(double value) {
-  if (value == value.roundToDouble()) {
-    return value.round().toString();
-  }
-  return value.toStringAsFixed(2);
+  return formatAmount(value);
 }
 
 String _buildSuggestedReorderDetail(StockBalanceModel item) {
@@ -3676,24 +3673,6 @@ String _formatInt(int value) => value.toString();
 bool _crmHasValue(double? value) => value != null && value != 0;
 
 String _crmFormatExpectedValue(double value) {
-  final absolute = value.abs();
-  final decimals = value == value.roundToDouble() ? 0 : 2;
-  final parts = absolute.toStringAsFixed(decimals).split('.');
-  final whole = parts.first;
-  final buffer = StringBuffer();
-
-  for (int index = 0; index < whole.length; index++) {
-    final reverseIndex = whole.length - index;
-    buffer.write(whole[index]);
-    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-      buffer.write(',');
-    }
-  }
-
-  final formattedWhole = buffer.toString();
-  final decimalPart = parts.length > 1 && parts[1].isNotEmpty
-      ? '.${parts[1]}'
-      : '';
-  final prefix = value < 0 ? '-Rs ' : 'Rs ';
-  return '$prefix$formattedWhole$decimalPart';
+  final formatted = formatAmount(value.abs());
+  return value < 0 ? '-Rs $formatted' : 'Rs $formatted';
 }

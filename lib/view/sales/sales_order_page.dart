@@ -229,15 +229,16 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget _buildTaxSummaryCard(SalesOrderManagementController controller) {
-    final roundOff = controller.applyRoundOff
+    final double roundOff = controller.applyRoundOff
         ? (Validators.parseFlexibleNumber(
-                controller.roundOffController.text.trim(),
-              ) ??
-              0)
-        : 0;
+                    controller.roundOffController.text.trim(),
+                  ) ??
+                  0)
+              .toDouble()
+        : 0.0;
     final subtitle = roundOff == 0
         ? null
-        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${roundOff.toStringAsFixed(2)}';
+        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${formatAmount(roundOff)}';
     final summary = controller.taxSummary();
     return GstSummaryCard(
       taxable: summary.taxable,
@@ -411,7 +412,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     }
 
     final selected = controller.selectedItem?.toJson() ?? const {};
-    final totalStr = controller.taxSummary().total.toStringAsFixed(2);
+    final totalStr = formatAmount(controller.taxSummary().total);
     final hasExistingDelivery =
         ((controller.salesChain?['deliveries'] as List?) ?? const [])
             .isNotEmpty;
@@ -460,13 +461,15 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           children: [
             if (controller.selectedItem != null && !controller.canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

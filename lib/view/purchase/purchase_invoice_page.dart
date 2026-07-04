@@ -251,6 +251,16 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
 
     final taxSummary = controller.invoiceTaxSummary();
     final summaryTotal = taxSummary.total;
+    final roundOff =
+        Validators.parseFlexibleNumber(
+          controller.roundOffController.text.trim(),
+        ) ??
+        0;
+    final adjustment =
+        Validators.parseFlexibleNumber(
+          controller.adjustmentAmountController.text.trim(),
+        ) ??
+        0;
 
     return ErpLineItemTable(
       title: 'Lines',
@@ -289,19 +299,10 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         currencyCode: 'INR',
         subtitle: controller.isSelectedInvoiceReadOnly
             ? 'Saved invoice totals from the posted document.'
-            : controller.applyRoundOff &&
-                  (Validators.parseFlexibleNumber(
-                            controller.roundOffController.text.trim(),
-                          ) ??
-                          0) !=
-                      0
-            ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
-            : ((Validators.parseFlexibleNumber(
-                        controller.adjustmentAmountController.text.trim(),
-                      ) ??
-                      0) !=
-                  0)
-            ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
+            : controller.applyRoundOff && roundOff != 0
+            ? 'Live totals for the current purchase invoice lines. Includes round off ${formatAmount(roundOff)}${adjustment != 0 ? ' and adjustment ${formatAmount(adjustment)}' : ''}.'
+            : adjustment != 0
+            ? 'Live totals for the current purchase invoice lines. Includes adjustment ${formatAmount(adjustment)}.'
             : 'Live totals for the current purchase invoice lines.',
       ),
     );

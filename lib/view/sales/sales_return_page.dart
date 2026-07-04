@@ -149,7 +149,8 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                       ),
                     )
                     .toList(growable: false),
-                onChanged: (value) => controller.handleLineSelected(index, value),
+                onChanged: (value) =>
+                    controller.handleLineSelected(index, value),
                 validator: (_) => Validators.requiredSelectionField(
                   line.salesInvoiceLineId,
                   'Sales invoice line',
@@ -290,13 +291,15 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           children: [
             if (controller.selectedItem != null && !canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -356,7 +359,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                             item.invoiceStatus ?? '',
                             item.totalAmount == null
                                 ? ''
-                                : item.totalAmount!.toStringAsFixed(2),
+                                : formatAmount(item.totalAmount),
                           ].where((part) => part.isNotEmpty).join(' · '),
                           searchText: [
                             item.invoiceNo ?? '',
@@ -448,12 +451,13 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
 
   Widget _buildTaxSummaryCard(SalesReturnManagementController controller) {
     final summary = controller.taxSummary();
-    final roundOff = controller.applyRoundOff
+    final double roundOff = controller.applyRoundOff
         ? (Validators.parseFlexibleNumber(
-                controller.roundOffController.text.trim(),
-              ) ??
-              0)
-        : 0;
+                    controller.roundOffController.text.trim(),
+                  ) ??
+                  0)
+              .toDouble()
+        : 0.0;
     return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
@@ -464,7 +468,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       currencyCode: controller.currencyCodeForTaxSummary,
       subtitle: roundOff == 0
           ? null
-          : 'Includes round off ${roundOff.toStringAsFixed(2)}',
+          : 'Includes round off ${formatAmount(roundOff)}',
     );
   }
 }

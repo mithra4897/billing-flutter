@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 /// Backend `receipt_source` enum values; labels are UI-facing.
@@ -681,7 +681,9 @@ class InternalStockReceiptViewModel extends GetxController {
         .where((value) => value.trim().isNotEmpty)
         .toList(growable: false);
     if (itemHasSerial(lines[index].itemId)) {
-      lines[index].qtyController.text = normalized.length.toString();
+      lines[index].qtyController.text = _internalReceiptFormatNumber(
+        normalized.length.toDouble(),
+      );
     }
     update();
   }
@@ -713,7 +715,9 @@ class InternalStockReceiptViewModel extends GetxController {
     lines[index].serialIds = resolvedIds;
     lines[index].serialId = resolvedIds.length == 1 ? resolvedIds.first : null;
     if (itemHasSerial(lines[index].itemId)) {
-      lines[index].qtyController.text = normalized.length.toString();
+      lines[index].qtyController.text = _internalReceiptFormatNumber(
+        normalized.length.toDouble(),
+      );
     }
     update();
   }
@@ -737,7 +741,9 @@ class InternalStockReceiptViewModel extends GetxController {
       line.serialId = nextSerialIds.first;
     }
     if (itemHasSerial(line.itemId)) {
-      line.qtyController.text = nextSerialIds.length.toString();
+      line.qtyController.text = _internalReceiptFormatNumber(
+        nextSerialIds.length.toDouble(),
+      );
     }
   }
 
@@ -963,7 +969,9 @@ class InternalStockReceiptViewModel extends GetxController {
           .toList(growable: false);
       final unitCost =
           Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
-      final totalCost = Validators.parseFlexibleNumber(line.totalCostController.text);
+      final totalCost = Validators.parseFlexibleNumber(
+        line.totalCostController.text,
+      );
       final remarks = nullIfEmpty(line.remarksController.text);
       for (var index = 0; index < serialEntries.length; index++) {
         expanded.add(<String, dynamic>{
@@ -1177,8 +1185,5 @@ class _InternalStockReceiptGroupedLine {
 }
 
 String _internalReceiptFormatNumber(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
-  }
-  return value.toString();
+  return AppFormatSettings.fixedNumber(value);
 }

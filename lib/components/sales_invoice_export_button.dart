@@ -252,14 +252,19 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     for (final line in lines) {
       final item = _asMap(line['item']);
       final taxCode = _asMap(line['tax_code']);
-      final taxCodeModel = taxCode.isEmpty ? null : TaxCodeModel.fromJson(taxCode);
+      final taxCodeModel = taxCode.isEmpty
+          ? null
+          : TaxCodeModel.fromJson(taxCode);
       final qty =
           Validators.parseFlexibleNumber(line['invoiced_qty']?.toString()) ??
           Validators.parseFlexibleNumber(line['qty']?.toString()) ??
           0;
-      final rate = Validators.parseFlexibleNumber(line['rate']?.toString()) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line['rate']?.toString()) ?? 0;
       final discount =
-          Validators.parseFlexibleNumber(line['discount_percent']?.toString()) ??
+          Validators.parseFlexibleNumber(
+            line['discount_percent']?.toString(),
+          ) ??
           0;
       final rawTaxPercent =
           Validators.parseFlexibleNumber(line['tax_percent']?.toString()) ??
@@ -327,9 +332,10 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
   }
 
   String _formatExportNumber(double value) {
+    final decimals = AppFormatSettings.resolvedDecimalPlaces();
     return value == value.roundToDouble()
         ? value.roundToDouble().toStringAsFixed(0)
-        : value.toStringAsFixed(2);
+        : AppFormatSettings.fixedNumber(value, decimals: decimals);
   }
 
   String _companyLabel(Map<String, dynamic>? invoice) {
@@ -853,7 +859,7 @@ class _ExcelCell {
       _ExcelCell._(value: value, isNumber: false, styleIndex: 1);
 
   factory _ExcelCell.number(num value) => _ExcelCell._(
-    value: value.toStringAsFixed(2),
+    value: AppFormatSettings.fixedNumber(value.toDouble()),
     isNumber: true,
     styleIndex: 2,
   );

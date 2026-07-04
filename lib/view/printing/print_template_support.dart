@@ -8,9 +8,10 @@ String printTemplateTaxLabel(TaxCodeModel? taxCode, double taxPercent) {
   if (taxPercent <= 0) {
     return 'GST';
   }
+  final decimals = AppFormatSettings.resolvedDecimalPlaces();
   final rate = taxPercent == taxPercent.roundToDouble()
       ? taxPercent.round().toString()
-      : taxPercent.toStringAsFixed(2);
+      : AppFormatSettings.fixedNumber(taxPercent, decimals: decimals);
   return 'GST $rate%';
 }
 
@@ -101,7 +102,7 @@ class _PrintTaxBreakupAccumulator {
 
 double _roundAmount(dynamic value) {
   final number = value is num ? value.toDouble() : 0.0;
-  return double.parse(number.toStringAsFixed(2));
+  return AppFormatSettings.roundedNumber(number);
 }
 
 // helper to convert double amount to words for print templates

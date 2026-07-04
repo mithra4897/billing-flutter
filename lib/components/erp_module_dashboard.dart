@@ -861,7 +861,9 @@ class _DashboardTrendCard extends StatelessWidget {
                           context,
                         ).dividerColor.withValues(alpha: 0.12),
                         isCurrency: data.isCurrency,
-                        textColor: Theme.of(context).textTheme.bodySmall?.color ?? Colors.black87,
+                        textColor:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black87,
                         cardColor: Theme.of(context).cardColor,
                       )
                     : _TrendChartPainter(
@@ -871,7 +873,9 @@ class _DashboardTrendCard extends StatelessWidget {
                           context,
                         ).dividerColor.withValues(alpha: 0.12),
                         isCurrency: data.isCurrency,
-                        textColor: Theme.of(context).textTheme.bodySmall?.color ?? Colors.black87,
+                        textColor:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black87,
                         cardColor: Theme.of(context).cardColor,
                       ),
                 child: const SizedBox.expand(),
@@ -1488,10 +1492,26 @@ class _TrendChartPainter extends CustomPainter {
             fontSize: 10,
             fontWeight: FontWeight.w700,
             shadows: [
-              Shadow(color: cardColor, offset: const Offset(-1.5, -1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(1.5, -1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(1.5, 1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(-1.5, 1.5), blurRadius: 1),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(-1.5, -1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(1.5, -1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(1.5, 1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(-1.5, 1.5),
+                blurRadius: 1,
+              ),
             ],
           ),
         ),
@@ -1520,17 +1540,19 @@ class _TrendChartPainter extends CustomPainter {
 
 String _formatTrendLabel(double value, {required bool isCurrency}) {
   final prefix = isCurrency ? '₹' : '';
+  final settings = Get.isRegistered<AppFormatSettings>()
+      ? AppFormatSettings.to
+      : null;
+  final decimals = settings?.decimalPlaces.value ?? 2;
+  final compactDecimals = decimals > 1 ? 1 : decimals;
   if (value >= 10000000) {
-    return '$prefix${(value / 10000000).toStringAsFixed(1)}Cr';
+    return '$prefix${(value / 10000000).toStringAsFixed(compactDecimals)}Cr';
   } else if (value >= 100000) {
-    return '$prefix${(value / 100000).toStringAsFixed(1)}L';
+    return '$prefix${(value / 100000).toStringAsFixed(compactDecimals)}L';
   } else if (value >= 1000) {
-    return '$prefix${(value / 1000).toStringAsFixed(1)}K';
+    return '$prefix${(value / 1000).toStringAsFixed(compactDecimals)}K';
   } else {
-    if (value == value.roundToDouble()) {
-      return '$prefix${value.toInt().toString()}';
-    }
-    return '$prefix${value.toStringAsFixed(1)}';
+    return '$prefix${formatAmount(value)}';
   }
 }
 
@@ -1611,10 +1633,26 @@ class _TrendBarChartPainter extends CustomPainter {
             fontSize: 12,
             fontWeight: FontWeight.w700,
             shadows: [
-              Shadow(color: cardColor, offset: const Offset(-1.5, -1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(1.5, -1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(1.5, 1.5), blurRadius: 1),
-              Shadow(color: cardColor, offset: const Offset(-1.5, 1.5), blurRadius: 1),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(-1.5, -1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(1.5, -1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(1.5, 1.5),
+                blurRadius: 1,
+              ),
+              Shadow(
+                color: cardColor,
+                offset: const Offset(-1.5, 1.5),
+                blurRadius: 1,
+              ),
             ],
           ),
         ),
@@ -1642,9 +1680,7 @@ class _TrendBarChartPainter extends CustomPainter {
 }
 
 String _formatSegmentValue(double value) {
-  return value == value.roundToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toStringAsFixed(1);
+  return formatAmount(value);
 }
 
 String _formatSegmentPercent(double ratio) {

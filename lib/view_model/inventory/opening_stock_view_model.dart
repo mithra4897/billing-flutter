@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import '../../model/inventory/opening_stock_item_model.dart';
 import 'inventory_module_refresh_controller.dart';
 
@@ -864,8 +864,7 @@ class OpeningStockViewModel extends GetxController {
     if (!isSerialManagedItem(_effectiveItemIdForLine(line))) {
       return 0;
     }
-    final qty =
-        Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
     if (qty <= 0) {
       return 0;
     }
@@ -899,7 +898,9 @@ class OpeningStockViewModel extends GetxController {
         .whereType<int>()
         .toList(growable: false);
     if (isSerialManagedItem(_effectiveItemIdForLine(line))) {
-      line.qtyController.text = normalizedValues.length.toString();
+      line.qtyController.text = _formatDraftNumber(
+        normalizedValues.length.toDouble(),
+      );
     }
     _recalculateLineTotal(line);
     update();
@@ -1104,8 +1105,7 @@ class OpeningStockViewModel extends GetxController {
       final line = lines[i];
       final itemId = _effectiveItemIdForLine(line);
       final lineNo = i + 1;
-      final qty =
-          Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
       final unitCost =
           Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
@@ -1495,8 +1495,5 @@ class _OpeningStockGroupedLine {
 }
 
 String _formatDraftNumber(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
-  }
-  return value.toString();
+  return AppFormatSettings.fixedNumber(value);
 }

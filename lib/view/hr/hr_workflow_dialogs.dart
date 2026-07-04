@@ -1682,15 +1682,15 @@ Future<void> showPayrollRunDetailDialog(
                         children: [
                           _HrInfoChip(
                             label: 'Gross',
-                            value: totalGross.toStringAsFixed(2),
+                            value: formatAmount(totalGross),
                           ),
                           _HrInfoChip(
                             label: 'Deductions',
-                            value: totalDeductions.toStringAsFixed(2),
+                            value: formatAmount(totalDeductions),
                           ),
                           _HrInfoChip(
                             label: 'Net',
-                            value: totalNet.toStringAsFixed(2),
+                            value: formatAmount(totalNet),
                           ),
                         ],
                       ),
@@ -1733,12 +1733,12 @@ Future<void> showPayrollRunDetailDialog(
                                     .join(' • '),
                               ),
                               subtitle: Text(
-                                'Gross ${(line.grossSalary ?? 0).toStringAsFixed(2)}  '
-                                'Ded ${(line.totalDeductions ?? 0).toStringAsFixed(2)}  '
-                                'Net ${(line.netSalary ?? 0).toStringAsFixed(2)}',
+                                'Gross ${formatAmount(line.grossSalary ?? 0)}  '
+                                'Ded ${formatAmount(line.totalDeductions ?? 0)}  '
+                                'Net ${formatAmount(line.netSalary ?? 0)}',
                               ),
                               trailing: Text(
-                                'LOP ${(line.lopDays ?? 0).toStringAsFixed(2)}',
+                                'LOP ${formatAmount(line.lopDays ?? 0)}',
                               ),
                             ),
                           ),

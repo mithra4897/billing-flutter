@@ -4,10 +4,33 @@ class AppFormatSettings extends GetxController {
   AppFormatSettings._();
 
   static AppFormatSettings get to => Get.find<AppFormatSettings>();
+  static const int defaultDecimalPlaces = 2;
+  static const String defaultAmountGrouping = 'indian';
+  static const String defaultDateFormat = 'dd/MM/yyyy';
 
   final RxString dateFormat = 'dd/MM/yyyy'.obs;
   final RxString amountGrouping = 'indian'.obs;
   final RxInt decimalPlaces = 2.obs;
+
+  static int resolvedDecimalPlaces() {
+    return Get.isRegistered<AppFormatSettings>()
+        ? AppFormatSettings.to.decimalPlaces.value
+        : defaultDecimalPlaces;
+  }
+
+  static String resolvedAmountGrouping() {
+    return Get.isRegistered<AppFormatSettings>()
+        ? AppFormatSettings.to.amountGrouping.value
+        : defaultAmountGrouping;
+  }
+
+  static String fixedNumber(double value, {int? decimals}) {
+    return value.toStringAsFixed(decimals ?? resolvedDecimalPlaces());
+  }
+
+  static double roundedNumber(double value, {int? decimals}) {
+    return double.parse(fixedNumber(value, decimals: decimals));
+  }
 
   static const List<AppDropdownItem<String>> dateFormatItems =
       <AppDropdownItem<String>>[
@@ -42,8 +65,8 @@ class AppFormatSettings extends GetxController {
 
   void applyFromCompany(CompanyModel company) {
     dateFormat.value = company.dateFormat ?? 'dd/MM/yyyy';
-    amountGrouping.value = company.amountGrouping ?? 'indian';
-    decimalPlaces.value = company.decimalPlaces ?? 2;
+    amountGrouping.value = company.amountGrouping ?? defaultAmountGrouping;
+    decimalPlaces.value = company.decimalPlaces ?? defaultDecimalPlaces;
   }
 
   void setDateFormat(String? value) {
@@ -72,7 +95,7 @@ String displayDate(String? value) {
 
   final fmt = Get.isRegistered<AppFormatSettings>()
       ? AppFormatSettings.to.dateFormat.value
-      : 'dd/MM/yyyy';
+      : AppFormatSettings.defaultDateFormat;
 
   return fmt
       .replaceAll('yyyy', year)
@@ -87,10 +110,12 @@ String formatAmount(double? value) {
       ? AppFormatSettings.to
       : null;
 
-  final decimals = settings?.decimalPlaces.value ?? 2;
-  final grouping = settings?.amountGrouping.value ?? 'indian';
+  final decimals =
+      settings?.decimalPlaces.value ?? AppFormatSettings.defaultDecimalPlaces;
+  final grouping =
+      settings?.amountGrouping.value ?? AppFormatSettings.defaultAmountGrouping;
 
-  final fixed = value.toStringAsFixed(decimals);
+  final fixed = AppFormatSettings.fixedNumber(value, decimals: decimals);
   final dotIndex = fixed.indexOf('.');
   final intPart = dotIndex >= 0 ? fixed.substring(0, dotIndex) : fixed;
   final decPart = dotIndex >= 0 ? fixed.substring(dotIndex) : '';

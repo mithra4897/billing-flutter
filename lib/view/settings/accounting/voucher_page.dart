@@ -1,4 +1,4 @@
-﻿import '../../../controller/settings/accounting/voucher_management_controller.dart';
+import '../../../controller/settings/accounting/voucher_management_controller.dart';
 import '../../../screen.dart';
 
 class VoucherManagementPage extends StatefulWidget {
@@ -434,7 +434,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     onPressed:
                         !controller.saving &&
                             (controller.selectedVoucher == null ||
-                            controller.canEditSelectedVoucher)
+                                controller.canEditSelectedVoucher)
                         ? controller.saveVoucher
                         : null,
                     busy: controller.saving,
@@ -537,9 +537,15 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     final totals = controller.usesQuickEntry
         ? <String, double>{
             'debit':
-                Validators.parseFlexibleNumber(controller.amountController.text) ?? 0,
+                Validators.parseFlexibleNumber(
+                  controller.amountController.text,
+                ) ??
+                0,
             'credit':
-                Validators.parseFlexibleNumber(controller.amountController.text) ?? 0,
+                Validators.parseFlexibleNumber(
+                  controller.amountController.text,
+                ) ??
+                0,
           }
         : <String, double>{
             'debit': controller.totalDebit,
@@ -554,7 +560,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             children: [
               Expanded(
                 child: Text(
-                  'Debit: ${totals['debit']!.toStringAsFixed(2)}',
+                  'Debit: ${formatAmount(totals['debit'])}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -562,7 +568,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               ),
               Expanded(
                 child: Text(
-                  'Credit: ${totals['credit']!.toStringAsFixed(2)}',
+                  'Credit: ${formatAmount(totals['credit'])}',
                   textAlign: TextAlign.end,
                   style: Theme.of(
                     context,
@@ -606,7 +612,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             subtitle: Text(
-              'Amount: ${map['allocation_amount'] ?? ''} · Against voucher #${map['against_voucher_id'] ?? '-'}',
+              'Amount: ${formatAmount(doubleValue(map, 'allocation_amount'))} · Against voucher #${map['against_voucher_id'] ?? '-'}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

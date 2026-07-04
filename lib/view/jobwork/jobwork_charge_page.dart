@@ -202,7 +202,7 @@ class _JobworkChargeEditor extends StatelessWidget {
               ],
               if (sel != null) ...[
                 Text(
-                  'Status: ${sel.chargeStatus} · Total: ${sel.totalAmount.toStringAsFixed(2)}',
+                  'Status: ${sel.chargeStatus} · Total: ${formatAmount(sel.totalAmount)}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -453,7 +453,7 @@ class _JobworkChargeEditor extends StatelessWidget {
                       'tax_breakdown': ErpLineItemCellFrame(
                         child: Center(
                           child: Text(
-                            'Taxable ${breakdown.taxable.toStringAsFixed(2)} · CGST ${breakdown.cgst.toStringAsFixed(2)} · SGST ${breakdown.sgst.toStringAsFixed(2)} · IGST ${breakdown.igst.toStringAsFixed(2)} · Total ${breakdown.total.toStringAsFixed(2)}',
+                            'Taxable ${formatAmount(breakdown.taxable)} · CGST ${formatAmount(breakdown.cgst)} · SGST ${formatAmount(breakdown.sgst)} · IGST ${formatAmount(breakdown.igst)} · Total ${formatAmount(breakdown.total)}',
                             style: Theme.of(context).textTheme.bodySmall,
                             textAlign: TextAlign.center,
                             maxLines: 2,

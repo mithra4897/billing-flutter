@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 /// Backend `issue_purpose` enum values; labels are UI-facing.
@@ -622,7 +622,9 @@ class StockIssueViewModel extends GetxController {
     lines[index].serialIds = List<int>.from(normalized);
     lines[index].serialId = normalized.length == 1 ? normalized.first : null;
     if (itemHasSerial(lines[index].itemId)) {
-      lines[index].qtyController.text = normalized.length.toString();
+      lines[index].qtyController.text = _stockIssueFormatNumber(
+        normalized.length.toDouble(),
+      );
     }
     update();
   }
@@ -646,7 +648,9 @@ class StockIssueViewModel extends GetxController {
       line.serialId = nextSerialIds.first;
     }
     if (itemHasSerial(line.itemId)) {
-      line.qtyController.text = nextSerialIds.length.toString();
+      line.qtyController.text = _stockIssueFormatNumber(
+        nextSerialIds.length.toDouble(),
+      );
     }
   }
 
@@ -852,7 +856,9 @@ class StockIssueViewModel extends GetxController {
       final serialIds = lineSerialIds(line);
       final unitCost =
           Validators.parseFlexibleNumber(line.unitCostController.text) ?? 0;
-      final totalCost = Validators.parseFlexibleNumber(line.totalCostController.text);
+      final totalCost = Validators.parseFlexibleNumber(
+        line.totalCostController.text,
+      );
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final serialId in serialIds) {
         expanded.add(<String, dynamic>{
@@ -1049,8 +1055,5 @@ class _StockIssueGroupedLine {
 }
 
 String _stockIssueFormatNumber(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
-  }
-  return value.toString();
+  return AppFormatSettings.fixedNumber(value);
 }

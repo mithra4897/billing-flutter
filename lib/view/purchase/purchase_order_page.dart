@@ -251,16 +251,17 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 : 0),
         currencyCode: 'INR',
         subtitle: (() {
-          final roundOff = controller.applyRoundOff
+          final double roundOff = controller.applyRoundOff
               ? (Validators.parseFlexibleNumber(
-                      controller.roundOffController.text.trim(),
-                    ) ??
-                    0)
-              : 0;
+                          controller.roundOffController.text.trim(),
+                        ) ??
+                        0)
+                    .toDouble()
+              : 0.0;
           if (roundOff == 0) {
             return 'Live totals for the current purchase order lines.';
           }
-          return 'Live totals for the current purchase order lines · includes round off ${roundOff.toStringAsFixed(2)}';
+          return 'Live totals for the current purchase order lines · includes round off ${formatAmount(roundOff)}';
         })(),
       ),
     );

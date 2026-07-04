@@ -470,14 +470,20 @@ class _VoucherAllocationManagementPageState
                                     selected: selected,
                                     cells: [
                                       DataCell(Text(row.referenceNo ?? '-')),
-                                      DataCell(Text(row.referenceDate ?? '-')),
+                                      DataCell(
+                                        Text(
+                                          row.referenceDate
+                                                      ?.trim()
+                                                      .isNotEmpty ==
+                                                  true
+                                              ? displayDate(row.referenceDate)
+                                              : '-',
+                                        ),
+                                      ),
                                       DataCell(Text(row.allocationType ?? '-')),
                                       DataCell(
                                         Text(
-                                          row.allocationAmount?.toStringAsFixed(
-                                                2,
-                                              ) ??
-                                              '-',
+                                          formatAmount(row.allocationAmount),
                                         ),
                                       ),
                                       DataCell(

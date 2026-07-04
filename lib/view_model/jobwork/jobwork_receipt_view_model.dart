@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkReceiptLineDraft {
@@ -57,7 +57,7 @@ class JobworkReceiptLineDraft {
     final aq = Validators.parseFlexibleNumber(acceptedQtyController.text) ?? rq;
     final rjq = Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0;
     final uc = Validators.parseFlexibleNumber(unitCostController.text) ?? 0;
-    final tc = (aq * uc).toStringAsFixed(2);
+    final tc = _roundAmountForCompanyFormat(aq * uc);
     return JobworkReceiptLineModel(
       jobworkOrderOutputId: jobworkOrderOutputId,
       itemId: itemId,
@@ -70,7 +70,7 @@ class JobworkReceiptLineDraft {
       rejectedQty: rjq,
       outputType: outputType,
       unitCost: uc,
-      totalCost: double.tryParse(tc) ?? 0,
+      totalCost: tc,
       remarks: nullIfEmpty(remarksController.text),
     );
   }
@@ -82,6 +82,10 @@ class JobworkReceiptLineDraft {
     unitCostController.dispose();
     remarksController.dispose();
   }
+}
+
+double _roundAmountForCompanyFormat(double value) {
+  return AppFormatSettings.roundedNumber(value);
 }
 
 class JobworkReceiptViewModel extends GetxController {
@@ -835,7 +839,9 @@ class JobworkReceiptViewModel extends GetxController {
       for (final d in lineDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (Validators.parseFlexibleNumber(d.receiptQtyController.text) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.receiptQtyController.text) ??
+                    0) <=
+                0) {
           return 'Each line needs item, UOM and receipt quantity.';
         }
         if (itemHasBatch(d.itemId) && d.batchId == null) {

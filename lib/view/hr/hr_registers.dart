@@ -576,7 +576,7 @@ class PayslipRegisterController extends GetxController {
             displayDate(row.payslipDate),
             row.employeeDisplayLabel,
             row.payrollPeriodLabel,
-            row.netSalary?.toStringAsFixed(2) ?? '',
+            formatAmount(row.netSalary),
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);

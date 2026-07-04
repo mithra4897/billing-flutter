@@ -369,11 +369,16 @@ String formatPrintAmount(double value) {
 }
 
 String _formatPrintAmount(double value, {int? fixedDecimals}) {
+  final decimals =
+      fixedDecimals ??
+      (Get.isRegistered<AppFormatSettings>()
+          ? AppFormatSettings.to.decimalPlaces.value
+          : null);
   final raw = fixedDecimals != null
       ? value.toStringAsFixed(fixedDecimals)
       : value == value.roundToDouble()
       ? value.round().toString()
-      : value.toStringAsFixed(2);
+      : value.toStringAsFixed(decimals ?? 2);
   final negative = raw.startsWith('-');
   final unsigned = negative ? raw.substring(1) : raw;
   final parts = unsigned.split('.');

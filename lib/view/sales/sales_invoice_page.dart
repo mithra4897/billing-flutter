@@ -171,9 +171,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     final summary = controller.invoiceTaxSummary();
     const currency = 'INR';
     final isInterState = controller.isInterStateForSummary();
-    final roundOff = controller.applyRoundOff
-        ? (Validators.parseFlexibleNumber(controller.roundOffController.text) ?? 0)
-        : 0;
+    final double roundOff = controller.applyRoundOff
+        ? (Validators.parseFlexibleNumber(controller.roundOffController.text) ??
+                  0)
+              .toDouble()
+        : 0.0;
     return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
@@ -185,8 +187,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       subtitle: isInterState == null
           ? (roundOff == 0
                 ? 'Live totals for the current invoice lines.'
-                : 'Live totals for the current invoice lines. Includes round off ${roundOff.toStringAsFixed(2)}.')
-          : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}${roundOff == 0 ? '' : ' Includes round off ${roundOff.toStringAsFixed(2)}.'}',
+                : 'Live totals for the current invoice lines. Includes round off ${formatAmount(roundOff)}.')
+          : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}${roundOff == 0 ? '' : ' Includes round off ${formatAmount(roundOff)}.'}',
     );
   }
 
@@ -599,7 +601,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
 
     final liveSummary = controller.invoiceTaxSummary();
-    final totalStr = liveSummary.total.toStringAsFixed(2);
+    final totalStr = formatAmount(liveSummary.total);
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -654,7 +656,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 salesStatusBadge(context, st, dueDate: item.dueDate),
                 const SizedBox(height: AppUiConstants.spacingXxs),
                 Text(
-                  'Total ${total.toStringAsFixed(2)}',
+                  'Total ${formatAmount(total)}',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -669,7 +671,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 ),
                 if (!const {'draft', 'cancelled'}.contains(st))
                   Text(
-                    'Outstanding ${bal.toStringAsFixed(2)}',
+                    'Outstanding ${formatAmount(bal)}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w700,
@@ -689,13 +691,15 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           children: [
             if (controller.selectedItem != null && !controller.canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -743,7 +747,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Outstanding: ${controller.outstandingBalanceForSelectedInvoice().toStringAsFixed(2)} INR',
+                        'Outstanding: ${formatAmount(controller.outstandingBalanceForSelectedInvoice())} INR',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.primary,

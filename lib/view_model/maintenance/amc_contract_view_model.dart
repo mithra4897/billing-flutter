@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'maintenance_module_refresh_controller.dart';
 
 class AmcContractViewModel extends GetxController {
@@ -344,12 +344,13 @@ class AmcContractViewModel extends GetxController {
   }
 
   Map<String, dynamic> _amounts() {
-    final cv = Validators.parseFlexibleNumber(contractValueController.text) ?? 0;
+    final cv =
+        Validators.parseFlexibleNumber(contractValueController.text) ?? 0;
     final tax = Validators.parseFlexibleNumber(taxAmountController.text) ?? 0;
     return <String, dynamic>{
       'contract_value': cv,
       'tax_amount': tax,
-      'total_value': double.parse((cv + tax).toStringAsFixed(2)),
+      'total_value': _roundAmountForCompanyFormat(cv + tax),
     };
   }
 
@@ -559,4 +560,8 @@ class AmcContractViewModel extends GetxController {
     remarksController.dispose();
     super.onClose();
   }
+}
+
+double _roundAmountForCompanyFormat(double value) {
+  return AppFormatSettings.roundedNumber(value);
 }
