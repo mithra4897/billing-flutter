@@ -1277,7 +1277,7 @@ class StockMovementRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Qty',
-          valueBuilder: (row) => stringValue(row.toJson(), 'qty'),
+          valueBuilder: (row) => formatAmount(doubleValue(row.toJson(), 'qty')),
         ),
       ],
       rowRoute: (row) =>
@@ -1319,7 +1319,8 @@ class StockBatchRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<StockBatchModel>(
           label: 'Balance',
-          valueBuilder: (row) => stringValue(row.toJson(), 'balance_qty'),
+          valueBuilder: (row) =>
+              formatAmount(doubleValue(row.toJson(), 'balance_qty')),
         ),
         PurchaseRegisterColumn<StockBatchModel>(
           label: 'Expiry',

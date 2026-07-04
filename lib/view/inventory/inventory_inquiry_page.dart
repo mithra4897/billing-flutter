@@ -717,10 +717,7 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
     if (number == null) {
       return '-';
     }
-    if (number == number.roundToDouble()) {
-      return number.round().toString();
-    }
-    return number.toStringAsFixed(2);
+    return formatAmount(number);
   }
 
   String _boolLabel(dynamic value) {
