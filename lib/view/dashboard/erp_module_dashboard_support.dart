@@ -1024,6 +1024,75 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         ) ??
         0.0;
 
+    final bookedValue = orders.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final status = (item.orderStatus ?? '').trim().toLowerCase();
+            if (status == 'cancelled' || status == 'completed' || status == 'closed') {
+              return sum;
+            }
+            return sum + (item.totalAmount ?? 0.0);
+          },
+        ) ??
+        0.0;
+
+    final collectedValue = receipts.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final status = (item.receiptStatus ?? '').trim().toLowerCase();
+            if (status == 'cancelled') {
+              return sum;
+            }
+            return sum + (item.paidAmount ?? 0.0);
+          },
+        ) ??
+        0.0;
+
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+
+    final overdueInvoicesCount = invoices.data?.where((item) {
+          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled' || status == 'paid') return false;
+          final dueDate = DateTime.tryParse(item.dueDate ?? '');
+          if (dueDate == null) return false;
+          final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+          return normalizedDue.isBefore(normalizedToday);
+        }).length ??
+        0;
+
+    final overdueInvoicesAmount = invoices.data?.fold<double>(
+          0.0,
+          (sum, item) {
+            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+            if (status == 'cancelled' || status == 'paid') return sum;
+            final dueDate = DateTime.tryParse(item.dueDate ?? '');
+            if (dueDate == null) return sum;
+            final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            if (normalizedDue.isBefore(normalizedToday)) {
+              return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+            }
+            return sum;
+          },
+        ) ??
+        0.0;
+
+    final delayedOrdersCount = orders.data?.where((item) {
+          final status = (item.orderStatus ?? '').trim().toLowerCase();
+          if (status == 'cancelled' || status == 'completed' || status == 'closed') return false;
+          final deliveryDate = DateTime.tryParse(item.expectedDeliveryDate ?? '');
+          if (deliveryDate == null) return false;
+          final normalizedDelivery = DateTime(deliveryDate.year, deliveryDate.month, deliveryDate.day);
+          return normalizedDelivery.isBefore(normalizedToday);
+        }).length ??
+        0;
+
+    final draftInvoicesCount = invoices.data?.where((item) {
+          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+          return status == 'draft';
+        }).length ??
+        0;
+
     return ErpDashboardSnapshot(
       title: 'Sales Dashboard',
       subtitle: 'Shared ERP dashboard layout backed by live sales documents.',
@@ -1137,35 +1206,55 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         ],
       ),
       distribution: ErpDashboardDistributionCardData(
-        title: 'Sales Distribution',
-        subtitle: 'Live split across current order, invoice, and receipt load.',
-        segments: _segmentsFromCounts(<String, int>{
-          'Orders': _totalFromPaginated(orders),
-          'Invoices': _totalFromPaginated(invoices),
-          'Receipts': _totalFromPaginated(receipts),
-          'Quotations': _totalFromPaginated(quotations),
-        }),
+        title: 'Sales Cycle Value Distribution',
+        subtitle: 'Financial value split across sales lifecycle stages.',
+        segments: <ErpDashboardDistributionSegment>[
+          ErpDashboardDistributionSegment(
+            label: 'Pipeline (Quotes)',
+            value: pipelineValue,
+            color: const Color(0xFF2F6FED),
+          ),
+          ErpDashboardDistributionSegment(
+            label: 'Booked (Orders)',
+            value: bookedValue,
+            color: const Color(0xFFE67E22),
+          ),
+          ErpDashboardDistributionSegment(
+            label: 'Billed (Unpaid)',
+            value: outstandingAmount,
+            color: const Color(0xFFDA4D78),
+          ),
+          ErpDashboardDistributionSegment(
+            label: 'Collected (Receipts)',
+            value: collectedValue,
+            color: const Color(0xFF1FA971),
+          ),
+        ],
       ),
       highlights: ErpDashboardHighlightsCardData(
         title: 'Sales Focus',
         subtitle: 'Key operational pressure points for the sales desk.',
         entries: <ErpDashboardHighlightEntry>[
           ErpDashboardHighlightEntry(
-            label: 'Invoices',
-            value: _formatInt(_totalFromPaginated(invoices)),
-            helper: 'Live billing documents',
+            label: 'Overdue Invoices',
+            value: _formatCurrency(overdueInvoicesAmount),
+            helper: '$overdueInvoicesCount invoices past due',
+            color: const Color(0xFFDA4D78),
+            route: '/sales/invoices?dashboard_filter=overdue',
           ),
           ErpDashboardHighlightEntry(
-            label: 'Receipts',
-            value: _formatInt(_totalFromPaginated(receipts)),
-            helper: 'Collections recorded',
+            label: 'Delayed Orders',
+            value: _formatInt(delayedOrdersCount),
+            helper: 'Orders past expected delivery',
+            color: const Color(0xFFE67E22),
+            route: '/sales/orders?dashboard_filter=delayed',
+          ),
+          ErpDashboardHighlightEntry(
+            label: 'Draft Invoices',
+            value: _formatInt(draftInvoicesCount),
+            helper: 'Not yet posted/sent',
             color: const Color(0xFF1FA971),
-          ),
-          ErpDashboardHighlightEntry(
-            label: 'Quotations',
-            value: _formatInt(_totalFromPaginated(quotations)),
-            helper: 'Pipeline estimation',
-            color: const Color(0xFF19A7B8),
+            route: '/sales/invoices?dashboard_filter=draft',
           ),
         ],
       ),
