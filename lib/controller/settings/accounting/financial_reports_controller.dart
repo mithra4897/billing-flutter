@@ -128,13 +128,15 @@ class FinancialReportsController extends GetxController {
             );
 
       accounts = nextAccounts.where((item) => item.isActive).toList();
-      partyAccounts =
-          partyAccountResponse?.data ?? const <PartyAccountModel>[];
+      partyAccounts = partyAccountResponse?.data ?? const <PartyAccountModel>[];
       branches = nextBranches.where((item) => item.isActive).toList();
       parties = nextParties.where((item) => item.isActive).toList();
       companyId = nextCompanyId;
       _sanitizeSelections();
       initialLoading = false;
+      update();
+      await runReport();
+      return;
     } catch (errorValue) {
       error = errorValue.toString();
       initialLoading = false;
@@ -255,9 +257,7 @@ class FinancialReportsController extends GetxController {
     const AppDropdownItem<int?>(value: null, label: 'All branches'),
     ...branchOptions
         .where((b) => b.id != null)
-        .map(
-          (b) => AppDropdownItem<int?>(value: b.id, label: b.toString()),
-        ),
+        .map((b) => AppDropdownItem<int?>(value: b.id, label: b.toString())),
   ];
 
   List<BranchModel> get branchOptions => branches
@@ -297,7 +297,8 @@ class FinancialReportsController extends GetxController {
     Iterable<PartyAccountModel> allowedMappings = companyPartyAccounts;
     if (reportType == 'accounts_receivable_aging') {
       allowedMappings = allowedMappings.where(
-        (mapping) => (mapping.accountPurpose ?? '').toLowerCase() == 'receivable',
+        (mapping) =>
+            (mapping.accountPurpose ?? '').toLowerCase() == 'receivable',
       );
     } else if (reportType == 'accounts_payable_aging') {
       allowedMappings = allowedMappings.where(
@@ -340,7 +341,8 @@ class FinancialReportsController extends GetxController {
     ...partyOptions
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int?>(value: item.id, label: item.toString()),
+          (item) =>
+              AppDropdownItem<int?>(value: item.id, label: item.toString()),
         ),
   ];
 
@@ -409,7 +411,10 @@ class FinancialReportsController extends GetxController {
   }
 
   void _sanitizeSelections() {
-    final branchIds = branchOptions.map((branch) => branch.id).whereType<int>().toSet();
+    final branchIds = branchOptions
+        .map((branch) => branch.id)
+        .whereType<int>()
+        .toSet();
     if (dayBookBranchId != null && !branchIds.contains(dayBookBranchId)) {
       dayBookBranchId = null;
     }

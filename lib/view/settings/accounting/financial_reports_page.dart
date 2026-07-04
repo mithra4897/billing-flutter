@@ -87,7 +87,9 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                           Expanded(
                             child: Text(
                               'Filter Financial Reports',
-                              style: Theme.of(dialogContext).textTheme.titleLarge
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -109,7 +111,8 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                         children: [
                           FilledButton.icon(
                             onPressed: () {
-                              if (dialogController.reportFilterFormKey
+                              if (dialogController
+                                      .reportFilterFormKey
                                       .currentState
                                       ?.validate() !=
                                   true) {
@@ -217,6 +220,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: AppUiConstants.spacingMd),
           if (controller.error != null) ...[
             AppErrorStateView.inline(message: controller.error!),
             const SizedBox(height: AppUiConstants.spacingMd),

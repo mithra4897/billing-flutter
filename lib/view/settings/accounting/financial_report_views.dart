@@ -12,7 +12,7 @@ class FinancialReportViews {
     final theme = Theme.of(context);
     switch (reportType) {
       case 'day_book':
-        return _dayBook(data, theme);
+        return _dayBook(context, data, theme);
       case 'general_ledger':
         return _generalLedger(data, theme);
       case 'trial_balance':
@@ -38,18 +38,24 @@ class FinancialReportViews {
     final b = StringBuffer();
     switch (reportType) {
       case 'day_book':
-        _tsvLines(b, [
-          'voucher_no',
-          'voucher_date',
-          'voucher_type',
-          'line_no',
-          'account_code',
-          'account_name',
-          'party_name',
-          'narration',
-          'debit',
-          'credit',
-        ], _asList(data['lines']));
+        _tsvLines(
+          b,
+          ['voucher_date', 'ledger', 'narration', 'debit', 'credit'],
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                return <String, dynamic>{
+                  'voucher_date': r['voucher_date'],
+                  'ledger':
+                      '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'
+                          .trim(),
+                  'narration': r['narration'],
+                  'debit': r['debit'],
+                  'credit': r['credit'],
+                };
+              })
+              .toList(growable: false),
+        );
         break;
       case 'general_ledger':
         _tsvLines(b, [
@@ -196,52 +202,66 @@ class FinancialReportViews {
     );
   }
 
-  static Widget _dayBook(Map<String, dynamic> data, ThemeData theme) {
+  static Widget _dayBook(
+    BuildContext context,
+    Map<String, dynamic> data,
+    ThemeData theme,
+  ) {
     final period = _mapDynamic(data['period']);
     final summary = _mapDynamic(data['summary']);
+    final rows = _asList(data['lines'])
+        .map((raw) {
+          final r = _mapDynamic(raw);
+          return <String>[
+            _displayDate(r['voucher_date']),
+            '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'.trim(),
+            r['narration']?.toString() ?? '',
+            _money(r['debit']),
+            _money(r['credit']),
+          ];
+        })
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
           children: [
-            _meta(theme, 'From', _displayDate(period['date_from'])),
-            _meta(theme, 'To', _displayDate(period['date_to'])),
-            _meta(theme, 'Total debit', _money(summary['total_debit'])),
-            _meta(theme, 'Total credit', _money(summary['total_credit'])),
+            _reportMetaCard(
+              theme: theme,
+              label: 'From',
+              value: _displayDate(period['date_from']),
+            ),
+            _reportMetaCard(
+              theme: theme,
+              label: 'To',
+              value: _displayDate(period['date_to']),
+            ),
+            _reportMetaCard(
+              theme: theme,
+              label: 'Total Debit',
+              value: _money(summary['total_debit']),
+              emphasized: true,
+            ),
+            _reportMetaCard(
+              theme: theme,
+              label: 'Total Credit',
+              value: _money(summary['total_credit']),
+              emphasized: true,
+            ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
-        _table(
-          theme,
-          const [
-            'Date',
-            'Voucher',
-            'Type',
-            'Ln',
-            'Account',
-            'Party',
-            'Narration',
-            'Debit',
-            'Credit',
-          ],
-          _asList(data['lines'])
-              .map((raw) {
-                final r = _mapDynamic(raw);
-                return [
-                  _displayDate(r['voucher_date']),
-                  r['voucher_no']?.toString() ?? '',
-                  r['voucher_type']?.toString() ?? '',
-                  r['line_no']?.toString() ?? '',
-                  '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'
-                      .trim(),
-                  r['party_name']?.toString() ?? '',
-                  r['narration']?.toString() ?? '',
-                  _money(r['debit']),
-                  _money(r['credit']),
-                ];
-              })
-              .toList(growable: false),
-        ),
+        Responsive.isMobile(context)
+            ? _dayBookMobileList(theme, rows)
+            : _table(theme, const [
+                'Date',
+                'Ledger',
+                'Description',
+                'Debit',
+                'Credit',
+              ], rows),
       ],
     );
   }
@@ -736,6 +756,127 @@ class FinancialReportViews {
     );
   }
 
+  static Widget _reportMetaCard({
+    required ThemeData theme,
+    required String label,
+    required String value,
+    bool emphasized = false,
+  }) {
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 140),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingMd,
+        vertical: AppUiConstants.spacingSm,
+      ),
+      decoration: BoxDecoration(
+        color: emphasized
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        border: Border.all(
+          color: emphasized
+              ? theme.colorScheme.primary.withValues(alpha: 0.18)
+              : appTheme.tableBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: appTheme.mutedText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingXxs),
+          Text(
+            value.isEmpty ? '-' : value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _dayBookMobileList(ThemeData theme, List<List<String>> rows) {
+    if (rows.isEmpty) {
+      return _table(theme, const ['Date'], rows);
+    }
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Column(
+      children: rows
+          .map((cells) {
+            final date = cells[0];
+            final ledger = cells[1];
+            final description = cells[2];
+            final debit = cells[3];
+            final credit = cells[4];
+            return Container(
+              margin: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+                border: Border.all(color: appTheme.tableBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    date,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: appTheme.mutedText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Text(
+                    ledger.isEmpty ? '-' : ledger,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (description.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppUiConstants.spacingXs),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.tableCellText,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _reportMetaCard(
+                          theme: theme,
+                          label: 'Debit',
+                          value: debit,
+                        ),
+                      ),
+                      const SizedBox(width: AppUiConstants.spacingSm),
+                      Expanded(
+                        child: _reportMetaCard(
+                          theme: theme,
+                          label: 'Credit',
+                          value: credit,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
   static bool _isNumericHeader(String header) {
     const numericHeaders = <String>{
       'Debit',
@@ -966,81 +1107,83 @@ class _ReportDataTableState extends State<_ReportDataTable> {
           child: SingleChildScrollView(
             controller: _horizontalScrollController,
             scrollDirection: Axis.horizontal,
-            child: Container(
-              decoration: BoxDecoration(
-                color: widget.theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.tableRadiusSm,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.tableRadiusSm,
+                  ),
+                  border: Border.all(color: appTheme.tableBorder),
                 ),
-                border: Border.all(color: appTheme.tableBorder),
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: constraints.maxWidth,
-                  maxWidth: estimatedWidth > constraints.maxWidth
-                      ? estimatedWidth
-                      : constraints.maxWidth,
-                ),
-                child: Theme(
-                  data: widget.theme.copyWith(
-                    dividerColor: appTheme.tableBorder,
-                    dataTableTheme: DataTableThemeData(
-                      headingRowColor: WidgetStatePropertyAll(
-                        appTheme.tableHeaderBackground,
-                      ),
-                      headingTextStyle: widget.theme.textTheme.titleSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: appTheme.tableTitleText,
-                          ),
-                      dataTextStyle: widget.theme.textTheme.bodySmall?.copyWith(
-                        color: appTheme.tableCellText,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: constraints.maxWidth,
+                    maxWidth: estimatedWidth > constraints.maxWidth
+                        ? estimatedWidth
+                        : constraints.maxWidth,
+                  ),
+                  child: Theme(
+                    data: widget.theme.copyWith(
+                      dividerColor: appTheme.tableBorder,
+                      dataTableTheme: DataTableThemeData(
+                        headingRowColor: WidgetStatePropertyAll(
+                          appTheme.tableHeaderBackground,
+                        ),
+                        headingTextStyle: widget.theme.textTheme.titleSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: appTheme.tableTitleText,
+                            ),
+                        dataTextStyle: widget.theme.textTheme.bodySmall
+                            ?.copyWith(color: appTheme.tableCellText),
                       ),
                     ),
-                  ),
-                  child: DataTable(
-                    headingRowHeight: 56,
-                    dataRowMinHeight: 58,
-                    dataRowMaxHeight: 66,
-                    columnSpacing: AppUiConstants.spacingLg,
-                    horizontalMargin: AppUiConstants.spacingMd,
-                    columns: widget.headers
-                        .map(
-                          (header) => DataColumn(
-                            numeric: FinancialReportViews._isNumericHeader(
-                              header,
+                    child: DataTable(
+                      headingRowHeight: 56,
+                      dataRowMinHeight: 58,
+                      dataRowMaxHeight: 66,
+                      columnSpacing: AppUiConstants.spacingLg,
+                      horizontalMargin: AppUiConstants.spacingMd,
+                      columns: widget.headers
+                          .map(
+                            (header) => DataColumn(
+                              numeric: FinancialReportViews._isNumericHeader(
+                                header,
+                              ),
+                              label: Text(header),
                             ),
-                            label: Text(header),
-                          ),
-                        )
-                        .toList(growable: false),
-                    rows: widget.rows
-                        .map(
-                          (cells) => DataRow(
-                            color: WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.hovered)) {
-                                return appTheme.tableRowHover;
-                              }
-                              return null;
-                            }),
-                            cells: cells
-                                .asMap()
-                                .entries
-                                .map(
-                                  (entry) => DataCell(
-                                    _ReportTableCell(
-                                      text: entry.value,
-                                      alignEnd:
-                                          FinancialReportViews._isNumericHeader(
-                                            widget.headers[entry.key],
-                                          ),
+                          )
+                          .toList(growable: false),
+                      rows: widget.rows
+                          .map(
+                            (cells) => DataRow(
+                              color: WidgetStateProperty.resolveWith((states) {
+                                if (states.contains(WidgetState.hovered)) {
+                                  return appTheme.tableRowHover;
+                                }
+                                return null;
+                              }),
+                              cells: cells
+                                  .asMap()
+                                  .entries
+                                  .map(
+                                    (entry) => DataCell(
+                                      _ReportTableCell(
+                                        text: entry.value,
+                                        alignEnd:
+                                            FinancialReportViews._isNumericHeader(
+                                              widget.headers[entry.key],
+                                            ),
+                                      ),
                                     ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                        )
-                        .toList(growable: false),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
                   ),
                 ),
               ),
