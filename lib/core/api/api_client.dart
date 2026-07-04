@@ -94,16 +94,17 @@ class ApiClient {
     T Function(dynamic json)? fromData,
   }) async {
     final uri = _buildUri(endpoint);
+    final normalizedBody = _normalizeDateValues(body);
     final response = await _guardRequest(
       requestContext: _RequestDebugContext(
         method: 'POST',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
       () async => _client.post(
         uri,
         headers: await _buildHeaders(),
-        body: jsonEncode(body ?? <String, dynamic>{}),
+        body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
     _invalidateCacheForMutation(endpoint, response.statusCode);
@@ -113,7 +114,7 @@ class ApiClient {
       requestContext: _RequestDebugContext(
         method: 'POST',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
     );
   }
@@ -124,16 +125,17 @@ class ApiClient {
     T Function(dynamic json)? fromData,
   }) async {
     final uri = _buildUri(endpoint);
+    final normalizedBody = _normalizeDateValues(body);
     final response = await _guardRequest(
       requestContext: _RequestDebugContext(
         method: 'PUT',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
       () async => _client.put(
         uri,
         headers: await _buildHeaders(),
-        body: jsonEncode(body ?? <String, dynamic>{}),
+        body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
     _invalidateCacheForMutation(endpoint, response.statusCode);
@@ -143,7 +145,7 @@ class ApiClient {
       requestContext: _RequestDebugContext(
         method: 'PUT',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
     );
   }
@@ -154,16 +156,17 @@ class ApiClient {
     T Function(dynamic json)? fromData,
   }) async {
     final uri = _buildUri(endpoint);
+    final normalizedBody = _normalizeDateValues(body);
     final response = await _guardRequest(
       requestContext: _RequestDebugContext(
         method: 'PATCH',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
       () async => _client.patch(
         uri,
         headers: await _buildHeaders(),
-        body: jsonEncode(body ?? <String, dynamic>{}),
+        body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
     _invalidateCacheForMutation(endpoint, response.statusCode);
@@ -173,7 +176,7 @@ class ApiClient {
       requestContext: _RequestDebugContext(
         method: 'PATCH',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
     );
   }
@@ -184,16 +187,17 @@ class ApiClient {
     T Function(dynamic json)? fromData,
   }) async {
     final uri = _buildUri(endpoint);
+    final normalizedBody = _normalizeDateValues(body);
     final response = await _guardRequest(
       requestContext: _RequestDebugContext(
         method: 'DELETE',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
       () async => _client.delete(
         uri,
         headers: await _buildHeaders(),
-        body: body == null ? null : jsonEncode(body),
+        body: normalizedBody == null ? null : jsonEncode(normalizedBody),
       ),
     );
     _invalidateCacheForMutation(endpoint, response.statusCode);
@@ -203,7 +207,7 @@ class ApiClient {
       requestContext: _RequestDebugContext(
         method: 'DELETE',
         uri: uri,
-        requestBody: body,
+        requestBody: normalizedBody,
       ),
     );
   }
@@ -395,11 +399,58 @@ class ApiClient {
       return uri;
     }
 
-    final filtered = queryParameters.map(
+    final normalized =
+        _normalizeDateValues(queryParameters) ?? <String, dynamic>{};
+    final filtered = normalized.map(
       (key, value) => MapEntry(key, value?.toString() ?? ''),
     )..removeWhere((_, value) => value.isEmpty);
 
     return uri.replace(queryParameters: filtered);
+  }
+
+  Map<String, dynamic>? _normalizeDateValues(Map<String, dynamic>? data) {
+    if (data == null) {
+      return null;
+    }
+    return data.map(
+      (key, value) => MapEntry(key, _normalizeDateValueForKey(key, value)),
+    );
+  }
+
+  dynamic _normalizeDateValueForKey(String key, dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return _normalizeDateValues(value);
+    }
+    if (value is List) {
+      return value
+          .map(
+            (entry) => entry is Map<String, dynamic>
+                ? _normalizeDateValues(entry)
+                : entry,
+          )
+          .toList(growable: false);
+    }
+    if (value is! String || !_isDateKey(key)) {
+      return value;
+    }
+    final normalized = normalizeDateForApi(value);
+    return normalized.isEmpty ? value : normalized;
+  }
+
+  bool _isDateKey(String key) {
+    final words = key
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (match) => '${match.group(1)}_${match.group(2)}',
+        )
+        .split(RegExp(r'[_\-\s]+'))
+        .where((part) => part.trim().isNotEmpty)
+        .map((part) => part.toLowerCase())
+        .toList(growable: false);
+    if (words.contains('datetime')) {
+      return false;
+    }
+    return words.contains('date');
   }
 
   Future<http.Response> _performCacheableGet(
