@@ -237,6 +237,14 @@ class SalesService extends ErpModuleService {
     Map<String, dynamic>? filters,
   }) => invoices(filters: filters);
 
+  Future<ApiResponse<List<SalesInvoiceModel>>> invoicesAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesInvoiceModel>(
+    '/sales/invoices/all',
+    filters: filters,
+    fromJson: SalesInvoiceModel.fromJson,
+  );
+
   Future<ApiResponse<SalesInvoiceModel>> invoice(int id) {
     return client.get<SalesInvoiceModel>(
       '${ApiEndpoints.salesInvoices}/$id',

@@ -943,39 +943,33 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
   try {
     final service = SalesService();
     final responses = await Future.wait<dynamic>([
-      _safePaginated(
-        () => service.orders(
-          filters: const {'per_page': 100, 'sort_by': 'order_date'},
-        ),
+      _safeCollection(
+        () => service.ordersAll(filters: const {'sort_by': 'order_date'}),
       ),
-      _safePaginated(
-        () => service.invoices(
-          filters: const {'per_page': 100, 'sort_by': 'invoice_date'},
-        ),
+      _safeCollection(
+        () => service.invoicesAll(filters: const {'sort_by': 'invoice_date'}),
       ),
-      _safePaginated(
-        () => service.receipts(
-          filters: const {'per_page': 100, 'sort_by': 'receipt_date'},
-        ),
+      _safeCollection(
+        () => service.receiptsAll(filters: const {'sort_by': 'receipt_date'}),
       ),
-      _safePaginated(
-        () => service.quotations(
-          filters: const {'per_page': 100, 'sort_by': 'quotation_date'},
-        ),
+      _safeCollection(
+        () =>
+            service.quotationsAll(filters: const {'sort_by': 'quotation_date'}),
       ),
     ]);
 
-    final orders = responses[0] as PaginatedResponse<SalesOrderModel>;
-    final invoices = responses[1] as PaginatedResponse<SalesInvoiceModel>;
-    final receipts = responses[2] as PaginatedResponse<SalesReceiptModel>;
-    final quotations = responses[3] as PaginatedResponse<SalesQuotationModel>;
+    final orders = responses[0] as ApiResponse<List<SalesOrderModel>>;
+    final invoices = responses[1] as ApiResponse<List<SalesInvoiceModel>>;
+    final receipts = responses[2] as ApiResponse<List<SalesReceiptModel>>;
+    final quotations = responses[3] as ApiResponse<List<SalesQuotationModel>>;
 
     final orderRows = orders.data ?? const <SalesOrderModel>[];
     final orderJsonRows = orderRows
         .map((item) => _safeMap(item.toJson))
         .where((item) => item.isNotEmpty)
         .toList(growable: false);
-    final invoiceJsonRows = (invoices.data ?? const <SalesInvoiceModel>[])
+    final invoiceRows = invoices.data ?? const <SalesInvoiceModel>[];
+    final invoiceJsonRows = invoiceRows
         .map((item) => _safeMap(() => item.toJson()))
         .toList(growable: false);
     final pendingOrders = orderJsonRows
@@ -984,18 +978,16 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         )
         .length;
 
-    final outstandingAmount =
-        invoices.data?.fold<double>(0.0, (sum, item) {
-          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' || status == 'paid') {
-            return sum;
-          }
-          return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
-        }) ??
-        0.0;
+    final outstandingAmount = invoiceRows.fold<double>(0.0, (sum, item) {
+      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+      if (status == 'cancelled' || status == 'paid') {
+        return sum;
+      }
+      return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+    });
 
-    final pipelineValue =
-        quotations.data?.fold<double>(0.0, (sum, item) {
+    final pipelineValue = (quotations.data ?? const <SalesQuotationModel>[])
+        .fold<double>(0.0, (sum, item) {
           final status = (item.quotationStatus ?? '').trim().toLowerCase();
           if (const <String>{
             'accepted',
@@ -1006,111 +998,87 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
             return sum;
           }
           return sum + (item.totalAmount ?? 0.0);
-        }) ??
-        0.0;
+        });
 
-    final thisMonthSales =
-        invoices.data?.fold<double>(0.0, (sum, item) {
-          final dateStr = item.invoiceDate;
-          final date = DateTime.tryParse(dateStr);
-          if (date == null) return sum;
-          final now = DateTime.now();
-          if (date.year == now.year && date.month == now.month) {
-            final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-            if (status == 'cancelled') return sum;
-            return sum + (item.totalAmount ?? 0.0);
-          }
-          return sum;
-        }) ??
-        0.0;
+    final thisMonthSales = invoiceRows.fold<double>(0.0, (sum, item) {
+      final dateStr = item.invoiceDate;
+      final date = DateTime.tryParse(dateStr);
+      if (date == null) return sum;
+      final now = DateTime.now();
+      if (date.year == now.year && date.month == now.month) {
+        final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+        if (status == 'cancelled') return sum;
+        return sum + (item.totalAmount ?? 0.0);
+      }
+      return sum;
+    });
 
-    final bookedValue =
-        orders.data?.fold<double>(0.0, (sum, item) {
-          final status = (item.orderStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' ||
-              status == 'completed' ||
-              status == 'closed') {
-            return sum;
-          }
-          return sum + (item.totalAmount ?? 0.0);
-        }) ??
-        0.0;
+    final bookedValue = orderRows.fold<double>(0.0, (sum, item) {
+      final status = (item.orderStatus ?? '').trim().toLowerCase();
+      if (status == 'cancelled' ||
+          status == 'completed' ||
+          status == 'closed') {
+        return sum;
+      }
+      return sum + (item.totalAmount ?? 0.0);
+    });
 
-    final collectedValue =
-        receipts.data?.fold<double>(0.0, (sum, item) {
+    final collectedValue = (receipts.data ?? const <SalesReceiptModel>[])
+        .fold<double>(0.0, (sum, item) {
           final status = (item.receiptStatus ?? '').trim().toLowerCase();
           if (status == 'cancelled') {
             return sum;
           }
           return sum + (item.paidAmount ?? 0.0);
-        }) ??
-        0.0;
+        });
 
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day);
 
-    final overdueInvoicesCount =
-        invoices.data?.where((item) {
-          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' || status == 'paid') return false;
-          final dueDate = DateTime.tryParse(item.dueDate ?? '');
-          if (dueDate == null) return false;
-          final normalizedDue = DateTime(
-            dueDate.year,
-            dueDate.month,
-            dueDate.day,
-          );
-          return normalizedDue.isBefore(normalizedToday);
-        }).length ??
-        0;
+    final overdueInvoicesCount = invoiceRows.where((item) {
+      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+      if (status == 'cancelled' || status == 'paid') return false;
+      final dueDate = DateTime.tryParse(item.dueDate ?? '');
+      if (dueDate == null) return false;
+      final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+      return normalizedDue.isBefore(normalizedToday);
+    }).length;
 
-    final overdueInvoicesAmount =
-        invoices.data?.fold<double>(0.0, (sum, item) {
-          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' || status == 'paid') return sum;
-          final dueDate = DateTime.tryParse(item.dueDate ?? '');
-          if (dueDate == null) return sum;
-          final normalizedDue = DateTime(
-            dueDate.year,
-            dueDate.month,
-            dueDate.day,
-          );
-          if (normalizedDue.isBefore(normalizedToday)) {
-            return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
-          }
-          return sum;
-        }) ??
-        0.0;
+    final overdueInvoicesAmount = invoiceRows.fold<double>(0.0, (sum, item) {
+      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+      if (status == 'cancelled' || status == 'paid') return sum;
+      final dueDate = DateTime.tryParse(item.dueDate ?? '');
+      if (dueDate == null) return sum;
+      final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+      if (normalizedDue.isBefore(normalizedToday)) {
+        return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+      }
+      return sum;
+    });
 
-    final delayedOrdersCount =
-        orders.data?.where((item) {
-          final status = (item.orderStatus ?? '').trim().toLowerCase();
-          if (status == 'cancelled' ||
-              status == 'completed' ||
-              status == 'closed') {
-            return false;
-          }
-          final deliveryDate = DateTime.tryParse(
-            item.expectedDeliveryDate ?? '',
-          );
-          if (deliveryDate == null) {
-            return false;
-          }
-          final normalizedDelivery = DateTime(
-            deliveryDate.year,
-            deliveryDate.month,
-            deliveryDate.day,
-          );
-          return normalizedDelivery.isBefore(normalizedToday);
-        }).length ??
-        0;
+    final delayedOrdersCount = orderRows.where((item) {
+      final status = (item.orderStatus ?? '').trim().toLowerCase();
+      if (status == 'cancelled' ||
+          status == 'completed' ||
+          status == 'closed') {
+        return false;
+      }
+      final deliveryDate = DateTime.tryParse(item.expectedDeliveryDate ?? '');
+      if (deliveryDate == null) {
+        return false;
+      }
+      final normalizedDelivery = DateTime(
+        deliveryDate.year,
+        deliveryDate.month,
+        deliveryDate.day,
+      );
+      return normalizedDelivery.isBefore(normalizedToday);
+    }).length;
 
-    final draftInvoicesCount =
-        invoices.data?.where((item) {
-          final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-          return status == 'draft';
-        }).length ??
-        0;
+    final draftInvoicesCount = invoiceRows.where((item) {
+      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+      return status == 'draft';
+    }).length;
 
     return ErpDashboardSnapshot(
       title: 'Sales Dashboard',
@@ -3424,6 +3392,16 @@ Future<PaginatedResponse<T>> _safePaginated<T>(
         total: 0,
       ),
     );
+  }
+}
+
+Future<ApiResponse<List<T>>> _safeCollection<T>(
+  Future<ApiResponse<List<T>>> Function() loader,
+) async {
+  try {
+    return await loader();
+  } catch (_) {
+    return ApiResponse<List<T>>(success: false, message: '', data: <T>[]);
   }
 }
 
