@@ -79,6 +79,16 @@ Future<DateTime?> showAppDateTimePickerDialog({
   );
 }
 
+DateTime appCalendarFirstDate([DateTime? anchor]) {
+  final base = anchor ?? DateTime.now();
+  return DateTime(base.year - 45, 1, 1);
+}
+
+DateTime appCalendarLastDate([DateTime? anchor]) {
+  final base = anchor ?? DateTime.now();
+  return DateTime(base.year + 5, 12, 31);
+}
+
 class AppDateRangePickerDialog extends StatefulWidget {
   const AppDateRangePickerDialog({
     super.key,

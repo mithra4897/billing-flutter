@@ -188,29 +188,6 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     disposeMissing(_notesControllers);
   }
 
-  Future<void> _pickDateTime(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final now = DateTime.now();
-    final initial = tryParseCalendarDateTime(controller.text) ?? now;
-    final selected = await showAppDateTimePickerDialog(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(now.year - 5),
-      lastDate: DateTime(now.year + 5),
-      dateTitle: 'Select Followup Date',
-      timeTitle: 'Select Followup Time',
-    );
-    if (selected == null) {
-      return;
-    }
-    controller.text = formatCalendarDateTime(selected);
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   Future<void> _createFollowup(Map<String, dynamic> gap) async {
     final opportunityId = intValue(gap, 'opportunity_id');
     if (opportunityId == null) {
@@ -828,23 +805,23 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                   const SizedBox(height: AppUiConstants.spacingSm),
                   SettingsFormWrap(
                     children: [
-                      AppDateTimeSelectorField(
+                      AppFormTextField(
                         controller: _followupDateControllers[opportunityId]!,
                         labelText: 'Followup Date',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
-                        onTap: () => _pickDateTime(
-                          context,
-                          _followupDateControllers[opportunityId]!,
-                        ),
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateTimeInputFormatter()],
+                        allowType: false,
+                        onChanged: (_) => setState(() {}),
                       ),
-                      AppDateTimeSelectorField(
+                      AppFormTextField(
                         controller: _nextFollowupControllers[opportunityId]!,
                         labelText: 'Next Followup',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
-                        onTap: () => _pickDateTime(
-                          context,
-                          _nextFollowupControllers[opportunityId]!,
-                        ),
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateTimeInputFormatter()],
+                        allowType: false,
+                        onChanged: (_) => setState(() {}),
                       ),
                       AppFormTextField(
                         controller: _notesControllers[opportunityId]!,

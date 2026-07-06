@@ -32,10 +32,10 @@ class AppDateField extends StatelessWidget {
   }
 
   DateTime get _effectiveFirstDate =>
-      firstDate ?? DateTime(DateTime.now().year - 10);
+      firstDate ?? appCalendarFirstDate();
 
   DateTime get _effectiveLastDate =>
-      lastDate ?? DateTime(DateTime.now().year + 10, 12, 31);
+      lastDate ?? appCalendarLastDate();
 
   DateTime get _initialPickerDate {
     final parsed = tryParseCalendarDate(controller.text);

@@ -780,48 +780,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     }
   }
 
-  Future<void> _pickFollowupDate(
-    BuildContext context,
-    CrmOpportunitiesController controller,
-    OpportunityFollowupDraft followup,
-  ) async {
-    final now = DateTime.now();
-    final initial =
-        tryParseCalendarDateTime(followup.followupDateController.text) ?? now;
-    final selected = await showAppDateTimePickerDialog(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(now.year - 5, 1, 1),
-      lastDate: DateTime(now.year + 5, 12, 31),
-      dateTitle: 'Select Followup Date',
-      timeTitle: 'Select Followup Time',
-    );
-    if (selected == null) return;
-    followup.followupDateController.text = formatCalendarDateTime(selected);
-    controller.update();
-  }
-
-  Future<void> _pickNextFollowupDate(
-    BuildContext context,
-    CrmOpportunitiesController controller,
-    OpportunityFollowupDraft followup,
-  ) async {
-    final now = DateTime.now();
-    final initial =
-        tryParseCalendarDateTime(followup.nextFollowupController.text) ?? now;
-    final selected = await showAppDateTimePickerDialog(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(now.year - 5, 1, 1),
-      lastDate: DateTime(now.year + 5, 12, 31),
-      dateTitle: 'Select Next Followup Date',
-      timeTitle: 'Select Next Followup Time',
-    );
-    if (selected == null) return;
-    followup.nextFollowupController.text = formatCalendarDateTime(selected);
-    controller.update();
-  }
-
   Widget _buildContent(
     BuildContext context,
     CrmOpportunitiesController controller,
@@ -1776,22 +1734,23 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                   absorbing: isLocked,
                   child: PurchaseCompactFieldGrid(
                     children: [
-                      AppDateTimeSelectorField(
+                      AppFormTextField(
                         controller: followup.followupDateController,
                         labelText: 'Followup Date',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
-                        onTap: () =>
-                            _pickFollowupDate(context, controller, followup),
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateTimeInputFormatter()],
+                        allowType: false,
+                        onChanged: (_) => controller.update(),
                       ),
-                      AppDateTimeSelectorField(
+                      AppFormTextField(
                         controller: followup.nextFollowupController,
                         labelText: 'Next Followup',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
-                        onTap: () => _pickNextFollowupDate(
-                          context,
-                          controller,
-                          followup,
-                        ),
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateTimeInputFormatter()],
+                        allowType: false,
+                        onChanged: (_) => controller.update(),
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Assigned To',

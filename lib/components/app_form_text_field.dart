@@ -181,8 +181,8 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
       final picked = await showAppDatePickerDialog(
         context: context,
         initialDate: tryParseCalendarDate(widget.controller!.text) ?? now,
-        firstDate: DateTime(now.year - 10, 1, 1),
-        lastDate: DateTime(now.year + 10, 12, 31),
+        firstDate: appCalendarFirstDate(now),
+        lastDate: appCalendarLastDate(now),
         title: 'Select ${widget.labelText}',
       );
       if (picked == null) {
@@ -198,8 +198,8 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
       final picked = await showAppDateTimePickerDialog(
         context: context,
         initialDate: tryParseCalendarDateTime(widget.controller!.text) ?? now,
-        firstDate: DateTime(now.year - 10, 1, 1),
-        lastDate: DateTime(now.year + 10, 12, 31),
+        firstDate: appCalendarFirstDate(now),
+        lastDate: appCalendarLastDate(now),
         dateTitle: 'Select ${widget.labelText}',
         timeTitle: 'Select ${widget.labelText} Time',
       );
