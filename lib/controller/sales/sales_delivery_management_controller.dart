@@ -153,6 +153,8 @@ class SalesDeliveryManagementController extends GetxController {
   final TextEditingController vehicleNoController = TextEditingController();
   final TextEditingController lrNoController = TextEditingController();
   final TextEditingController lrDateController = TextEditingController();
+  final TextEditingController directCustomerDetailsController =
+      TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
@@ -201,6 +203,7 @@ class SalesDeliveryManagementController extends GetxController {
   int? salesOrderId;
   int? customerPartyId;
   int? transporterPartyId;
+  bool isDirectCustomer = false;
   String deliveryKind = 'dc';
   bool applyRoundOff = true;
   bool isActive = true;
@@ -244,6 +247,7 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.dispose();
     lrNoController.dispose();
     lrDateController.dispose();
+    directCustomerDetailsController.dispose();
     roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
@@ -934,7 +938,10 @@ class SalesDeliveryManagementController extends GetxController {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = intValue(data, 'document_series_id');
     salesOrderId = intValue(data, 'sales_order_id');
-    customerPartyId = intValue(data, 'customer_party_id');
+    isDirectCustomer = full.isDirectCustomer;
+    customerPartyId = full.isDirectCustomer
+        ? null
+        : intValue(data, 'customer_party_id');
     transporterPartyId = intValue(data, 'transporter_party_id');
     deliveryKind = nextReturnableDcs.isNotEmpty && nextLines.isEmpty
         ? 'rdc'
@@ -946,6 +953,8 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.text = stringValue(data, 'vehicle_no');
     lrNoController.text = stringValue(data, 'lr_no');
     lrDateController.text = displayDate(nullableStringValue(data, 'lr_date'));
+    directCustomerDetailsController.text =
+        full.directCustomerDetails?.trim() ?? '';
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
@@ -989,6 +998,7 @@ class SalesDeliveryManagementController extends GetxController {
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     salesOrderId = null;
     customerPartyId = null;
+    isDirectCustomer = false;
     transporterPartyId = null;
     deliveryKind = 'dc';
     deliveryNoController.clear();
@@ -999,6 +1009,7 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.clear();
     lrNoController.clear();
     lrDateController.clear();
+    directCustomerDetailsController.clear();
     roundOffController.clear();
     applyRoundOff = true;
     notesController.clear();
@@ -1111,7 +1122,13 @@ class SalesDeliveryManagementController extends GetxController {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = deliveryDocumentSeriesIdFrom(data);
     final customerId = intValue(data, 'customer_party_id');
-    customerPartyId = customerId == 0 ? null : customerId;
+    isDirectCustomer =
+        data['is_direct_customer'] == true || data['is_direct_customer'] == 1;
+    customerPartyId = isDirectCustomer
+        ? null
+        : (customerId == 0 ? null : customerId);
+    directCustomerDetailsController.text =
+        data['direct_customer_details']?.toString().trim() ?? '';
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
@@ -1201,12 +1218,26 @@ class SalesDeliveryManagementController extends GetxController {
       'delivery_status',
       'draft',
     ).trim().toLowerCase();
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final directCustomerDetails =
+        directCustomerDetailsController.text.trim().isNotEmpty
+        ? directCustomerDetailsController.text.trim()
+        : (selected['direct_customer_details']?.toString().trim() ?? '');
+    final directCustomerLines = directCustomerDetails
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
     );
     final customer = customerForPrintContext(customerPartyId);
-    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final customerData = selected['customer'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(
+            selected['customer'] as Map<String, dynamic>,
+          )
+        : customer?.toJson() ?? const <String, dynamic>{};
     final preferredAddress = preferredPartyAddress(
       customer,
       shippingAddressId: intValue(selected, 'shipping_address_id'),
@@ -1266,6 +1297,18 @@ class SalesDeliveryManagementController extends GetxController {
                 );
               })
               .toList(growable: false);
+    final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
+        ? stringValue(customerData, 'party_name')
+        : customer?.partyName ?? '';
+    final effectivePartyName = directCustomerLines.isNotEmpty
+        ? directCustomerLines.first
+        : resolvedPartyName;
+    final effectivePartyAddress = directCustomerLines.length > 1
+        ? directCustomerLines.skip(1).join('\n')
+        : directCustomerDetails;
+    final hasCustomer =
+        effectivePartyName.trim().isNotEmpty ||
+        directCustomerDetails.isNotEmpty;
 
     return buildManagedDocumentPrintData(
       companies: companies,
@@ -1273,23 +1316,30 @@ class SalesDeliveryManagementController extends GetxController {
       company: company,
       documentNumber: nullIfEmpty(deliveryNoController.text) ?? 'Draft',
       documentDate: deliveryDateController.text.trim(),
-      partyName: customer?.partyName ?? '',
-      partyAddress: formatPartyAddress(
-        preferredAddress,
-        fallback: formatPartyAddressFromData(customer?.toJson() ?? const {}),
-      ),
-      partyContact: resolvePartyContact(customer),
-      partyGstin: resolvePartyPrintGstin(
-        customer,
-        gstDetails:
-            customerGstDetailsById[customerPartyId] ??
-            const <PartyGstDetailModel>[],
-        sourceData: selected['customer'] is Map<String, dynamic>
-            ? Map<String, dynamic>.from(
-                selected['customer'] as Map<String, dynamic>,
-              )
-            : const <String, dynamic>{},
-      ),
+      partyName: hasCustomer ? effectivePartyName : 'Not provided',
+      partyAddress: hasCustomer
+          ? (directCustomerDetails.isNotEmpty
+                ? effectivePartyAddress
+                : formatPartyAddress(
+                    preferredAddress,
+                    fallback: formatPartyAddressFromData(customerData),
+                  ))
+          : '',
+      partyContact: directCustomerDetails.isNotEmpty
+          ? ''
+          : resolvePartyContact(
+              customer,
+              fallback: stringValue(customerData, 'mobile_no'),
+            ),
+      partyGstin: directCustomerDetails.isNotEmpty
+          ? ''
+          : resolvePartyPrintGstin(
+              customer,
+              gstDetails:
+                  customerGstDetailsById[customerPartyId] ??
+                  const <PartyGstDetailModel>[],
+              sourceData: customerData,
+            ),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(subtotal, 2),
@@ -1434,6 +1484,19 @@ class SalesDeliveryManagementController extends GetxController {
     update();
   }
 
+  void setDirectCustomer(bool value) {
+    isDirectCustomer = value;
+    if (value) {
+      customerPartyId = null;
+      salesOrderId = null;
+      directCustomerDetailsController.text =
+          directCustomerDetailsController.text.trim();
+    } else {
+      directCustomerDetailsController.clear();
+    }
+    update();
+  }
+
   void setTransporterPartyId(int? value) {
     transporterPartyId = value;
     update();
@@ -1516,6 +1579,20 @@ class SalesDeliveryManagementController extends GetxController {
 
   Future<void> save(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
+    final directCustomerDetails = nullIfEmpty(
+      directCustomerDetailsController.text,
+    );
+    if (isDirectCustomer) {
+      if (directCustomerDetails == null) {
+        formError = 'Enter direct customer details.';
+        update();
+        return;
+      }
+    } else if (customerPartyId == null) {
+      formError = 'Choose a customer or mark this as direct customer.';
+      update();
+      return;
+    }
     syncInventoryOptionsForLines(lines);
     if (deliveryKind == 'dc') {
       final saveLines = linesForSave();
@@ -1564,6 +1641,8 @@ class SalesDeliveryManagementController extends GetxController {
       'delivery_no': nullIfEmpty(deliveryNoController.text),
       'delivery_date': deliveryDateController.text.trim(),
       'customer_party_id': customerPartyId,
+      'is_direct_customer': isDirectCustomer,
+      'direct_customer_details': directCustomerDetails,
       'transporter_party_id': transporterPartyId,
       'vehicle_no': nullIfEmpty(vehicleNoController.text),
       'lr_no': nullIfEmpty(lrNoController.text),

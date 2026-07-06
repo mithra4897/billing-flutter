@@ -12,6 +12,8 @@ class SalesDeliveryModel extends JsonModel {
     this.deliveryNo,
     this.deliveryDate,
     this.customerPartyId,
+    this.isDirectCustomer = false,
+    this.directCustomerDetails,
     this.customerName,
     this.customer,
     this.billingAddressId,
@@ -47,6 +49,8 @@ class SalesDeliveryModel extends JsonModel {
   final String? deliveryNo;
   final String? deliveryDate;
   final int? customerPartyId;
+  final bool isDirectCustomer;
+  final String? directCustomerDetails;
   final String? customerName;
   final Map<String, dynamic>? customer;
   final int? billingAddressId;
@@ -85,6 +89,9 @@ class SalesDeliveryModel extends JsonModel {
       deliveryNo: json['delivery_no']?.toString(),
       deliveryDate: json['delivery_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      isDirectCustomer:
+          json['is_direct_customer'] == true || json['is_direct_customer'] == 1,
+      directCustomerDetails: json['direct_customer_details']?.toString(),
       customerName: json['customer_name']?.toString(),
       customer: JsonModel.mapOf(json['customer']),
       billingAddressId: JsonModel.nullableInt(json['billing_address_id']),
@@ -132,6 +139,9 @@ class SalesDeliveryModel extends JsonModel {
     if (salesOrderId != null) 'sales_order_id': salesOrderId,
     if (deliveryNo != null) 'delivery_no': deliveryNo,
     if (deliveryDate != null) 'delivery_date': deliveryDate,
+    'is_direct_customer': isDirectCustomer,
+    if (directCustomerDetails != null)
+      'direct_customer_details': directCustomerDetails,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
     if (customerName != null) 'customer_name': customerName,
     if (customer != null) 'customer': customer,

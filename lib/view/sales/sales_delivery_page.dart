@@ -627,26 +627,54 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   initialValue: controller.deliveryKind,
                   onChanged: controller.setDeliveryKind,
                 ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Customer',
-                  doctypeLabel: 'Customer',
-                  allowCreate: true,
-                  onNavigateToCreateNew: (name) {
-                    final uri = Uri(
-                      path: '/parties',
-                      queryParameters: {
-                        'new': '1',
-                        'party_context': 'customer',
-                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                      },
-                    );
-                    openModuleShellRoute(context, uri.toString());
-                  },
-                  mappedItems: controller.customerDropdownItems,
-                  initialValue: controller.customerPartyId,
-                  onChanged: controller.setCustomerPartyId,
-                  validator: Validators.requiredSelection('Customer'),
+                AppSwitchTile(
+                  label: 'Direct Customer',
+                  value: controller.isDirectCustomer,
+                  onChanged: canEdit ? controller.setDirectCustomer : null,
                 ),
+                if (controller.isDirectCustomer)
+                  AppFormTextField(
+                    labelText: 'Direct Customer Details',
+                    controller: controller.directCustomerDetailsController,
+                    enabled: canEdit,
+                    maxLines: 4,
+                    validator: (value) {
+                      if (!controller.isDirectCustomer) {
+                        return null;
+                      }
+                      final trimmed = value?.trim() ?? '';
+                      if (trimmed.isEmpty) {
+                        return 'Direct customer details are required';
+                      }
+                      return null;
+                    },
+                  )
+                else
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          'party_context': 'customer',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      openModuleShellRoute(context, uri.toString());
+                    },
+                    mappedItems: controller.customerDropdownItems,
+                    initialValue: controller.customerPartyId,
+                    onChanged: controller.setCustomerPartyId,
+                    validator: (value) {
+                      if (controller.isDirectCustomer) {
+                        return null;
+                      }
+                      return Validators.requiredSelection('Customer')(value);
+                    },
+                  ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Sales Order',
                   mappedItems: controller.orderDropdownItems,
