@@ -384,7 +384,8 @@ String _formatPrintAmount(double value, {int? fixedDecimals}) {
   final parts = unsigned.split('.');
   final whole = parts.first;
   final decimal = parts.length > 1 ? '.${parts.last}' : '';
-  return '${negative ? '-' : ''}${_groupIndianDigits(whole)}$decimal';
+  final formatted = '${_groupIndianDigits(whole)}$decimal';
+  return negative ? '($formatted)' : formatted;
 }
 
 bool _isPrintAmountLikeKey(String key) {

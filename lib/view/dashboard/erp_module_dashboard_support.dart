@@ -3550,8 +3550,8 @@ bool _isInCurrentMonth(Map<String, dynamic> data, List<String> keys) {
 }
 
 String _formatCurrency(double? value) {
-  if (value == null) {
-    return 'Rs 0';
+  if (value == null || value == 0) {
+    return '';
   }
   return _crmFormatExpectedValue(value);
 }
@@ -3652,5 +3652,5 @@ bool _crmHasValue(double? value) => value != null && value != 0;
 
 String _crmFormatExpectedValue(double value) {
   final formatted = formatAmount(value.abs());
-  return value < 0 ? '-Rs $formatted' : 'Rs $formatted';
+  return value < 0 ? 'Rs ($formatted)' : 'Rs $formatted';
 }

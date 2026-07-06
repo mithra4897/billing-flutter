@@ -120,6 +120,7 @@ String displayDate(String? value) {
 
 String formatAmount(double? value) {
   if (value == null) return '-';
+  if (value == 0) return '';
 
   final settings = Get.isRegistered<AppFormatSettings>()
       ? AppFormatSettings.to
@@ -139,7 +140,8 @@ String formatAmount(double? value) {
   final digits = isNegative ? intPart.substring(1) : intPart;
 
   final grouped = _groupDigits(digits, grouping);
-  return '${isNegative ? '-' : ''}$grouped$decPart';
+  final formatted = '$grouped$decPart';
+  return isNegative ? '($formatted)' : formatted;
 }
 
 String _groupDigits(String digits, String grouping) {
