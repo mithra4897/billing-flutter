@@ -115,9 +115,9 @@ class SalesInvoiceModel extends JsonModel {
           ? null
           : json['is_active'] == true || json['is_active'] == 1,
       lines: _mapLines(json['lines']),
-      voucher: json['voucher'] is Map<String, dynamic>
-          ? VoucherModel.fromJson(json['voucher'] as Map<String, dynamic>)
-          : null,
+      voucher: JsonModel.mapOf(json['voucher']) == null
+          ? null
+          : VoucherModel.fromJson(JsonModel.mapOf(json['voucher'])!),
     );
   }
   @override
@@ -174,14 +174,10 @@ class SalesInvoiceModel extends JsonModel {
   };
 
   static List<SalesInvoiceLineModel> _mapLines(dynamic value) {
-    if (value is! List) {
-      return <SalesInvoiceLineModel>[];
-    }
-
-    return value
-        .whereType<Map<String, dynamic>>()
-        .map(SalesInvoiceLineModel.fromJson)
-        .toList(growable: false);
+    return JsonModel.listOf<SalesInvoiceLineModel>(
+      value,
+      SalesInvoiceLineModel.fromJson,
+    );
   }
 
   static int _parseInt(dynamic value) =>

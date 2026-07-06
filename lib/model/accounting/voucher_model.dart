@@ -65,16 +65,21 @@ class VoucherModel extends JsonModel {
   String toString() => voucherNo ?? 'New Voucher';
 
   factory VoucherModel.fromJson(Map<String, dynamic> json) {
-    final company = _asMap(json['company']);
-    final branch = _asMap(json['branch']);
-    final location = _asMap(json['location']);
-    final financialYear = _asMap(
-      json['financialYear'] ?? json['financial_year'],
-    );
-    final voucherType = _asMap(json['voucherType'] ?? json['voucher_type']);
-    final documentSeries = _asMap(
-      json['documentSeries'] ?? json['document_series'],
-    );
+    final company =
+        JsonModel.mapOf(json['company']) ?? const <String, dynamic>{};
+    final branch =
+        JsonModel.mapOf(json['branch']) ?? const <String, dynamic>{};
+    final location =
+        JsonModel.mapOf(json['location']) ?? const <String, dynamic>{};
+    final financialYear =
+        JsonModel.mapOf(json['financialYear'] ?? json['financial_year']) ??
+        const <String, dynamic>{};
+    final voucherType =
+        JsonModel.mapOf(json['voucherType'] ?? json['voucher_type']) ??
+        const <String, dynamic>{};
+    final documentSeries =
+        JsonModel.mapOf(json['documentSeries'] ?? json['document_series']) ??
+        const <String, dynamic>{};
     return VoucherModel(
       id: _nullableInt(json['id']),
       companyId: _nullableInt(json['company_id'] ?? company['id']),
@@ -83,7 +88,9 @@ class VoucherModel extends JsonModel {
       financialYearId: _nullableInt(
         json['financial_year_id'] ?? financialYear['id'],
       ),
-      voucherTypeId: _nullableInt(json['voucher_type_id'] ?? voucherType['id']),
+      voucherTypeId: _nullableInt(
+        json['voucher_type_id'] ?? voucherType['id'],
+      ),
       documentSeriesId: _nullableInt(
         json['document_series_id'] ?? documentSeries['id'],
       ),
@@ -145,14 +152,10 @@ class VoucherModel extends JsonModel {
   }
 
   static List<VoucherLineModel> _mapLines(dynamic value) {
-    if (value is! List) {
-      return const <VoucherLineModel>[];
-    }
-
-    return value
-        .whereType<Map<String, dynamic>>()
-        .map(VoucherLineModel.fromJson)
-        .toList(growable: false);
+    return JsonModel.listOf<VoucherLineModel>(
+      value,
+      VoucherLineModel.fromJson,
+    );
   }
 
   static int? _nullableInt(dynamic value) =>
@@ -164,10 +167,5 @@ class VoucherModel extends JsonModel {
   static bool _bool(dynamic value, {bool fallback = false}) {
     if (value == null) return fallback;
     return value == true || value == 1 || value.toString() == '1';
-  }
-
-  static Map<String, dynamic> _asMap(dynamic value) {
-    if (value is Map<String, dynamic>) return value;
-    return <String, dynamic>{};
   }
 }

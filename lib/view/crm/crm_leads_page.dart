@@ -496,6 +496,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+    int? selectedSourceId =
+        controller.filterSourceId ?? CrmLeadsController.allFilterIntValue;
+    int? selectedAssignedTo =
+        controller.filterAssignedTo ?? CrmLeadsController.allFilterIntValue;
     Set<String> selectedStatuses = Set<String>.from(
       controller.filterLeadStatuses,
     );
@@ -560,9 +564,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                           _filterBox(
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Source',
-                              initialValue:
-                                  controller.filterSourceId ??
-                                  CrmLeadsController.allFilterIntValue,
+                              initialValue: selectedSourceId,
                               mappedItems: <AppDropdownItem<int>>[
                                 const AppDropdownItem<int>(
                                   value: CrmLeadsController.allFilterIntValue,
@@ -580,15 +582,19 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                                       ),
                                     ),
                               ],
-                              onChanged: controller.setFilterSourceId,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedSourceId =
+                                      value ??
+                                      CrmLeadsController.allFilterIntValue;
+                                });
+                              },
                             ),
                           ),
                           _filterBox(
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Assigned To',
-                              initialValue:
-                                  controller.filterAssignedTo ??
-                                  CrmLeadsController.allFilterIntValue,
+                              initialValue: selectedAssignedTo,
                               mappedItems: <AppDropdownItem<int>>[
                                 const AppDropdownItem<int>(
                                   value: CrmLeadsController.allFilterIntValue,
@@ -606,7 +612,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                                       ),
                                     ),
                               ],
-                              onChanged: controller.setFilterAssignedTo,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedAssignedTo =
+                                      value ??
+                                      CrmLeadsController.allFilterIntValue;
+                                });
+                              },
                             ),
                           ),
                           _filterBox(
@@ -653,6 +665,18 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         children: [
                           FilledButton.icon(
                             onPressed: () {
+                              controller.setFilterSourceId(
+                                selectedSourceId ==
+                                        CrmLeadsController.allFilterIntValue
+                                    ? null
+                                    : selectedSourceId,
+                              );
+                              controller.setFilterAssignedTo(
+                                selectedAssignedTo ==
+                                        CrmLeadsController.allFilterIntValue
+                                    ? null
+                                    : selectedAssignedTo,
+                              );
                               controller.setFilterLeadStatuses(
                                 Set<String>.from(selectedStatuses),
                               );
@@ -666,6 +690,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             onPressed: () {
                               controller.clearFilters();
                               setDialogState(() {
+                                selectedSourceId =
+                                    CrmLeadsController.allFilterIntValue;
+                                selectedAssignedTo =
+                                    CrmLeadsController.allFilterIntValue;
                                 selectedStatuses.clear();
                               });
                               Navigator.of(dialogContext).pop(true);

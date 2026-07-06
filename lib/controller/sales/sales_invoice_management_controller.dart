@@ -1033,8 +1033,12 @@ class SalesInvoiceManagementController extends GetxController {
     locationId = intValue(j, 'location_id');
     financialYearId = intValue(j, 'financial_year_id');
     documentSeriesId = invoiceDocumentSeriesIdFrom(j);
+    isDirectCustomer =
+        j['is_direct_customer'] == true || j['is_direct_customer'] == 1;
     final cust = intValue(j, 'customer_party_id');
-    customerPartyId = cust == 0 ? null : cust;
+    customerPartyId = isDirectCustomer ? null : (cust == 0 ? null : cust);
+    directCustomerDetailsController.text =
+        j['direct_customer_details']?.toString().trim() ?? '';
     final rawBillingAddressId = intValue(j, 'billing_address_id');
     billingAddressId = rawBillingAddressId == null || rawBillingAddressId == 0
         ? null
@@ -1104,8 +1108,12 @@ class SalesInvoiceManagementController extends GetxController {
     locationId = intValue(j, 'location_id');
     financialYearId = intValue(j, 'financial_year_id');
     documentSeriesId = invoiceDocumentSeriesIdFrom(j);
+    isDirectCustomer =
+        j['is_direct_customer'] == true || j['is_direct_customer'] == 1;
     final cust = intValue(j, 'customer_party_id');
-    customerPartyId = cust == 0 ? null : cust;
+    customerPartyId = isDirectCustomer ? null : (cust == 0 ? null : cust);
+    directCustomerDetailsController.text =
+        j['direct_customer_details']?.toString().trim() ?? '';
     final rawBillingAddressId = intValue(j, 'billing_address_id');
     billingAddressId = rawBillingAddressId == null || rawBillingAddressId == 0
         ? null

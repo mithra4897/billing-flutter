@@ -391,11 +391,9 @@ class CrmLeadsController extends GetxController {
     final response = await _crmService.lead(id);
     final full = response.data ?? item;
     final data = full.toJson();
-    final nextActivities =
-        (data['activities'] as List<dynamic>? ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .map(LeadActivityDraft.fromJson)
-            .toList(growable: true);
+    final nextActivities = JsonModel.mapListOf(
+      data['activities'],
+    ).map(LeadActivityDraft.fromJson).toList(growable: true);
 
     selectedItem = full;
     companyId = intValue(data, 'company_id');
@@ -729,6 +727,8 @@ class CrmLeadsController extends GetxController {
 
 class LeadActivityDraft {
   LeadActivityDraft({
+    this.id,
+    this.leadId,
     this.activityType = 'call',
     this.status = 'pending',
     String? activityDateTime,
@@ -750,6 +750,8 @@ class LeadActivityDraft {
 
   factory LeadActivityDraft.fromJson(Map<String, dynamic> json) {
     return LeadActivityDraft(
+      id: intValue(json, 'id'),
+      leadId: intValue(json, 'lead_id'),
       activityType: stringValue(json, 'activity_type', 'call'),
       status: stringValue(json, 'status', 'pending'),
       activityDateTime: stringValue(json, 'activity_datetime'),
@@ -758,6 +760,8 @@ class LeadActivityDraft {
     );
   }
 
+  int? id;
+  int? leadId;
   String activityType;
   String status;
   final TextEditingController activityDateTimeController;
@@ -784,6 +788,8 @@ class LeadActivityDraft {
 
   Map<String, dynamic> toJson() {
     return {
+      if (id != null) 'id': id,
+      if (leadId != null) 'lead_id': leadId,
       'activity_type': activityType,
       'status': status,
       'activity_datetime': nullIfEmpty(activityDateTimeController.text),
