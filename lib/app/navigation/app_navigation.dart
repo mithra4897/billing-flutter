@@ -1256,6 +1256,54 @@ class AppNavigation {
     return _sortTopLevelItems(visibleItems, orderedModules);
   }
 
+  static bool canAccessPath({
+    required String path,
+    required Set<String> permissionCodes,
+    required bool isSuperAdmin,
+    List<ModuleModel> orderedModules = const <ModuleModel>[],
+  }) {
+    final normalizedPath = _normalizePath(path);
+
+    if (normalizedPath == '/' || normalizedPath == '/login') {
+      return true;
+    }
+
+    final visibleItems = visibleMenu(
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+      orderedModules: orderedModules,
+    );
+
+    for (final item in visibleItems) {
+      if (containsPath(item, normalizedPath)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static String firstAccessiblePath({
+    required Set<String> permissionCodes,
+    required bool isSuperAdmin,
+    List<ModuleModel> orderedModules = const <ModuleModel>[],
+  }) {
+    final visibleItems = visibleMenu(
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+      orderedModules: orderedModules,
+    );
+
+    for (final item in visibleItems) {
+      final path = _firstPath(item);
+      if (path != null && path.isNotEmpty) {
+        return path;
+      }
+    }
+
+    return dashboardPath;
+  }
+
   static bool containsPath(AppNavigationItem item, String path) {
     final normalizedPath = _normalizePath(path);
 
@@ -1329,6 +1377,21 @@ class AppNavigation {
       final childPath = _ancestorKeysForItemKey(item.children, key);
       if (childPath != null) {
         return <String>[item.key, ...childPath];
+      }
+    }
+
+    return null;
+  }
+
+  static String? _firstPath(AppNavigationItem item) {
+    if ((item.path ?? '').trim().isNotEmpty) {
+      return item.path;
+    }
+
+    for (final child in item.children) {
+      final path = _firstPath(child);
+      if ((path ?? '').trim().isNotEmpty) {
+        return path;
       }
     }
 

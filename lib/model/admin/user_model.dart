@@ -25,6 +25,10 @@ class UserModel extends JsonModel {
     this.roles = const [],
     this.userRoles = const [],
     this.extraPermissions = const [],
+    this.companyAccess = const [],
+    this.branchAccess = const [],
+    this.locationAccess = const [],
+    this.warehouseAccess = const [],
   });
   final int? employeeId;
   final String? employeeCode;
@@ -48,6 +52,10 @@ class UserModel extends JsonModel {
   final List<RoleModel> roles;
   final List<UserRoleModel> userRoles;
   final List<UserPermissionModel> extraPermissions;
+  final List<UserCompanyAccessModel> companyAccess;
+  final List<UserBranchAccessModel> branchAccess;
+  final List<UserLocationAccessModel> locationAccess;
+  final List<UserWarehouseAccessModel> warehouseAccess;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final employeeJson = json['employee'] is Map<String, dynamic>
@@ -89,6 +97,10 @@ class UserModel extends JsonModel {
       roles: _roles(json['roles']),
       userRoles: _userRoles(json['user_roles']),
       extraPermissions: _extraPermissions(json['user_permissions']),
+      companyAccess: _companyAccess(json['company_access']),
+      branchAccess: _branchAccess(json['branch_access']),
+      locationAccess: _locationAccess(json['location_access']),
+      warehouseAccess: _warehouseAccess(json['warehouse_access']),
     );
   }
   @override
@@ -136,6 +148,22 @@ class UserModel extends JsonModel {
         'extra_permissions': extraPermissions
             .map((item) => item.toJson())
             .toList(growable: false),
+      if (companyAccess.isNotEmpty)
+        'company_access': companyAccess
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      if (branchAccess.isNotEmpty)
+        'branch_access': branchAccess
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      if (locationAccess.isNotEmpty)
+        'location_access': locationAccess
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      if (warehouseAccess.isNotEmpty)
+        'warehouse_access': warehouseAccess
+            .map((item) => item.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -177,6 +205,50 @@ class UserModel extends JsonModel {
     return value
         .whereType<Map<String, dynamic>>()
         .map(UserPermissionModel.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<UserCompanyAccessModel> _companyAccess(dynamic value) {
+    if (value is! List) {
+      return const <UserCompanyAccessModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserCompanyAccessModel.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<UserBranchAccessModel> _branchAccess(dynamic value) {
+    if (value is! List) {
+      return const <UserBranchAccessModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserBranchAccessModel.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<UserLocationAccessModel> _locationAccess(dynamic value) {
+    if (value is! List) {
+      return const <UserLocationAccessModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserLocationAccessModel.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<UserWarehouseAccessModel> _warehouseAccess(dynamic value) {
+    if (value is! List) {
+      return const <UserWarehouseAccessModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserWarehouseAccessModel.fromJson)
         .toList(growable: false);
   }
 }

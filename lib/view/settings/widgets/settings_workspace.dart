@@ -364,11 +364,15 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
   void didUpdateWidget(covariant SettingsListCard<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     final controller = _ensureController();
+    var nextPage = controller.currentPage;
     if (!identical(oldWidget.items, widget.items)) {
-      controller.resetToFirstPage();
+      nextPage = 1;
     }
-    controller.syncItemCountChange(widget.items.length);
-    controller.update();
+    final totalPages = controller.totalPages(widget.items.length);
+    if (nextPage > totalPages) {
+      nextPage = totalPages;
+    }
+    controller.currentPage = nextPage;
   }
 
   List<T> _pagedItems(int currentPage) {

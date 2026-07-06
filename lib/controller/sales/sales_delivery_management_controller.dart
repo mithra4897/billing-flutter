@@ -825,11 +825,13 @@ class SalesDeliveryManagementController extends GetxController {
               .where((item) => item.id != null)
               .map((item) => MapEntry(item.id!, item)),
         );
-      warehouses =
-          ((responses[8] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      warehouses = await WorkingContextService.instance
+          .filterWarehousesByAccess(
+            ((responses[8] as PaginatedResponse<WarehouseModel>).data ??
+                    const <WarehouseModel>[])
+                .where((item) => item.isActive)
+                .toList(growable: false),
+          );
       itemsLookup =
           ((responses[9] as PaginatedResponse<ItemModel>).data ??
                   const <ItemModel>[])

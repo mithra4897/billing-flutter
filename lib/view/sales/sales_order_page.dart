@@ -253,6 +253,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget _buildLineItemTable(SalesOrderManagementController controller) {
+    final showWarehouseField = controller.warehouseDropdownItems.length > 1;
     final itemOptions = controller.itemPickerOptions
         .map(
           (option) => ErpLinkFieldOption<int>(
@@ -376,11 +377,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       onAddLine: controller.canEdit ? controller.addLine : null,
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
-        ErpLineItemTableColumn.warehouse,
+        if (showWarehouseField) ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,

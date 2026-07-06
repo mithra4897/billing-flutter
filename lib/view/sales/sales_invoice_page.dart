@@ -193,6 +193,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   }
 
   Widget _buildLineItemTable(SalesInvoiceManagementController controller) {
+    final showWarehouseField = controller.warehouses.length > 1;
     final itemOptions = controller.itemsLookup
         .where((item) => item.id != null)
         .map(
@@ -230,17 +231,21 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           width: 190,
           insertAfter: ErpLineItemTableColumn.no,
         ),
-      const ErpLineItemCustomColumn(
+      ErpLineItemCustomColumn(
         id: 'batch',
         label: 'Batch',
         width: 150,
-        insertAfter: ErpLineItemTableColumn.warehouse,
+        insertAfter: showWarehouseField
+            ? ErpLineItemTableColumn.warehouse
+            : ErpLineItemTableColumn.item,
       ),
-      const ErpLineItemCustomColumn(
+      ErpLineItemCustomColumn(
         id: 'serials',
         label: 'Serials',
         width: 220,
-        insertAfter: ErpLineItemTableColumn.warehouse,
+        insertAfter: showWarehouseField
+            ? ErpLineItemTableColumn.warehouse
+            : ErpLineItemTableColumn.item,
       ),
     ];
 
@@ -564,11 +569,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       onAddLine: controller.canEdit ? controller.addLine : null,
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add line',
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
-        ErpLineItemTableColumn.warehouse,
+        if (showWarehouseField) ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,

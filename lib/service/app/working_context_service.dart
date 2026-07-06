@@ -171,6 +171,29 @@ class WorkingContextService {
     version.value++;
   }
 
+  Future<List<WarehouseModel>> filterWarehousesByAccess(
+    List<WarehouseModel> warehouses,
+  ) async {
+    final authContext = await SessionStorage.getAuthContext();
+    final allowedWarehouseIds = authContext?.warehouses
+        .where((item) => item.id != null)
+        .map((item) => item.id!)
+        .toSet();
+
+    if (allowedWarehouseIds == null) {
+      return warehouses;
+    }
+
+    if (allowedWarehouseIds.isEmpty) {
+      return const <WarehouseModel>[];
+    }
+
+    return warehouses
+        .where((item) => item.id != null)
+        .where((item) => allowedWarehouseIds.contains(item.id))
+        .toList(growable: false);
+  }
+
   int? _resolveCompanyId(List<CompanyModel> companies, int? preferredId) {
     if (preferredId != null &&
         companies.any((CompanyModel item) => item.id == preferredId)) {

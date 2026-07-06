@@ -85,6 +85,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     final selectedData = controller.selectedItem?.toJson() ?? const {};
     final status = stringValue(selectedData, 'return_status', 'draft');
     final canEdit = controller.selectedItem == null || status == 'draft';
+    final showWarehouseField = controller.warehouses.length > 1;
 
     final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
       index,
@@ -187,10 +188,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       lines: rows,
       onAddLine: canEdit ? controller.addLine : null,
       onDeleteLine: canEdit ? controller.removeLine : null,
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
-        ErpLineItemTableColumn.warehouse,
+        if (showWarehouseField) ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
@@ -200,7 +201,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       columnLabels: const <ErpLineItemTableColumn, String>{
         ErpLineItemTableColumn.qty: 'Return Qty',
       },
-      customColumns: const <ErpLineItemCustomColumn>[
+      customColumns: <ErpLineItemCustomColumn>[
         ErpLineItemCustomColumn(
           id: 'invoice_line',
           label: 'Sales Invoice Line',
@@ -211,13 +212,17 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           id: 'batch',
           label: 'Batch',
           width: 150,
-          insertAfter: ErpLineItemTableColumn.warehouse,
+          insertAfter: showWarehouseField
+              ? ErpLineItemTableColumn.warehouse
+              : ErpLineItemTableColumn.item,
         ),
         ErpLineItemCustomColumn(
           id: 'serial',
           label: 'Serial Number',
           width: 170,
-          insertAfter: ErpLineItemTableColumn.warehouse,
+          insertAfter: showWarehouseField
+              ? ErpLineItemTableColumn.warehouse
+              : ErpLineItemTableColumn.item,
         ),
       ],
       footer: _buildTaxSummaryCard(controller),

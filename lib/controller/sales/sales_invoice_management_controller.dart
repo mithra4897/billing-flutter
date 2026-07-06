@@ -1739,6 +1739,14 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
 
+      final filteredWarehouses = await WorkingContextService.instance
+          .filterWarehousesByAccess(
+            ((responses[5] as PaginatedResponse<WarehouseModel>).data ??
+                    const <WarehouseModel>[])
+                .where((item) => item.isActive)
+                .toList(),
+          );
+
       State(() {
         accounts =
             ((responses[0] as ApiResponse<List<AccountModel>>).data ??
@@ -1765,11 +1773,7 @@ class SalesInvoiceManagementController extends GetxController {
                     const <UomConversionModel>[])
                 .where((item) => item.isActive)
                 .toList();
-        warehouses =
-            ((responses[5] as PaginatedResponse<WarehouseModel>).data ??
-                    const <WarehouseModel>[])
-                .where((item) => item.isActive)
-                .toList();
+        warehouses = filteredWarehouses;
         taxCodes =
             ((responses[6] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])

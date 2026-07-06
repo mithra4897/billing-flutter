@@ -7,6 +7,8 @@ class UserPermissionSummaryModel extends JsonModel {
     this.rolePermissions = const [],
     this.directPermissions = const [],
     this.effectivePermissions = const [],
+    this.inheritedRolePermissions = const [],
+    this.directUserPermissions = const [],
   }) : super(id: null);
 
   final UserModel? user;
@@ -14,6 +16,8 @@ class UserPermissionSummaryModel extends JsonModel {
   final List<UserPermissionModel> rolePermissions;
   final List<UserPermissionModel> directPermissions;
   final List<UserPermissionModel> effectivePermissions;
+  final List<UserPermissionModel> inheritedRolePermissions;
+  final List<UserPermissionModel> directUserPermissions;
 
   factory UserPermissionSummaryModel.fromJson(Map<String, dynamic> json) {
     return UserPermissionSummaryModel(
@@ -24,11 +28,14 @@ class UserPermissionSummaryModel extends JsonModel {
       rolePermissions: _permissions(json['role_permissions']),
       directPermissions: _permissions(json['direct_permissions']),
       effectivePermissions: _permissions(json['effective_permissions']),
+      inheritedRolePermissions: _permissions(
+        json['inherited_role_permissions'],
+      ),
+      directUserPermissions: _permissions(json['direct_user_permissions']),
     );
   }
   @override
   String toString() => 'User Permission Summary';
-
 
   @override
   Map<String, dynamic> toJson() {
@@ -42,6 +49,12 @@ class UserPermissionSummaryModel extends JsonModel {
           .map((item) => item.toJson())
           .toList(growable: false),
       'effective_permissions': effectivePermissions
+          .map((item) => item.toJson())
+          .toList(growable: false),
+      'inherited_role_permissions': inheritedRolePermissions
+          .map((item) => item.toJson())
+          .toList(growable: false),
+      'direct_user_permissions': directUserPermissions
           .map((item) => item.toJson())
           .toList(growable: false),
     };

@@ -30,7 +30,7 @@ class _UserManagementPageState extends State<UserManagementPage>
       tag: _controllerTag,
       permanent: true,
     );
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         _controller.setActiveTabIndex(_tabController.index);
@@ -209,8 +209,8 @@ class _UserManagementPageState extends State<UserManagementPage>
                     children: [
                       Text(
                         controller.isNewUser
-                            ? 'Fill the complete user profile first. After saving, the permission, audit, and login tabs become active.'
-                            : 'Role gives the base access, and direct permissions can be added in the next tab.',
+                            ? 'Fill the complete user profile first. After saving, permission, access scope, audit, and login tabs become active.'
+                            : 'Role gives the base access, direct permissions extend it, and access scope controls company, branch, location, and warehouse visibility.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(
                             context,
@@ -233,6 +233,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   tabs: const [
                     Tab(text: 'Profile'),
                     Tab(text: 'Permissions'),
+                    Tab(text: 'Access Scope'),
                     Tab(text: 'Audit Log'),
                     Tab(text: 'Login History'),
                   ],
@@ -245,6 +246,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                     ? [
                         _buildProfileTab(context, controller),
                         _buildPermissionsTab(context, controller),
+                        _buildAccessScopeTab(context, controller),
                         _buildAuditTab(context, controller),
                         _buildLoginHistoryTab(context, controller),
                       ][controller.activeTabIndex]
@@ -720,6 +722,457 @@ class _UserManagementPageState extends State<UserManagementPage>
         ),
       ],
     );
+  }
+
+  Widget _buildAccessScopeTab(
+    BuildContext context,
+    UserManagementController controller,
+  ) {
+    if (controller.isNewUser) {
+      return _emptyStateCard(
+        context,
+        icon: Icons.account_tree_outlined,
+        title: 'Access Scope Will Appear After Save',
+        message:
+            'Create the user first, then we can assign company, branch, location, and warehouse scope here.',
+      );
+    }
+
+    if (controller.companies.isEmpty) {
+      return _emptyStateCard(
+        context,
+        icon: Icons.domain_disabled_outlined,
+        title: 'No Master Scope Data',
+        message:
+            'Companies, branches, locations, and warehouses need to exist before access scope can be assigned.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Select access using the hierarchy tree. Fully selected parents represent all descendants, and partial selections show half-checked parent states.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).extension<AppThemeExtension>()!.mutedText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              AppActionButton(
+                onPressed: controller.savingAccessScope
+                    ? null
+                    : controller.saveAccessScope,
+                icon: Icons.save_outlined,
+                label: controller.savingAccessScope
+                    ? 'Saving...'
+                    : 'Save Access Scope',
+                busy: controller.savingAccessScope,
+              ),
+            ],
+          ),
+        ),
+        if (controller.formError != null &&
+            controller.formError!.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+            child: Text(
+              controller.formError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+        ListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+          children: controller.companies
+              .where((company) => company.id != null)
+              .map(
+                (company) =>
+                    _buildCompanyScopeCard(context, controller, company),
+              )
+              .toList(growable: false),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompanyScopeCard(
+    BuildContext context,
+    UserManagementController controller,
+    CompanyModel company,
+  ) {
+    final companyId = company.id!;
+    final state = controller.selectionStateForCompany(companyId);
+    final branches = controller.branchesForCompany(companyId);
+    final isSelected = controller.selectedCompanyIds.contains(companyId);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      color: Theme.of(context).extension<AppThemeExtension>()!.subtleFill,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: state != 0,
+        title: _scopeTileTitle(
+          context,
+          label:
+              company.tradeName ??
+              company.legalName ??
+              company.code ??
+              'Company',
+          value: _checkboxValueForState(state),
+          onChanged: (value) =>
+              controller.setCompanySelection(companyId, value == true),
+          trailing: isSelected
+              ? ChoiceChip(
+                  label: const Text('Default'),
+                  selected: controller.defaultCompanyAccessId == companyId,
+                  onSelected: (_) =>
+                      controller.setDefaultCompanyAccess(companyId),
+                )
+              : null,
+        ),
+        children: branches
+            .where((branch) => branch.id != null)
+            .map((branch) => _buildBranchScopeTile(context, controller, branch))
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  Widget _buildBranchScopeTile(
+    BuildContext context,
+    UserManagementController controller,
+    BranchModel branch,
+  ) {
+    final branchId = branch.id!;
+    final state = controller.selectionStateForBranch(branchId);
+    final locations = controller.locationsForBranch(branchId);
+    final isSelected = controller.selectedBranchIds.contains(branchId);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: Theme.of(context).cardColor,
+        child: ExpansionTile(
+          initiallyExpanded: state != 0,
+          title: _scopeTileTitle(
+            context,
+            label: branch.name ?? branch.code ?? 'Branch',
+            value: _checkboxValueForState(state),
+            onChanged: (value) =>
+                controller.setBranchSelection(branchId, value == true),
+            trailing: isSelected
+                ? ChoiceChip(
+                    label: const Text('Default'),
+                    selected: controller.defaultBranchAccessId == branchId,
+                    onSelected: (_) =>
+                        controller.setDefaultBranchAccess(branchId),
+                  )
+                : null,
+          ),
+          children: locations
+              .where((location) => location.id != null)
+              .map(
+                (location) =>
+                    _buildLocationScopeTile(context, controller, location),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationScopeTile(
+    BuildContext context,
+    UserManagementController controller,
+    BusinessLocationModel location,
+  ) {
+    final locationId = location.id!;
+    final state = controller.selectionStateForLocation(locationId);
+    final warehouses = controller.warehousesForLocation(locationId);
+    final isSelected = controller.selectedLocationIds.contains(locationId);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: Theme.of(context).extension<AppThemeExtension>()!.subtleFill,
+        child: ExpansionTile(
+          initiallyExpanded: state != 0,
+          title: _scopeTileTitle(
+            context,
+            label: location.name ?? location.code ?? 'Location',
+            value: _checkboxValueForState(state),
+            onChanged: (value) =>
+                controller.setLocationSelection(locationId, value == true),
+            trailing: isSelected
+                ? ChoiceChip(
+                    label: const Text('Default'),
+                    selected: controller.defaultLocationAccessId == locationId,
+                    onSelected: (_) =>
+                        controller.setDefaultLocationAccess(locationId),
+                  )
+                : null,
+          ),
+          children: [
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _accessFlagChip(
+                      label: 'Bill',
+                      value:
+                          controller
+                              .locationAccessFlags[locationId]?['can_bill'] ??
+                          true,
+                      onChanged: (value) => controller.setLocationAccessFlag(
+                        locationId,
+                        'can_bill',
+                        value,
+                      ),
+                    ),
+                    _accessFlagChip(
+                      label: 'Purchase',
+                      value:
+                          controller
+                              .locationAccessFlags[locationId]?['can_purchase'] ??
+                          true,
+                      onChanged: (value) => controller.setLocationAccessFlag(
+                        locationId,
+                        'can_purchase',
+                        value,
+                      ),
+                    ),
+                    _accessFlagChip(
+                      label: 'Stock',
+                      value:
+                          controller
+                              .locationAccessFlags[locationId]?['can_stock_entry'] ??
+                          true,
+                      onChanged: (value) => controller.setLocationAccessFlag(
+                        locationId,
+                        'can_stock_entry',
+                        value,
+                      ),
+                    ),
+                    _accessFlagChip(
+                      label: 'Accounts',
+                      value:
+                          controller
+                              .locationAccessFlags[locationId]?['can_accounts_entry'] ??
+                          true,
+                      onChanged: (value) => controller.setLocationAccessFlag(
+                        locationId,
+                        'can_accounts_entry',
+                        value,
+                      ),
+                    ),
+                    _accessFlagChip(
+                      label: 'HR',
+                      value:
+                          controller
+                              .locationAccessFlags[locationId]?['can_hr_entry'] ??
+                          true,
+                      onChanged: (value) => controller.setLocationAccessFlag(
+                        locationId,
+                        'can_hr_entry',
+                        value,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ...warehouses
+                .where((warehouse) => warehouse.id != null)
+                .map(
+                  (warehouse) =>
+                      _buildWarehouseScopeTile(context, controller, warehouse),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWarehouseScopeTile(
+    BuildContext context,
+    UserManagementController controller,
+    WarehouseModel warehouse,
+  ) {
+    final warehouseId = warehouse.id!;
+    final isSelected = controller.selectedWarehouseIds.contains(warehouseId);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).extension<AppThemeExtension>()!.tableBorder,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _scopeTileTitle(
+              context,
+              label: warehouse.name ?? warehouse.code ?? 'Warehouse',
+              value: _checkboxValueForState(
+                controller.selectionStateForWarehouse(warehouseId),
+              ),
+              onChanged: (value) =>
+                  controller.setWarehouseSelection(warehouseId, value == true),
+              trailing: isSelected
+                  ? ChoiceChip(
+                      label: const Text('Default'),
+                      selected:
+                          controller.defaultWarehouseAccessId == warehouseId,
+                      onSelected: (_) =>
+                          controller.setDefaultWarehouseAccess(warehouseId),
+                    )
+                  : null,
+            ),
+            if (isSelected) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _accessFlagChip(
+                    label: 'View Stock',
+                    value:
+                        controller
+                            .warehouseAccessFlags[warehouseId]?['can_view_stock'] ??
+                        true,
+                    onChanged: (value) => controller.setWarehouseAccessFlag(
+                      warehouseId,
+                      'can_view_stock',
+                      value,
+                    ),
+                  ),
+                  _accessFlagChip(
+                    label: 'Stock In',
+                    value:
+                        controller
+                            .warehouseAccessFlags[warehouseId]?['can_stock_in'] ??
+                        true,
+                    onChanged: (value) => controller.setWarehouseAccessFlag(
+                      warehouseId,
+                      'can_stock_in',
+                      value,
+                    ),
+                  ),
+                  _accessFlagChip(
+                    label: 'Stock Out',
+                    value:
+                        controller
+                            .warehouseAccessFlags[warehouseId]?['can_stock_out'] ??
+                        true,
+                    onChanged: (value) => controller.setWarehouseAccessFlag(
+                      warehouseId,
+                      'can_stock_out',
+                      value,
+                    ),
+                  ),
+                  _accessFlagChip(
+                    label: 'Transfer',
+                    value:
+                        controller
+                            .warehouseAccessFlags[warehouseId]?['can_transfer'] ??
+                        true,
+                    onChanged: (value) => controller.setWarehouseAccessFlag(
+                      warehouseId,
+                      'can_transfer',
+                      value,
+                    ),
+                  ),
+                  _accessFlagChip(
+                    label: 'Adjust',
+                    value:
+                        controller
+                            .warehouseAccessFlags[warehouseId]?['can_adjust'] ??
+                        true,
+                    onChanged: (value) => controller.setWarehouseAccessFlag(
+                      warehouseId,
+                      'can_adjust',
+                      value,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _scopeTileTitle(
+    BuildContext context, {
+    required String label,
+    required bool? value,
+    required ValueChanged<bool?> onChanged,
+    Widget? trailing,
+  }) {
+    return Row(
+      children: [
+        Checkbox(tristate: true, value: value, onChanged: onChanged),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+
+  Widget _accessFlagChip({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return FilterChip(
+      label: Text(label),
+      selected: value,
+      onSelected: onChanged,
+    );
+  }
+
+  bool? _checkboxValueForState(int state) {
+    switch (state) {
+      case 2:
+        return true;
+      case 1:
+        return null;
+      default:
+        return false;
+    }
   }
 
   Widget _buildAuditTab(

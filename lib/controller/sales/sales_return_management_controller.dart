@@ -387,11 +387,13 @@ class SalesReturnManagementController extends GetxController {
                   const <UomModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
-      warehouses =
-          ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      warehouses = await WorkingContextService.instance
+          .filterWarehousesByAccess(
+            ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
+                    const <WarehouseModel>[])
+                .where((item) => item.isActive)
+                .toList(growable: false),
+          );
       taxCodes =
           ((responses[10] as PaginatedResponse<TaxCodeModel>).data ??
                   const <TaxCodeModel>[])

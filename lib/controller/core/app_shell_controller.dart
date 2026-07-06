@@ -59,10 +59,9 @@ class AppShellController extends GetxController {
 
     final companyId = await SessionStorage.getCurrentCompanyId();
     if (companyId != null && nextAuthContext != null) {
-      final activeCompany = nextAuthContext.companies.cast<CompanyModel?>().firstWhere(
-        (c) => c?.id == companyId,
-        orElse: () => null,
-      );
+      final activeCompany = nextAuthContext.companies
+          .cast<CompanyModel?>()
+          .firstWhere((c) => c?.id == companyId, orElse: () => null);
       if (activeCompany != null) {
         AppFormatSettings.to.applyFromCompany(activeCompany);
       }
@@ -157,6 +156,41 @@ class AppShellController extends GetxController {
     required bool isSuperAdmin,
     required List<ModuleModel> orderedModules,
   }) {
-    return;
+    final normalizedPath = currentPath.trim().isEmpty
+        ? '/'
+        : currentPath.trim();
+
+    if (normalizedPath == '/' || normalizedPath == '/login') {
+      return;
+    }
+
+    final allowed = AppNavigation.canAccessPath(
+      path: normalizedPath,
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+      orderedModules: orderedModules,
+    );
+
+    if (allowed) {
+      return;
+    }
+
+    final fallbackPath = AppNavigation.firstAccessiblePath(
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+      orderedModules: orderedModules,
+    );
+
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null || fallbackPath == normalizedPath) {
+      return;
+    }
+
+    _scheduleNavigation(() {
+      if (!navigator.mounted) {
+        return;
+      }
+      navigator.pushNamedAndRemoveUntil(fallbackPath, (_) => false);
+    });
   }
 }

@@ -6,6 +6,7 @@ class UserManagementController extends GetxController {
   final AuthService _authService = AuthService();
   final HrService _hrService = HrService();
   final MediaService _mediaService = MediaService();
+  final MasterService _masterService = MasterService();
   final int? initialUserId;
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -26,6 +27,7 @@ class UserManagementController extends GetxController {
   bool initialLoading = true;
   bool savingProfile = false;
   bool savingPermissions = false;
+  bool savingAccessScope = false;
   bool uploadingPhoto = false;
   String? pageError;
   String? formError;
@@ -47,9 +49,23 @@ class UserManagementController extends GetxController {
   List<PermissionModel> permissions = const <PermissionModel>[];
   List<UserPermissionModel> effectivePermissions =
       const <UserPermissionModel>[];
+  List<CompanyModel> companies = const <CompanyModel>[];
+  List<BranchModel> branches = const <BranchModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
+  List<WarehouseModel> warehouses = const <WarehouseModel>[];
   Set<String> expandedPermissionModules = <String>{};
   List<AuditLogModel> auditLogs = const <AuditLogModel>[];
   List<LoginHistoryModel> loginHistory = const <LoginHistoryModel>[];
+  Set<int> selectedCompanyIds = <int>{};
+  Set<int> selectedBranchIds = <int>{};
+  Set<int> selectedLocationIds = <int>{};
+  Set<int> selectedWarehouseIds = <int>{};
+  int? defaultCompanyAccessId;
+  int? defaultBranchAccessId;
+  int? defaultLocationAccessId;
+  int? defaultWarehouseAccessId;
+  Map<int, Map<String, bool>> locationAccessFlags = <int, Map<String, bool>>{};
+  Map<int, Map<String, bool>> warehouseAccessFlags = <int, Map<String, bool>>{};
 
   int? selectedUserId;
   int? selectedEmployeeId;
@@ -108,12 +124,28 @@ class UserManagementController extends GetxController {
       final permissionsResponse = await _authService.permissions(
         filters: const {'per_page': 500},
       );
+      final companiesResponse = await _masterService.companies(
+        filters: const {'per_page': 500},
+      );
+      final branchesResponse = await _masterService.branches(
+        filters: const {'per_page': 500},
+      );
+      final locationsResponse = await _masterService.businessLocations(
+        filters: const {'per_page': 500},
+      );
+      final warehousesResponse = await _masterService.warehouses(
+        filters: const {'per_page': 500},
+      );
 
       users = usersResponse.data ?? const <UserModel>[];
       filteredUsers = users;
       employees = employeesResponse.data ?? const <EmployeeModel>[];
       roles = rolesResponse.data ?? const <RoleModel>[];
       permissions = permissionsResponse.data ?? const <PermissionModel>[];
+      companies = companiesResponse.data ?? const <CompanyModel>[];
+      branches = branchesResponse.data ?? const <BranchModel>[];
+      locations = locationsResponse.data ?? const <BusinessLocationModel>[];
+      warehouses = warehousesResponse.data ?? const <WarehouseModel>[];
 
       if (initialUserId != null) {
         await loadUser(initialUserId!);
@@ -204,6 +236,7 @@ class UserManagementController extends GetxController {
 
   Future<void> loadTabs(int userId) async {
     final permissionSummary = await _authService.userPermissions(userId);
+    final accessSummary = await _authService.userAccessSummary(userId);
     final auditResponse = await _authService.userAuditLogs(
       userId,
       filters: const {'per_page': 25},
@@ -214,6 +247,7 @@ class UserManagementController extends GetxController {
     );
 
     applyPermissionSummary(permissionSummary.data);
+    applyAccessSummary(accessSummary.data);
     auditLogs = auditResponse.data ?? const <AuditLogModel>[];
     loginHistory = loginResponse.data ?? const <LoginHistoryModel>[];
   }
@@ -224,6 +258,71 @@ class UserManagementController extends GetxController {
       summary?.effectivePermissions ?? const [],
     );
     expandedPermissionModules = <String>{};
+  }
+
+  void applyAccessSummary(UserModel? summary) {
+    final companyRows =
+        summary?.companyAccess ?? const <UserCompanyAccessModel>[];
+    final branchRows = summary?.branchAccess ?? const <UserBranchAccessModel>[];
+    final locationRows =
+        summary?.locationAccess ?? const <UserLocationAccessModel>[];
+    final warehouseRows =
+        summary?.warehouseAccess ?? const <UserWarehouseAccessModel>[];
+
+    selectedCompanyIds = companyRows
+        .where((row) => row.isActive != false && row.companyId != null)
+        .map((row) => row.companyId!)
+        .toSet();
+    selectedBranchIds = branchRows
+        .where((row) => row.isActive != false && row.branchId != null)
+        .map((row) => row.branchId!)
+        .toSet();
+    selectedLocationIds = locationRows
+        .where((row) => row.isActive != false && row.locationId != null)
+        .map((row) => row.locationId!)
+        .toSet();
+    selectedWarehouseIds = warehouseRows
+        .where((row) => row.isActive != false && row.warehouseId != null)
+        .map((row) => row.warehouseId!)
+        .toSet();
+
+    defaultCompanyAccessId = companyRows
+        .firstWhereOrNull((row) => row.isDefault == true)
+        ?.companyId;
+    defaultBranchAccessId = branchRows
+        .firstWhereOrNull((row) => row.isDefault == true)
+        ?.branchId;
+    defaultLocationAccessId = locationRows
+        .firstWhereOrNull((row) => row.isDefault == true)
+        ?.locationId;
+    defaultWarehouseAccessId = warehouseRows
+        .firstWhereOrNull((row) => row.isDefault == true)
+        ?.warehouseId;
+
+    locationAccessFlags = {
+      for (final row in locationRows)
+        if (row.locationId != null)
+          row.locationId!: <String, bool>{
+            'can_bill': row.canBill ?? true,
+            'can_purchase': row.canPurchase ?? true,
+            'can_stock_entry': row.canStockEntry ?? true,
+            'can_accounts_entry': row.canAccountsEntry ?? true,
+            'can_hr_entry': row.canHrEntry ?? true,
+          },
+    };
+    warehouseAccessFlags = {
+      for (final row in warehouseRows)
+        if (row.warehouseId != null)
+          row.warehouseId!: <String, bool>{
+            'can_view_stock': row.canViewStock ?? true,
+            'can_stock_in': row.canStockIn ?? true,
+            'can_stock_out': row.canStockOut ?? true,
+            'can_transfer': row.canTransfer ?? true,
+            'can_adjust': row.canAdjust ?? true,
+          },
+    };
+
+    normalizeAccessTree();
   }
 
   void resetForm({bool notify = true}) {
@@ -252,6 +351,16 @@ class UserManagementController extends GetxController {
     rolePermissions = mergePermissionSet(const []);
     effectivePermissions = mergePermissionSet(const []);
     expandedPermissionModules = <String>{};
+    selectedCompanyIds = <int>{};
+    selectedBranchIds = <int>{};
+    selectedLocationIds = <int>{};
+    selectedWarehouseIds = <int>{};
+    defaultCompanyAccessId = null;
+    defaultBranchAccessId = null;
+    defaultLocationAccessId = null;
+    defaultWarehouseAccessId = null;
+    locationAccessFlags = <int, Map<String, bool>>{};
+    warehouseAccessFlags = <int, Map<String, bool>>{};
     auditLogs = const [];
     loginHistory = const [];
     formError = null;
@@ -579,6 +688,133 @@ class UserManagementController extends GetxController {
       update();
     } finally {
       savingPermissions = false;
+      update();
+    }
+  }
+
+  Future<void> saveAccessScope() async {
+    if (selectedUserId == null) {
+      return;
+    }
+
+    normalizeAccessTree();
+
+    if (selectedCompanyIds.isEmpty ||
+        selectedBranchIds.isEmpty ||
+        selectedLocationIds.isEmpty ||
+        selectedWarehouseIds.isEmpty) {
+      formError =
+          'Select at least one company, branch, location, and warehouse before saving access scope.';
+      update();
+      return;
+    }
+
+    savingAccessScope = true;
+    formError = null;
+    update();
+
+    try {
+      final companyIds = selectedCompanyIds.toList(growable: false)..sort();
+      final branchIds = selectedBranchIds.toList(growable: false)..sort();
+      final locationIds = selectedLocationIds.toList(growable: false)..sort();
+      final warehouseIds = selectedWarehouseIds.toList(growable: false)..sort();
+
+      final resolvedDefaultCompanyId = _resolveDefaultId(
+        defaultCompanyAccessId,
+        companyIds,
+      );
+      final resolvedDefaultBranchId = _resolveDefaultId(
+        defaultBranchAccessId,
+        branchIds,
+      );
+      final resolvedDefaultLocationId = _resolveDefaultId(
+        defaultLocationAccessId,
+        locationIds,
+      );
+      final resolvedDefaultWarehouseId = _resolveDefaultId(
+        defaultWarehouseAccessId,
+        warehouseIds,
+      );
+
+      await _authService.syncUserCompanies(
+        selectedUserId!,
+        UserCompaniesSyncRequestModel(
+          companies: companyIds
+              .map(
+                (id) => <String, dynamic>{
+                  'company_id': id,
+                  'is_default': id == resolvedDefaultCompanyId,
+                  'is_active': true,
+                },
+              )
+              .toList(growable: false),
+        ),
+      );
+
+      await _authService.syncUserBranches(
+        selectedUserId!,
+        UserBranchesSyncRequestModel(
+          branches: branchIds
+              .map(
+                (id) => <String, dynamic>{
+                  'branch_id': id,
+                  'is_default': id == resolvedDefaultBranchId,
+                  'is_active': true,
+                },
+              )
+              .toList(growable: false),
+        ),
+      );
+
+      await _authService.syncUserLocations(
+        selectedUserId!,
+        UserLocationsSyncRequestModel(
+          locations: locationIds
+              .map(
+                (id) => <String, dynamic>{
+                  'location_id': id,
+                  'is_default': id == resolvedDefaultLocationId,
+                  'is_active': true,
+                  ..._locationFlagsFor(id),
+                },
+              )
+              .toList(growable: false),
+        ),
+      );
+
+      final response = await _authService.syncUserWarehouses(
+        selectedUserId!,
+        UserWarehousesSyncRequestModel(
+          warehouses: warehouseIds
+              .map(
+                (id) => <String, dynamic>{
+                  'warehouse_id': id,
+                  'is_default': id == resolvedDefaultWarehouseId,
+                  'is_active': true,
+                  ..._warehouseFlagsFor(id),
+                },
+              )
+              .toList(growable: false),
+        ),
+      );
+
+      defaultCompanyAccessId = resolvedDefaultCompanyId;
+      defaultBranchAccessId = resolvedDefaultBranchId;
+      defaultLocationAccessId = resolvedDefaultLocationId;
+      defaultWarehouseAccessId = resolvedDefaultWarehouseId;
+
+      await AppSessionService.instance.refreshUserAccess();
+      final accessSummary = await _authService.userAccessSummary(
+        selectedUserId!,
+      );
+      applyAccessSummary(accessSummary.data);
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(response.message)),
+      );
+    } catch (error) {
+      formError = error.toString();
+    } finally {
+      savingAccessScope = false;
       update();
     }
   }
@@ -981,6 +1217,358 @@ class UserManagementController extends GetxController {
     }
     expandedPermissionModules = next;
     update();
+  }
+
+  List<BranchModel> branchesForCompany(int companyId) => branches
+      .where((branch) => branch.companyId == companyId)
+      .toList(growable: false);
+
+  List<BusinessLocationModel> locationsForBranch(int branchId) => locations
+      .where((location) => location.branchId == branchId)
+      .toList(growable: false);
+
+  List<WarehouseModel> warehousesForLocation(int locationId) => warehouses
+      .where((warehouse) => warehouse.locationId == locationId)
+      .toList(growable: false);
+
+  int selectionStateForCompany(int companyId) {
+    final companyBranches = branchesForCompany(companyId);
+    final warehouseDescendants = companyBranches
+        .expand((branch) => locationsForBranch(branch.id ?? 0))
+        .expand((location) => warehousesForLocation(location.id ?? 0))
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+    return _selectionState(
+      warehouseDescendants,
+      selectedWarehouseIds,
+      explicitSelected: selectedCompanyIds.contains(companyId),
+    );
+  }
+
+  int selectionStateForBranch(int branchId) {
+    final warehouseDescendants = locationsForBranch(branchId)
+        .expand((location) => warehousesForLocation(location.id ?? 0))
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+    return _selectionState(
+      warehouseDescendants,
+      selectedWarehouseIds,
+      explicitSelected: selectedBranchIds.contains(branchId),
+    );
+  }
+
+  int selectionStateForLocation(int locationId) {
+    final warehouseDescendants = warehousesForLocation(locationId)
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+    return _selectionState(
+      warehouseDescendants,
+      selectedWarehouseIds,
+      explicitSelected: selectedLocationIds.contains(locationId),
+    );
+  }
+
+  int selectionStateForWarehouse(int warehouseId) =>
+      selectedWarehouseIds.contains(warehouseId) ? 2 : 0;
+
+  void setCompanySelection(int companyId, bool shouldSelect) {
+    final branchIds = branchesForCompany(
+      companyId,
+    ).where((branch) => branch.id != null).map((branch) => branch.id!).toSet();
+    final locationIds = branchIds
+        .expand((branchId) => locationsForBranch(branchId))
+        .where((location) => location.id != null)
+        .map((location) => location.id!)
+        .toSet();
+    final warehouseIds = locationIds
+        .expand((locationId) => warehousesForLocation(locationId))
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+
+    _applySelection(
+      shouldSelect: shouldSelect,
+      companyIds: <int>{companyId},
+      branchIds: branchIds,
+      locationIds: locationIds,
+      warehouseIds: warehouseIds,
+    );
+  }
+
+  void toggleCompanySelection(int companyId) {
+    setCompanySelection(companyId, selectionStateForCompany(companyId) != 2);
+  }
+
+  void setBranchSelection(int branchId, bool shouldSelect) {
+    final branch = branches.firstWhereOrNull((item) => item.id == branchId);
+    final locationIds = locationsForBranch(branchId)
+        .where((location) => location.id != null)
+        .map((location) => location.id!)
+        .toSet();
+    final warehouseIds = locationIds
+        .expand((locationId) => warehousesForLocation(locationId))
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+
+    _applySelection(
+      shouldSelect: shouldSelect,
+      companyIds: branch?.companyId == null
+          ? <int>{}
+          : <int>{branch!.companyId!},
+      branchIds: <int>{branchId},
+      locationIds: locationIds,
+      warehouseIds: warehouseIds,
+    );
+  }
+
+  void toggleBranchSelection(int branchId) {
+    setBranchSelection(branchId, selectionStateForBranch(branchId) != 2);
+  }
+
+  void setLocationSelection(int locationId, bool shouldSelect) {
+    final location = locations.firstWhereOrNull(
+      (item) => item.id == locationId,
+    );
+    final warehouseIds = warehousesForLocation(locationId)
+        .where((warehouse) => warehouse.id != null)
+        .map((warehouse) => warehouse.id!)
+        .toSet();
+
+    _applySelection(
+      shouldSelect: shouldSelect,
+      companyIds: location?.companyId == null
+          ? <int>{}
+          : <int>{location!.companyId!},
+      branchIds: location?.branchId == null
+          ? <int>{}
+          : <int>{location!.branchId!},
+      locationIds: <int>{locationId},
+      warehouseIds: warehouseIds,
+    );
+  }
+
+  void toggleLocationSelection(int locationId) {
+    setLocationSelection(
+      locationId,
+      selectionStateForLocation(locationId) != 2,
+    );
+  }
+
+  void setWarehouseSelection(int warehouseId, bool shouldSelect) {
+    final warehouse = warehouses.firstWhereOrNull(
+      (item) => item.id == warehouseId,
+    );
+
+    _applySelection(
+      shouldSelect: shouldSelect,
+      companyIds: warehouse?.companyId == null
+          ? <int>{}
+          : <int>{warehouse!.companyId!},
+      branchIds: warehouse?.branchId == null
+          ? <int>{}
+          : <int>{warehouse!.branchId!},
+      locationIds: warehouse?.locationId == null
+          ? <int>{}
+          : <int>{warehouse!.locationId!},
+      warehouseIds: <int>{warehouseId},
+    );
+  }
+
+  void toggleWarehouseSelection(int warehouseId) {
+    setWarehouseSelection(
+      warehouseId,
+      !selectedWarehouseIds.contains(warehouseId),
+    );
+  }
+
+  void setDefaultCompanyAccess(int companyId) {
+    defaultCompanyAccessId = companyId;
+    update();
+  }
+
+  void setDefaultBranchAccess(int branchId) {
+    defaultBranchAccessId = branchId;
+    update();
+  }
+
+  void setDefaultLocationAccess(int locationId) {
+    defaultLocationAccessId = locationId;
+    update();
+  }
+
+  void setDefaultWarehouseAccess(int warehouseId) {
+    defaultWarehouseAccessId = warehouseId;
+    update();
+  }
+
+  void setLocationAccessFlag(int locationId, String key, bool value) {
+    locationAccessFlags = Map<int, Map<String, bool>>.from(locationAccessFlags)
+      ..[locationId] = <String, bool>{
+        ..._locationFlagsFor(locationId),
+        key: value,
+      };
+    update();
+  }
+
+  void setWarehouseAccessFlag(int warehouseId, String key, bool value) {
+    warehouseAccessFlags =
+        Map<int, Map<String, bool>>.from(warehouseAccessFlags)
+          ..[warehouseId] = <String, bool>{
+            ..._warehouseFlagsFor(warehouseId),
+            key: value,
+          };
+    update();
+  }
+
+  void normalizeAccessTree() {
+    selectedWarehouseIds = selectedWarehouseIds
+        .where(
+          (warehouseId) => warehouses.any((item) => item.id == warehouseId),
+        )
+        .toSet();
+
+    final selectedLocations = <int>{};
+    final selectedBranches = <int>{};
+    final selectedCompanies = <int>{};
+
+    for (final warehouseId in selectedWarehouseIds) {
+      final warehouse = warehouses.firstWhereOrNull(
+        (item) => item.id == warehouseId,
+      );
+      if (warehouse == null) {
+        continue;
+      }
+      if (warehouse.locationId != null) {
+        selectedLocations.add(warehouse.locationId!);
+      }
+      if (warehouse.branchId != null) {
+        selectedBranches.add(warehouse.branchId!);
+      }
+      if (warehouse.companyId != null) {
+        selectedCompanies.add(warehouse.companyId!);
+      }
+    }
+
+    selectedLocationIds =
+        selectedLocationIds
+            .where((locationId) => selectedLocations.contains(locationId))
+            .toSet()
+          ..addAll(selectedLocations);
+    selectedBranchIds =
+        selectedBranchIds
+            .where((branchId) => selectedBranches.contains(branchId))
+            .toSet()
+          ..addAll(selectedBranches);
+    selectedCompanyIds =
+        selectedCompanyIds
+            .where((companyId) => selectedCompanies.contains(companyId))
+            .toSet()
+          ..addAll(selectedCompanies);
+
+    defaultCompanyAccessId = _resolveDefaultId(
+      defaultCompanyAccessId,
+      selectedCompanyIds.toList(growable: false),
+    );
+    defaultBranchAccessId = _resolveDefaultId(
+      defaultBranchAccessId,
+      selectedBranchIds.toList(growable: false),
+    );
+    defaultLocationAccessId = _resolveDefaultId(
+      defaultLocationAccessId,
+      selectedLocationIds.toList(growable: false),
+    );
+    defaultWarehouseAccessId = _resolveDefaultId(
+      defaultWarehouseAccessId,
+      selectedWarehouseIds.toList(growable: false),
+    );
+  }
+
+  int _selectionState(
+    Set<int> descendants,
+    Set<int> selectedDescendants, {
+    required bool explicitSelected,
+  }) {
+    if (descendants.isEmpty) {
+      return explicitSelected ? 2 : 0;
+    }
+
+    final selectedCount = descendants
+        .where(selectedDescendants.contains)
+        .length;
+    if (selectedCount == 0) {
+      return explicitSelected ? 1 : 0;
+    }
+    if (selectedCount == descendants.length) {
+      return 2;
+    }
+    return 1;
+  }
+
+  void _applySelection({
+    required bool shouldSelect,
+    required Set<int> companyIds,
+    required Set<int> branchIds,
+    required Set<int> locationIds,
+    required Set<int> warehouseIds,
+  }) {
+    if (shouldSelect) {
+      selectedCompanyIds = Set<int>.from(selectedCompanyIds)
+        ..addAll(companyIds);
+      selectedBranchIds = Set<int>.from(selectedBranchIds)..addAll(branchIds);
+      selectedLocationIds = Set<int>.from(selectedLocationIds)
+        ..addAll(locationIds);
+      selectedWarehouseIds = Set<int>.from(selectedWarehouseIds)
+        ..addAll(warehouseIds);
+    } else {
+      selectedWarehouseIds = Set<int>.from(selectedWarehouseIds)
+        ..removeAll(warehouseIds);
+      selectedLocationIds = Set<int>.from(selectedLocationIds)
+        ..removeAll(locationIds);
+      selectedBranchIds = Set<int>.from(selectedBranchIds)
+        ..removeAll(branchIds);
+      selectedCompanyIds = Set<int>.from(selectedCompanyIds)
+        ..removeAll(companyIds);
+    }
+
+    normalizeAccessTree();
+    update();
+  }
+
+  int? _resolveDefaultId(int? currentId, List<int> ids) {
+    if (ids.isEmpty) {
+      return null;
+    }
+    if (currentId != null && ids.contains(currentId)) {
+      return currentId;
+    }
+    final sortedIds = List<int>.from(ids)..sort();
+    return sortedIds.first;
+  }
+
+  Map<String, bool> _locationFlagsFor(int locationId) {
+    return locationAccessFlags[locationId] ??
+        const <String, bool>{
+          'can_bill': true,
+          'can_purchase': true,
+          'can_stock_entry': true,
+          'can_accounts_entry': true,
+          'can_hr_entry': true,
+        };
+  }
+
+  Map<String, bool> _warehouseFlagsFor(int warehouseId) {
+    return warehouseAccessFlags[warehouseId] ??
+        const <String, bool>{
+          'can_view_stock': true,
+          'can_stock_in': true,
+          'can_stock_out': true,
+          'can_transfer': true,
+          'can_adjust': true,
+        };
   }
 
   String permissionRightsSummary(UserPermissionModel permission) {

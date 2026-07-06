@@ -150,6 +150,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     final selectedData = controller.selectedItem?.toJson() ?? const {};
     final status = stringValue(selectedData, 'delivery_status', 'draft');
     final canEdit = controller.selectedItem == null || status == 'draft';
+    final showWarehouseField = controller.warehouseDropdownItems.length > 1;
 
     final itemOptions = controller.itemPickerOptions
         .map(
@@ -369,10 +370,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       lines: rows,
       onAddLine: canEdit ? controller.addLine : null,
       onDeleteLine: canEdit ? controller.removeLine : null,
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
-        ErpLineItemTableColumn.warehouse,
+        if (showWarehouseField) ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
@@ -382,18 +383,22 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       columnLabels: const <ErpLineItemTableColumn, String>{
         ErpLineItemTableColumn.qty: 'Delivered Qty',
       },
-      customColumns: const <ErpLineItemCustomColumn>[
+      customColumns: <ErpLineItemCustomColumn>[
         ErpLineItemCustomColumn(
           id: 'batch',
           label: 'Batch',
           width: 150,
-          insertAfter: ErpLineItemTableColumn.warehouse,
+          insertAfter: showWarehouseField
+              ? ErpLineItemTableColumn.warehouse
+              : ErpLineItemTableColumn.item,
         ),
         ErpLineItemCustomColumn(
           id: 'serials',
           label: 'Serials',
           width: 220,
-          insertAfter: ErpLineItemTableColumn.warehouse,
+          insertAfter: showWarehouseField
+              ? ErpLineItemTableColumn.warehouse
+              : ErpLineItemTableColumn.item,
         ),
       ],
       enabled: canEdit,
