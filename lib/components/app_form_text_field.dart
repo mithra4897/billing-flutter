@@ -53,6 +53,7 @@ class AppFormTextField extends StatefulWidget {
 class _AppFormTextFieldState extends State<AppFormTextField> {
   final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
   TextEditingController? _displayController;
+  String? _pendingDisplayValue;
 
   bool get _isAutoDateField =>
       !widget.readOnly &&
@@ -102,10 +103,36 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     return raw;
   }
 
-  void _syncDisplayController() {
+  void _disposeDisplayControllerDeferred(TextEditingController? controller) {
+    if (controller == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
+  }
+
+  void _applyPendingDisplayValue() {
+    final controller = _displayController;
+    final nextValue = _pendingDisplayValue;
+    if (controller == null || nextValue == null || controller.text == nextValue) {
+      _pendingDisplayValue = null;
+      return;
+    }
+    controller.value = controller.value.copyWith(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+      composing: TextRange.empty,
+    );
+    _pendingDisplayValue = null;
+  }
+
+  void _syncDisplayController({bool allowImmediateUpdate = false}) {
     if (!_useSanitizedReadOnlyDisplay) {
-      _displayController?.dispose();
+      final previousController = _displayController;
       _displayController = null;
+      _pendingDisplayValue = null;
+      _disposeDisplayControllerDeferred(previousController);
       return;
     }
     final nextValue = _sanitizedReadOnlyValue(
@@ -113,13 +140,24 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     );
     _displayController ??= TextEditingController(text: nextValue);
     if (_displayController!.text == nextValue) {
+      _pendingDisplayValue = null;
       return;
     }
-    _displayController!.value = _displayController!.value.copyWith(
-      text: nextValue,
-      selection: TextSelection.collapsed(offset: nextValue.length),
-      composing: TextRange.empty,
-    );
+    if (allowImmediateUpdate) {
+      _displayController!.value = _displayController!.value.copyWith(
+        text: nextValue,
+        selection: TextSelection.collapsed(offset: nextValue.length),
+        composing: TextRange.empty,
+      );
+      _pendingDisplayValue = null;
+      return;
+    }
+    _pendingDisplayValue = nextValue;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _applyPendingDisplayValue();
+      }
+    });
   }
 
   List<TextInputFormatter>? _effectiveInputFormatters() {
@@ -133,7 +171,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   @override
   void initState() {
     super.initState();
-    _syncDisplayController();
+    _syncDisplayController(allowImmediateUpdate: true);
     final created = _numericBinding.sync(
       enable: _isNumericField,
       controller: _useSanitizedReadOnlyDisplay
