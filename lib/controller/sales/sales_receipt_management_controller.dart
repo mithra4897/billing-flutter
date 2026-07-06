@@ -8,7 +8,7 @@ String _positiveReceiptAmountText(double? amount) {
   final normalized = roundToDouble(amount, 2);
   return normalized == normalized.roundToDouble()
       ? normalized.round().toString()
-      : normalized.toStringAsFixed(2);
+      : normalized.appFixed();
 }
 
 class SalesReceiptAllocationDraft {
@@ -484,7 +484,7 @@ class SalesReceiptManagementController extends GetxController {
       }
       final allocationAmount = balance == balance.roundToDouble()
           ? balance.round().toString()
-          : balance.toStringAsFixed(2);
+          : balance.appFixed();
       companyId = invoice.companyId;
       branchId = invoice.branchId;
       locationId = invoice.locationId;
@@ -598,7 +598,7 @@ class SalesReceiptManagementController extends GetxController {
     final normalized = roundToDouble(amount, 2);
     return normalized == normalized.roundToDouble()
         ? normalized.round().toString()
-        : normalized.toStringAsFixed(2);
+        : normalized.appFixed();
   }
 
   void syncPaidAmountFromAllocations({bool notify = true}) {

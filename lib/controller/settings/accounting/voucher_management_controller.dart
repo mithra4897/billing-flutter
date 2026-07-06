@@ -832,7 +832,7 @@ class VoucherManagementController extends GetxController {
     debitPartyId = debitLine.partyId;
     creditPartyId = creditLine.partyId;
     amountController.text = ((debitLine.amount ?? creditLine.amount) ?? 0)
-        .toStringAsFixed(2);
+        .appFixed();
     costCenterController.text =
         debitLine.costCenter ?? creditLine.costCenter ?? '';
     departmentController.text =

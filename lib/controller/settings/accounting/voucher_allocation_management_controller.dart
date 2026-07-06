@@ -356,7 +356,8 @@ class VoucherAllocationManagementController extends GetxController {
     return [
       line.accountName ?? line.accountCode ?? '',
       line.entryType ?? '',
-      if (line.amount != null) line.amount!.toStringAsFixed(2),
+      if (line.amount != null) line.amount!.appFixed(),
+
       if ((line.partyName ?? '').isNotEmpty) line.partyName!,
     ].where((value) => value.isNotEmpty).join(' · ');
   }
@@ -456,7 +457,8 @@ class VoucherAllocationManagementController extends GetxController {
   }
 
   String _lineLabel(VoucherLineModel item) {
-    final amount = item.amount != null ? item.amount!.toStringAsFixed(2) : '';
+    final amount = item.amount != null ? item.amount!.appFixed() : '';
+
     return [
       if (item.lineNo != null) 'Line ${item.lineNo}',
       item.accountName ?? item.accountCode ?? '',

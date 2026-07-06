@@ -636,16 +636,17 @@ class PurchaseInvoiceManagementController extends GetxController {
             hsn: item?.hsnSacCode?.trim() ?? '',
             qty: qty,
             rate: rate,
-            taxAmount: double.parse(
-              (breakdown.total - breakdown.taxable).toStringAsFixed(2),
-            ),
-            lineTotal: double.parse(breakdown.total.toStringAsFixed(2)),
+            taxAmount: (breakdown.total - breakdown.taxable).appRounded(),
+
+            lineTotal: breakdown.total.appRounded(),
+
           );
         })
         .toList(growable: false);
 
-    final roundedSubtotal = double.parse(subtotal.toStringAsFixed(2));
-    final roundedTax = double.parse(taxAmount.toStringAsFixed(2));
+    final roundedSubtotal = subtotal.appRounded();
+    final roundedTax = taxAmount.appRounded();
+
     return buildManagedDocumentPrintData(
       companies: companies,
       companyId: companyId,
@@ -680,13 +681,12 @@ class PurchaseInvoiceManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'round_off_amount': _roundOffAmountForSave(),
-        'adjustment_amount': double.parse(
-          ((Validators.parseFlexibleNumber(
-                    adjustmentAmountController.text.trim(),
-                  ) ??
-                  0))
-              .toStringAsFixed(2),
-        ),
+        'adjustment_amount': (Validators.parseFlexibleNumber(
+                  adjustmentAmountController.text.trim(),
+                ) ??
+                0)
+            .appRounded(),
+
       },
     );
   }

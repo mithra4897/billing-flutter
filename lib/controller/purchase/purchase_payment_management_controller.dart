@@ -8,7 +8,7 @@ String _positivePaymentAmountText(double? amount) {
   final normalized = roundToDouble(amount, 2);
   return normalized == normalized.roundToDouble()
       ? normalized.round().toString()
-      : normalized.toStringAsFixed(2);
+      : normalized.appFixed();
 }
 
 class PaymentAllocationDraft {
@@ -419,7 +419,7 @@ class PurchasePaymentManagementController extends GetxController {
       }
       final allocAmount = outstanding == outstanding.roundToDouble()
           ? outstanding.round().toString()
-          : outstanding.toStringAsFixed(2);
+          : outstanding.appFixed();
 
       companyId = invoice.companyId;
       branchId = invoice.branchId;
@@ -591,7 +591,8 @@ class PurchasePaymentManagementController extends GetxController {
     final outstanding = invoiceOutstanding(invoice);
     final parts = <String>[
       if (supplierName.trim().isNotEmpty) supplierName.trim(),
-      if (outstanding > 0) 'Outstanding ${outstanding.toStringAsFixed(2)}',
+      if (outstanding > 0) 'Outstanding ${outstanding.appFixed()}',
+
     ];
     return parts.join(' · ');
   }
@@ -605,7 +606,7 @@ class PurchasePaymentManagementController extends GetxController {
         : total;
     _syncingPaidAmountController = true;
     paidAmountController.text = nextAmount > 0
-        ? nextAmount.toStringAsFixed(2)
+        ? nextAmount.appFixed()
         : '';
     _syncingPaidAmountController = false;
     update();
@@ -640,7 +641,7 @@ class PurchasePaymentManagementController extends GetxController {
         ? outstanding
         : (currentAllocated > outstanding ? outstanding : currentAllocated);
     allocations[index].amountController.text = nextAllocated > 0
-        ? nextAllocated.toStringAsFixed(2)
+        ? nextAllocated.appFixed()
         : '';
     companyId = invoice.companyId;
     branchId = invoice.branchId;
