@@ -39,6 +39,8 @@ class SalesInvoiceManagementController extends GetxController {
   final TextEditingController customerRefNoController = TextEditingController();
   final TextEditingController customerRefDateController =
       TextEditingController();
+  final TextEditingController directCustomerDetailsController =
+      TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController adjustmentAmountController =
       TextEditingController();
@@ -104,6 +106,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? billingAddressId;
   int? shippingAddressId;
   int? adjustmentAccountId;
+  bool isDirectCustomer = false;
   bool applyRoundOff = true;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
@@ -1279,6 +1282,31 @@ class SalesInvoiceManagementController extends GetxController {
     }
   }
 
+  void setDirectCustomer(bool value) {
+    if (!canEdit) {
+      return;
+    }
+    State(() {
+      isDirectCustomer = value;
+      if (value) {
+        customerPartyId = null;
+        billingAddressId = null;
+        shippingAddressId = null;
+        salesQuotationId = null;
+        salesOrderId = null;
+        salesDeliveryId = null;
+        orderLinesCache = null;
+        deliveryLinesCache = null;
+        for (final line in lines) {
+          line.salesOrderLineId = null;
+          line.salesDeliveryLineId = null;
+        }
+      } else {
+        directCustomerDetailsController.clear();
+      }
+    });
+  }
+
   Future<void> onHeaderSalesOrderChanged(int? value) async {
     if (!canEdit) {
       return;
@@ -1659,6 +1687,7 @@ class SalesInvoiceManagementController extends GetxController {
     dueDateController.dispose();
     customerRefNoController.dispose();
     customerRefDateController.dispose();
+    directCustomerDetailsController.dispose();
     roundOffController.dispose();
     adjustmentAmountController.dispose();
     adjustmentRemarksController.dispose();
@@ -2156,7 +2185,8 @@ class SalesInvoiceManagementController extends GetxController {
       locationId = full.locationId;
       financialYearId = full.financialYearId;
       documentSeriesId = full.documentSeriesId;
-      customerPartyId = full.customerPartyId;
+      isDirectCustomer = full.isDirectCustomer;
+      customerPartyId = full.isDirectCustomer ? null : full.customerPartyId;
       billingAddressId = full.billingAddressId;
       shippingAddressId = full.shippingAddressId;
       salesOrderId = full.salesOrderId;
@@ -2168,6 +2198,7 @@ class SalesInvoiceManagementController extends GetxController {
         full.invoiceDate.isEmpty ? null : full.invoiceDate,
       );
       dueDateController.text = displayDate(full.dueDate);
+      directCustomerDetailsController.text = full.directCustomerDetails ?? '';
       customerRefNoController.text = full.customerReferenceNo ?? '';
       customerRefDateController.text = displayDate(full.customerReferenceDate);
       roundOffController.text =
@@ -2206,6 +2237,7 @@ class SalesInvoiceManagementController extends GetxController {
       locationId = contextLocationId;
       financialYearId = contextFinancialYearId;
       documentSeriesId = series.isNotEmpty ? series.first.id : null;
+      isDirectCustomer = false;
       customerPartyId = null;
       billingAddressId = null;
       shippingAddressId = null;
@@ -2220,6 +2252,7 @@ class SalesInvoiceManagementController extends GetxController {
           .split('T')
           .first;
       dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
+      directCustomerDetailsController.clear();
       customerRefNoController.clear();
       customerRefDateController.clear();
       roundOffController.clear();
@@ -2376,6 +2409,15 @@ class SalesInvoiceManagementController extends GetxController {
       (item) => item?.id == companyId,
       orElse: () => null,
     );
+    final directCustomerDetails =
+        directCustomerDetailsController.text.trim().isNotEmpty
+        ? directCustomerDetailsController.text.trim()
+        : (selected['direct_customer_details']?.toString().trim() ?? '');
+    final directCustomerLines = directCustomerDetails
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
     final customer = customerForTaxContext(customerPartyId);
     final customerData = selected['customer'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(
@@ -2445,7 +2487,15 @@ class SalesInvoiceManagementController extends GetxController {
     final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
         ? stringValue(customerData, 'party_name')
         : stringValue(selected, 'customer_name');
-    final hasCustomer = resolvedPartyName.trim().isNotEmpty;
+    final effectivePartyName = directCustomerLines.isNotEmpty
+        ? directCustomerLines.first
+        : resolvedPartyName;
+    final effectivePartyAddress = directCustomerLines.length > 1
+        ? directCustomerLines.skip(1).join('\n')
+        : directCustomerDetails;
+    final hasCustomer =
+        effectivePartyName.trim().isNotEmpty ||
+        directCustomerDetails.isNotEmpty;
 
     return DocumentPrintDataModel(
       companyName: companyNameById(companies, companyId),
@@ -2454,21 +2504,27 @@ class SalesInvoiceManagementController extends GetxController {
       documentNumber: nullIfEmpty(invoiceNoController.text) ?? 'Draft',
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: customerRefNoController.text.trim(),
-      partyName: hasCustomer ? resolvedPartyName : 'Not provided',
+      partyName: hasCustomer ? effectivePartyName : 'Not provided',
       partyAddress: hasCustomer
-          ? formatPartyAddress(
-              preferredAddress,
-              fallback: formatPartyAddressFromData(customerData),
-            )
+          ? (directCustomerDetails.isNotEmpty
+                ? effectivePartyAddress
+                : formatPartyAddress(
+                    preferredAddress,
+                    fallback: formatPartyAddressFromData(customerData),
+                  ))
           : '',
       partyContact: hasCustomer
-          ? resolvePartyContact(
-              customer,
-              fallback: stringValue(customerData, 'mobile_no'),
-            )
+          ? (directCustomerDetails.isNotEmpty
+                ? ''
+                : resolvePartyContact(
+                    customer,
+                    fallback: stringValue(customerData, 'mobile_no'),
+                  ))
           : 'Not provided',
       partyGstin: hasCustomer
-          ? resolveCustomerPrintGstin(customerData)
+          ? (directCustomerDetails.isNotEmpty
+                ? ''
+                : resolveCustomerPrintGstin(customerData))
           : 'Not provided',
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
@@ -2611,6 +2667,75 @@ class SalesInvoiceManagementController extends GetxController {
     return result;
   }
 
+  Future<void> refreshInventoryOptionsForSave() async {
+    final stockTrackedLines = lines
+        .where((line) => line.itemId != null && isStockTrackedItem(line.itemId))
+        .toList(growable: false);
+
+    if (stockTrackedLines.isEmpty) {
+      return;
+    }
+
+    await Future.wait(stockTrackedLines.map(syncWarehouseOptionsForLine));
+
+    final batchManagedLines = stockTrackedLines
+        .where((line) => line.warehouseId != null)
+        .where((line) => isBatchManagedItem(line.itemId))
+        .toList(growable: false);
+    if (batchManagedLines.isNotEmpty) {
+      await Future.wait(batchManagedLines.map(syncBatchOptionsForLine));
+    }
+
+    final serialManagedLines = stockTrackedLines
+        .where((line) => line.warehouseId != null)
+        .where((line) => isSerialManagedItem(line.itemId))
+        .toList(growable: false);
+    if (serialManagedLines.isNotEmpty) {
+      await Future.wait(serialManagedLines.map(syncSerialOptionsForLine));
+    }
+  }
+
+  String? validateInventoryRequirementsForSave() {
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      final lineNo = index + 1;
+      final itemId = line.itemId;
+      if (itemId == null || !isStockTrackedItem(itemId)) {
+        continue;
+      }
+
+      if (line.warehouseId == null) {
+        return 'Select warehouse for stock item at line $lineNo.';
+      }
+
+      if (isBatchManagedItem(itemId) && line.batchId == null) {
+        return 'Select batch for batch-managed item at line $lineNo.';
+      }
+
+      if (!isSerialManagedItem(itemId)) {
+        continue;
+      }
+
+      final serialNumbers = lineSerialNumbers(line);
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+      if (serialNumbers.isEmpty) {
+        return 'Add at least one serial number at line $lineNo.';
+      }
+      if (qty != serialNumbers.length) {
+        return 'Quantity must match serial count at line $lineNo.';
+      }
+
+      final serialOptions = serialLabelSetForLine(line);
+      for (final serialNo in serialNumbers) {
+        if (!serialOptions.contains(serialNo.trim().toLowerCase())) {
+          return 'Serial "$serialNo" is not available for the selected warehouse at line $lineNo.';
+        }
+      }
+    }
+
+    return null;
+  }
+
   Future<void> save(BuildContext context) async {
     if (!canEdit) {
       State(() {
@@ -2619,12 +2744,31 @@ class SalesInvoiceManagementController extends GetxController {
       return;
     }
 
+    await refreshInventoryOptionsForSave();
+    if (!mounted) {
+      return;
+    }
     await refreshSerialAvailabilityForSave();
     if (!mounted) {
       return;
     }
 
     if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    final directCustomerDetails = nullIfEmpty(
+      directCustomerDetailsController.text,
+    );
+    if (isDirectCustomer) {
+      if (directCustomerDetails == null) {
+        State(() => formError = 'Enter direct customer details.');
+        return;
+      }
+    } else if (customerPartyId == null) {
+      State(
+        () => formError = 'Choose a customer or mark this as direct customer.',
+      );
       return;
     }
 
@@ -2635,6 +2779,12 @@ class SalesInvoiceManagementController extends GetxController {
           (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
     )) {
       State(() => formError = 'Each line needs item, UOM, and quantity.');
+      return;
+    }
+
+    final inventoryValidationError = validateInventoryRequirementsForSave();
+    if (inventoryValidationError != null) {
+      State(() => formError = inventoryValidationError);
       return;
     }
 
@@ -2666,6 +2816,8 @@ class SalesInvoiceManagementController extends GetxController {
       locationId: locationId ?? 0,
       financialYearId: financialYearId ?? 0,
       customerPartyId: effectiveCustomerPartyId ?? 0,
+      isDirectCustomer: isDirectCustomer,
+      directCustomerDetails: directCustomerDetails,
       billingAddressId: billingAddressId,
       shippingAddressId: shippingAddressId,
       invoiceDate: invoiceDateController.text.trim(),

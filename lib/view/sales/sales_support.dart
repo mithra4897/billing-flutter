@@ -157,6 +157,11 @@ bool _looksLikeCustomerType(PartyTypeModel type) {
 }
 
 String quotationCustomerLabel(Map<String, dynamic> data) {
+  final directCustomerDetails =
+      data['direct_customer_details']?.toString().trim() ?? '';
+  if (directCustomerDetails.isNotEmpty) {
+    return directCustomerDetails.split('\n').first.trim();
+  }
   final customer = data['customer'];
   if (customer is Map) {
     return stringValue(Map<String, dynamic>.from(customer), 'party_name');

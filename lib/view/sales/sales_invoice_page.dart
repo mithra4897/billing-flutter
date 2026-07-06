@@ -823,44 +823,69 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     ),
                   ]),
                 ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Customer',
-                  doctypeLabel: 'Customer',
-                  allowCreate: true,
-                  onNavigateToCreateNew: (name) {
-                    final uri = Uri(
-                      path: '/parties',
-                      queryParameters: {
-                        'new': '1',
-                        'party_context': 'customer',
-                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                      },
-                    );
-                    openModuleShellRoute(context, uri.toString());
-                  },
-                  mappedItems: controller.customers
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.customerPartyId,
-                  onChanged: (value) {
-                    if (!controller.canEdit) {
-                      return;
-                    }
-                    controller.State(() {
-                      controller.customerPartyId = value;
-                      controller.billingAddressId = null;
-                      controller.shippingAddressId = null;
-                      controller.pruneSourcesForCustomer();
-                    });
-                    unawaited(controller.ensureCustomerTaxContext(value));
-                  },
+                AppSwitchTile(
+                  label: 'Direct Customer',
+                  value: controller.isDirectCustomer,
+                  onChanged: controller.canEdit
+                      ? controller.setDirectCustomer
+                      : null,
                 ),
+                if (controller.isDirectCustomer)
+                  AppFormTextField(
+                    labelText: 'Direct Customer Details',
+                    controller: controller.directCustomerDetailsController,
+                    enabled: controller.canEdit,
+                    maxLines: 4,
+                    validator: (value) {
+                      if (!controller.isDirectCustomer) {
+                        return null;
+                      }
+                      final trimmed = value?.trim() ?? '';
+                      if (trimmed.isEmpty) {
+                        return 'Direct customer details are required';
+                      }
+                      return null;
+                    },
+                  )
+                else
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          'party_context': 'customer',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      openModuleShellRoute(context, uri.toString());
+                    },
+                    mappedItems: controller.customers
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: controller.customerPartyId,
+                    onChanged: (value) {
+                      if (!controller.canEdit) {
+                        return;
+                      }
+                      controller.State(() {
+                        controller.customerPartyId = value;
+                        controller.billingAddressId = null;
+                        controller.shippingAddressId = null;
+                        controller.pruneSourcesForCustomer();
+                      });
+                      unawaited(controller.ensureCustomerTaxContext(value));
+                    },
+                  ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales quotation (optional)',
                   mappedItems: [
@@ -876,9 +901,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesQuotationId,
-                  onChanged: (value) => unawaited(
-                    controller.onHeaderSalesQuotationChanged(value),
-                  ),
+                  onChanged: controller.isDirectCustomer
+                      ? null
+                      : (value) => unawaited(
+                          controller.onHeaderSalesQuotationChanged(value),
+                        ),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales order (optional)',
@@ -895,8 +922,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesOrderId,
-                  onChanged: (value) =>
-                      unawaited(controller.onHeaderSalesOrderChanged(value)),
+                  onChanged: controller.isDirectCustomer
+                      ? null
+                      : (value) => unawaited(
+                          controller.onHeaderSalesOrderChanged(value),
+                        ),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales delivery (optional)',
@@ -913,8 +943,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesDeliveryId,
-                  onChanged: (value) =>
-                      unawaited(controller.onHeaderSalesDeliveryChanged(value)),
+                  onChanged: controller.isDirectCustomer
+                      ? null
+                      : (value) => unawaited(
+                          controller.onHeaderSalesDeliveryChanged(value),
+                        ),
                 ),
                 AppFormTextField(
                   labelText: 'Customer PO / Ref',
