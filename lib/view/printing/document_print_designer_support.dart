@@ -284,17 +284,42 @@ Object? resolvePrintPath(Map<String, dynamic> data, String path) {
 
 String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
   final hasPlaceholders = input.contains('{{');
-  var resolved = input.replaceAllMapped(RegExp(r'\{\{([^}]+)\}\}'), (match) {
-    final key = match.group(1)?.trim() ?? '';
-    final value = resolvePrintPath(data, key);
-    if (value == null) {
-      return '';
-    }
-    if (value is num) {
-      return formatPrintValueForKey(key, value.toDouble());
-    }
-    return value.toString();
-  });
+  final placeholderPattern = RegExp(r'\{\{([^}]+)\}\}');
+  var resolved = input
+      .split('\n')
+      .map((line) {
+        final matches = placeholderPattern.allMatches(line).toList();
+        if (matches.isEmpty) {
+          return line;
+        }
+
+        var hasVisiblePlaceholderValue = false;
+        final replaced = line.replaceAllMapped(placeholderPattern, (match) {
+          final key = match.group(1)?.trim() ?? '';
+          final value = resolvePrintPath(data, key);
+          if (value == null) {
+            return '';
+          }
+          if (value is num) {
+            if (_shouldHideZeroPrintValue(key, value.toDouble())) {
+              return '';
+            }
+            hasVisiblePlaceholderValue = true;
+            return formatPrintValueForKey(key, value.toDouble());
+          }
+          final text = value.toString();
+          if (text.trim().isNotEmpty) {
+            hasVisiblePlaceholderValue = true;
+          }
+          return text;
+        });
+
+        if (!hasVisiblePlaceholderValue) {
+          return '';
+        }
+        return replaced;
+      })
+      .join('\n');
 
   // Dynamically replace hardcoded legacy company names with the selected company's name
   final companyName = data['company_name']?.toString() ?? '';
@@ -336,6 +361,30 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
 
 String resolvePrintCellValue(Map<String, dynamic> row, String key) {
   return resolvePrintCellValueForColumn(row, null, key);
+}
+
+double? resolvePrintLinesTableDisplayedTotalAmount(
+  Map<String, dynamic> data,
+  List<DocumentPrintColumn> columns,
+) {
+  final amountColumn = columns.firstWhereOrNull(
+    (column) => column.key.trim().toLowerCase() == 'line_total',
+  );
+  final preferredKey =
+      amountColumn?.includeGst == false ? 'taxable_total_amount' : 'total_amount';
+  final preferredValue = resolvePrintPath(data, preferredKey);
+  if (preferredValue is num) {
+    return preferredValue.toDouble();
+  }
+  final parsedPreferred = double.tryParse(preferredValue?.toString() ?? '');
+  if (parsedPreferred != null) {
+    return parsedPreferred;
+  }
+  final fallbackValue = resolvePrintPath(data, 'total_amount');
+  if (fallbackValue is num) {
+    return fallbackValue.toDouble();
+  }
+  return double.tryParse(fallbackValue?.toString() ?? '');
 }
 
 String resolvePrintCellValueForColumn(
@@ -456,7 +505,16 @@ bool _isPrintAmountLikeKey(String key) {
 }
 
 bool _shouldHideZeroPrintValue(String key, double value) {
-  const hideZeroKeys = <String>{'cgst', 'sgst', 'igst', 'cess'};
+  const hideZeroKeys = <String>{
+    'cgst',
+    'sgst',
+    'igst',
+    'cess',
+    'cgst_amount',
+    'sgst_amount',
+    'igst_amount',
+    'cess_amount',
+  };
   return hideZeroKeys.contains(key.trim().toLowerCase()) && value.abs() < 0.005;
 }
 

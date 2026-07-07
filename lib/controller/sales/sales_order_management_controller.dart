@@ -1221,6 +1221,7 @@ class SalesOrderManagementController extends GetxController {
             hsn: item?.hsnSacCode?.trim() ?? '',
             qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
             rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
+            taxableAmount: roundToDouble(breakdown.taxable, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );
@@ -1287,6 +1288,7 @@ class SalesOrderManagementController extends GetxController {
         'sgst_amount': roundToDouble(summary.sgst, 2),
         'igst_amount': roundToDouble(summary.igst, 2),
         'cess_amount': roundToDouble(summary.cess, 2),
+        'taxable_total_amount': roundToDouble(summary.taxable, 2),
       },
     );
   }

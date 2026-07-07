@@ -636,6 +636,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             hsn: item?.hsnSacCode?.trim() ?? '',
             qty: qty,
             rate: rate,
+            taxableAmount: breakdown.taxable.appRounded(),
             taxAmount: (breakdown.total - breakdown.taxable).appRounded(),
 
             lineTotal: breakdown.total.appRounded(),
@@ -686,6 +687,7 @@ class PurchaseInvoiceManagementController extends GetxController {
                 ) ??
                 0)
             .appRounded(),
+        'taxable_total_amount': summary.taxable.appRounded(),
 
       },
     );

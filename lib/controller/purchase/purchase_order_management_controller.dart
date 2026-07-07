@@ -801,6 +801,7 @@ class PurchaseOrderManagementController extends GetxController {
             hsn: item?.hsnSacCode?.trim() ?? '',
             qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
             rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
+            taxableAmount: roundToDouble(breakdown.taxable, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );
@@ -839,9 +840,10 @@ class PurchaseOrderManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
-      extraData: documentStatus == 'draft'
-          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
-          : const <String, dynamic>{},
+      extraData: <String, dynamic>{
+        if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
+        'taxable_total_amount': roundToDouble(summary.taxable, 2),
+      },
     );
   }
 

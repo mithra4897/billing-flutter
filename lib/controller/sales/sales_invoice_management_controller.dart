@@ -2487,6 +2487,7 @@ class SalesInvoiceManagementController extends GetxController {
                 : '${discountPercent % 1 == 0 ? discountPercent.toStringAsFixed(0) : discountPercent.toStringAsFixed(2)}%',
             discountPercent: discountPercent == 0 ? null : discountPercent,
             discountAmount: discountAmount == 0 ? null : discountAmount,
+            taxableAmount: roundToDouble(breakdown.taxable, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );
@@ -2563,6 +2564,7 @@ class SalesInvoiceManagementController extends GetxController {
         'sgst_amount': roundToDouble(summary.sgst, 2),
         'igst_amount': roundToDouble(summary.igst, 2),
         'cess_amount': roundToDouble(summary.cess, 2),
+        'taxable_total_amount': roundToDouble(summary.taxable, 2),
         if (invoiceStatus == 'draft') 'watermark_text': 'DRAFT',
       },
     );

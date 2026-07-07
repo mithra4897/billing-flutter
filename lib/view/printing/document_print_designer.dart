@@ -164,8 +164,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   Offset? get _drawCurrent => _controller.drawCurrent;
   set _drawCurrent(Offset? value) => _controller.drawCurrent = value;
 
-  Map<String, dynamic> get _documentDataJson =>
-      _effectiveDocumentData(_template);
+  Map<String, dynamic> get _documentDataJson => widget.documentData.toJson();
   String get _watermarkText => widget.documentData.watermarkText.trim();
 
   @override
@@ -254,43 +253,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       selectedShapeId: _selectedShapeId,
       selectedShapeIds: Set<String>.from(_selectedShapeIds),
     );
-  }
-
-  Map<String, dynamic> _effectiveDocumentData(DocumentPrintTemplate? template) {
-    final raw = widget.documentData.toJson();
-    if (widget.documentType != 'sales_quotation' || template == null) {
-      return raw;
-    }
-    final linesTable = template.shapes.firstWhereOrNull(isPrintLinesTableShape);
-    final amountColumn = linesTable?.columns.firstWhereOrNull(
-      (column) => column.key.trim().toLowerCase() == 'line_total',
-    );
-    if (amountColumn == null || amountColumn.includeGst) {
-      return raw;
-    }
-
-    final effective = Map<String, dynamic>.from(raw);
-    final rows =
-        (raw['lines'] as List<dynamic>? ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .map((row) => Map<String, dynamic>.from(row))
-            .toList(growable: false);
-    final taxableTotal =
-        (raw['taxable_total_amount'] as num?)?.toDouble() ??
-        rows.fold<double>(0, (sum, row) {
-          final value = row['taxable_amount'];
-          if (value is num) {
-            return sum + value.toDouble();
-          }
-          return sum + (double.tryParse(value?.toString() ?? '') ?? 0);
-        });
-    effective['lines'] = rows;
-    effective['total_amount'] = taxableTotal;
-    effective['amount_in_words'] = printTemplateAmountInWords(
-      taxableTotal,
-      'INR',
-    );
-    return effective;
   }
 
   bool _historyEntriesEqual(
@@ -1533,7 +1495,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               : DocumentDesignerShapeInspector(
                   key: ValueKey(selected.id),
                   shape: selected,
-                  showAmountGstToggle: widget.documentType == 'sales_quotation',
+                  showAmountGstToggle: true,
                   bindings: availablePrintBindings(_documentDataJson),
                   listBindings: availablePrintListBindings(_documentDataJson),
                   rowBindings: availablePrintRowKeysForPath(
@@ -2519,9 +2481,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final totals = shape.printTotal
         ? _calculatePdfColumnTotals(visibleRows, columns)
         : const <String, double>{};
-    if (useFullHeight && totals.containsKey('line_total')) {
+    if (isPrintLinesTableShape(shape) && totals.containsKey('line_total')) {
       totals['line_total'] =
-          (data['total_amount'] as num?)?.toDouble() ?? totals['line_total']!;
+          resolvePrintLinesTableDisplayedTotalAmount(data, columns) ??
+          totals['line_total']!;
     }
     final double totalRowTop = useFullHeight
         ? shape.height - headerHeight
@@ -4025,10 +3988,12 @@ class DocumentCanvasPainter extends CustomPainter {
     if (shape.printTotal) {
       final totals = _calculateColumnTotals(rows, columns);
       if (totals.isNotEmpty) {
-        if (useFullHeight && totals.containsKey('line_total')) {
+        if (isPrintLinesTableShape(shape) && totals.containsKey('line_total')) {
           totals['line_total'] =
-              (resolvePrintPath(documentData, 'total_amount') as num?)
-                  ?.toDouble() ??
+              resolvePrintLinesTableDisplayedTotalAmount(
+                documentData,
+                columns,
+              ) ??
               totals['line_total']!;
         }
         final totalRowTop = useFullHeight
