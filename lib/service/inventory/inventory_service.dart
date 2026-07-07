@@ -235,6 +235,14 @@ class InventoryService extends ErpModuleService {
         fromJson: ItemModel.fromJson,
       );
 
+  Future<ApiResponse<List<ItemModel>>> itemsCollection({
+    Map<String, dynamic>? filters,
+  }) => collection(
+    ApiEndpoints.items,
+    filters: filters,
+    fromJson: ItemModel.fromJson,
+  );
+
   Future<ApiResponse<List<ItemModel>>> itemsDropdown({
     Map<String, dynamic>? filters,
   }) => collection(

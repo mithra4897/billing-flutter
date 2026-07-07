@@ -395,6 +395,66 @@ class CrmEnquiriesController extends GetxController {
     if (notify) update();
   }
 
+  Future<void> cacheItems(Iterable<ItemModel> source, {bool notify = false}) async {
+    final nextById = <int, ItemModel>{};
+
+    for (final item in itemsLookup) {
+      final id = item.id;
+      if (id != null) {
+        nextById[id] = item;
+      }
+    }
+
+    for (final item in source) {
+      final id = item.id;
+      if (id != null) {
+        nextById[id] = item;
+      }
+    }
+
+    final nextItems = nextById.values.toList(growable: false)
+      ..sort((left, right) {
+        final leftName = left.toString().trim().toLowerCase();
+        final rightName = right.toString().trim().toLowerCase();
+        return leftName.compareTo(rightName);
+      });
+
+    itemsLookup = nextItems;
+
+    if (notify) {
+      update();
+    }
+  }
+
+  Future<void> ensureItemsLoadedById(Iterable<int?> itemIds, {bool notify = false}) async {
+    final missingIds = itemIds
+        .whereType<int>()
+        .where(
+          (id) => !itemsLookup.any((item) => item.id == id),
+        )
+        .toSet()
+        .toList(growable: false);
+
+    if (missingIds.isEmpty) {
+      return;
+    }
+
+    final fetchedItems = await Future.wait<ItemModel?>(
+      missingIds.map((id) async {
+        try {
+          return (await _inventoryService.item(id)).data;
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+
+    await cacheItems(
+      fetchedItems.whereType<ItemModel>(),
+      notify: notify,
+    );
+  }
+
   ErpLinkFieldOption<int>? selectedLeadOption() {
     final selectedId = leadId;
     if (selectedId == null) return null;
@@ -453,6 +513,64 @@ class CrmEnquiriesController extends GetxController {
         .toList(growable: false);
   }
 
+  ErpLinkFieldOption<int>? selectedItemOption(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+
+    final item = itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+
+    return item == null ? null : itemOption(item);
+  }
+
+  ErpLinkFieldOption<int> itemOption(ItemModel item) {
+    final subtitleParts = <String>[
+      item.itemCode,
+      item.itemType ?? '',
+    ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+
+    return ErpLinkFieldOption<int>(
+      value: item.id!,
+      label: item.toString(),
+      subtitle: subtitleParts.isEmpty ? null : subtitleParts.join(' • '),
+      searchText: item.pickerSearchText,
+    );
+  }
+
+  Future<List<ErpLinkFieldOption<int>>> searchItemOptions(String query) async {
+    final normalized = query.trim();
+
+    if (normalized.isEmpty) {
+      return itemsLookup
+          .where((item) => item.id != null && item.isActive)
+          .take(100)
+          .map(itemOption)
+          .toList(growable: false);
+    }
+
+    final response = await _inventoryService.itemsCollection(
+      filters: {
+        'search': normalized,
+        'context': 'crm_enquiry',
+        'full_results': 1,
+        'is_active': 1,
+        'sort_by': 'item_name',
+        if (companyId != null) 'company_id': companyId,
+      },
+    );
+
+    final matchedItems = (response.data ?? const <ItemModel>[])
+        .where((item) => item.id != null && item.isActive)
+        .toList(growable: false);
+
+    await cacheItems(matchedItems);
+
+    return matchedItems.map(itemOption).toList(growable: false);
+  }
+
   Future<void> selectItem(CrmEnquiryModel item, {bool notify = true}) async {
     final id = intValue(item.toJson(), 'id');
     if (id == null) return;
@@ -486,6 +604,7 @@ class CrmEnquiriesController extends GetxController {
     remarksController.text = stringValue(data, 'remarks');
     lines = nextLines;
     followups = nextFollowups;
+    await ensureItemsLoadedById(lines.map((line) => line.itemId));
     expandedLineIndex = null;
     expandedFollowupIndex = null;
     formError = null;

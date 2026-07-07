@@ -782,26 +782,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   absorbing: isLocked,
                   child: PurchaseCompactFieldGrid(
                     children: [
-                      AppSearchPickerField<int>(
+                      ErpLinkField<int>(
                         key: ValueKey<Object>(line),
                         labelText: 'Item',
-                        selectedLabel: controller.itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: controller.itemsLookup
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
+                        doctypeLabel: 'Item',
+                        hintText: 'Search item',
+                        initialSelection: controller.selectedItemOption(
+                          line.itemId,
+                        ),
+                        search: controller.searchItemOptions,
                         onChanged: (value) {
                           line.itemId = value;
                           controller.update();
