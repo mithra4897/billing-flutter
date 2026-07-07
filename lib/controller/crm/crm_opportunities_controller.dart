@@ -91,6 +91,15 @@ class CrmOpportunitiesController extends GetxController {
   String? _autofilledOpportunityName;
   String? _autofilledRemarks;
 
+  String _displayExpectedValue(Map<String, dynamic> data) {
+    final raw = stringValue(data, 'expected_value');
+    final parsed = double.tryParse(raw.trim());
+    if (parsed != null && parsed == 0) {
+      return '';
+    }
+    return raw;
+  }
+
   bool get isSelectedOpportunityReadOnly {
     final data = selectedItem?.toJson() ?? const <String, dynamic>{};
     final lifecycleStatus = stringValue(
@@ -402,7 +411,7 @@ class CrmOpportunitiesController extends GetxController {
     status = stringValue(data, 'status', 'open');
     remarksController.text = stringValue(data, 'remarks');
     nameController.text = stringValue(data, 'opportunity_name');
-    expectedValueController.text = stringValue(data, 'expected_value');
+    expectedValueController.text = _displayExpectedValue(data);
     probabilityController.text = stringValue(data, 'probability_percent');
     expectedCloseDateController.text = displayDate(
       nullableStringValue(data, 'expected_close_date'),

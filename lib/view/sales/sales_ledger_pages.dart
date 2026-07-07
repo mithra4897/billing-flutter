@@ -345,10 +345,13 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Advance',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
+          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
           valueBuilder: (row) => formatAmount(row.advanceAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Last Invoice',
+          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
           valueBuilder: (row) => displayDate(row.lastInvoiceDate),
         ),
         PurchaseRegisterColumn(

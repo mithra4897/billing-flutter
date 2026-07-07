@@ -23,6 +23,7 @@ class AppFormTextField extends StatefulWidget {
     this.hintText,
     this.enabled,
     this.allowType = true,
+    this.textAlign,
   });
 
   final String labelText;
@@ -45,6 +46,7 @@ class AppFormTextField extends StatefulWidget {
   final String? hintText;
   final bool? enabled;
   final bool allowType;
+  final TextAlign? textAlign;
 
   @override
   State<AppFormTextField> createState() => _AppFormTextFieldState();
@@ -54,6 +56,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
   TextEditingController? _displayController;
   String? _pendingDisplayValue;
+  bool _isNormalizingAmountZero = false;
 
   bool get _isAutoDateField =>
       !widget.readOnly &&
@@ -76,14 +79,22 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
 
-  bool get _looksLikeAmountOrAccountField {
+  bool get _looksLikeAmountField {
     final label = widget.labelText.trim().toLowerCase();
     return label.contains('amount') ||
-        label.contains('account') ||
-        label.contains('ledger') ||
         label.contains('balance') ||
-        label.contains('paid');
+        label.contains('paid') ||
+        label.contains('credit') ||
+        label.contains('debit') ||
+        label.contains('value');
   }
+
+  TextAlign get _effectiveTextAlign =>
+      widget.textAlign ??
+      (_looksLikeAmountField ? TextAlign.right : TextAlign.start);
+
+  bool get _usesManagedControllerBehavior =>
+      _isNumericField || _looksLikeAmountField;
 
   bool get _useSanitizedReadOnlyDisplay =>
       (widget.readOnly || widget.enabled == false) &&
@@ -94,13 +105,28 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     if (raw.isEmpty || raw == '-') {
       return '';
     }
-    if (_looksLikeAmountOrAccountField) {
+    if (_looksLikeAmountField) {
       final parsed = Validators.parseFlexibleNumber(raw);
-      if (parsed != null && parsed <= 0) {
+      if (parsed != null && parsed == 0) {
         return '';
       }
     }
     return raw;
+  }
+
+  String? _sanitizedEditableInitialValue(String? rawValue) {
+    if (!_looksLikeAmountField) {
+      return rawValue;
+    }
+    final raw = (rawValue ?? '').trim();
+    if (raw.isEmpty) {
+      return rawValue;
+    }
+    final parsed = Validators.parseFlexibleNumber(raw);
+    if (parsed != null && parsed == 0) {
+      return '';
+    }
+    return rawValue;
   }
 
   void _disposeDisplayControllerDeferred(TextEditingController? controller) {
@@ -168,20 +194,69 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     return formatters.isEmpty ? null : formatters;
   }
 
+  void _handleControllerChanged() {
+    if (_useSanitizedReadOnlyDisplay) {
+      _syncDisplayController(allowImmediateUpdate: true);
+      return;
+    }
+    _clearAmountZeroIfNeeded();
+  }
+
+  void _clearAmountZeroIfNeeded() {
+    if (!_looksLikeAmountField || _isNormalizingAmountZero) {
+      return;
+    }
+    final controller = widget.controller;
+    if (controller == null) {
+      return;
+    }
+    if (_numericBinding.focusNode?.hasFocus ?? false) {
+      return;
+    }
+    final text = controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    final parsed = Validators.parseFlexibleNumber(text);
+    if (parsed == null || parsed != 0) {
+      return;
+    }
+    _isNormalizingAmountZero = true;
+    controller.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+      composing: TextRange.empty,
+    );
+    _isNormalizingAmountZero = false;
+  }
+
+  void _attachControllerListener(TextEditingController? controller) {
+    controller?.addListener(_handleControllerChanged);
+  }
+
+  void _detachControllerListener(TextEditingController? controller) {
+    controller?.removeListener(_handleControllerChanged);
+  }
+
   @override
   void initState() {
     super.initState();
     _syncDisplayController(allowImmediateUpdate: true);
+    _attachControllerListener(widget.controller);
     final created = _numericBinding.sync(
-      enable: _isNumericField,
+      enable: _usesManagedControllerBehavior,
       controller: _useSanitizedReadOnlyDisplay
           ? _displayController
           : widget.controller,
+      clearZeroOnBlur: _looksLikeAmountField,
+      onBlur: _handleControllerChanged,
     );
+    _clearAmountZeroIfNeeded();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          _clearAmountZeroIfNeeded();
         }
       });
     }
@@ -191,16 +266,24 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   void didUpdateWidget(covariant AppFormTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncDisplayController();
+    if (oldWidget.controller != widget.controller) {
+      _detachControllerListener(oldWidget.controller);
+      _attachControllerListener(widget.controller);
+    }
     final created = _numericBinding.sync(
-      enable: _isNumericField,
+      enable: _usesManagedControllerBehavior,
       controller: _useSanitizedReadOnlyDisplay
           ? _displayController
           : widget.controller,
+      clearZeroOnBlur: _looksLikeAmountField,
+      onBlur: _handleControllerChanged,
     );
+    _clearAmountZeroIfNeeded();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          _clearAmountZeroIfNeeded();
         }
       });
     }
@@ -208,6 +291,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
 
   @override
   void dispose() {
+    _detachControllerListener(widget.controller);
     _numericBinding.dispose();
     _displayController?.dispose();
     super.dispose();
@@ -262,7 +346,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         : widget.controller;
     final effectiveInitialValue = _useSanitizedReadOnlyDisplay
         ? _sanitizedReadOnlyValue(widget.initialValue)
-        : widget.initialValue;
+        : _sanitizedEditableInitialValue(widget.initialValue);
 
     return AppFieldBox(
       width: widget.width,
@@ -285,6 +369,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         onEditingComplete: widget.onEditingComplete,
         readOnly: effectiveReadOnly,
         enabled: true,
+        textAlign: _effectiveTextAlign,
         onTap: (!visuallyReadOnly && autoPickerEnabled && !widget.allowType)
             ? () => _handlePickerTap(context)
             : null,

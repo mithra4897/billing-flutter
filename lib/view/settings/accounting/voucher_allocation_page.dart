@@ -458,7 +458,13 @@ class _VoucherAllocationManagementPageState
                               DataColumn(label: Text('Reference')),
                               DataColumn(label: Text('Date')),
                               DataColumn(label: Text('Type')),
-                              DataColumn(label: Text('Amount')),
+                              DataColumn(
+                                numeric: true,
+                                label: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text('Amount'),
+                                ),
+                              ),
                               DataColumn(label: Text('Remarks')),
                               DataColumn(label: Text('')),
                             ],
@@ -482,8 +488,12 @@ class _VoucherAllocationManagementPageState
                                       ),
                                       DataCell(Text(row.allocationType ?? '-')),
                                       DataCell(
-                                        Text(
-                                          formatAmount(row.allocationAmount),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Text(
+                                            formatAmount(row.allocationAmount),
+                                            textAlign: TextAlign.right,
+                                          ),
                                         ),
                                       ),
                                       DataCell(

@@ -3,6 +3,8 @@ import '../screen.dart';
 class NumericFieldFocusBinding {
   FocusNode? _focusNode;
   TextEditingController? _controller;
+  bool _clearZeroOnBlur = false;
+  VoidCallback? _onBlur;
 
   FocusNode? get focusNode => _focusNode;
 
@@ -28,8 +30,12 @@ class NumericFieldFocusBinding {
   bool sync({
     required bool enable,
     required TextEditingController? controller,
+    bool clearZeroOnBlur = false,
+    VoidCallback? onBlur,
   }) {
     _controller = controller;
+    _clearZeroOnBlur = clearZeroOnBlur;
+    _onBlur = onBlur;
     if (enable && controller != null) {
       if (_focusNode == null) {
         _focusNode = FocusNode()..addListener(_handleFocusChanged);
@@ -48,8 +54,31 @@ class NumericFieldFocusBinding {
       return;
     }
     if (!(_focusNode?.hasFocus ?? false)) {
+      if (_clearZeroOnBlur) {
+        _clearZeroDisplay(_controller);
+      }
       applyFormattedDisplay(_controller);
+      _onBlur?.call();
     }
+  }
+
+  static void _clearZeroDisplay(TextEditingController? controller) {
+    if (controller == null) {
+      return;
+    }
+    final text = controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    final parsed = Validators.parseFlexibleNumber(text);
+    if (parsed == null || parsed != 0) {
+      return;
+    }
+    controller.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+      composing: TextRange.empty,
+    );
   }
 
   static void _selectAllIfZero(TextEditingController? controller) {
@@ -75,5 +104,7 @@ class NumericFieldFocusBinding {
     _focusNode?.dispose();
     _focusNode = null;
     _controller = null;
+    _clearZeroOnBlur = false;
+    _onBlur = null;
   }
 }

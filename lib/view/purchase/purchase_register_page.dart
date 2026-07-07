@@ -9,6 +9,8 @@ class PurchaseRegisterColumn<T> {
     this.detailBuilder,
     this.flex = 2,
     this.alignRight = false,
+    this.showPlaceholderWhenEmpty = true,
+    this.padding,
   });
 
   final String label;
@@ -17,6 +19,8 @@ class PurchaseRegisterColumn<T> {
   final String Function(T row)? detailBuilder;
   final int flex;
   final bool alignRight;
+  final bool showPlaceholderWhenEmpty;
+  final EdgeInsetsGeometry? padding;
 }
 
 class PurchaseRegisterPage<T> extends StatefulWidget {
@@ -316,13 +320,16 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                 .map(
                   (column) => Expanded(
                     flex: column.flex,
-                    child: Text(
-                      column.label,
-                      textAlign: column.alignRight
-                          ? TextAlign.right
-                          : TextAlign.left,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+                    child: Padding(
+                      padding: column.padding ?? EdgeInsets.zero,
+                      child: Text(
+                        column.label,
+                        textAlign: column.alignRight
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -433,14 +440,17 @@ class _RegisterHeader<T> extends StatelessWidget {
             .map(
               (column) => Expanded(
                 flex: column.flex,
-                child: Text(
-                  column.label,
-                  textAlign: column.alignRight
-                      ? TextAlign.right
-                      : TextAlign.left,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                child: Padding(
+                  padding: column.padding ?? EdgeInsets.zero,
+                  child: Text(
+                    column.label,
+                    textAlign: column.alignRight
+                        ? TextAlign.right
+                        : TextAlign.left,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             )
@@ -497,6 +507,10 @@ class _RegisterCell<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryValue = column.valueBuilder(row);
+    final displayValue =
+        primaryValue.trim().isEmpty && column.showPlaceholderWhenEmpty
+        ? '-'
+        : primaryValue;
     final detailValue = column.detailBuilder?.call(row).trim() ?? '';
     final primaryWidget = column.widgetBuilder != null
         ? Align(
@@ -507,14 +521,19 @@ class _RegisterCell<T> extends StatelessWidget {
             child: column.widgetBuilder!(context, row),
           )
         : Text(
-            primaryValue.trim().isEmpty ? '-' : primaryValue,
+            displayValue,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: column.alignRight ? TextAlign.right : TextAlign.left,
           );
 
+    final paddedPrimaryWidget = Padding(
+      padding: column.padding ?? EdgeInsets.zero,
+      child: primaryWidget,
+    );
+
     if (detailValue.isEmpty) {
-      return primaryWidget;
+      return paddedPrimaryWidget;
     }
 
     return Wrap(
@@ -522,7 +541,7 @@ class _RegisterCell<T> extends StatelessWidget {
       runSpacing: AppUiConstants.spacingXxs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        primaryWidget,
+        paddedPrimaryWidget,
         _DetailInfoButton(detailValue: detailValue),
       ],
     );
@@ -538,6 +557,9 @@ class _MobileRegisterField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryValue = column.valueBuilder(row).trim();
+    final displayValue = primaryValue.isEmpty && column.showPlaceholderWhenEmpty
+        ? '-'
+        : primaryValue;
     final detailValue = column.detailBuilder?.call(row).trim() ?? '';
     final textTheme = Theme.of(context).textTheme;
     final appTheme = Theme.of(context).extension<AppThemeExtension>();
@@ -549,9 +571,12 @@ class _MobileRegisterField<T> extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Text(
-                '${column.label}: ${primaryValue.isEmpty ? '-' : primaryValue}',
-                style: textTheme.bodyMedium,
+              child: Padding(
+                padding: column.padding ?? EdgeInsets.zero,
+                child: Text(
+                  '${column.label}: $displayValue',
+                  style: textTheme.bodyMedium,
+                ),
               ),
             ),
             if (detailValue.isNotEmpty) ...[

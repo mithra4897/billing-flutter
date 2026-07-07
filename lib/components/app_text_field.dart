@@ -12,6 +12,7 @@ class AppTextField extends StatefulWidget {
     this.suffixIcon,
     this.keyboardType,
     this.textInputAction,
+    this.textAlign,
   });
 
   final String label;
@@ -23,6 +24,7 @@ class AppTextField extends StatefulWidget {
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final TextAlign? textAlign;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -30,21 +32,80 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
+  bool _isNormalizingAmountZero = false;
 
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
 
+  bool get _looksLikeAmountField {
+    final label = widget.label.trim().toLowerCase();
+    return label.contains('amount') ||
+        label.contains('balance') ||
+        label.contains('paid') ||
+        label.contains('credit') ||
+        label.contains('debit') ||
+        label.contains('value');
+  }
+
+  TextAlign get _effectiveTextAlign =>
+      widget.textAlign ??
+      (_looksLikeAmountField ? TextAlign.right : TextAlign.start);
+
+  bool get _usesManagedControllerBehavior =>
+      _isNumericField || _looksLikeAmountField;
+
+  void _handleControllerChanged() {
+    if (!_looksLikeAmountField || _isNormalizingAmountZero) {
+      return;
+    }
+    final controller = widget.controller;
+    if (controller == null) {
+      return;
+    }
+    if (_numericBinding.focusNode?.hasFocus ?? false) {
+      return;
+    }
+    final text = controller.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    final parsed = Validators.parseFlexibleNumber(text);
+    if (parsed == null || parsed != 0) {
+      return;
+    }
+    _isNormalizingAmountZero = true;
+    controller.value = const TextEditingValue(
+      text: '',
+      selection: TextSelection.collapsed(offset: 0),
+      composing: TextRange.empty,
+    );
+    _isNormalizingAmountZero = false;
+  }
+
+  void _attachControllerListener(TextEditingController? controller) {
+    controller?.addListener(_handleControllerChanged);
+  }
+
+  void _detachControllerListener(TextEditingController? controller) {
+    controller?.removeListener(_handleControllerChanged);
+  }
+
   @override
   void initState() {
     super.initState();
+    _attachControllerListener(widget.controller);
     final created = _numericBinding.sync(
-      enable: _isNumericField,
+      enable: _usesManagedControllerBehavior,
       controller: widget.controller,
+      clearZeroOnBlur: _looksLikeAmountField,
+      onBlur: _handleControllerChanged,
     );
+    _handleControllerChanged();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          _handleControllerChanged();
         }
       });
     }
@@ -53,14 +114,22 @@ class _AppTextFieldState extends State<AppTextField> {
   @override
   void didUpdateWidget(covariant AppTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _detachControllerListener(oldWidget.controller);
+      _attachControllerListener(widget.controller);
+    }
     final created = _numericBinding.sync(
-      enable: _isNumericField,
+      enable: _usesManagedControllerBehavior,
       controller: widget.controller,
+      clearZeroOnBlur: _looksLikeAmountField,
+      onBlur: _handleControllerChanged,
     );
+    _handleControllerChanged();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          _handleControllerChanged();
         }
       });
     }
@@ -68,6 +137,7 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   void dispose() {
+    _detachControllerListener(widget.controller);
     _numericBinding.dispose();
     super.dispose();
   }
@@ -91,6 +161,7 @@ class _AppTextFieldState extends State<AppTextField> {
           obscureText: widget.obscureText,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
+          textAlign: _effectiveTextAlign,
           inputFormatters: _isNumericField
               ? const <TextInputFormatter>[NumericInputFormatter()]
               : null,

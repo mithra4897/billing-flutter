@@ -402,6 +402,7 @@ class _CrmOpportunityRegisterPageState
         ),
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Expected Value',
+          alignRight: true,
           valueBuilder: (row) => stringValue(row.toJson(), 'expected_value'),
         ),
         PurchaseRegisterColumn<CrmOpportunityModel>(
@@ -969,12 +970,14 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     double width, {
     TextStyle? style,
     int maxLines = 1,
+    TextAlign textAlign = TextAlign.left,
   }) {
     return SizedBox(
       width: width,
       child: Text(
         value,
         style: style,
+        textAlign: textAlign,
         maxLines: maxLines,
         overflow: TextOverflow.ellipsis,
       ),
@@ -1142,6 +1145,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                                 _tableCellText(
                                   stringValue(data, 'expected_value'),
                                   _valueColumnWidth,
+                                  textAlign: TextAlign.right,
                                 ),
                                 onTap: () => controller.selectItem(item),
                               ),
