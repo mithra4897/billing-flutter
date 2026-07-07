@@ -792,8 +792,10 @@ class SalesOrderManagementController extends GetxController {
           ? series.first.id
           : intValue(data, 'document_series_id');
       customerPartyId = intValue(data, 'customer_party_id');
-      isDirectCustomer = false;
-      directCustomerDetailsController.clear();
+      isDirectCustomer = boolValue(data, 'is_direct_customer');
+      customerPartyId = isDirectCustomer ? null : customerPartyId;
+      directCustomerDetailsController.text =
+          stringValue(data, 'direct_customer_details');
       unawaited(ensureCustomerPrintContext(customerPartyId));
       orderNoController.clear();
       orderDateController.text = DateTime.now()

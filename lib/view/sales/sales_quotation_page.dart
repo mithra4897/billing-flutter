@@ -432,17 +432,81 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     ),
                   ]),
                 ),
-                ...buildSalesCustomerCommercialFields(
-                  context: context,
-                  canEdit: controller.canEdit,
-                  customerItems: controller.customerDropdownItems,
-                  customerPartyId: controller.customerPartyId,
-                  onCustomerChanged: controller.setCustomerPartyId,
-                  customerRefNoController: controller.customerRefNoController,
-                  customerRefDateController:
-                      controller.customerRefDateController,
-                  notesController: controller.notesController,
-                  termsController: controller.termsController,
+                AppSwitchTile(
+                  label: 'Direct Customer',
+                  value: controller.isDirectCustomer,
+                  onChanged: controller.canEdit
+                      ? controller.setDirectCustomer
+                      : null,
+                ),
+                if (controller.isDirectCustomer)
+                  AppFormTextField(
+                    labelText: 'Direct Customer Details',
+                    controller: controller.directCustomerDetailsController,
+                    enabled: controller.canEdit,
+                    maxLines: 4,
+                    validator: (value) {
+                      if (!controller.isDirectCustomer) {
+                        return null;
+                      }
+                      final trimmed = value?.trim() ?? '';
+                      if (trimmed.isEmpty) {
+                        return 'Direct customer details are required';
+                      }
+                      return null;
+                    },
+                  )
+                else
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          'party_context': 'customer',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      openModuleShellRoute(context, uri.toString());
+                    },
+                    mappedItems: controller.customerDropdownItems,
+                    initialValue: controller.customerPartyId,
+                    onChanged: controller.setCustomerPartyId,
+                    validator: (value) {
+                      if (controller.isDirectCustomer) {
+                        return null;
+                      }
+                      return Validators.requiredSelection('Customer')(value);
+                    },
+                  ),
+                AppFormTextField(
+                  labelText: 'Customer PO / Ref',
+                  controller: controller.customerRefNoController,
+                  enabled: controller.canEdit,
+                  validator: Validators.optionalMaxLength(100, 'Reference'),
+                ),
+                AppFormTextField(
+                  labelText: 'Customer Ref Date',
+                  controller: controller.customerRefDateController,
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  enabled: controller.canEdit,
+                  validator: Validators.optionalDate('Customer Ref Date'),
+                ),
+                AppFormTextField(
+                  labelText: 'Notes (shown to customer)',
+                  controller: controller.notesController,
+                  maxLines: 3,
+                  enabled: controller.canEdit,
+                ),
+                AppFormTextField(
+                  labelText: 'Terms & Conditions',
+                  controller: controller.termsController,
+                  maxLines: 3,
+                  enabled: controller.canEdit,
                 ),
                 AppFormTextField(
                   labelText: 'Round off',

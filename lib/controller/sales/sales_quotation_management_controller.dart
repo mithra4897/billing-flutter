@@ -116,6 +116,8 @@ class SalesQuotationManagementController extends GetxController {
   final TextEditingController customerRefNoController = TextEditingController();
   final TextEditingController customerRefDateController =
       TextEditingController();
+  final TextEditingController directCustomerDetailsController =
+      TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
@@ -154,6 +156,7 @@ class SalesQuotationManagementController extends GetxController {
   int? financialYearId;
   int? documentSeriesId;
   int? customerPartyId;
+  bool isDirectCustomer = false;
   bool isActive = true;
   bool applyRoundOff = true;
   int? crmOpportunityId;
@@ -184,6 +187,7 @@ class SalesQuotationManagementController extends GetxController {
     validUntilController.dispose();
     customerRefNoController.dispose();
     customerRefDateController.dispose();
+    directCustomerDetailsController.dispose();
     roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
@@ -501,6 +505,8 @@ class SalesQuotationManagementController extends GetxController {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = intValue(data, 'document_series_id');
     customerPartyId = intValue(data, 'customer_party_id');
+    isDirectCustomer = full.isDirectCustomer;
+    customerPartyId = full.isDirectCustomer ? null : customerPartyId;
     quotationNoController.text = stringValue(data, 'quotation_no');
     quotationDateController.text = displayDate(
       nullableStringValue(data, 'quotation_date'),
@@ -512,6 +518,8 @@ class SalesQuotationManagementController extends GetxController {
     customerRefDateController.text = displayDate(
       nullableStringValue(data, 'customer_reference_date'),
     );
+    directCustomerDetailsController.text =
+        full.directCustomerDetails?.trim() ?? '';
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
@@ -541,6 +549,7 @@ class SalesQuotationManagementController extends GetxController {
     financialYearId = contextFinancialYearId;
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     customerPartyId = null;
+    isDirectCustomer = false;
     quotationNoController.clear();
     quotationDateController.text = DateTime.now()
         .toIso8601String()
@@ -549,6 +558,7 @@ class SalesQuotationManagementController extends GetxController {
     validUntilController.clear();
     customerRefNoController.clear();
     customerRefDateController.clear();
+    directCustomerDetailsController.clear();
     roundOffController.clear();
     applyRoundOff = true;
     notesController.clear();
@@ -834,6 +844,13 @@ class SalesQuotationManagementController extends GetxController {
         ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
         : 0.0;
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final directCustomerDetails =
+        directCustomerDetailsController.text.trim().isNotEmpty
+        ? directCustomerDetailsController.text.trim()
+        : (selected['direct_customer_details']?.toString().trim() ?? '');
+    final directCustomerLines = formatDirectCustomerDetailsLines(
+      directCustomerDetails,
+    );
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -881,6 +898,18 @@ class SalesQuotationManagementController extends GetxController {
         })
         .toList(growable: false);
     final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
+    final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
+        ? stringValue(customerData, 'party_name')
+        : quotationCustomerLabel(selected);
+    final effectivePartyName = directCustomerLines.isNotEmpty
+        ? directCustomerLines.first
+        : resolvedPartyName;
+    final effectivePartyAddress = directCustomerLines.length > 1
+        ? directCustomerLines.skip(1).join('\n')
+        : directCustomerDetails;
+    final hasCustomer =
+        effectivePartyName.trim().isNotEmpty ||
+        directCustomerDetails.isNotEmpty;
 
     return buildManagedDocumentPrintData(
       companies: companies,
@@ -889,25 +918,31 @@ class SalesQuotationManagementController extends GetxController {
       documentNumber: nullIfEmpty(quotationNoController.text) ?? 'Draft',
       documentDate: quotationDateController.text.trim(),
       referenceNumber: customerRefNoController.text.trim(),
-      partyName: stringValue(customerData, 'party_name').isNotEmpty
-          ? stringValue(customerData, 'party_name')
-          : quotationCustomerLabel(selected),
-      partyAddress: formatPartyAddress(
-        preferredAddress,
-        fallback: formatPartyAddressFromData(customerData),
-      ),
-      partyContact: resolvePartyContact(
-        customer,
-        fallback: stringValue(customerData, 'mobile_no'),
-      ),
-      partyGstin: resolvePartyPrintGstin(
-        customer,
-        gstDetails:
-            customerGstDetailsById[customerPartyId] ??
-            const <PartyGstDetailModel>[],
-        sourceData: customerData,
-        fallback: stringValue(customerData, 'gstin'),
-      ),
+      partyName: hasCustomer ? effectivePartyName : 'Not provided',
+      partyAddress: hasCustomer
+          ? (directCustomerDetails.isNotEmpty
+                ? effectivePartyAddress
+                : formatPartyAddress(
+                    preferredAddress,
+                    fallback: formatPartyAddressFromData(customerData),
+                  ))
+          : '',
+      partyContact: directCustomerDetails.isNotEmpty
+          ? ''
+          : resolvePartyContact(
+              customer,
+              fallback: stringValue(customerData, 'mobile_no'),
+            ),
+      partyGstin: directCustomerDetails.isNotEmpty
+          ? ''
+          : resolvePartyPrintGstin(
+              customer,
+              gstDetails:
+                  customerGstDetailsById[customerPartyId] ??
+                  const <PartyGstDetailModel>[],
+              sourceData: customerData,
+              fallback: stringValue(customerData, 'gstin'),
+            ),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(summary.gross, 2),
@@ -916,9 +951,10 @@ class SalesQuotationManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
-      extraData: documentStatus == 'draft'
-          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
-          : const <String, dynamic>{},
+      extraData: <String, dynamic>{
+        if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
+        'is_direct_customer': directCustomerDetails.isNotEmpty,
+      },
     );
   }
 
@@ -990,7 +1026,28 @@ class SalesQuotationManagementController extends GetxController {
       return;
     }
     customerPartyId = value;
+    if (value != null) {
+      isDirectCustomer = false;
+      directCustomerDetailsController.text =
+          directCustomerDetailsController.text.trim();
+    }
     unawaited(ensureCustomerPrintContext(value));
+    update();
+  }
+
+  void setDirectCustomer(bool value) {
+    if (!canEdit) {
+      return;
+    }
+    isDirectCustomer = value;
+    if (value) {
+      customerPartyId = null;
+      directCustomerDetailsController.text =
+          directCustomerDetailsController.text.trim();
+    } else {
+      directCustomerDetailsController.clear();
+    }
+    formError = null;
     update();
   }
 
@@ -1065,6 +1122,20 @@ class SalesQuotationManagementController extends GetxController {
     if (!formKey.currentState!.validate()) {
       return;
     }
+    final directCustomerDetails = nullIfEmpty(
+      directCustomerDetailsController.text,
+    );
+    if (isDirectCustomer) {
+      if (directCustomerDetails == null) {
+        formError = 'Enter direct customer details.';
+        update();
+        return;
+      }
+    } else if (customerPartyId == null) {
+      formError = 'Choose a customer or mark this as direct customer.';
+      update();
+      return;
+    }
     saving = true;
     formError = null;
     update();
@@ -1080,6 +1151,8 @@ class SalesQuotationManagementController extends GetxController {
       'quotation_date': quotationDateController.text.trim(),
       'valid_until': nullIfEmpty(validUntilController.text),
       'customer_party_id': customerPartyId,
+      'is_direct_customer': isDirectCustomer,
+      'direct_customer_details': directCustomerDetails,
       'customer_reference_no': nullIfEmpty(customerRefNoController.text),
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
       'round_off_amount': applyRoundOff
@@ -1345,6 +1418,8 @@ class SalesQuotationManagementController extends GetxController {
         intValue(data, 'financial_year_id') ?? contextFinancialYearId;
     documentSeriesId = intValue(data, 'document_series_id');
     customerPartyId = intValue(data, 'customer_party_id');
+    isDirectCustomer = boolValue(data, 'is_direct_customer');
+    customerPartyId = isDirectCustomer ? null : customerPartyId;
     quotationNoController.clear();
     quotationDateController.text = DateTime.now()
         .toIso8601String()
@@ -1357,6 +1432,8 @@ class SalesQuotationManagementController extends GetxController {
     customerRefDateController.text = displayDate(
       nullableStringValue(data, 'customer_reference_date'),
     );
+    directCustomerDetailsController.text =
+        stringValue(data, 'direct_customer_details');
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
