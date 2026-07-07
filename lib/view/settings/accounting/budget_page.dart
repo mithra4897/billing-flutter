@@ -465,7 +465,7 @@ class _BudgetVsAmountCell extends StatelessWidget {
     final parsed = double.tryParse(value.trim());
     final isNegative = emphasizeNegative && (parsed ?? 0) < 0;
     final displayValue = value.trim().isEmpty
-        ? '-'
+        ? ''
         : suffix.isEmpty
         ? value
         : '$value$suffix';

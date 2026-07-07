@@ -998,10 +998,10 @@ class _ReportTableCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
-    final displayText = text.trim().isEmpty ? '-' : text;
+    final displayText = text.trim().isEmpty ? '' : text;
     final isBucket =
         !alignEnd &&
-        displayText != '-' &&
+        displayText.isNotEmpty &&
         (displayText.endsWith('days') || displayText == 'Current');
 
     if (isBucket) {

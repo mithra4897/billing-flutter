@@ -774,6 +774,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) {
             final raw = row.toJson()['total_amount'];
             final amount = raw is num
@@ -964,6 +965,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) {
             final raw = row.toJson()['total_amount'];
             final amount = raw is num
@@ -1123,11 +1125,13 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) => formatAmount(row.totalAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Balance',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) => formatAmount(row.balanceAmount),
         ),
       ],
@@ -1336,6 +1340,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Amount',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) {
             final raw = row.toJson()['paid_amount'];
             final amount = raw is num

@@ -88,6 +88,14 @@ class PartyModel extends JsonModel {
   }
 
   factory PartyModel.fromJson(Map<String, dynamic> json) {
+    final partyTypeData = json['party_type'];
+    final partyTypeRelation =
+        partyTypeData is Map<String, dynamic> ? partyTypeData : null;
+    final partyTypeName =
+        json['party_type_name']?.toString() ??
+        partyTypeRelation?['name']?.toString() ??
+        json['party_type']?.toString();
+
     return PartyModel(
       id: _parseInt(json['id']),
       companyId: _parseInt(json['company_id']),
@@ -95,7 +103,7 @@ class PartyModel extends JsonModel {
       partyName: json['party_name']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
       partyTypeId: _parseInt(json['party_type_id']),
-      partyType: json['party_type_id']?.toString(),
+      partyType: partyTypeName,
       isCompany: json['is_company'] == true || json['is_company'] == 1,
       website: json['website']?.toString(),
       pan: json['pan']?.toString(),

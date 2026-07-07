@@ -382,27 +382,36 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       final documentSeries =
           documentSeriesResponse.data ?? const <DocumentSeriesModel>[];
       final parties = partiesResponse.data ?? const <PartyModel>[];
+      final visibleParties = _controller.partyTypeFilterId == 0
+          ? parties
+          : parties
+                .where(
+                  (party) => party.partyTypeId == _controller.partyTypeFilterId,
+                )
+                .toList(growable: false);
 
       _controller.completePageLoad(
         partyTypes: partyTypes,
         documentSeries: documentSeries,
-        parties: parties,
+        parties: visibleParties,
         partiesMeta: partiesResponse.meta,
       );
 
       final selected = selectId != null
-          ? parties.cast<PartyModel?>().firstWhere(
+          ? visibleParties.cast<PartyModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
             )
           : (widget.startInNewMode
                 ? null
                 : (_selectedParty == null
-                      ? (parties.isNotEmpty ? parties.first : null)
-                      : parties.cast<PartyModel?>().firstWhere(
+                      ? (visibleParties.isNotEmpty ? visibleParties.first : null)
+                      : visibleParties.cast<PartyModel?>().firstWhere(
                           (item) => item?.id == _selectedParty?.id,
                           orElse: () =>
-                              parties.isNotEmpty ? parties.first : null,
+                              visibleParties.isNotEmpty
+                                  ? visibleParties.first
+                                  : null,
                         )));
 
       if (selected == null && selectId != null) {

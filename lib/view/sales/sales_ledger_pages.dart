@@ -340,6 +340,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Receivable',
           alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) => formatAmount(row.receivableAmount),
         ),
         PurchaseRegisterColumn(

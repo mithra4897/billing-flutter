@@ -255,35 +255,28 @@ class _PurchaseLedgerRegisterPageState
           valueBuilder: (row) => row.partyName,
         ),
         PurchaseRegisterColumn(
-          label: 'Ledger Code',
-          valueBuilder: (row) => row.ledgerCode,
-        ),
-        PurchaseRegisterColumn(
-          label: 'Ledger Name',
-          flex: 3,
-          valueBuilder: (row) => row.ledgerName,
-        ),
-        PurchaseRegisterColumn(
           label: 'Payable',
+          alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) =>
               _formatPurchaseRegisterAmount(row.payableAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Advance',
+          alignRight: true,
+          showPlaceholderWhenEmpty: false,
+          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
           valueBuilder: (row) =>
               _formatPurchaseRegisterAmount(row.advanceAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Last Bill',
+          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
           valueBuilder: (row) => displayDate(row.lastInvoiceDate),
         ),
         PurchaseRegisterColumn(
           label: 'Last Payment',
           valueBuilder: (row) => displayDate(row.lastPaymentDate),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Status',
-          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
         ),
       ],
       onRowTap: (row) =>

@@ -287,38 +287,31 @@ class _EmployeeLedgerRegisterPageState
           valueBuilder: (row) => row.employeeName,
         ),
         PurchaseRegisterColumn(
-          label: 'Salary Ledger Code',
-          valueBuilder: (row) => row.ledgerCode,
-        ),
-        PurchaseRegisterColumn(
-          label: 'Salary Ledger Name',
-          flex: 3,
-          valueBuilder: (row) => row.ledgerName,
-        ),
-        PurchaseRegisterColumn(
           label: 'Department',
           valueBuilder: (row) => row.departmentName,
         ),
         PurchaseRegisterColumn(
           label: 'Salary Posted',
+          alignRight: true,
+          showPlaceholderWhenEmpty: false,
           valueBuilder: (row) => _formatEmployeeRegisterAmount(row.salaryTotal),
         ),
         PurchaseRegisterColumn(
           label: 'Reimbursed',
+          alignRight: true,
+          showPlaceholderWhenEmpty: false,
+          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
           valueBuilder: (row) =>
               _formatEmployeeRegisterAmount(row.reimbursementTotal),
         ),
         PurchaseRegisterColumn(
           label: 'Last Salary Posting',
+          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
           valueBuilder: (row) => displayDate(row.lastPayslipDate),
         ),
         PurchaseRegisterColumn(
           label: 'Last Reimbursement',
           valueBuilder: (row) => displayDate(row.lastReimbursementDate),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Status',
-          valueBuilder: (row) => row.status,
         ),
       ],
       onRowTap: (row) => _openEmployeeLedgerRoute(
