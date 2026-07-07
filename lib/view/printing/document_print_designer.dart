@@ -164,7 +164,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   Offset? get _drawCurrent => _controller.drawCurrent;
   set _drawCurrent(Offset? value) => _controller.drawCurrent = value;
 
-  Map<String, dynamic> get _documentDataJson => widget.documentData.toJson();
+  Map<String, dynamic> get _documentDataJson =>
+      _effectiveDocumentData(_template);
   String get _watermarkText => widget.documentData.watermarkText.trim();
 
   @override
@@ -253,6 +254,43 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       selectedShapeId: _selectedShapeId,
       selectedShapeIds: Set<String>.from(_selectedShapeIds),
     );
+  }
+
+  Map<String, dynamic> _effectiveDocumentData(DocumentPrintTemplate? template) {
+    final raw = widget.documentData.toJson();
+    if (widget.documentType != 'sales_quotation' || template == null) {
+      return raw;
+    }
+    final linesTable = template.shapes.firstWhereOrNull(isPrintLinesTableShape);
+    final amountColumn = linesTable?.columns.firstWhereOrNull(
+      (column) => column.key.trim().toLowerCase() == 'line_total',
+    );
+    if (amountColumn == null || amountColumn.includeGst) {
+      return raw;
+    }
+
+    final effective = Map<String, dynamic>.from(raw);
+    final rows =
+        (raw['lines'] as List<dynamic>? ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map((row) => Map<String, dynamic>.from(row))
+            .toList(growable: false);
+    final taxableTotal =
+        (raw['taxable_total_amount'] as num?)?.toDouble() ??
+        rows.fold<double>(0, (sum, row) {
+          final value = row['taxable_amount'];
+          if (value is num) {
+            return sum + value.toDouble();
+          }
+          return sum + (double.tryParse(value?.toString() ?? '') ?? 0);
+        });
+    effective['lines'] = rows;
+    effective['total_amount'] = taxableTotal;
+    effective['amount_in_words'] = printTemplateAmountInWords(
+      taxableTotal,
+      'INR',
+    );
+    return effective;
   }
 
   bool _historyEntriesEqual(
@@ -1316,7 +1354,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (type == null) {
       return;
     }
-    final shape = DocumentPrintShape.defaults(type, template.shapes.length);
+    final shape = DocumentPrintShape.defaults(type, template.shapes.length)
+        .copyWith(id: _nextShapeId(template, type));
     final placed = shape.copyWith(
       x: math.min(
         math.max(24.0, (template.pageWidth - shape.width) / 2),
@@ -1335,6 +1374,17 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       _drawStart = null;
       _drawCurrent = null;
     });
+  }
+
+  String _nextShapeId(DocumentPrintTemplate template, String type) {
+    final existingIds = template.shapes.map((shape) => shape.id).toSet();
+    var index = template.shapes.length;
+    var candidate = '$type-$index';
+    while (existingIds.contains(candidate)) {
+      index++;
+      candidate = '$type-$index';
+    }
+    return candidate;
   }
 
   Widget _toolbarButton(IconData icon, String label, VoidCallback onPressed) {
@@ -1483,6 +1533,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               : DocumentDesignerShapeInspector(
                   key: ValueKey(selected.id),
                   shape: selected,
+                  showAmountGstToggle: widget.documentType == 'sales_quotation',
                   bindings: availablePrintBindings(_documentDataJson),
                   listBindings: availablePrintListBindings(_documentDataJson),
                   rowBindings: availablePrintRowKeysForPath(
@@ -2469,7 +2520,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         ? _calculatePdfColumnTotals(visibleRows, columns)
         : const <String, double>{};
     if (useFullHeight && totals.containsKey('line_total')) {
-      totals['line_total'] = widget.documentData.totalAmount;
+      totals['line_total'] =
+          (data['total_amount'] as num?)?.toDouble() ?? totals['line_total']!;
     }
     final double totalRowTop = useFullHeight
         ? shape.height - headerHeight
@@ -2882,14 +2934,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final totalColumns = columns.where((column) => column.totalColumn);
     for (final row in rows) {
       for (final column in totalColumns) {
-        final value = resolvePrintPath(row, column.key);
-        if (value is num) {
-          totals[column.key] = (totals[column.key] ?? 0) + value.toDouble();
-        } else {
-          final parsed = double.tryParse(value?.toString() ?? '');
-          if (parsed != null) {
-            totals[column.key] = (totals[column.key] ?? 0) + parsed;
-          }
+        final value = resolvePrintColumnNumericValue(row, column);
+        if (value != null) {
+          totals[column.key] = (totals[column.key] ?? 0) + value;
         }
       }
     }
@@ -4208,14 +4255,9 @@ class DocumentCanvasPainter extends CustomPainter {
         continue;
       }
       for (final column in totalColumns) {
-        final value = resolvePrintPath(row, column.key);
-        if (value is num) {
-          totals[column.key] = (totals[column.key] ?? 0) + value.toDouble();
-        } else {
-          final parsed = double.tryParse(value?.toString() ?? '');
-          if (parsed != null) {
-            totals[column.key] = (totals[column.key] ?? 0) + parsed;
-          }
+        final value = resolvePrintColumnNumericValue(row, column);
+        if (value != null) {
+          totals[column.key] = (totals[column.key] ?? 0) + value;
         }
       }
     }

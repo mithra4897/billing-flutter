@@ -147,6 +147,7 @@ class DocumentPrintLineModel extends JsonModel {
     this.discountLabel,
     this.discountPercent,
     this.discountAmount,
+    this.taxableAmount,
     this.taxAmount,
     this.lineTotal = 0,
   }) : super(id: null);
@@ -160,6 +161,7 @@ class DocumentPrintLineModel extends JsonModel {
   final String? discountLabel;
   final double? discountPercent;
   final double? discountAmount;
+  final double? taxableAmount;
   final double? taxAmount;
   final double lineTotal;
 
@@ -180,6 +182,9 @@ class DocumentPrintLineModel extends JsonModel {
       discountAmount: json['discount_amount'] == null
           ? null
           : DocumentPrintDataModel._toDouble(json['discount_amount']),
+      taxableAmount: json['taxable_amount'] == null
+          ? null
+          : DocumentPrintDataModel._toDouble(json['taxable_amount']),
       taxAmount: json['tax_amount'] == null
           ? null
           : DocumentPrintDataModel._toDouble(json['tax_amount']),
@@ -202,6 +207,7 @@ class DocumentPrintLineModel extends JsonModel {
       if (discountLabel != null) 'discount_label': discountLabel,
       if (discountPercent != null) 'discount_percent': discountPercent,
       if (discountAmount != null) 'discount_amount': discountAmount,
+      if (taxableAmount != null) 'taxable_amount': taxableAmount,
       if (taxAmount != null) 'tax_amount': taxAmount,
       'line_total': lineTotal,
     };

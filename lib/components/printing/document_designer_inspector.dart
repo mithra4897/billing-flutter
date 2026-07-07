@@ -176,6 +176,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
   const DocumentDesignerShapeInspector({
     super.key,
     required this.shape,
+    required this.showAmountGstToggle,
     required this.bindings,
     required this.listBindings,
     required this.rowBindings,
@@ -191,6 +192,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
   });
 
   final DocumentPrintShape shape;
+  final bool showAmountGstToggle;
   final List<String> bindings;
   final List<String> listBindings;
   final List<String> rowBindings;
@@ -629,6 +631,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerTableColumnInspector(
             columns: shape.columns,
+            showAmountGstToggle: showAmountGstToggle,
             availableKeys: rowBindings,
             onChanged: (columns) => onChanged(shape.copyWith(columns: columns)),
           ),
@@ -947,11 +950,13 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
   const DocumentDesignerTableColumnInspector({
     super.key,
     required this.columns,
+    required this.showAmountGstToggle,
     required this.availableKeys,
     required this.onChanged,
   });
 
   final List<DocumentPrintColumn> columns;
+  final bool showAmountGstToggle;
   final List<String> availableKeys;
   final ValueChanged<List<DocumentPrintColumn>> onChanged;
 
@@ -1146,6 +1151,18 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                       column.copyWith(totalColumn: value),
                     ),
                   ),
+                  if (showAmountGstToggle &&
+                      column.key.trim().toLowerCase() == 'line_total') ...[
+                    const SizedBox(height: 4),
+                    AppSwitchTile(
+                      label: 'Enable GST',
+                      value: column.includeGst,
+                      onChanged: (value) => _updateColumn(
+                        index,
+                        column.copyWith(includeGst: value),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

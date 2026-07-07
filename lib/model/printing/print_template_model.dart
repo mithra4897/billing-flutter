@@ -2606,6 +2606,7 @@ class DocumentPrintColumn {
     this.align = 'left',
     this.titleAlign = 'center',
     this.totalColumn = false,
+    this.includeGst = true,
     this.numberFormat = 'default',
   });
 
@@ -2615,6 +2616,7 @@ class DocumentPrintColumn {
   final String align;
   final String titleAlign;
   final bool totalColumn;
+  final bool includeGst;
   final String numberFormat;
 
   factory DocumentPrintColumn.fromJson(Map<String, dynamic> json) {
@@ -2625,6 +2627,9 @@ class DocumentPrintColumn {
       align: stringValue(json, 'align', 'left'),
       titleAlign: stringValue(json, 'titleAlign', 'center'),
       totalColumn: boolValue(json, 'totalColumn'),
+      includeGst: json.containsKey('includeGst')
+          ? boolValue(json, 'includeGst', fallback: true)
+          : true,
       numberFormat: stringValue(json, 'numberFormat', 'default'),
     );
   }
@@ -2637,6 +2642,7 @@ class DocumentPrintColumn {
       'align': align,
       'titleAlign': titleAlign,
       'totalColumn': totalColumn,
+      'includeGst': includeGst,
       'numberFormat': numberFormat,
     };
   }
@@ -2648,6 +2654,7 @@ class DocumentPrintColumn {
     String? align,
     String? titleAlign,
     bool? totalColumn,
+    bool? includeGst,
     String? numberFormat,
   }) {
     return DocumentPrintColumn(
@@ -2657,6 +2664,7 @@ class DocumentPrintColumn {
       align: align ?? this.align,
       titleAlign: titleAlign ?? this.titleAlign,
       totalColumn: totalColumn ?? this.totalColumn,
+      includeGst: includeGst ?? this.includeGst,
       numberFormat: numberFormat ?? this.numberFormat,
     );
   }

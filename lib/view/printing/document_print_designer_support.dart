@@ -343,7 +343,7 @@ String resolvePrintCellValueForColumn(
   DocumentPrintColumn? column,
   String key,
 ) {
-  final value = resolvePrintPath(row, key);
+  final value = resolvePrintColumnValue(row, column, key);
   if (value == null) {
     return '';
   }
@@ -358,6 +358,32 @@ String resolvePrintCellValueForColumn(
     );
   }
   return value.toString();
+}
+
+Object? resolvePrintColumnValue(
+  Map<String, dynamic> row,
+  DocumentPrintColumn? column,
+  String key,
+) {
+  final normalizedKey = key.trim().toLowerCase();
+  if (normalizedKey == 'line_total' && column?.includeGst == false) {
+    final taxableValue = resolvePrintPath(row, 'taxable_amount');
+    if (taxableValue != null) {
+      return taxableValue;
+    }
+  }
+  return resolvePrintPath(row, key);
+}
+
+double? resolvePrintColumnNumericValue(
+  Map<String, dynamic> row,
+  DocumentPrintColumn column,
+) {
+  final value = resolvePrintColumnValue(row, column, column.key);
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '');
 }
 
 String formatPrintValueForKey(

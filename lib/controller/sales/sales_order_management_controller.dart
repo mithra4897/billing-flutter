@@ -1283,6 +1283,10 @@ class SalesOrderManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'is_direct_customer': directCustomerDetails.isNotEmpty,
+        'cgst_amount': roundToDouble(summary.cgst, 2),
+        'sgst_amount': roundToDouble(summary.sgst, 2),
+        'igst_amount': roundToDouble(summary.igst, 2),
+        'cess_amount': roundToDouble(summary.cess, 2),
       },
     );
   }
