@@ -160,7 +160,7 @@ String quotationCustomerLabel(Map<String, dynamic> data) {
   final directCustomerDetails =
       data['direct_customer_details']?.toString().trim() ?? '';
   if (directCustomerDetails.isNotEmpty) {
-    return directCustomerDetails.split('\n').first.trim();
+    return formatDirectCustomerDetailsLines(directCustomerDetails).first.trim();
   }
   final customer = data['customer'];
   if (customer is Map) {
@@ -660,6 +660,21 @@ bool? resolveIsInterStateForGstSummary({
     return null;
   }
   return companyStateCode != counterpartyStateCode;
+}
+
+List<String> formatDirectCustomerDetailsLines(String details) {
+  final formattedLines = details
+      .split('\n')
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .expand(
+        (line) => line
+            .split(RegExp(r'\s*,\s*'))
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty),
+      )
+      .toList(growable: false);
+  return formattedLines;
 }
 
 String formatPartyAddress(PartyAddressModel? address, {String fallback = ''}) {

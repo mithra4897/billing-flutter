@@ -55,7 +55,7 @@ String _salesCustomerName(Map<String, dynamic> data) {
   final directCustomerDetails =
       data['direct_customer_details']?.toString().trim() ?? '';
   if (directCustomerDetails.isNotEmpty) {
-    return directCustomerDetails.split('\n').first.trim();
+    return formatDirectCustomerDetailsLines(directCustomerDetails).first.trim();
   }
   final customer = data['customer'];
   if (customer is Map) {

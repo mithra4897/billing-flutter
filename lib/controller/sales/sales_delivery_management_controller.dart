@@ -1225,11 +1225,9 @@ class SalesDeliveryManagementController extends GetxController {
         directCustomerDetailsController.text.trim().isNotEmpty
         ? directCustomerDetailsController.text.trim()
         : (selected['direct_customer_details']?.toString().trim() ?? '');
-    final directCustomerLines = directCustomerDetails
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
+    final directCustomerLines = formatDirectCustomerDetailsLines(
+      directCustomerDetails,
+    );
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -1349,9 +1347,10 @@ class SalesDeliveryManagementController extends GetxController {
       totalAmount: roundToDouble(subtotal, 2),
       currencyCode: 'INR',
       lines: printLines,
-      extraData: documentStatus == 'draft'
-          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
-          : const <String, dynamic>{},
+      extraData: <String, dynamic>{
+        if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
+        'is_direct_customer': directCustomerDetails.isNotEmpty,
+      },
     );
   }
 

@@ -2425,11 +2425,9 @@ class SalesInvoiceManagementController extends GetxController {
         directCustomerDetailsController.text.trim().isNotEmpty
         ? directCustomerDetailsController.text.trim()
         : (selected['direct_customer_details']?.toString().trim() ?? '');
-    final directCustomerLines = directCustomerDetails
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList(growable: false);
+    final directCustomerLines = formatDirectCustomerDetailsLines(
+      directCustomerDetails,
+    );
     final customer = customerForTaxContext(customerPartyId);
     final customerData = selected['customer'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(
@@ -2560,6 +2558,7 @@ class SalesInvoiceManagementController extends GetxController {
           Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0,
           2,
         ),
+        'is_direct_customer': directCustomerDetails.isNotEmpty,
         if (invoiceStatus == 'draft') 'watermark_text': 'DRAFT',
       },
     );

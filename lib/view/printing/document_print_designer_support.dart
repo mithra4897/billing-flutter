@@ -309,6 +309,21 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
     );
     resolved = resolved.replaceAll('Sakthi Controller', companyName);
   }
+  final isDirectCustomer = data['is_direct_customer'] == true;
+  if (isDirectCustomer) {
+    final normalizedInput = input.trim().toLowerCase();
+    final normalizedResolved = resolved.trim().toLowerCase();
+    const customerGstinLabels = <String>{
+      'customer gstn :',
+      'customer gstin :',
+      'customer gstn:',
+      'customer gstin:',
+    };
+    if (customerGstinLabels.contains(normalizedInput) ||
+        customerGstinLabels.contains(normalizedResolved)) {
+      return '';
+    }
+  }
   if (hasPlaceholders && resolved.contains('\n')) {
     resolved = resolved
         .split('\n')
