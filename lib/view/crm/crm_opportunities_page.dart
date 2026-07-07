@@ -1491,25 +1491,14 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                   absorbing: isLocked,
                   child: PurchaseCompactFieldGrid(
                     children: [
-                      AppSearchPickerField<int>(
+                      ErpLinkField<int>(
                         labelText: 'Item',
-                        selectedLabel: controller.itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == product.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: controller.itemsLookup
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
+                        doctypeLabel: 'Item',
+                        hintText: 'Search item',
+                        initialSelection: controller.selectedItemOption(
+                          product.itemId,
+                        ),
+                        options: controller.itemPickerOptions,
                         onChanged: (value) {
                           product.itemId = value;
                           controller.update();
@@ -1608,25 +1597,14 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                   absorbing: isLocked,
                   child: PurchaseCompactFieldGrid(
                     children: [
-                      AppSearchPickerField<int>(
+                      ErpLinkField<int>(
                         labelText: 'Item',
-                        selectedLabel: controller.itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: controller.itemsLookup
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
+                        doctypeLabel: 'Item',
+                        hintText: 'Search item',
+                        initialSelection: controller.selectedItemOption(
+                          line.itemId,
+                        ),
+                        options: controller.itemPickerOptions,
                         onChanged: (value) {
                           line.itemId = value;
                           controller.update();

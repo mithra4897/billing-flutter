@@ -183,8 +183,8 @@ class CrmOpportunitiesController extends GetxController {
         _authService.users(
           filters: const {'per_page': 200, 'sort_by': 'username'},
         ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
+        _inventoryService.itemsDropdown(
+          filters: const {'is_active': 1},
         ),
       ]);
 
@@ -232,7 +232,7 @@ class CrmOpportunitiesController extends GetxController {
               .where((item) => (item.status ?? 'active') == 'active')
               .toList();
       itemsLookup =
-          ((responses[6] as PaginatedResponse<ItemModel>).data ??
+          ((responses[6] as ApiResponse<List<ItemModel>>).data ??
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList();
@@ -335,6 +335,38 @@ class CrmOpportunitiesController extends GetxController {
             })
             .toList(growable: false);
     if (notify) update();
+  }
+
+  List<ErpLinkFieldOption<int>> get itemPickerOptions => itemsLookup
+      .where((item) => item.id != null)
+      .map(itemOption)
+      .toList(growable: false);
+
+  ErpLinkFieldOption<int>? selectedItemOption(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+
+    final item = itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+
+    return item == null ? null : itemOption(item);
+  }
+
+  ErpLinkFieldOption<int> itemOption(ItemModel item) {
+    final subtitleParts = <String>[
+      item.itemCode,
+      item.itemType ?? '',
+    ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+
+    return ErpLinkFieldOption<int>(
+      value: item.id!,
+      label: item.toString(),
+      subtitle: subtitleParts.isEmpty ? null : subtitleParts.join(' • '),
+      searchText: item.pickerSearchText,
+    );
   }
 
   Future<void> selectItem(
