@@ -1378,7 +1378,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               ],
             ],
           ),
-          if (controller.selectedOpportunityId() != null) ...[
+          if (controller.selectedOpportunityId() != null && !isLocked) ...[
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

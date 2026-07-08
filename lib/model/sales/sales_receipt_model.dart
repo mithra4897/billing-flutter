@@ -11,6 +11,8 @@ class SalesReceiptModel extends JsonModel {
     this.receiptNo,
     this.receiptDate,
     this.customerPartyId,
+    this.isDirectCustomer = false,
+    this.directCustomerDetails,
     this.customerName,
     this.customer,
     this.paymentMode,
@@ -40,6 +42,8 @@ class SalesReceiptModel extends JsonModel {
   final String? receiptNo;
   final String? receiptDate;
   final int? customerPartyId;
+  final bool isDirectCustomer;
+  final String? directCustomerDetails;
   final String? customerName;
   final Map<String, dynamic>? customer;
   final String? paymentMode;
@@ -72,6 +76,9 @@ class SalesReceiptModel extends JsonModel {
       receiptNo: json['receipt_no']?.toString(),
       receiptDate: json['receipt_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      isDirectCustomer:
+          json['is_direct_customer'] == true || json['is_direct_customer'] == 1,
+      directCustomerDetails: json['direct_customer_details']?.toString(),
       customerName: json['customer_name']?.toString(),
       customer: JsonModel.mapOf(json['customer']),
       paymentMode: json['payment_mode']?.toString(),
@@ -113,6 +120,9 @@ class SalesReceiptModel extends JsonModel {
     if (documentSeriesId != null) 'document_series_id': documentSeriesId,
     if (receiptNo != null) 'receipt_no': receiptNo,
     if (receiptDate != null) 'receipt_date': receiptDate,
+    'is_direct_customer': isDirectCustomer,
+    if (directCustomerDetails != null)
+      'direct_customer_details': directCustomerDetails,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
     if (customerName != null) 'customer_name': customerName,
     if (customer != null) 'customer': customer,

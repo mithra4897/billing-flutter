@@ -562,7 +562,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             hideEnquiryChip: true,
             hideOpportunityChip: true,
           ),
-          if (!isLocked && controller.pipelineOpportunityId() != null) ...[
+          if (!isLocked &&
+              lifecycleStatus != 'lost' &&
+              controller.pipelineOpportunityId() != null) ...[
             AppActionButton(
               icon: Icons.request_quote_outlined,
               label: 'New quotation (this deal)',

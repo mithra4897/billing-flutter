@@ -88,6 +88,8 @@ class SalesReceiptManagementController extends GetxController {
       TextEditingController();
   final TextEditingController paymentReferenceDateController =
       TextEditingController();
+  final TextEditingController directCustomerDetailsController =
+      TextEditingController();
   final TextEditingController paidAmountController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
@@ -117,6 +119,7 @@ class SalesReceiptManagementController extends GetxController {
   int? documentSeriesId;
   int? customerPartyId;
   int? accountId;
+  bool isDirectCustomer = false;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<SalesReceiptAllocationDraft> allocations =
@@ -145,6 +148,7 @@ class SalesReceiptManagementController extends GetxController {
     receiptDateController.dispose();
     paymentReferenceNoController.dispose();
     paymentReferenceDateController.dispose();
+    directCustomerDetailsController.dispose();
     paidAmountController.dispose();
     notesController.dispose();
     _disposeAllocations(allocations);
@@ -409,7 +413,14 @@ class SalesReceiptManagementController extends GetxController {
     locationId = intValue(data, 'location_id');
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = intValue(data, 'document_series_id');
-    customerPartyId = intValue(data, 'customer_party_id');
+    isDirectCustomer = boolValue(data, 'is_direct_customer');
+    customerPartyId = isDirectCustomer
+        ? null
+        : intValue(data, 'customer_party_id');
+    directCustomerDetailsController.text = stringValue(
+      data,
+      'direct_customer_details',
+    );
     accountId = intValue(data, 'account_id');
     paymentMode = stringValue(data, 'payment_mode', 'bank');
     clearAccountIfInvalidForReceipt();
@@ -446,6 +457,7 @@ class SalesReceiptManagementController extends GetxController {
     financialYearId = contextFinancialYearId;
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     customerPartyId = null;
+    isDirectCustomer = false;
     accountId = null;
     paymentMode = 'bank';
     receiptNoController.clear();
@@ -455,6 +467,7 @@ class SalesReceiptManagementController extends GetxController {
         .first;
     paymentReferenceNoController.clear();
     paymentReferenceDateController.clear();
+    directCustomerDetailsController.clear();
     paidAmountController.clear();
     notesController.clear();
     isActive = true;
@@ -493,7 +506,12 @@ class SalesReceiptManagementController extends GetxController {
       documentSeriesId =
           invoice.documentSeriesId ??
           (series.isNotEmpty ? series.first.id : null);
-      customerPartyId = invoice.customerPartyId;
+      isDirectCustomer = invoice.isDirectCustomer;
+      customerPartyId = invoice.isDirectCustomer
+          ? null
+          : (invoice.customerPartyId > 0 ? invoice.customerPartyId : null);
+      directCustomerDetailsController.text =
+          invoice.directCustomerDetails?.trim() ?? '';
       paidAmountController.text = allocationAmount;
       if (!invoices.any((entry) => entry.id == invoice.id)) {
         invoices = <SalesInvoiceModel>[invoice, ...invoices];
@@ -571,9 +589,14 @@ class SalesReceiptManagementController extends GetxController {
 
   List<SalesInvoiceModel> get invoiceOptions => invoices
       .where((invoice) {
-        return (customerPartyId == null ||
-                invoice.customerPartyId == customerPartyId) &&
-            invoice.companyId == companyId;
+        if (invoice.companyId != companyId) {
+          return false;
+        }
+        if (isDirectCustomer) {
+          return invoice.isDirectCustomer;
+        }
+        return !invoice.isDirectCustomer &&
+            (customerPartyId == null || invoice.customerPartyId == customerPartyId);
       })
       .toList(growable: false);
 
@@ -633,6 +656,20 @@ class SalesReceiptManagementController extends GetxController {
 
   void setCustomerPartyId(int? value) {
     customerPartyId = value;
+    _pruneAllocationsForCurrentCustomer();
+    update();
+  }
+
+  void setDirectCustomer(bool value) {
+    isDirectCustomer = value;
+    if (value) {
+      customerPartyId = null;
+      directCustomerDetailsController.text =
+          directCustomerDetailsController.text.trim();
+    } else {
+      directCustomerDetailsController.clear();
+    }
+    _pruneAllocationsForCurrentCustomer();
     update();
   }
 
@@ -694,6 +731,20 @@ class SalesReceiptManagementController extends GetxController {
     if (!formKey.currentState!.validate()) {
       return;
     }
+    final directCustomerDetails = nullIfEmpty(
+      directCustomerDetailsController.text,
+    );
+    if (isDirectCustomer) {
+      if (directCustomerDetails == null) {
+        formError = 'Enter direct customer details.';
+        update();
+        return;
+      }
+    } else if (customerPartyId == null) {
+      formError = 'Choose a customer or mark this as direct customer.';
+      update();
+      return;
+    }
     if ((Validators.parseFlexibleNumber(paidAmountController.text) ?? 0) <= 0) {
       formError = 'Paid amount must be greater than zero.';
       update();
@@ -711,6 +762,8 @@ class SalesReceiptManagementController extends GetxController {
       'receipt_no': nullIfEmpty(receiptNoController.text),
       'receipt_date': receiptDateController.text.trim(),
       'customer_party_id': customerPartyId,
+      'is_direct_customer': isDirectCustomer,
+      'direct_customer_details': directCustomerDetails,
       'payment_mode': paymentMode,
       'account_id': accountId,
       'payment_reference_no': nullIfEmpty(paymentReferenceNoController.text),
@@ -902,5 +955,36 @@ class SalesReceiptManagementController extends GetxController {
       salesChain = null;
     }
     update();
+  }
+
+  void _pruneAllocationsForCurrentCustomer() {
+    if (allocations.isEmpty) {
+      return;
+    }
+    final allowedInvoiceIds = invoiceOptions
+        .map((invoice) => invoice.id)
+        .whereType<int>()
+        .toSet();
+    final nextAllocations = <SalesReceiptAllocationDraft>[];
+    final removedAllocations = <SalesReceiptAllocationDraft>[];
+    for (final allocation in allocations) {
+      final invoiceId = allocation.salesInvoiceId;
+      final shouldKeep =
+          invoiceId == null || allowedInvoiceIds.contains(invoiceId);
+      if (shouldKeep) {
+        nextAllocations.add(allocation);
+      } else {
+        removedAllocations.add(allocation);
+      }
+    }
+    if (removedAllocations.isEmpty) {
+      return;
+    }
+    allocations = nextAllocations;
+    syncPaidAmountFromAllocations(notify: false);
+    disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>(
+      removedAllocations,
+      (allocation) => allocation.dispose(),
+    );
   }
 }

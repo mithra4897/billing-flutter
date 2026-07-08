@@ -248,39 +248,69 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                       Validators.date('Receipt Date'),
                     ]),
                   ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Customer',
-                    doctypeLabel: 'Customer',
-                    allowCreate: true,
-                    onNavigateToCreateNew: (name) {
-                      final uri = Uri(
-                        path: '/parties',
-                        queryParameters: {
-                          'new': '1',
-                          'party_context': 'customer',
-                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                        },
-                      );
-                      final navigate = ShellRouteScope.maybeOf(context);
-                      if (navigate != null) {
-                        navigate(uri.toString());
-                      } else {
-                        Navigator.of(context).pushNamed(uri.toString());
-                      }
-                    },
-                    mappedItems: controller.customers
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: controller.customerPartyId,
-                    onChanged: canEdit ? controller.setCustomerPartyId : (_) {},
-                    validator: Validators.requiredSelection('Customer'),
+                  AppSwitchTile(
+                    label: 'Direct Customer',
+                    value: controller.isDirectCustomer,
+                    onChanged: canEdit ? controller.setDirectCustomer : null,
                   ),
+                  if (controller.isDirectCustomer)
+                    AppFormTextField(
+                      labelText: 'Direct Customer Details',
+                      controller: controller.directCustomerDetailsController,
+                      enabled: canEdit,
+                      maxLines: 4,
+                      validator: (value) {
+                        if (!controller.isDirectCustomer) {
+                          return null;
+                        }
+                        final trimmed = value?.trim() ?? '';
+                        if (trimmed.isEmpty) {
+                          return 'Direct customer details are required';
+                        }
+                        return null;
+                      },
+                    )
+                  else
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Customer',
+                      doctypeLabel: 'Customer',
+                      allowCreate: true,
+                      onNavigateToCreateNew: (name) {
+                        final uri = Uri(
+                          path: '/parties',
+                          queryParameters: {
+                            'new': '1',
+                            'party_context': 'customer',
+                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                          },
+                        );
+                        final navigate = ShellRouteScope.maybeOf(context);
+                        if (navigate != null) {
+                          navigate(uri.toString());
+                        } else {
+                          Navigator.of(context).pushNamed(uri.toString());
+                        }
+                      },
+                      mappedItems: controller.customers
+                          .where((item) => item.id != null)
+                          .map(
+                            (item) => AppDropdownItem(
+                              value: item.id!,
+                              label: item.toString(),
+                            ),
+                          )
+                          .toList(growable: false),
+                      initialValue: controller.customerPartyId,
+                      onChanged: canEdit
+                          ? controller.setCustomerPartyId
+                          : (_) {},
+                      validator: (value) {
+                        if (controller.isDirectCustomer) {
+                          return null;
+                        }
+                        return Validators.requiredSelection('Customer')(value);
+                      },
+                    ),
                   AppDropdownField<String>.fromMapped(
                     labelText: 'Payment Mode',
                     mappedItems: controller.paymentModeDropdownItems(),
