@@ -92,6 +92,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _controller = TextEditingController();
+  final Object _tapRegionGroupId = Object();
 
   OverlayEntry? _overlayEntry;
   FormFieldState<T?>? _fieldState;
@@ -621,78 +622,72 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              _focusNode.unfocus();
-              _closeDropdown();
-            },
-          ),
-        ),
         CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
           offset: Offset(0, size.height + _dropdownOffset),
-          child: Material(
-            color: Colors.transparent,
-            child: SizedBox(
-              width: size.width,
-              child: Container(
-                constraints: BoxConstraints(maxHeight: dropdownHeight),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.55),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+          child: TextFieldTapRegion(
+            groupId: _tapRegionGroupId,
+            child: Material(
+              color: Colors.transparent,
+              child: SizedBox(
+                width: size.width,
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: dropdownHeight),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: theme.dividerColor.withValues(alpha: 0.55),
                     ),
-                  ],
-                ),
-                child: entries.isEmpty
-                    ? const SizedBox.shrink()
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        shrinkWrap: true,
-                        itemCount: entries.length,
-                        itemBuilder: (context, index) {
-                          final entry = entries[index];
-                          return _ErpDropdownRow<T>(
-                            entry: entry,
-                            highlighted: index == _highlightedIndex,
-                            showCheckbox:
-                                _isMultiSelect &&
-                                entry.kind == _ErpMenuEntryKind.result,
-                            checked:
-                                _isMultiSelect &&
-                                entry.option != null &&
-                                _multiSelectedValues.contains(
-                                  entry.option!.value,
-                                ),
-                            onPointerDown: _beginDropdownInteraction,
-                            onHoverChanged: (hovered) {
-                              if (!hovered) {
-                                return;
-                              }
-                              if (_highlightedIndex != index) {
-                                setState(() {
-                                  _highlightedIndex = index;
-                                });
-                                _markOverlayNeedsBuild();
-                              }
-                            },
-                            onTap: entry.selectable && _fieldState != null
-                                ? () => _selectEntry(entry, _fieldState!)
-                                : null,
-                          );
-                        },
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
+                    ],
+                  ),
+                  child: entries.isEmpty
+                      ? const SizedBox.shrink()
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          itemCount: entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            return _ErpDropdownRow<T>(
+                              entry: entry,
+                              highlighted: index == _highlightedIndex,
+                              showCheckbox:
+                                  _isMultiSelect &&
+                                  entry.kind == _ErpMenuEntryKind.result,
+                              checked:
+                                  _isMultiSelect &&
+                                  entry.option != null &&
+                                  _multiSelectedValues.contains(
+                                    entry.option!.value,
+                                  ),
+                              onPointerDown: _beginDropdownInteraction,
+                              onHoverChanged: (hovered) {
+                                if (!hovered) {
+                                  return;
+                                }
+                                if (_highlightedIndex != index) {
+                                  setState(() {
+                                    _highlightedIndex = index;
+                                  });
+                                  _markOverlayNeedsBuild();
+                                }
+                              },
+                              onTap: entry.selectable && _fieldState != null
+                                  ? () => _selectEntry(entry, _fieldState!)
+                                  : null,
+                            );
+                          },
+                        ),
+                ),
               ),
             ),
           ),
@@ -725,68 +720,75 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         validator: widget.validator,
         builder: (field) {
           _fieldState = field;
-          return CompositedTransformTarget(
-            link: _layerLink,
-            child: Focus(
-              onKeyEvent: (node, event) => _handleKeyEvent(field, event),
-              child: TextFormField(
-                key: _fieldKey,
-                controller: _controller,
-                focusNode: _focusNode,
-                enabled: true,
-                readOnly: !widget.enabled,
-                textAlignVertical: TextAlignVertical.center,
-                style: fieldTextStyle,
-                decoration: InputDecoration(
-                  labelText: compactCellMode ? null : widget.labelText,
-                  floatingLabelBehavior: compactCellMode
-                      ? FloatingLabelBehavior.never
-                      : FloatingLabelBehavior.auto,
-                  isDense: true,
-                  contentPadding: compactCellMode
-                      ? const EdgeInsets.symmetric(
-                          horizontal: AppUiConstants.tableCellPaddingSm,
-                          vertical: AppUiConstants.tableCellPaddingXs,
-                        )
-                      : null,
-                  hintText: _isMultiSelect
-                      ? (widget.multiHintText ??
-                            widget.hintText ??
-                            'Search $_doctypeLabel')
-                      : (widget.hintText ?? 'Search $_doctypeLabel'),
-                  errorText: field.errorText,
-                  errorStyle: compactCellMode ? compactErrorStyle : null,
-                  errorMaxLines: compactCellMode ? 1 : null,
-                  suffixIconConstraints: BoxConstraints(
-                    minWidth: compactCellMode ? 28 : 30,
-                    minHeight: compactCellMode
-                        ? AppUiConstants.tableCompactFieldHeight - 2
-                        : 30,
+          return TextFieldTapRegion(
+            groupId: _tapRegionGroupId,
+            child: CompositedTransformTarget(
+              link: _layerLink,
+              child: Focus(
+                onKeyEvent: (node, event) => _handleKeyEvent(field, event),
+                child: TextFormField(
+                  key: _fieldKey,
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  enabled: true,
+                  readOnly: !widget.enabled,
+                  textAlignVertical: TextAlignVertical.center,
+                  style: fieldTextStyle,
+                  decoration: InputDecoration(
+                    labelText: compactCellMode ? null : widget.labelText,
+                    floatingLabelBehavior: compactCellMode
+                        ? FloatingLabelBehavior.never
+                        : FloatingLabelBehavior.auto,
+                    isDense: true,
+                    contentPadding: compactCellMode
+                        ? const EdgeInsets.symmetric(
+                            horizontal: AppUiConstants.tableCellPaddingSm,
+                            vertical: AppUiConstants.tableCellPaddingXs,
+                          )
+                        : null,
+                    hintText: _isMultiSelect
+                        ? (widget.multiHintText ??
+                              widget.hintText ??
+                              'Search $_doctypeLabel')
+                        : (widget.hintText ?? 'Search $_doctypeLabel'),
+                    errorText: field.errorText,
+                    errorStyle: compactCellMode ? compactErrorStyle : null,
+                    errorMaxLines: compactCellMode ? 1 : null,
+                    suffixIconConstraints: BoxConstraints(
+                      minWidth: compactCellMode ? 28 : 30,
+                      minHeight: compactCellMode
+                          ? AppUiConstants.tableCompactFieldHeight - 2
+                          : 30,
+                    ),
+                    suffixIcon: _loading || _creating
+                        ? const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const Icon(Icons.arrow_drop_down, size: 18),
                   ),
-                  suffixIcon: _loading || _creating
-                      ? const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : const Icon(Icons.arrow_drop_down, size: 18),
+                  onTapOutside: (_) {
+                    _focusNode.unfocus();
+                    _closeDropdown();
+                  },
+                  onTap: () {
+                    if (!widget.enabled) {
+                      FocusScope.of(context).unfocus();
+                      return;
+                    }
+                    if (!_isMultiSelect && _selected != null) {
+                      _controller.selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: _controller.text.length,
+                      );
+                    }
+                    unawaited(_prepareDropdownForOpen());
+                  },
                 ),
-                onTap: () {
-                  if (!widget.enabled) {
-                    FocusScope.of(context).unfocus();
-                    return;
-                  }
-                  if (!_isMultiSelect && _selected != null) {
-                    _controller.selection = TextSelection(
-                      baseOffset: 0,
-                      extentOffset: _controller.text.length,
-                    );
-                  }
-                  unawaited(_prepareDropdownForOpen());
-                },
               ),
             ),
           );

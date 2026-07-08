@@ -595,7 +595,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     ),
                   ),
                 if (controller.selectedItem != null &&
-                    controller.status != 'cancelled')
+                    const {
+                      'posted',
+                      'sent',
+                    }.contains(controller.status))
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
                     label: 'Revise quote',

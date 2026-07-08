@@ -386,6 +386,15 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
         itemBuilder: (item, selected) {
           final data = item.toJson();
+          final total =
+              item.totalAmount ??
+              double.tryParse(data['total_amount']?.toString() ?? '') ??
+              0;
+          final balance =
+              item.balanceAmount ??
+              double.tryParse(data['balance_amount']?.toString() ?? '') ??
+              0;
+          final status = (item.invoiceStatus ?? '').toLowerCase();
           return SettingsListTile(
             title: nullableStringValue(data, 'invoice_no') ?? 'Draft Invoice',
             subtitle: displayDate(nullableStringValue(data, 'invoice_date')),
@@ -396,9 +405,38 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   stringValue(data, 'supplier_name'),
               statusKey: 'invoice_status',
             ),
-            trailing: purchaseStatusBadge(
-              context,
-              nullableStringValue(data, 'invoice_status'),
+            trailing: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                purchaseStatusBadge(
+                  context,
+                  nullableStringValue(data, 'invoice_status'),
+                ),
+                const SizedBox(height: AppUiConstants.spacingXxs),
+                Text(
+                  'Total ${formatAmount(total)}',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'INR',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).extension<AppThemeExtension>()!.mutedText,
+                  ),
+                ),
+                if (!const {'draft', 'cancelled'}.contains(status))
+                  Text(
+                    'Outstanding ${formatAmount(balance)}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -426,6 +464,73 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null) ...[
+              Builder(
+                builder: (_) {
+                  final total = controller.selectedItem?.totalAmount ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingSm,
+                    ),
+                    child: Wrap(
+                      spacing: AppUiConstants.spacingSm,
+                      runSpacing: AppUiConstants.spacingXs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Total: ${formatAmount(total)} INR',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        purchaseStatusBadge(
+                          context,
+                          controller.selectedItem?.invoiceStatus,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+            if (controller.selectedItem != null &&
+                !const {'draft', 'cancelled'}.contains(
+                  (controller.selectedItem?.invoiceStatus ?? '').toLowerCase(),
+                ) &&
+                (controller.selectedItem?.balanceAmount ?? 0) > 0.000001)
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Outstanding: ${formatAmount(controller.selectedItem?.balanceAmount ?? 0)} INR',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    AppActionButton(
+                      icon: Icons.payments_outlined,
+                      label: 'Make payment',
+                      filled: false,
+                      onPressed: () {
+                        final navigate = ShellRouteScope.maybeOf(context);
+                        final route =
+                            '/purchase/payments/new?invoice_id=${controller.selectedItem!.id}';
+                        if (navigate != null) {
+                          navigate(route);
+                          return;
+                        }
+                        Navigator.of(context).pushNamed(route);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             IgnorePointer(
               ignoring: controller.isSelectedInvoiceReadOnly,
               child: Column(
@@ -708,12 +813,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     final status =
                         (controller.selectedItem?.invoiceStatus ?? '')
                             .toLowerCase();
-                    final balance = controller.selectedItem?.balanceAmount ?? 0;
-                    final canMakePayment =
-                        controller.selectedItem != null &&
-                        status != 'draft' &&
-                        status != 'cancelled' &&
-                        balance > 0;
                     final canPost =
                         controller.selectedItem != null && status == 'draft';
                     final canCancel =
@@ -724,22 +823,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       spacing: AppUiConstants.spacingSm,
                       runSpacing: AppUiConstants.spacingSm,
                       children: [
-                        if (canMakePayment)
-                          AppActionButton(
-                            icon: Icons.payments_outlined,
-                            label: 'Make payment',
-                            filled: false,
-                            onPressed: () {
-                              final navigate = ShellRouteScope.maybeOf(context);
-                              final route =
-                                  '/purchase/payments/new?invoice_id=${controller.selectedItem!.id}';
-                              if (navigate != null) {
-                                navigate(route);
-                                return;
-                              }
-                              Navigator.of(context).pushNamed(route);
-                            },
-                          ),
                         if (canPost)
                           AppActionButton(
                             icon: Icons.publish_outlined,

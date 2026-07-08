@@ -155,6 +155,7 @@ class SalesQuotationManagementController extends GetxController {
   int? locationId;
   int? financialYearId;
   int? documentSeriesId;
+  int? revisedFromQuotationId;
   int? customerPartyId;
   bool isDirectCustomer = false;
   bool isActive = true;
@@ -504,6 +505,7 @@ class SalesQuotationManagementController extends GetxController {
     locationId = intValue(data, 'location_id');
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = intValue(data, 'document_series_id');
+    revisedFromQuotationId = intValue(data, 'revised_from_quotation_id');
     customerPartyId = intValue(data, 'customer_party_id');
     isDirectCustomer = full.isDirectCustomer;
     customerPartyId = full.isDirectCustomer ? null : customerPartyId;
@@ -548,6 +550,7 @@ class SalesQuotationManagementController extends GetxController {
     locationId = contextLocationId;
     financialYearId = contextFinancialYearId;
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
+    revisedFromQuotationId = null;
     customerPartyId = null;
     isDirectCustomer = false;
     quotationNoController.clear();
@@ -1153,6 +1156,7 @@ class SalesQuotationManagementController extends GetxController {
       'location_id': locationId,
       'financial_year_id': financialYearId,
       'document_series_id': documentSeriesId,
+      'revised_from_quotation_id': revisedFromQuotationId,
       'quotation_no': nullIfEmpty(quotationNoController.text),
       'quotation_date': quotationDateController.text.trim(),
       'valid_until': nullIfEmpty(validUntilController.text),
@@ -1423,6 +1427,7 @@ class SalesQuotationManagementController extends GetxController {
     financialYearId =
         intValue(data, 'financial_year_id') ?? contextFinancialYearId;
     documentSeriesId = intValue(data, 'document_series_id');
+    revisedFromQuotationId = intValue(data, 'id');
     customerPartyId = intValue(data, 'customer_party_id');
     isDirectCustomer = boolValue(data, 'is_direct_customer');
     customerPartyId = isDirectCustomer ? null : customerPartyId;

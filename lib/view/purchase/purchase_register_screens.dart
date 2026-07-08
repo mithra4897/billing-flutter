@@ -788,6 +788,18 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             statusKey: 'invoice_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Total',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.totalAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
+        PurchaseRegisterColumn(
+          label: 'Outstanding',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.balanceAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
     );

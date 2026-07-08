@@ -8,6 +8,7 @@ class SalesQuotationModel extends JsonModel {
     this.locationId,
     this.financialYearId,
     this.documentSeriesId,
+    this.revisedFromQuotationId,
     this.quotationNo,
     this.quotationDate,
     this.validUntil,
@@ -50,6 +51,7 @@ class SalesQuotationModel extends JsonModel {
   final int? locationId;
   final int? financialYearId;
   final int? documentSeriesId;
+  final int? revisedFromQuotationId;
   final String? quotationNo;
   final String? quotationDate;
   final String? validUntil;
@@ -95,6 +97,9 @@ class SalesQuotationModel extends JsonModel {
       locationId: JsonModel.nullableInt(json['location_id']),
       financialYearId: JsonModel.nullableInt(json['financial_year_id']),
       documentSeriesId: JsonModel.nullableInt(json['document_series_id']),
+      revisedFromQuotationId: JsonModel.nullableInt(
+        json['revised_from_quotation_id'],
+      ),
       quotationNo: json['quotation_no']?.toString(),
       quotationDate: json['quotation_date']?.toString(),
       validUntil: json['valid_until']?.toString(),
@@ -151,6 +156,8 @@ class SalesQuotationModel extends JsonModel {
     if (locationId != null) 'location_id': locationId,
     if (financialYearId != null) 'financial_year_id': financialYearId,
     if (documentSeriesId != null) 'document_series_id': documentSeriesId,
+    if (revisedFromQuotationId != null)
+      'revised_from_quotation_id': revisedFromQuotationId,
     if (quotationNo != null) 'quotation_no': quotationNo,
     if (quotationDate != null) 'quotation_date': quotationDate,
     if (validUntil != null) 'valid_until': validUntil,
