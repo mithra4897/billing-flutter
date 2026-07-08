@@ -172,6 +172,7 @@ class PurchaseReturnManagementController extends GetxController {
   List<UomModel> uoms = const <UomModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   PurchaseReturnModel? selectedItem;
+  Map<String, dynamic>? purchaseChain;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -422,14 +423,34 @@ class PurchaseReturnManagementController extends GetxController {
     formError = null;
     syncLineDisplayNames();
     _upsertReturn(full, notify: false);
+    await refreshPurchaseChain(notify: false);
     if (notify) {
       update();
     }
   }
 
+  Future<void> refreshPurchaseChain({bool notify = true}) async {
+    final id = selectedItem?.id;
+    if (id == null) {
+      purchaseChain = null;
+      if (notify) update();
+      return;
+    }
+
+    try {
+      final response = await _purchaseService.purchaseChain(returnId: id);
+      purchaseChain = response.data;
+    } catch (_) {
+      purchaseChain = null;
+    }
+
+    if (notify) update();
+  }
+
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
     selectedItem = null;
+    purchaseChain = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;

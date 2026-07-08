@@ -1,5 +1,6 @@
 import '../../controller/purchase/purchase_return_management_controller.dart';
 import '../../screen.dart';
+import 'purchase_pipeline_bar.dart';
 
 class PurchaseReturnPage extends StatefulWidget {
   const PurchaseReturnPage({
@@ -315,6 +316,11 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null)
+              PurchasePipelineBar(
+                data: controller.purchaseChain,
+                hideReturnChip: true,
+              ),
             IgnorePointer(
               ignoring: controller.isSelectedReturnReadOnly,
               child: Column(

@@ -1,5 +1,6 @@
 import '../../controller/purchase/purchase_payment_management_controller.dart';
 import '../../screen.dart';
+import 'purchase_pipeline_bar.dart';
 
 class PurchasePaymentPage extends StatefulWidget {
   const PurchasePaymentPage({
@@ -232,6 +233,11 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null)
+              PurchasePipelineBar(
+                data: controller.purchaseChain,
+                hidePaymentChip: true,
+              ),
             IgnorePointer(
               ignoring: controller.isSelectedPaymentReadOnly,
               child: Column(

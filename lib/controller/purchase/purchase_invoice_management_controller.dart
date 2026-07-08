@@ -80,6 +80,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
   PurchaseInvoiceModel? selectedItem;
+  Map<String, dynamic>? purchaseChain;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -152,9 +153,17 @@ class PurchaseInvoiceManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> initialize({int? initialId}) async {
+  Future<void> initialize({
+    int? initialId,
+    int? initialPurchaseOrderId,
+    int? initialPurchaseReceiptId,
+  }) async {
     if (!_initialized) _initialized = true;
-    await loadPage(selectId: initialId);
+    await loadPage(
+      selectId: initialId,
+      initialPurchaseOrderId: initialPurchaseOrderId,
+      initialPurchaseReceiptId: initialPurchaseReceiptId,
+    );
     _refreshController.notifyChanged(source: 'purchase_invoice');
   }
 
@@ -163,7 +172,11 @@ class PurchaseInvoiceManagementController extends GetxController {
     _refreshController.notifyChanged(source: 'purchase_invoice');
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({
+    int? selectId,
+    int? initialPurchaseOrderId,
+    int? initialPurchaseReceiptId,
+  }) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -349,6 +362,11 @@ class PurchaseInvoiceManagementController extends GetxController {
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
+        if (initialPurchaseReceiptId != null) {
+          await handlePurchaseReceiptChanged(initialPurchaseReceiptId);
+        } else if (initialPurchaseOrderId != null) {
+          await handlePurchaseOrderChanged(initialPurchaseOrderId);
+        }
       }
       update();
     } catch (errorValue) {
@@ -410,12 +428,32 @@ class PurchaseInvoiceManagementController extends GetxController {
       unawaited(enrichLinesFromReceiptHeader(full.purchaseReceiptId!));
     }
     _upsertInvoice(full, notify: false);
+    await refreshPurchaseChain(notify: false);
+    if (notify) update();
+  }
+
+  Future<void> refreshPurchaseChain({bool notify = true}) async {
+    final id = selectedItem?.id;
+    if (id == null) {
+      purchaseChain = null;
+      if (notify) update();
+      return;
+    }
+
+    try {
+      final response = await _purchaseService.purchaseChain(invoiceId: id);
+      purchaseChain = response.data;
+    } catch (_) {
+      purchaseChain = null;
+    }
+
     if (notify) update();
   }
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
     selectedItem = null;
+    purchaseChain = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;
@@ -930,24 +968,30 @@ class PurchaseInvoiceManagementController extends GetxController {
     return (orderedQty - invoicedQty).clamp(0, double.infinity).toDouble();
   }
 
+  String? normalizePurchaseTaxType(String? rawValue) {
+    final normalized = rawValue?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return switch (normalized) {
+      'igst' || 'inter' || 'inter_state' || 'interstate' => 'inter',
+      'cgst_sgst' || 'intra' || 'intra_state' || 'intrastate' => 'intra',
+      _ => null,
+    };
+  }
+
   String? resolveImportedPurchaseTaxType(Map<String, dynamic> line) {
-    final explicit = nullableStringValue(
-      line,
-      'tax_type',
-    )?.trim().toLowerCase();
-    if (explicit != null && explicit.isNotEmpty) {
+    final explicit = normalizePurchaseTaxType(
+      nullableStringValue(line, 'tax_type'),
+    );
+    if (explicit != null) {
       return explicit;
     }
-    final taxApplication = nullableStringValue(
-      line,
-      'tax_application',
-    )?.trim().toLowerCase();
-    if (taxApplication != null && taxApplication.isNotEmpty) {
-      return switch (taxApplication) {
-        'igst' => 'inter',
-        'cgst_sgst' => 'intra',
-        _ => null,
-      };
+    final taxApplication = normalizePurchaseTaxType(
+      nullableStringValue(line, 'tax_application'),
+    );
+    if (taxApplication != null) {
+      return taxApplication;
     }
     final igst =
         Validators.parseFlexibleNumber(stringValue(line, 'igst_amount')) ?? 0;
@@ -1023,6 +1067,34 @@ class PurchaseInvoiceManagementController extends GetxController {
           final sourceOrderLine = line.purchaseOrderLineId == null
               ? null
               : orderLineLookup[line.purchaseOrderLineId!];
+          final item = itemById(line.itemId);
+          final fallbackItemTaxCodeId = item?.taxCodeId;
+          final fallbackItemTaxCode = purchaseTaxCodeById(
+            taxCodes,
+            fallbackItemTaxCodeId,
+          );
+          final sourceOrderTaxCodeId = sourceOrderLine == null
+              ? null
+              : intValue(sourceOrderLine, 'tax_code_id');
+          final sourceOrderTaxPercent = sourceOrderLine == null
+              ? null
+              : Validators.parseFlexibleNumber(
+                  stringValue(sourceOrderLine, 'tax_percent'),
+                );
+          final resolvedTaxCodeId = sourceOrderTaxCodeId ?? fallbackItemTaxCodeId;
+          final resolvedTaxCode = purchaseTaxCodeById(taxCodes, resolvedTaxCodeId);
+          final resolvedTaxPercent =
+              sourceOrderTaxPercent ??
+              fallbackItemTaxCode?.taxRate ??
+              resolvedTaxCode?.taxRate;
+          final resolvedTaxType = sourceOrderLine == null
+              ? normalizePurchaseTaxType(
+                  fallbackItemTaxCode?.taxType ?? resolvedTaxCode?.taxType,
+                )
+              : resolveImportedPurchaseTaxType(sourceOrderLine) ??
+                    normalizePurchaseTaxType(
+                      fallbackItemTaxCode?.taxType ?? resolvedTaxCode?.taxType,
+                    );
           return PurchaseInvoiceLineModel(
             purchaseOrderLineId: line.purchaseOrderLineId,
             purchaseReceiptLineId: line.id,
@@ -1039,17 +1111,9 @@ class PurchaseInvoiceManagementController extends GetxController {
                 : Validators.parseFlexibleNumber(
                     stringValue(sourceOrderLine, 'discount_percent'),
                   ),
-            taxCodeId: sourceOrderLine == null
-                ? null
-                : intValue(sourceOrderLine, 'tax_code_id'),
-            taxPercent: sourceOrderLine == null
-                ? null
-                : Validators.parseFlexibleNumber(
-                    stringValue(sourceOrderLine, 'tax_percent'),
-                  ),
-            taxType: sourceOrderLine == null
-                ? null
-                : resolveImportedPurchaseTaxType(sourceOrderLine),
+            taxCodeId: resolvedTaxCodeId,
+            taxPercent: resolvedTaxPercent,
+            taxType: resolvedTaxType,
             remarks: line.remarks,
           );
         })

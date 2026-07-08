@@ -1,5 +1,6 @@
 import '../../controller/purchase/purchase_receipt_management_controller.dart';
 import '../../screen.dart';
+import 'purchase_pipeline_bar.dart';
 
 class PurchaseReceiptPage extends StatefulWidget {
   const PurchaseReceiptPage({
@@ -7,11 +8,13 @@ class PurchaseReceiptPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialPurchaseOrderId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final int? initialPurchaseOrderId;
 
   @override
   State<PurchaseReceiptPage> createState() => _PurchaseReceiptPageState();
@@ -37,7 +40,12 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       if (!mounted) {
         return;
       }
-      unawaited(_controller.initialize(initialId: widget.initialId));
+      unawaited(
+        _controller.initialize(
+          initialId: widget.initialId,
+          initialPurchaseOrderId: widget.initialPurchaseOrderId,
+        ),
+      );
     });
   }
 
@@ -48,6 +56,26 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       force: true,
     );
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant PurchaseReceiptPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId ||
+        oldWidget.initialPurchaseOrderId != widget.initialPurchaseOrderId ||
+        oldWidget.editorOnly != widget.editorOnly) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        unawaited(
+          _controller.initialize(
+            initialId: widget.initialId,
+            initialPurchaseOrderId: widget.initialPurchaseOrderId,
+          ),
+        );
+      });
+    }
   }
 
   @override
@@ -418,6 +446,11 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null)
+              PurchasePipelineBar(
+                data: controller.purchaseChain,
+                hideReceiptChip: true,
+              ),
             IgnorePointer(
               ignoring: controller.isSelectedReceiptReadOnly,
               child: Column(
@@ -578,6 +611,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     controller.selectedItem?.toJson() ??
                     const <String, dynamic>{};
                 final status = stringValue(selectedData, 'receipt_status');
+                final hasExistingInvoice =
+                    ((controller.purchaseChain?['invoices'] as List?) ??
+                            const [])
+                        .isNotEmpty;
                 final canPost =
                     controller.selectedItem != null && status == 'draft';
                 final canCancel =
@@ -589,6 +626,29 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                   spacing: AppUiConstants.spacingSm,
                   runSpacing: AppUiConstants.spacingSm,
                   children: [
+                    if (controller.selectedItem != null &&
+                        !hasExistingInvoice &&
+                        const {'draft', 'posted', 'partially_invoiced'}
+                            .contains(status))
+                      AppActionButton(
+                        icon: Icons.receipt_long_outlined,
+                        label: 'Create Invoice',
+                        filled: false,
+                        onPressed: () {
+                          final receiptId = intValue(selectedData, 'id');
+                          final orderId = intValue(
+                            selectedData,
+                            'purchase_order_id',
+                          );
+                          if (receiptId == null) {
+                            return;
+                          }
+                          final route = orderId == null
+                              ? '/purchase/invoices/new?receipt_id=$receiptId'
+                              : '/purchase/invoices/new?receipt_id=$receiptId&order_id=$orderId';
+                          openModuleShellRoute(context, route);
+                        },
+                      ),
                     if (!controller.isSelectedReceiptReadOnly)
                       AppActionButton(
                         icon: Icons.save_outlined,

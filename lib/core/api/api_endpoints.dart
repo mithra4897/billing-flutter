@@ -129,6 +129,7 @@ class ApiEndpoints {
   static const String purchasePaymentsAll = '$_pur/payments/all';
   static const String purchaseReturns = '$_pur/returns';
   static const String purchaseReturnsAll = '$_pur/returns/all';
+  static const String purchaseChain = '$_pur/purchase-chain';
 
   // --- CRM (`routes/crm.php`) ---
   static const String _crm = '/crm';

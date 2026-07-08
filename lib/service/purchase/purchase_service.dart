@@ -257,6 +257,34 @@ class PurchaseService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteInvoice(int id) =>
       destroy('${ApiEndpoints.purchaseInvoices}/$id');
 
+  Future<ApiResponse<Map<String, dynamic>>> purchaseChain({
+    int? orderId,
+    int? receiptId,
+    int? invoiceId,
+    int? paymentId,
+    int? returnId,
+  }) {
+    return client.get<Map<String, dynamic>>(
+      ApiEndpoints.purchaseChain,
+      queryParameters: <String, dynamic>{
+        'order_id': ?orderId,
+        'receipt_id': ?receiptId,
+        'invoice_id': ?invoiceId,
+        'payment_id': ?paymentId,
+        'return_id': ?returnId,
+      },
+      fromData: (dynamic json) {
+        if (json is Map<String, dynamic>) {
+          return json;
+        }
+        if (json is Map) {
+          return Map<String, dynamic>.from(json);
+        }
+        return <String, dynamic>{};
+      },
+    );
+  }
+
   Future<ApiResponse<PurchaseInvoiceModel>> postInvoice(int id) {
     return client.post<PurchaseInvoiceModel>(
       '${ApiEndpoints.purchaseInvoices}/$id/post',

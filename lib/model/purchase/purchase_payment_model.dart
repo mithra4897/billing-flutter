@@ -26,6 +26,7 @@ class PurchasePaymentModel extends JsonModel {
     this.postedBy,
     this.postedAt,
     this.isActive,
+    this.allocations = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -54,6 +55,7 @@ class PurchasePaymentModel extends JsonModel {
   final int? postedBy;
   final String? postedAt;
   final bool? isActive;
+  final List<Map<String, dynamic>> allocations;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -87,6 +89,7 @@ class PurchasePaymentModel extends JsonModel {
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
+      allocations: _mapAllocations(json['allocations']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -126,9 +129,25 @@ class PurchasePaymentModel extends JsonModel {
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
+    if (allocations.isNotEmpty) 'allocations': allocations,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<Map<String, dynamic>> _mapAllocations(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (entry) => Map<String, dynamic>.from(
+            entry.map((key, itemValue) => MapEntry(key.toString(), itemValue)),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

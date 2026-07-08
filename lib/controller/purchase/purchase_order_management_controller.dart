@@ -174,6 +174,7 @@ class PurchaseOrderManagementController extends GetxController {
       <int, List<PartyGstDetailModel>>{};
   List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   PurchaseOrderModel? selectedItem;
+  Map<String, dynamic>? purchaseChain;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -478,7 +479,27 @@ class PurchaseOrderManagementController extends GetxController {
     if (id == null) return;
     final response = await _purchaseService.order(id);
     final full = response.data ?? item;
-    _applyDocumentToForm(full, notify: notify);
+    _applyDocumentToForm(full, notify: false);
+    await refreshPurchaseChain(notify: false);
+    if (notify) update();
+  }
+
+  Future<void> refreshPurchaseChain({bool notify = true}) async {
+    final id = selectedItem?.id;
+    if (id == null) {
+      purchaseChain = null;
+      if (notify) update();
+      return;
+    }
+
+    try {
+      final response = await _purchaseService.purchaseChain(orderId: id);
+      purchaseChain = response.data;
+    } catch (_) {
+      purchaseChain = null;
+    }
+
+    if (notify) update();
   }
 
   void _applyDocumentToForm(PurchaseOrderModel item, {bool notify = true}) {
@@ -488,6 +509,7 @@ class PurchaseOrderManagementController extends GetxController {
         .map(PurchaseOrderLineDraft.fromJson)
         .toList(growable: true);
     selectedItem = item;
+    purchaseChain = null;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -530,6 +552,7 @@ class PurchaseOrderManagementController extends GetxController {
   void resetForm({bool notify = true}) {
     final seriesOpts = seriesOptions();
     selectedItem = null;
+    purchaseChain = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;

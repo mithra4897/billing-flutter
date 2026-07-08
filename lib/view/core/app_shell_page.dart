@@ -827,6 +827,9 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialPurchaseOrderId: int.tryParse(
+            _currentQueryParameters['order_id'] ?? '',
+          ),
         );
       case 'invoices':
         return PurchaseInvoicePage(
@@ -834,6 +837,12 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialPurchaseOrderId: int.tryParse(
+            _currentQueryParameters['order_id'] ?? '',
+          ),
+          initialPurchaseReceiptId: int.tryParse(
+            _currentQueryParameters['receipt_id'] ?? '',
+          ),
         );
       case 'payments':
         return PurchasePaymentPage(

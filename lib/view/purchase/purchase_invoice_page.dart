@@ -1,5 +1,6 @@
 import '../../controller/purchase/purchase_invoice_management_controller.dart';
 import '../../screen.dart';
+import 'purchase_pipeline_bar.dart';
 
 class PurchaseInvoicePage extends StatefulWidget {
   const PurchaseInvoicePage({
@@ -7,11 +8,15 @@ class PurchaseInvoicePage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialPurchaseOrderId,
+    this.initialPurchaseReceiptId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final int? initialPurchaseOrderId;
+  final int? initialPurchaseReceiptId;
 
   @override
   State<PurchaseInvoicePage> createState() => _PurchaseInvoicePageState();
@@ -35,23 +40,46 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     Get.put(PurchaseInvoiceManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(_controller.initialize(initialId: widget.initialId));
+      unawaited(
+        _controller.initialize(
+          initialId: widget.initialId,
+          initialPurchaseOrderId: widget.initialPurchaseOrderId,
+          initialPurchaseReceiptId: widget.initialPurchaseReceiptId,
+        ),
+      );
     });
   }
 
   @override
   void dispose() {
+    Get.delete<PurchaseInvoiceManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
     super.dispose();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isRegistered<PurchaseInvoiceManagementController>(
-        tag: _controllerTag,
-      )) {
-        Get.delete<PurchaseInvoiceManagementController>(
-          tag: _controllerTag,
-          force: true,
+  }
+
+  @override
+  void didUpdateWidget(covariant PurchaseInvoicePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId ||
+        oldWidget.initialPurchaseOrderId != widget.initialPurchaseOrderId ||
+        oldWidget.initialPurchaseReceiptId !=
+            widget.initialPurchaseReceiptId ||
+        oldWidget.editorOnly != widget.editorOnly) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        unawaited(
+          _controller.initialize(
+            initialId: widget.initialId,
+            initialPurchaseOrderId: widget.initialPurchaseOrderId,
+            initialPurchaseReceiptId: widget.initialPurchaseReceiptId,
+          ),
         );
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -464,6 +492,11 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null)
+              PurchasePipelineBar(
+                data: controller.purchaseChain,
+                hideInvoiceChip: true,
+              ),
             if (controller.selectedItem != null) ...[
               Builder(
                 builder: (_) {

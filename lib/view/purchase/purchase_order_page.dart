@@ -1,5 +1,6 @@
 import '../../controller/purchase/purchase_order_management_controller.dart';
 import '../../screen.dart';
+import 'purchase_pipeline_bar.dart';
 
 class PurchaseOrderPage extends StatefulWidget {
   const PurchaseOrderPage({
@@ -41,17 +42,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
   @override
   void dispose() {
+    Get.delete<PurchaseOrderManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
     super.dispose();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isRegistered<PurchaseOrderManagementController>(
-        tag: _controllerTag,
-      )) {
-        Get.delete<PurchaseOrderManagementController>(
-          tag: _controllerTag,
-          force: true,
-        );
-      }
-    });
   }
 
   @override
@@ -406,6 +401,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            if (controller.selectedItem != null)
+              PurchasePipelineBar(
+                data: controller.purchaseChain,
+                hideOrderChip: true,
+              ),
             IgnorePointer(
               ignoring: controller.isSelectedOrderReadOnly,
               child: Column(
@@ -608,6 +608,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         controller.selectedItem != null &&
                         status != 'closed' &&
                         status != 'cancelled';
+                    final hasExistingReceipt =
+                        ((controller.purchaseChain?['receipts'] as List?) ??
+                                const [])
+                            .isNotEmpty;
                     final canCancel =
                         controller.selectedItem != null &&
                         status != 'fully_received' &&
@@ -619,6 +623,30 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       spacing: AppUiConstants.spacingSm,
                       runSpacing: AppUiConstants.spacingSm,
                       children: [
+                        if (controller.selectedItem != null &&
+                            !hasExistingReceipt &&
+                            const {
+                              'draft',
+                              'posted',
+                              'confirmed',
+                              'partially_received',
+                              'partially_invoiced',
+                            }.contains(status))
+                          AppActionButton(
+                            icon: Icons.inventory_2_outlined,
+                            label: 'Create Receipt',
+                            filled: false,
+                            onPressed: () {
+                              final orderId = intValue(selectedData, 'id');
+                              if (orderId == null) {
+                                return;
+                              }
+                              openModuleShellRoute(
+                                context,
+                                '/purchase/receipts/new?order_id=$orderId',
+                              );
+                            },
+                          ),
                         if (canPreview)
                           AppActionButton(
                             icon: status == 'draft'

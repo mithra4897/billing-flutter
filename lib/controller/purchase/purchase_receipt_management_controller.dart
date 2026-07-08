@@ -161,6 +161,7 @@ class PurchaseReceiptManagementController extends GetxController {
   final Map<int, PurchaseOrderModel> orderDetailCache =
       <int, PurchaseOrderModel>{};
   PurchaseReceiptModel? selectedItem;
+  Map<String, dynamic>? purchaseChain;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -225,11 +226,14 @@ class PurchaseReceiptManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> initialize({int? initialId}) async {
+  Future<void> initialize({int? initialId, int? initialPurchaseOrderId}) async {
     if (!_initialized) {
       _initialized = true;
     }
-    await loadPage(selectId: initialId);
+    await loadPage(
+      selectId: initialId,
+      initialPurchaseOrderId: initialPurchaseOrderId,
+    );
     _refreshController.notifyChanged(source: 'purchase_receipt');
   }
 
@@ -240,7 +244,7 @@ class PurchaseReceiptManagementController extends GetxController {
     _refreshController.notifyChanged(source: 'purchase_receipt');
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, int? initialPurchaseOrderId}) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -397,6 +401,9 @@ class PurchaseReceiptManagementController extends GetxController {
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
+        if (initialPurchaseOrderId != null) {
+          await handlePurchaseOrderChanged(initialPurchaseOrderId);
+        }
       }
       update();
     } catch (errorValue) {
@@ -459,6 +466,25 @@ class PurchaseReceiptManagementController extends GetxController {
       }
     }
     _upsertReceipt(full, notify: false);
+    await refreshPurchaseChain(notify: false);
+    if (notify) update();
+  }
+
+  Future<void> refreshPurchaseChain({bool notify = true}) async {
+    final id = selectedItem?.id;
+    if (id == null) {
+      purchaseChain = null;
+      if (notify) update();
+      return;
+    }
+
+    try {
+      final response = await _purchaseService.purchaseChain(receiptId: id);
+      purchaseChain = response.data;
+    } catch (_) {
+      purchaseChain = null;
+    }
+
     if (notify) update();
   }
 
@@ -565,6 +591,7 @@ class PurchaseReceiptManagementController extends GetxController {
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
     selectedItem = null;
+    purchaseChain = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;

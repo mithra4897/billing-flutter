@@ -115,6 +115,7 @@ class PurchasePaymentManagementController extends GetxController {
   List<AccountModel> accounts = const <AccountModel>[];
   List<PurchaseInvoiceModel> invoices = const <PurchaseInvoiceModel>[];
   PurchasePaymentModel? selectedItem;
+  Map<String, dynamic>? purchaseChain;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -346,7 +347,6 @@ class PurchasePaymentManagementController extends GetxController {
             .whereType<Map<String, dynamic>>()
             .map(PaymentAllocationDraft.fromJson)
             .toList(growable: true);
-    _disposeAllocations(allocations);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -370,16 +370,36 @@ class PurchasePaymentManagementController extends GetxController {
     _paidAmountManuallyEdited = false;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
-    allocations = nextAllocations;
+    _replaceAllocations(nextAllocations, notify: false);
     formError = null;
     _upsertPayment(full, notify: false);
+    await refreshPurchaseChain(notify: false);
+    if (notify) update();
+  }
+
+  Future<void> refreshPurchaseChain({bool notify = true}) async {
+    final id = selectedItem?.id;
+    if (id == null) {
+      purchaseChain = null;
+      if (notify) update();
+      return;
+    }
+
+    try {
+      final response = await _purchaseService.purchaseChain(paymentId: id);
+      purchaseChain = response.data;
+    } catch (_) {
+      purchaseChain = null;
+    }
+
     if (notify) update();
   }
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
-    _disposeAllocations(allocations);
+    _replaceAllocations(const <PaymentAllocationDraft>[], notify: false);
     selectedItem = null;
+    purchaseChain = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;
@@ -399,7 +419,6 @@ class PurchasePaymentManagementController extends GetxController {
     _paidAmountManuallyEdited = false;
     notesController.clear();
     isActive = true;
-    allocations = <PaymentAllocationDraft>[];
     formError = null;
     if (notify) update();
   }
@@ -438,15 +457,14 @@ class PurchasePaymentManagementController extends GetxController {
       if (!invoices.any((entry) => entry.id == invoice.id)) {
         invoices = <PurchaseInvoiceModel>[invoice, ...invoices];
       }
-      _disposeAllocations(allocations);
-      allocations = <PaymentAllocationDraft>[
+      _replaceAllocations(<PaymentAllocationDraft>[
         PaymentAllocationDraft(
           purchaseInvoiceId: invoice.id,
           allocationType: 'against_invoice',
           allocatedAmount: allocAmount,
           remarks: 'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}',
         ),
-      ];
+      ], notify: false);
       formError = null;
       update();
     } catch (errorValue) {
@@ -725,7 +743,19 @@ class PurchasePaymentManagementController extends GetxController {
     update();
   }
 
+  void _showMessage(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    final messenger = appScaffoldMessengerKey.currentState;
+    messenger
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(trimmed)));
+  }
+
   Future<void> save(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (!formKey.currentState!.validate()) return;
     final paidAmount =
         Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
@@ -773,11 +803,7 @@ class PurchasePaymentManagementController extends GetxController {
               intValue(selectedItem!.toJson(), 'id')!,
               PurchasePaymentModel.fromJson(payload),
             );
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-      }
+      _showMessage(response.message);
       final saved = response.data;
       if (saved != null) {
         _upsertPayment(saved);
@@ -804,12 +830,9 @@ class PurchasePaymentManagementController extends GetxController {
     Future<ApiResponse<PurchasePaymentModel>> Function() action,
   ) async {
     try {
+      FocusManager.instance.primaryFocus?.unfocus();
       final response = await action();
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-      }
+      _showMessage(response.message);
       final updated = response.data;
       if (updated != null) {
         _upsertPayment(updated);
@@ -853,6 +876,21 @@ class PurchasePaymentManagementController extends GetxController {
   void _disposeAllocations(List<PaymentAllocationDraft> entries) {
     for (final allocation in entries) {
       allocation.dispose();
+    }
+  }
+
+  void _replaceAllocations(
+    List<PaymentAllocationDraft> nextAllocations, {
+    bool notify = true,
+  }) {
+    final previous = allocations;
+    allocations = List<PaymentAllocationDraft>.from(nextAllocations);
+    disposeDraftEntriesNextFrame<PaymentAllocationDraft>(
+      previous,
+      (allocation) => allocation.dispose(),
+    );
+    if (notify) {
+      update();
     }
   }
 }
