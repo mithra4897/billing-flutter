@@ -190,6 +190,26 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
       const <DocumentPrintTaxBreakupRowModel>[],
   Map<String, dynamic> extraData = const <String, dynamic>{},
 }) {
+  final cgstAmount = roundToDouble(
+    gstBreakup.fold<double>(0, (sum, row) => sum + row.cgst),
+    2,
+  );
+  final sgstAmount = roundToDouble(
+    gstBreakup.fold<double>(0, (sum, row) => sum + row.sgst),
+    2,
+  );
+  final igstAmount = roundToDouble(
+    gstBreakup.fold<double>(0, (sum, row) => sum + row.igst),
+    2,
+  );
+  final cessAmount = roundToDouble(
+    gstBreakup.fold<double>(0, (sum, row) => sum + row.cess),
+    2,
+  );
+  final taxableTotalAmount = roundToDouble(
+    gstBreakup.fold<double>(0, (sum, row) => sum + row.taxable),
+    2,
+  );
   return DocumentPrintDataModel(
     companyName: companyNameById(companies, companyId),
     companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
@@ -209,7 +229,18 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
     amountInWords: printTemplateAmountInWords(totalAmount, currencyCode),
     lines: lines,
     gstBreakup: gstBreakup,
-    extraData: extraData,
+    extraData: <String, dynamic>{
+      'cgst_amount': cgstAmount,
+      'sgst_amount': sgstAmount,
+      'igst_amount': igstAmount,
+      'cess_amount': cessAmount,
+      'taxable_total_amount': taxableTotalAmount,
+      'total_cgst_amount': cgstAmount,
+      'total_sgst_amount': sgstAmount,
+      'total_igst_amount': igstAmount,
+      'total_cess_amount': cessAmount,
+      ...extraData,
+    },
   );
 }
 
@@ -271,15 +302,66 @@ Object? resolvePrintPath(Map<String, dynamic> data, String path) {
   if (path.trim().isEmpty) {
     return null;
   }
+  final normalizedPath = path.trim();
   Object? current = data;
-  for (final segment in path.split('.')) {
+  for (final segment in normalizedPath.split('.')) {
     if (current is Map<String, dynamic>) {
       current = current[segment];
     } else {
       return null;
     }
   }
+  if (current == null) {
+    final aliasValue = _resolvePrintAliasValue(data, normalizedPath);
+    if (aliasValue != null) {
+      return aliasValue;
+    }
+  }
   return current;
+}
+
+Object? _resolvePrintAliasValue(Map<String, dynamic> data, String path) {
+  const aliasKeys = <String, String>{
+    'total_cgst_amount': 'cgst_amount',
+    'total_sgst_amount': 'sgst_amount',
+    'total_igst_amount': 'igst_amount',
+    'total_cess_amount': 'cess_amount',
+  };
+  final directAlias = aliasKeys[path];
+  if (directAlias != null) {
+    final directValue = data[directAlias];
+    if (directValue != null) {
+      return directValue;
+    }
+  }
+
+  final rows = data['gst_breakup'];
+  if (rows is! List) {
+    return null;
+  }
+  final sumKey = switch (path) {
+    'total_cgst_amount' => 'cgst',
+    'total_sgst_amount' => 'sgst',
+    'total_igst_amount' => 'igst',
+    'total_cess_amount' => 'cess',
+    _ => null,
+  };
+  if (sumKey == null) {
+    return null;
+  }
+  var total = 0.0;
+  for (final row in rows) {
+    if (row is! Map<String, dynamic>) {
+      continue;
+    }
+    final value = row[sumKey];
+    if (value is num) {
+      total += value.toDouble();
+    } else {
+      total += double.tryParse(value?.toString() ?? '') ?? 0.0;
+    }
+  }
+  return total;
 }
 
 String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
@@ -497,7 +579,11 @@ bool _isPrintAmountLikeKey(String key) {
     'cgst_amount',
     'sgst_amount',
     'igst_amount',
+    'total_cgst_amount',
+    'total_sgst_amount',
+    'total_igst_amount',
     'cess_amount',
+    'total_cess_amount',
     'round_off_amount',
     'adjustment_amount',
   };
@@ -513,7 +599,11 @@ bool _shouldHideZeroPrintValue(String key, double value) {
     'cgst_amount',
     'sgst_amount',
     'igst_amount',
+    'total_cgst_amount',
+    'total_sgst_amount',
+    'total_igst_amount',
     'cess_amount',
+    'total_cess_amount',
   };
   return hideZeroKeys.contains(key.trim().toLowerCase()) && value.abs() < 0.005;
 }
@@ -746,6 +836,23 @@ List<String> availablePrintBindings(
       keys.add(prefix.isEmpty ? key : '$prefix.$key');
     }
   });
+  if (prefix.isEmpty) {
+    for (final key in const <String>[
+      'cgst_amount',
+      'sgst_amount',
+      'igst_amount',
+      'cess_amount',
+      'taxable_total_amount',
+      'total_cgst_amount',
+      'total_sgst_amount',
+      'total_igst_amount',
+      'total_cess_amount',
+    ]) {
+      if (!keys.contains(key)) {
+        keys.add(key);
+      }
+    }
+  }
   return keys;
 }
 

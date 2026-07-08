@@ -625,6 +625,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (resolvedText.trim().isEmpty) {
       return shape.height;
     }
+    final allowMultiline = shape.multiline || resolvedText.contains('\n');
     final painter = TextPainter(
       text: TextSpan(
         text: resolvedText,
@@ -643,7 +644,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         'right' => TextAlign.right,
         _ => TextAlign.left,
       },
-      maxLines: shape.multiline ? null : 1,
+      maxLines: allowMultiline ? null : 1,
     )..layout(maxWidth: shape.width);
     return math.max(shape.height, painter.height);
   }
@@ -2394,6 +2395,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       case 'text':
       default:
         final text = resolvePrintTemplateText(shape.text, data);
+        final allowMultiline = shape.multiline || text.contains('\n');
         return pw.Container(
           padding: pw.EdgeInsets.zero,
           decoration: shape.fillAlpha > 0
@@ -2406,7 +2408,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           child: pw.Text(
             text,
             textAlign: _pdfTextAlign(shape.align),
-            maxLines: shape.multiline ? null : 1,
+            maxLines: allowMultiline ? null : 1,
             style: _pdfTextStyleForTemplate(
               fontBundle,
               color: _pdfColor(shape.strokeColor),
@@ -3803,6 +3805,7 @@ class DocumentCanvasPainter extends CustomPainter {
 
   void _paintText(Canvas canvas, Rect rect, DocumentPrintShape shape) {
     final text = resolvePrintTemplateText(shape.text, documentData);
+    final allowMultiline = shape.multiline || text.contains('\n');
     final align = switch (shape.align) {
       'center' => TextAlign.center,
       'right' => TextAlign.right,
@@ -3833,7 +3836,7 @@ class DocumentCanvasPainter extends CustomPainter {
       ),
       textAlign: align,
       textDirection: TextDirection.ltr,
-      maxLines: shape.multiline ? null : 1,
+      maxLines: allowMultiline ? null : 1,
     )..layout(maxWidth: rect.width);
     final dx = switch (shape.align) {
       'center' => rect.left + ((rect.width - painter.width) / 2),
