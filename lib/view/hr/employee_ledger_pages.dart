@@ -23,13 +23,11 @@ class _EmployeeLedgerRegisterPageState
     extends State<EmployeeLedgerRegisterPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All status'),
         AppDropdownItem(value: 'active', label: 'Active'),
         AppDropdownItem(value: 'inactive', label: 'Inactive'),
       ];
   static const List<AppDropdownItem<String>> _balanceItems =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All balances'),
         AppDropdownItem(value: 'salary_posted', label: 'Salary Posted'),
         AppDropdownItem(value: 'reimbursed', label: 'Reimbursed'),
         AppDropdownItem(value: 'no_activity', label: 'No Activity'),
@@ -40,8 +38,8 @@ class _EmployeeLedgerRegisterPageState
 
   bool _loading = true;
   String? _errorMessage;
-  String _status = '';
-  String _balanceFilter = '';
+  Set<String> _statuses = <String>{};
+  Set<String> _balanceFilters = <String>{};
   List<_EmployeeLedgerRegisterRow> _rows = const <_EmployeeLedgerRegisterRow>[];
 
   List<_EmployeeLedgerRegisterRow> get _filteredRows {
@@ -49,16 +47,18 @@ class _EmployeeLedgerRegisterPageState
     return _rows
         .where((row) {
           final statusOk =
-              _status.isEmpty ||
-              (_status == 'active'
-                  ? row.status.toLowerCase() == 'active'
-                  : row.status.toLowerCase() != 'active');
+              _statuses.isEmpty ||
+              (_statuses.contains('active') &&
+                  row.status.toLowerCase() == 'active') ||
+              (_statuses.contains('inactive') &&
+                  row.status.toLowerCase() != 'active');
           final balanceOk =
-              _balanceFilter.isEmpty ||
-              (_balanceFilter == 'salary_posted' && row.hasSalaryActivity) ||
-              (_balanceFilter == 'reimbursed' &&
+              _balanceFilters.isEmpty ||
+              (_balanceFilters.contains('salary_posted') &&
+                  row.hasSalaryActivity) ||
+              (_balanceFilters.contains('reimbursed') &&
                   row.hasReimbursementActivity) ||
-              (_balanceFilter == 'no_activity' && !row.hasAnyActivity);
+              (_balanceFilters.contains('no_activity') && !row.hasAnyActivity);
           final searchOk =
               query.isEmpty ||
               [
@@ -237,15 +237,15 @@ class _EmployeeLedgerRegisterPageState
     }
   }
 
-  void _setStatus(String? value) {
+  void _setStatuses(Set<String> values) {
     setState(() {
-      _status = value ?? '';
+      _statuses = Set<String>.from(values);
     });
   }
 
-  void _setBalanceFilter(String? value) {
+  void _setBalanceFilters(Set<String> values) {
     setState(() {
-      _balanceFilter = value ?? '';
+      _balanceFilters = Set<String>.from(values);
     });
   }
 
@@ -268,12 +268,12 @@ class _EmployeeLedgerRegisterPageState
       ],
       filters: _EmployeeLedgerFilters(
         searchController: _searchController,
-        status: _status,
+        statuses: _statuses,
         statusItems: _statusItems,
-        onStatusChanged: _setStatus,
-        balanceFilter: _balanceFilter,
+        onStatusChanged: _setStatuses,
+        balanceFilters: _balanceFilters,
         balanceItems: _balanceItems,
-        onBalanceChanged: _setBalanceFilter,
+        onBalanceChanged: _setBalanceFilters,
       ),
       rows: _filteredRows,
       columns: [
@@ -632,21 +632,21 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
 class _EmployeeLedgerFilters extends StatelessWidget {
   const _EmployeeLedgerFilters({
     required this.searchController,
-    required this.status,
+    required this.statuses,
     required this.statusItems,
     required this.onStatusChanged,
-    required this.balanceFilter,
+    required this.balanceFilters,
     required this.balanceItems,
     required this.onBalanceChanged,
   });
 
   final TextEditingController searchController;
-  final String status;
+  final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
-  final String balanceFilter;
+  final ValueChanged<Set<String>> onStatusChanged;
+  final Set<String> balanceFilters;
   final List<AppDropdownItem<String>> balanceItems;
-  final ValueChanged<String?> onBalanceChanged;
+  final ValueChanged<Set<String>> onBalanceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -667,8 +667,9 @@ class _EmployeeLedgerFilters extends StatelessWidget {
           child: AppDropdownField<String>.fromMapped(
             labelText: 'Status',
             mappedItems: statusItems,
-            initialValue: status,
-            onChanged: onStatusChanged,
+            multiInitialValues: statuses,
+            multiHintText: 'Select statuses',
+            onMultiChanged: onStatusChanged,
           ),
         ),
         SizedBox(
@@ -676,8 +677,9 @@ class _EmployeeLedgerFilters extends StatelessWidget {
           child: AppDropdownField<String>.fromMapped(
             labelText: 'Ledger Balance',
             mappedItems: balanceItems,
-            initialValue: balanceFilter,
-            onChanged: onBalanceChanged,
+            multiInitialValues: balanceFilters,
+            multiHintText: 'Select balances',
+            onMultiChanged: onBalanceChanged,
           ),
         ),
       ],

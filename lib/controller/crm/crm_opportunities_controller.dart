@@ -75,8 +75,8 @@ class CrmOpportunitiesController extends GetxController {
   int? customerPartyId;
   int? stageId;
   int? assignedTo;
-  int? filterStageId;
-  String? filterStatus = 'open';
+  Set<int> filterStageIds = <int>{};
+  Set<String> filterStatuses = <String>{'open'};
   String status = 'open';
   List<OpportunityLineDraft> lines = <OpportunityLineDraft>[];
   List<OpportunityFollowupDraft> followups = <OpportunityFollowupDraft>[];
@@ -323,13 +323,14 @@ class CrmOpportunitiesController extends GetxController {
               );
               final filterFrom = filterCloseFromController.text.trim();
               final filterTo = filterCloseToController.text.trim();
-              if (filterStageId != null &&
-                  intValue(data, 'stage_id') != filterStageId) {
+              if (filterStageIds.isNotEmpty &&
+                  !filterStageIds.contains(intValue(data, 'stage_id'))) {
                 return false;
               }
-              if ((filterStatus ?? '').isNotEmpty &&
-                  filterStatus != allFilterStringValue &&
-                  stringValue(data, 'status') != filterStatus) {
+              if (filterStatuses.isNotEmpty &&
+                  !filterStatuses.contains(
+                    stringValue(data, 'status').trim().toLowerCase(),
+                  )) {
                 return false;
               }
               if (filterFrom.isNotEmpty &&
@@ -812,19 +813,22 @@ class CrmOpportunitiesController extends GetxController {
     }
   }
 
-  void setFilterStageId(int? value) {
-    filterStageId = value == allFilterIntValue ? null : value;
+  void setFilterStageIds(Set<int> values) {
+    filterStageIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterStatus(String? value) {
-    filterStatus = value;
+  void setFilterStatuses(Set<String> values) {
+    filterStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 
   void clearFilters() {
-    filterStageId = null;
-    filterStatus = 'open';
+    filterStageIds = <int>{};
+    filterStatuses = <String>{'open'};
     filtersApplied = false;
     filterCloseFromController.clear();
     filterCloseToController.clear();
@@ -908,14 +912,11 @@ class CrmOpportunitiesController extends GetxController {
   }
 
   bool _filterAllowsStatus(String statusValue) {
-    final requestedStatus =
-        (filtersApplied
-                ? (filterStatus ?? allFilterStringValue)
-                : (filterStatus ?? ''))
-            .trim();
-    return requestedStatus.isEmpty ||
-        requestedStatus == allFilterStringValue ||
-        requestedStatus == statusValue;
+    final normalized = statusValue.trim().toLowerCase();
+    if (filterStatuses.isEmpty) {
+      return true;
+    }
+    return filterStatuses.contains(normalized);
   }
 }
 

@@ -202,38 +202,24 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Customer',
-                          initialValue:
-                              controller.filterCustomerPartyId ??
-                              CrmEnquiriesController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value: CrmEnquiriesController.allFilterIntValue,
-                              label: 'All',
-                            ),
-                            ...controller.customers
+                          mappedItems: controller.customers
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem<int>(
                                     value: item.id!,
                                     label: item.toString(),
                                   ),
-                                ),
-                          ],
-                          onChanged: controller.setFilterCustomerPartyId,
+                                )
+                                .toList(growable: false),
+                          multiInitialValues: controller.filterCustomerPartyIds,
+                          multiHintText: 'Select customers',
+                          onMultiChanged: controller.setFilterCustomerPartyIds,
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
-                          initialValue:
-                              controller.filterStageId ??
-                              CrmEnquiriesController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value: CrmEnquiriesController.allFilterIntValue,
-                              label: 'All',
-                            ),
-                            ...controller.stages
+                          mappedItems: controller.stages
                                 .where(
                                   (item) =>
                                       intValue(item.toJson(), 'id') != null,
@@ -243,23 +229,17 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                                     value: intValue(item.toJson(), 'id')!,
                                     label: _crmStageLabel(item.toString()),
                                   ),
-                                ),
-                          ],
-                          onChanged: controller.setFilterStageId,
+                                )
+                                .toList(growable: false),
+                          multiInitialValues: controller.filterStageIds,
+                          multiHintText: 'Select stages',
+                          onMultiChanged: controller.setFilterStageIds,
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
-                          initialValue:
-                              controller.filterAssignedTo ??
-                              CrmEnquiriesController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value: CrmEnquiriesController.allFilterIntValue,
-                              label: 'All',
-                            ),
-                            ...controller.users
+                          mappedItems: controller.users
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem<int>(
@@ -267,26 +247,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                                     label:
                                         item.displayName ?? item.username ?? '',
                                   ),
-                                ),
-                          ],
-                          onChanged: controller.setFilterAssignedTo,
+                                )
+                                .toList(growable: false),
+                          multiInitialValues: controller.filterAssignedToIds,
+                          multiHintText: 'Select assignees',
+                          onMultiChanged: controller.setFilterAssignedToIds,
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue:
-                              controller.filterEnquiryStatus ??
-                              CrmEnquiriesController.allFilterStringValue,
-                          mappedItems: <AppDropdownItem<String>>[
-                            const AppDropdownItem<String>(
-                              value:
-                                  CrmEnquiriesController.allFilterStringValue,
-                              label: 'All',
-                            ),
-                            ...CrmEnquiriesController.filterStatusItems,
-                          ],
-                          onChanged: controller.setFilterEnquiryStatus,
+                          mappedItems: CrmEnquiriesController.filterStatusItems,
+                          multiInitialValues: controller.filterEnquiryStatuses,
+                          multiHintText: 'Select statuses',
+                          onMultiChanged: controller.setFilterEnquiryStatuses,
                         ),
                       ),
                       _filterBox(
@@ -390,10 +364,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         children: [
           _buildAppliedFilters(context, controller),
           if (controller.searchController.text.trim().isNotEmpty ||
-              controller.filterCustomerPartyId != null ||
-              controller.filterStageId != null ||
-              controller.filterAssignedTo != null ||
-              (controller.filterEnquiryStatus ?? '').isNotEmpty ||
+              controller.filterCustomerPartyIds.isNotEmpty ||
+              controller.filterStageIds.isNotEmpty ||
+              controller.filterAssignedToIds.isNotEmpty ||
+              controller.filterEnquiryStatuses.isNotEmpty ||
               controller.filtersApplied ||
               controller.filterDateFromController.text.trim().isNotEmpty ||
               controller.filterDateToController.text.trim().isNotEmpty)
@@ -492,15 +466,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final chips = <String>[
       if (controller.searchController.text.trim().isNotEmpty)
         'Search: ${controller.searchController.text.trim()}',
-      if (controller.filterCustomerPartyId != null || controller.filtersApplied)
-        'Customer: ${controller.filterCustomerPartyId == null ? 'All' : controller.customers.cast<PartyModel?>().firstWhere((item) => item?.id == controller.filterCustomerPartyId, orElse: () => null)?.toString() ?? controller.filterCustomerPartyId}',
-      if (controller.filterStageId != null || controller.filtersApplied)
-        'Stage: ${controller.filterStageId == null ? 'All' : _crmStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString())}',
-      if (controller.filterAssignedTo != null || controller.filtersApplied)
-        'Assigned: ${controller.filterAssignedTo == null ? 'All' : controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.username ?? controller.filterAssignedTo}',
-      if ((controller.filterEnquiryStatus ?? '').isNotEmpty ||
+      if (controller.filterCustomerPartyIds.isNotEmpty || controller.filtersApplied)
+        'Customer: ${controller.filterCustomerPartyIds.isEmpty ? 'All' : controller.filterCustomerPartyIds.map((id) => controller.customers.cast<PartyModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
+      if (controller.filterStageIds.isNotEmpty || controller.filtersApplied)
+        'Stage: ${controller.filterStageIds.isEmpty ? 'All' : controller.filterStageIds.map((id) => _crmStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString())).join(', ')}',
+      if (controller.filterAssignedToIds.isNotEmpty || controller.filtersApplied)
+        'Assigned: ${controller.filterAssignedToIds.isEmpty ? 'All' : controller.filterAssignedToIds.map((id) => controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.username ?? id.toString()).join(', ')}',
+      if (controller.filterEnquiryStatuses.isNotEmpty ||
           controller.filtersApplied)
-        'Status: ${(controller.filterEnquiryStatus ?? CrmEnquiriesController.allFilterStringValue) == CrmEnquiriesController.allFilterStringValue ? 'All' : controller.filterEnquiryStatus}',
+        'Status: ${controller.filterEnquiryStatuses.isEmpty ? 'All' : controller.filterEnquiryStatuses.join(', ')}',
       if (controller.filterDateFromController.text.trim().isNotEmpty)
         'From: ${controller.filterDateFromController.text.trim()}',
       if (controller.filterDateToController.text.trim().isNotEmpty)

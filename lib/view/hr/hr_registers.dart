@@ -127,8 +127,8 @@ class AttendanceRegisterController extends GetxController {
   String? companyBanner;
   int? sessionCompanyId;
   bool canViewAllHr = false;
-  int? filterEmployeeId;
-  String? filterAttendanceStatus;
+  Set<int> filterEmployeeIds = <int>{};
+  Set<String> filterAttendanceStatuses = <String>{};
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<AttendanceRecordModel> rows = const <AttendanceRecordModel>[];
   Worker? _refreshWorker;
@@ -220,14 +220,6 @@ class AttendanceRegisterController extends GetxController {
       }
 
       final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
-      if (viewAll && filterEmployeeId != null) {
-        filters['employee_id'] = filterEmployeeId;
-      }
-      if (viewAll &&
-          filterAttendanceStatus != null &&
-          filterAttendanceStatus!.isNotEmpty) {
-        filters['status'] = filterAttendanceStatus;
-      }
       final dateFrom = dateFromController.text.trim();
       final dateTo = dateToController.text.trim();
       if (dateFrom.isNotEmpty) {
@@ -264,6 +256,17 @@ class AttendanceRegisterController extends GetxController {
           final emp = _asJsonMap(data['employee']);
           final code = emp != null ? stringValue(emp, 'employee_code') : '';
           final name = emp != null ? stringValue(emp, 'employee_name') : '';
+          if (canViewAllHr &&
+              filterEmployeeIds.isNotEmpty &&
+              !filterEmployeeIds.contains(intValue(data, 'employee_id'))) {
+            return false;
+          }
+          final rowStatus = stringValue(data, 'status').trim().toLowerCase();
+          if (canViewAllHr &&
+              filterAttendanceStatuses.isNotEmpty &&
+              !filterAttendanceStatuses.contains(rowStatus)) {
+            return false;
+          }
           return [
             stringValue(data, 'id'),
             stringValue(data, 'employee_id'),
@@ -277,15 +280,15 @@ class AttendanceRegisterController extends GetxController {
   }
 
   String selectedEmployeeLabel() {
-    if (filterEmployeeId == null) {
+    if (filterEmployeeIds.isEmpty) {
       return '';
     }
     for (final EmployeeModel e in employees) {
-      if (e.id == filterEmployeeId) {
+      if (e.id != null && filterEmployeeIds.contains(e.id)) {
         return e.toString();
       }
     }
-    return 'Employee #$filterEmployeeId';
+    return filterEmployeeIds.join(', ');
   }
 
   List<String> get appliedFilterChips {
@@ -293,10 +296,10 @@ class AttendanceRegisterController extends GetxController {
       if (companyBanner != null) 'Company: $companyBanner',
       if (searchController.text.trim().isNotEmpty)
         'Search: ${searchController.text.trim()}',
-      if (canViewAllHr && filterEmployeeId != null)
-        'Employee: ${selectedEmployeeLabel()}',
-      if (canViewAllHr && (filterAttendanceStatus ?? '').isNotEmpty)
-        'Status: ${hrDropdownLabel(_hrAttendanceStatusFilterItems, filterAttendanceStatus)}',
+      if (canViewAllHr && filterEmployeeIds.isNotEmpty)
+        'Employee: ${filterEmployeeIds.map((id) => employees.cast<EmployeeModel?>().firstWhere((e) => e?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
+      if (canViewAllHr && filterAttendanceStatuses.isNotEmpty)
+        'Status: ${filterAttendanceStatuses.join(', ')}',
       if (dateFromController.text.trim().isNotEmpty)
         'From: ${dateFromController.text.trim()}',
       if (dateToController.text.trim().isNotEmpty)
@@ -306,20 +309,23 @@ class AttendanceRegisterController extends GetxController {
 
   void clearFilters() {
     searchController.clear();
-    filterEmployeeId = null;
-    filterAttendanceStatus = null;
+    filterEmployeeIds = <int>{};
+    filterAttendanceStatuses = <String>{};
     dateFromController.clear();
     dateToController.clear();
     update();
   }
 
-  void setEmployeeFilter(int? value) {
-    filterEmployeeId = value;
+  void setEmployeeFilters(Set<int> values) {
+    filterEmployeeIds = Set<int>.from(values);
     update();
   }
 
-  void setAttendanceStatusFilter(String? value) {
-    filterAttendanceStatus = value;
+  void setAttendanceStatusFilters(Set<String> values) {
+    filterAttendanceStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 }
@@ -440,7 +446,7 @@ class PayslipRegisterController extends GetxController {
   String? companyBanner;
   int? sessionCompanyId;
   bool canViewAllHr = false;
-  int? filterEmployeeId;
+  Set<int> filterEmployeeIds = <int>{};
   int? filterPayrollRunId;
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<PayslipModel> rows = const <PayslipModel>[];
@@ -533,9 +539,6 @@ class PayslipRegisterController extends GetxController {
       }
 
       final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
-      if (viewAll && filterEmployeeId != null) {
-        filters['employee_id'] = filterEmployeeId;
-      }
       if (filterPayrollRunId != null) {
         filters['payroll_run_id'] = filterPayrollRunId;
       }
@@ -568,6 +571,11 @@ class PayslipRegisterController extends GetxController {
     final q = searchController.text.trim().toLowerCase();
     return rows
         .where((PayslipModel row) {
+          if (canViewAllHr &&
+              filterEmployeeIds.isNotEmpty &&
+              !filterEmployeeIds.contains(row.employeeId)) {
+            return false;
+          }
           if (q.isEmpty) {
             return true;
           }
@@ -583,15 +591,15 @@ class PayslipRegisterController extends GetxController {
   }
 
   String selectedEmployeeLabel() {
-    if (filterEmployeeId == null) {
+    if (filterEmployeeIds.isEmpty) {
       return '';
     }
     for (final EmployeeModel e in employees) {
-      if (e.id == filterEmployeeId) {
+      if (e.id != null && filterEmployeeIds.contains(e.id)) {
         return e.toString();
       }
     }
-    return 'Employee #$filterEmployeeId';
+    return filterEmployeeIds.join(', ');
   }
 
   List<String> get appliedFilterChips {
@@ -599,8 +607,8 @@ class PayslipRegisterController extends GetxController {
       if (companyBanner != null) 'Company: $companyBanner',
       if (searchController.text.trim().isNotEmpty)
         'Search: ${searchController.text.trim()}',
-      if (canViewAllHr && filterEmployeeId != null)
-        'Employee: ${selectedEmployeeLabel()}',
+      if (canViewAllHr && filterEmployeeIds.isNotEmpty)
+        'Employee: ${filterEmployeeIds.map((id) => employees.cast<EmployeeModel?>().firstWhere((e) => e?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
       if (dateFromController.text.trim().isNotEmpty)
         'From: ${dateFromController.text.trim()}',
       if (dateToController.text.trim().isNotEmpty)
@@ -611,15 +619,15 @@ class PayslipRegisterController extends GetxController {
 
   void clearFilters() {
     searchController.clear();
-    filterEmployeeId = null;
+    filterEmployeeIds = <int>{};
     filterPayrollRunId = null;
     dateFromController.clear();
     dateToController.clear();
     update();
   }
 
-  void setEmployeeFilter(int? value) {
-    filterEmployeeId = value;
+  void setEmployeeFilters(Set<int> values) {
+    filterEmployeeIds = Set<int>.from(values);
     update();
   }
 
@@ -674,36 +682,41 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         ),
         if (controller.canViewAllHr) ...[
           hrListFilterBox(
-            child: AppDropdownField<int?>.fromMapped(
+            child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
-              mappedItems: <AppDropdownItem<int?>>[
-                const AppDropdownItem<int?>(
-                  value: null,
-                  label: 'All employees',
-                ),
-                ...controller.employees
+              mappedItems: controller.employees
                     .where(
                       (EmployeeModel e) =>
                           e.companyId == controller.sessionCompanyId &&
                           e.id != null,
                     )
                     .map(
-                      (EmployeeModel e) => AppDropdownItem<int?>(
-                        value: e.id,
+                      (EmployeeModel e) => AppDropdownItem<int>(
+                        value: e.id!,
                         label: e.toString(),
                       ),
-                    ),
-              ],
-              initialValue: controller.filterEmployeeId,
-              onChanged: controller.setEmployeeFilter,
+                    )
+                    .toList(growable: false),
+              multiInitialValues: controller.filterEmployeeIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: controller.setEmployeeFilters,
             ),
           ),
           hrListFilterBox(
-            child: AppDropdownField<String?>.fromMapped(
+            child: AppDropdownField<String>.fromMapped(
               labelText: 'Status',
-              mappedItems: _hrAttendanceStatusFilterItems,
-              initialValue: controller.filterAttendanceStatus,
-              onChanged: controller.setAttendanceStatusFilter,
+              mappedItems: _hrAttendanceStatusFilterItems
+                  .where((item) => item.value != null)
+                  .map(
+                    (item) => AppDropdownItem<String>(
+                      value: item.value!,
+                      label: item.label,
+                    ),
+                  )
+                  .toList(growable: false),
+              multiInitialValues: controller.filterAttendanceStatuses,
+              multiHintText: 'Select statuses',
+              onMultiChanged: controller.setAttendanceStatusFilters,
             ),
           ),
         ],
@@ -1030,28 +1043,24 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         ),
         if (controller.canViewAllHr)
           hrListFilterBox(
-            child: AppDropdownField<int?>.fromMapped(
+            child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
-              mappedItems: <AppDropdownItem<int?>>[
-                const AppDropdownItem<int?>(
-                  value: null,
-                  label: 'All employees',
-                ),
-                ...controller.employees
+              mappedItems: controller.employees
                     .where(
                       (EmployeeModel e) =>
                           e.companyId == controller.sessionCompanyId &&
                           e.id != null,
                     )
                     .map(
-                      (EmployeeModel e) => AppDropdownItem<int?>(
-                        value: e.id,
+                      (EmployeeModel e) => AppDropdownItem<int>(
+                        value: e.id!,
                         label: e.toString(),
                       ),
-                    ),
-              ],
-              initialValue: controller.filterEmployeeId,
-              onChanged: controller.setEmployeeFilter,
+                    )
+                    .toList(growable: false),
+              multiInitialValues: controller.filterEmployeeIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: controller.setEmployeeFilters,
             ),
           ),
         hrListFilterBox(

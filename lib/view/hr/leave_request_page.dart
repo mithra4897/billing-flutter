@@ -144,37 +144,41 @@ class _LeaveRequestManagementPageState
         ),
         if (controller.canViewAllHr) ...[
           hrListFilterBox(
-            child: AppDropdownField<int?>.fromMapped(
+            child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
-              mappedItems: <AppDropdownItem<int?>>[
-                const AppDropdownItem<int?>(
-                  value: null,
-                  label: 'All employees',
-                ),
-                ...controller.employees
+              mappedItems: controller.employees
                     .where(
                       (e) =>
                           e.companyId == controller.sessionCompanyId &&
                           e.id != null,
                     )
                     .map(
-                      (e) => AppDropdownItem<int?>(
-                        value: e.id,
+                      (e) => AppDropdownItem<int>(
+                        value: e.id!,
                         label: e.toString(),
                       ),
-                    ),
-              ],
-              initialValue: controller.listFilterEmployeeId,
-              onChanged: controller.setListFilterEmployeeId,
+                    )
+                    .toList(growable: false),
+              multiInitialValues: controller.listFilterEmployeeIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: controller.setListFilterEmployeeIds,
             ),
           ),
           hrListFilterBox(
-            child: AppDropdownField<String?>.fromMapped(
+            child: AppDropdownField<String>.fromMapped(
               labelText: 'Status filter',
-              mappedItems:
-                  LeaveRequestManagementController.listStatusFilterItems,
-              initialValue: controller.listFilterStatus,
-              onChanged: controller.setListFilterStatus,
+              mappedItems: LeaveRequestManagementController.listStatusFilterItems
+                  .where((item) => item.value != null)
+                  .map(
+                    (item) => AppDropdownItem<String>(
+                      value: item.value!,
+                      label: item.label,
+                    ),
+                  )
+                  .toList(growable: false),
+              multiInitialValues: controller.listFilterStatuses,
+              multiHintText: 'Select statuses',
+              onMultiChanged: controller.setListFilterStatuses,
             ),
           ),
         ],

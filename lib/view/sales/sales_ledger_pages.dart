@@ -25,7 +25,6 @@ class SalesLedgerRegisterPage extends StatefulWidget {
 class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   static const List<AppDropdownItem<String>> _balanceItems =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All balances'),
         AppDropdownItem(value: 'receivable', label: 'Receivable'),
         AppDropdownItem(value: 'advance', label: 'Advance'),
         AppDropdownItem(value: 'settled', label: 'Settled'),
@@ -39,12 +38,12 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
 
   bool _loading = true;
   String? _errorMessage;
-  String _balanceFilter = 'receivable';
-  int? _customerId;
+  Set<String> _balanceFilters = <String>{'receivable'};
+  Set<int> _customerIds = <int>{};
   List<_SalesLedgerRegisterRow> _rows = const <_SalesLedgerRegisterRow>[];
   bool _exporting = false;
 
-  List<AppDropdownItem<int?>> get _customerItems {
+  List<AppDropdownItem<int>> get _customerItems {
     final customers = _rows
         .where((row) => row.customerId != null && row.customerName.isNotEmpty)
         .map((row) => MapEntry<int, String>(row.customerId!, row.customerName))
@@ -52,10 +51,9 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     final uniqueCustomers = <int, String>{
       for (final entry in customers) entry.key: entry.value,
     };
-    return <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All Customers'),
+    return <AppDropdownItem<int>>[
       ...uniqueCustomers.entries.map(
-        (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+        (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
       ),
     ];
   }
@@ -67,12 +65,14 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     return _rows
         .where((row) {
           final balanceOk =
-              _balanceFilter.isEmpty ||
-              (_balanceFilter == 'receivable' && row.receivableAmount > 0) ||
-              (_balanceFilter == 'advance' && row.advanceAmount > 0) ||
-              (_balanceFilter == 'settled' && row.outstanding == 0);
+              _balanceFilters.isEmpty ||
+              (_balanceFilters.contains('receivable') &&
+                  row.receivableAmount > 0) ||
+              (_balanceFilters.contains('advance') && row.advanceAmount > 0) ||
+              (_balanceFilters.contains('settled') && row.outstanding == 0);
           final customerOk =
-              _customerId == null || row.customerId == _customerId;
+              _customerIds.isEmpty ||
+              (row.customerId != null && _customerIds.contains(row.customerId));
           final activityDate = row.lastActivityDate;
           final dateOk =
               (dateFrom == null ||
@@ -229,15 +229,15 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     }
   }
 
-  void _setBalanceFilter(String? value) {
+  void _setBalanceFilters(Set<String> values) {
     setState(() {
-      _balanceFilter = value ?? '';
+      _balanceFilters = Set<String>.from(values);
     });
   }
 
-  void _setCustomerId(int? value) {
+  void _setCustomerIds(Set<int> values) {
     setState(() {
-      _customerId = value;
+      _customerIds = Set<int>.from(values);
     });
   }
 
@@ -319,12 +319,12 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         searchController: _searchController,
         dateFromController: _dateFromController,
         dateToController: _dateToController,
-        customerId: _customerId,
+        customerIds: _customerIds,
         customerItems: _customerItems,
-        onCustomerChanged: _setCustomerId,
-        balanceFilter: _balanceFilter,
+        onCustomerChanged: _setCustomerIds,
+        balanceFilters: _balanceFilters,
         balanceItems: _balanceItems,
-        onBalanceChanged: _setBalanceFilter,
+        onBalanceChanged: _setBalanceFilters,
       ),
       rows: _filteredRows,
       columns: [
@@ -656,10 +656,10 @@ class _SalesLedgerFilters extends StatelessWidget {
     required this.searchController,
     required this.dateFromController,
     required this.dateToController,
-    required this.customerId,
+    required this.customerIds,
     required this.customerItems,
     required this.onCustomerChanged,
-    required this.balanceFilter,
+    required this.balanceFilters,
     required this.balanceItems,
     required this.onBalanceChanged,
   });
@@ -667,12 +667,12 @@ class _SalesLedgerFilters extends StatelessWidget {
   final TextEditingController searchController;
   final TextEditingController dateFromController;
   final TextEditingController dateToController;
-  final int? customerId;
-  final List<AppDropdownItem<int?>> customerItems;
-  final ValueChanged<int?> onCustomerChanged;
-  final String balanceFilter;
+  final Set<int> customerIds;
+  final List<AppDropdownItem<int>> customerItems;
+  final ValueChanged<Set<int>> onCustomerChanged;
+  final Set<String> balanceFilters;
   final List<AppDropdownItem<String>> balanceItems;
-  final ValueChanged<String?> onBalanceChanged;
+  final ValueChanged<Set<String>> onBalanceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -685,11 +685,12 @@ class _SalesLedgerFilters extends StatelessWidget {
     }
 
     Widget customerField() {
-      return AppDropdownField<int?>.fromMapped(
+      return AppDropdownField<int>.fromMapped(
         labelText: 'Customer',
         mappedItems: customerItems,
-        initialValue: customerId,
-        onChanged: onCustomerChanged,
+        multiInitialValues: customerIds,
+        multiHintText: 'Select customers',
+        onMultiChanged: onCustomerChanged,
       );
     }
 
@@ -697,8 +698,9 @@ class _SalesLedgerFilters extends StatelessWidget {
       return AppDropdownField<String>.fromMapped(
         labelText: 'Ledger Balance',
         mappedItems: balanceItems,
-        initialValue: balanceFilter,
-        onChanged: onBalanceChanged,
+        multiInitialValues: balanceFilters,
+        multiHintText: 'Select balances',
+        onMultiChanged: onBalanceChanged,
       );
     }
 
@@ -720,8 +722,8 @@ class _SalesLedgerFilters extends StatelessWidget {
       searchController.clear();
       dateFromController.clear();
       dateToController.clear();
-      onCustomerChanged(null);
-      onBalanceChanged('');
+      onCustomerChanged(<int>{});
+      onBalanceChanged(<String>{});
     }
 
     Widget actionField() {

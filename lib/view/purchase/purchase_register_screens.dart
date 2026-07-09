@@ -4,10 +4,38 @@ import '../../controller/purchase/purchase_module_refresh_controller.dart';
 typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(PurchaseService service);
 typedef PurchaseRegisterMatcher<T> =
-    bool Function(T row, String query, String status);
+    bool Function(T row, String query, Set<String> statuses);
 typedef PurchaseRegisterDateValue<T> = String? Function(T row);
 typedef PurchaseRegisterDocumentValue<T> = String Function(T row);
 typedef PurchaseRegisterBalanceValue<T> = double? Function(T row);
+
+Set<T> _purchaseSelectedSet<T>(dynamic value) {
+  if (value is Set<T>) {
+    return value;
+  }
+  if (value is Set) {
+    return value.whereType<T>().toSet();
+  }
+  return <T>{};
+}
+
+bool _purchaseMatchesSelectedValue<T>(T? value, Set<T> selectedValues) {
+  if (selectedValues.isEmpty) {
+    return true;
+  }
+  return value != null && selectedValues.contains(value);
+}
+
+bool _purchaseMatchesSelectedStatus(
+  String? value,
+  Set<String> selectedStatuses,
+) {
+  if (selectedStatuses.isEmpty) {
+    return true;
+  }
+  final normalized = (value ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty && selectedStatuses.contains(normalized);
+}
 
 const _purchaseRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: '', label: 'Default order'),
@@ -90,7 +118,7 @@ class PurchaseListRegisterController<T> extends GetxController {
 
   bool loading = true;
   String? error;
-  String status = '';
+  Set<String> selectedStatuses = <String>{};
   String sort = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
@@ -99,7 +127,7 @@ class PurchaseListRegisterController<T> extends GetxController {
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
     final filtered = rows
-        .where((row) => matches(row, query, status))
+        .where((row) => matches(row, query, selectedStatuses))
         .toList(growable: false);
     filtered.sort(_compareRows);
     return filtered;
@@ -138,8 +166,8 @@ class PurchaseListRegisterController<T> extends GetxController {
     super.onClose();
   }
 
-  void setStatus(String value) {
-    status = value;
+  void setStatuses(Set<String> values) {
+    selectedStatuses = Set<String>.from(values);
     update();
   }
 
@@ -149,7 +177,13 @@ class PurchaseListRegisterController<T> extends GetxController {
   }
 
   void setCustomFilter(String key, dynamic value) {
-    customFilters[key] = value;
+    if (value == null) {
+      customFilters.remove(key);
+    } else if (value is Set && value.isEmpty) {
+      customFilters.remove(key);
+    } else {
+      customFilters[key] = value;
+    }
     update();
   }
 
@@ -342,9 +376,9 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
                   controller,
                 ),
                 maxWidth: widget.filtersMaxWidth,
-                status: controller.status,
+                selectedStatuses: controller.selectedStatuses,
                 statusItems: widget.statusItems,
-                onStatusChanged: (value) => controller.setStatus(value ?? ''),
+                onStatusChanged: controller.setStatuses,
               ),
           rows: controller.filteredRows,
           columns: widget.columns,
@@ -382,7 +416,7 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       dateValueOf: (row) =>
           nullableStringValue(row.toJson(), 'requisition_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'requisition_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseRequisitionModel>>(
               tag: persistentControllerTag(
@@ -390,8 +424,10 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
               ),
             );
         final data = row.toJson();
-        final statusOk =
-            status.isEmpty || stringValue(data, 'requisition_status') == status;
+        final statusOk = _purchaseMatchesSelectedStatus(
+          stringValue(data, 'requisition_status'),
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -488,14 +524,16 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
           service.ordersAll(filters: {'sort_by': 'order_date'}),
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseOrderModel>>(
               tag: persistentControllerTag('PurchaseOrderRegisterController'),
             );
         final data = row.toJson();
-        final statusOk =
-            status.isEmpty || stringValue(data, 'order_status') == status;
+        final statusOk = _purchaseMatchesSelectedStatus(
+          stringValue(data, 'order_status'),
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -503,11 +541,13 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
               stringValue(data, 'supplier_name'),
               purchaseStatusLabel(nullableStringValue(data, 'order_status')),
             ].join(' ').toLowerCase().contains(query);
-        final filterSupplierId =
-            controller.customFilters['supplier_id'] as int?;
-        final supplierOk =
-            filterSupplierId == null ||
-            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final filterSupplierIds = _purchaseSelectedSet<int>(
+          controller.customFilters['supplier_ids'],
+        );
+        final supplierOk = _purchaseMatchesSelectedValue(
+          intValue(data, 'supplier_party_id'),
+          filterSupplierIds,
+        );
         final dateOk = matchesDateValueRange(
           nullableStringValue(data, 'order_date'),
           fromValue: controller.dateFromController.text,
@@ -598,14 +638,16 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
       ),
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseReceiptModel>>(
               tag: persistentControllerTag('PurchaseReceiptRegisterController'),
             );
         final data = row.toJson();
-        final statusOk =
-            status.isEmpty || stringValue(data, 'receipt_status') == status;
+        final statusOk = _purchaseMatchesSelectedStatus(
+          stringValue(data, 'receipt_status'),
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -613,11 +655,13 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
               stringValue(data, 'supplier_name'),
               purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].join(' ').toLowerCase().contains(query);
-        final filterSupplierId =
-            controller.customFilters['supplier_id'] as int?;
-        final supplierOk =
-            filterSupplierId == null ||
-            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final filterSupplierIds = _purchaseSelectedSet<int>(
+          controller.customFilters['supplier_ids'],
+        );
+        final supplierOk = _purchaseMatchesSelectedValue(
+          intValue(data, 'supplier_party_id'),
+          filterSupplierIds,
+        );
         final dateOk = matchesDateValueRange(
           nullableStringValue(data, 'receipt_date'),
           fromValue: controller.dateFromController.text,
@@ -711,8 +755,9 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       dateValueOf: (row) => row.invoiceDate,
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
-      matches: (row, query, status) {
-        final statusOk = status.isEmpty || row.invoiceStatus == status;
+      matches: (row, query, statuses) {
+        final statusOk =
+            _purchaseMatchesSelectedStatus(row.invoiceStatus, statuses);
         final searchOk =
             query.isEmpty ||
             [
@@ -729,11 +774,13 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
               tag: persistentControllerTag('PurchaseInvoiceRegisterController'),
             );
 
-        final filterSupplierId =
-            controller.customFilters['supplier_id'] as int?;
-
-        final supplierOk =
-            filterSupplierId == null || row.supplierPartyId == filterSupplierId;
+        final filterSupplierIds = _purchaseSelectedSet<int>(
+          controller.customFilters['supplier_ids'],
+        );
+        final supplierOk = _purchaseMatchesSelectedValue(
+          row.supplierPartyId,
+          filterSupplierIds,
+        );
 
         final dateOk = matchesDateValueRange(
           row.invoiceDate,
@@ -831,14 +878,16 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
       ),
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'payment_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'payment_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchasePaymentModel>>(
               tag: persistentControllerTag('PurchasePaymentRegisterController'),
             );
         final data = row.toJson();
-        final statusOk =
-            status.isEmpty || stringValue(data, 'payment_status') == status;
+        final statusOk = _purchaseMatchesSelectedStatus(
+          stringValue(data, 'payment_status'),
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -847,11 +896,13 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
               stringValue(data, 'reference_no'),
               purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
             ].join(' ').toLowerCase().contains(query);
-        final filterSupplierId =
-            controller.customFilters['supplier_id'] as int?;
-        final supplierOk =
-            filterSupplierId == null ||
-            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final filterSupplierIds = _purchaseSelectedSet<int>(
+          controller.customFilters['supplier_ids'],
+        );
+        final supplierOk = _purchaseMatchesSelectedValue(
+          intValue(data, 'supplier_party_id'),
+          filterSupplierIds,
+        );
         final dateOk = matchesDateValueRange(
           nullableStringValue(data, 'payment_date'),
           fromValue: controller.dateFromController.text,
@@ -938,14 +989,16 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
           service.returns(filters: {'per_page': 200, 'sort_by': 'return_date'}),
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final controller =
             Get.find<PurchaseListRegisterController<PurchaseReturnModel>>(
               tag: persistentControllerTag('PurchaseReturnRegisterController'),
             );
         final data = row.toJson();
-        final statusOk =
-            status.isEmpty || stringValue(data, 'return_status') == status;
+        final statusOk = _purchaseMatchesSelectedStatus(
+          stringValue(data, 'return_status'),
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -954,11 +1007,13 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
               stringValue(data, 'return_reason'),
               purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].join(' ').toLowerCase().contains(query);
-        final filterSupplierId =
-            controller.customFilters['supplier_id'] as int?;
-        final supplierOk =
-            filterSupplierId == null ||
-            intValue(data, 'supplier_party_id') == filterSupplierId;
+        final filterSupplierIds = _purchaseSelectedSet<int>(
+          controller.customFilters['supplier_ids'],
+        );
+        final supplierOk = _purchaseMatchesSelectedValue(
+          intValue(data, 'supplier_party_id'),
+          filterSupplierIds,
+        );
         final dateOk = matchesDateValueRange(
           nullableStringValue(data, 'return_date'),
           fromValue: controller.dateFromController.text,
@@ -1029,7 +1084,7 @@ class _RegisterFilters extends StatelessWidget {
     this.filterFields,
     this.trailingActions,
     this.maxWidth,
-    required this.status,
+    required this.selectedStatuses,
     required this.statusItems,
     required this.onStatusChanged,
   });
@@ -1039,9 +1094,9 @@ class _RegisterFilters extends StatelessWidget {
   final List<Widget>? filterFields;
   final List<Widget>? trailingActions;
   final double? maxWidth;
-  final String status;
+  final Set<String> selectedStatuses;
   final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<Set<String>> onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1058,9 +1113,12 @@ class _RegisterFilters extends StatelessWidget {
             ]),
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
-          mappedItems: statusItems,
-          initialValue: status,
-          onChanged: onStatusChanged,
+          mappedItems: statusItems
+              .where((item) => item.value.trim().isNotEmpty)
+              .toList(growable: false),
+          multiInitialValues: selectedStatuses,
+          multiHintText: 'Select statuses',
+          onMultiChanged: onStatusChanged,
         ),
         ...?trailingActions,
       ],
@@ -1068,7 +1126,7 @@ class _RegisterFilters extends StatelessWidget {
   }
 }
 
-List<AppDropdownItem<int?>> _mappedSupplierItems<T>(
+List<AppDropdownItem<int>> _mappedSupplierItems<T>(
   PurchaseListRegisterController<T> controller,
 ) {
   final uniqueSuppliers = <int, String>{};
@@ -1083,10 +1141,9 @@ List<AppDropdownItem<int?>> _mappedSupplierItems<T>(
       uniqueSuppliers[id] = name;
     }
   }
-  return <AppDropdownItem<int?>>[
-    const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+  return <AppDropdownItem<int>>[
     ...uniqueSuppliers.entries.map(
-      (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+      (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
     ),
   ];
 }
@@ -1104,7 +1161,7 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
   final List<AppDropdownItem<String>> statusItems;
   final String title;
   final String searchHint;
-  final List<AppDropdownItem<int?>> Function(
+  final List<AppDropdownItem<int>> Function(
     PurchaseListRegisterController<T> controller,
   )?
   supplierItemsBuilder;
@@ -1113,9 +1170,9 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     controller.searchController.clear();
     controller.dateFromController.clear();
     controller.dateToController.clear();
-    controller.setCustomFilter('supplier_id', null);
+    controller.setCustomFilter('supplier_ids', <int>{});
     controller.setCustomFilter('balance_filter', '');
-    controller.setStatus('');
+    controller.setStatuses(<String>{});
     controller.setSort('');
   }
 
@@ -1130,9 +1187,12 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
   Widget _statusField() {
     return AppDropdownField<String>.fromMapped(
       labelText: 'Status',
-      mappedItems: statusItems,
-      initialValue: controller.status,
-      onChanged: (value) => controller.setStatus(value ?? ''),
+      mappedItems: statusItems
+          .where((item) => item.value.trim().isNotEmpty)
+          .toList(growable: false),
+      multiInitialValues: controller.selectedStatuses,
+      multiHintText: 'Select statuses',
+      onMultiChanged: controller.setStatuses,
     );
   }
 
@@ -1146,11 +1206,15 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _supplierField() {
-    return AppDropdownField<int?>.fromMapped(
+    return AppDropdownField<int>.fromMapped(
       labelText: 'Supplier',
       mappedItems: supplierItemsBuilder!(controller),
-      initialValue: controller.customFilters['supplier_id'] as int?,
-      onChanged: (value) => controller.setCustomFilter('supplier_id', value),
+      multiInitialValues: _purchaseSelectedSet<int>(
+        controller.customFilters['supplier_ids'],
+      ),
+      multiHintText: 'Select suppliers',
+      onMultiChanged: (values) =>
+          controller.setCustomFilter('supplier_ids', values),
     );
   }
 
@@ -1330,7 +1394,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
   final PurchaseListRegisterController<PurchaseInvoiceModel> controller;
   final List<AppDropdownItem<String>> statusItems;
 
-  List<AppDropdownItem<int?>> _supplierItems() {
+  List<AppDropdownItem<int>> _supplierItems() {
     final Map<int, String> uniqueSuppliers = <int, String>{};
     for (final row in controller.rows) {
       final name = _nestedName(
@@ -1344,10 +1408,9 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
       }
     }
 
-    return <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
+    return <AppDropdownItem<int>>[
       ...uniqueSuppliers.entries.map(
-        (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+        (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
       ),
     ];
   }
@@ -1356,8 +1419,8 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     controller.searchController.clear();
     controller.dateFromController.clear();
     controller.dateToController.clear();
-    controller.setCustomFilter('supplier_id', null);
-    controller.setStatus('');
+    controller.setCustomFilter('supplier_ids', <int>{});
+    controller.setStatuses(<String>{});
     controller.setSort('');
   }
 
@@ -1395,20 +1458,27 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
   }
 
   Widget _supplierField() {
-    return AppDropdownField<int?>.fromMapped(
+    return AppDropdownField<int>.fromMapped(
       labelText: 'Supplier',
       mappedItems: _supplierItems(),
-      initialValue: controller.customFilters['supplier_id'] as int?,
-      onChanged: (value) => controller.setCustomFilter('supplier_id', value),
+      multiInitialValues: _purchaseSelectedSet<int>(
+        controller.customFilters['supplier_ids'],
+      ),
+      multiHintText: 'Select suppliers',
+      onMultiChanged: (values) =>
+          controller.setCustomFilter('supplier_ids', values),
     );
   }
 
   Widget _statusField() {
     return AppDropdownField<String>.fromMapped(
       labelText: 'Status',
-      mappedItems: statusItems,
-      initialValue: controller.status,
-      onChanged: (value) => controller.setStatus(value ?? ''),
+      mappedItems: statusItems
+          .where((item) => item.value.trim().isNotEmpty)
+          .toList(growable: false),
+      multiInitialValues: controller.selectedStatuses,
+      multiHintText: 'Select statuses',
+      onMultiChanged: controller.setStatuses,
     );
   }
 

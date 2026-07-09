@@ -231,9 +231,9 @@ class ExpenseClaimsManagementController extends GetxController {
   List<EmployeeModel> employees = const <EmployeeModel>[];
   int? employeeId;
 
-  int? filterEmployeeId;
-  String? filterPaymentStatus;
-  String? filterClaimStatus;
+  Set<int> filterEmployeeIds = <int>{};
+  Set<String> filterPaymentStatuses = <String>{};
+  Set<String> filterClaimStatuses = <String>{};
 
   List<ExpenseLineEditors> lineEditors = <ExpenseLineEditors>[];
   Worker? _refreshWorker;
@@ -308,6 +308,23 @@ class ExpenseClaimsManagementController extends GetxController {
     return visibleRows
         .where((ExpenseClaimModel row) {
           final data = row.toJson();
+          if (canViewAllClaims &&
+              filterEmployeeIds.isNotEmpty &&
+              !filterEmployeeIds.contains(intValue(data, 'employee_id'))) {
+            return false;
+          }
+          final paymentStatus = stringValue(data, 'payment_status')
+              .trim()
+              .toLowerCase();
+          if (filterPaymentStatuses.isNotEmpty &&
+              !filterPaymentStatuses.contains(paymentStatus)) {
+            return false;
+          }
+          final claimStatus = expenseClaimStatusCode(data['claim_status']);
+          if (filterClaimStatuses.isNotEmpty &&
+              !filterClaimStatuses.contains(claimStatus)) {
+            return false;
+          }
           return [
             stringValue(data, 'claim_no'),
             stringValue(data, 'claim_date'),
@@ -387,16 +404,6 @@ class ExpenseClaimsManagementController extends GetxController {
         'company_id': sessionCompanyId,
         'per_page': 200,
       };
-      if (allowViewAll && filterEmployeeId != null) {
-        filters['employee_id'] = filterEmployeeId;
-      }
-      if ((filterPaymentStatus ?? '').isNotEmpty) {
-        filters['payment_status'] = filterPaymentStatus;
-      }
-      if ((filterClaimStatus ?? '').isNotEmpty) {
-        filters['claim_status'] = filterClaimStatus;
-      }
-
       final listResponse = await hrService.expenseClaims(filters: filters);
       final nextRows = listResponse.data ?? const <ExpenseClaimModel>[];
 
@@ -480,15 +487,6 @@ class ExpenseClaimsManagementController extends GetxController {
       return;
     }
     final filters = <String, dynamic>{'company_id': companyId, 'per_page': 200};
-    if (canViewAllClaims && filterEmployeeId != null) {
-      filters['employee_id'] = filterEmployeeId;
-    }
-    if ((filterPaymentStatus ?? '').isNotEmpty) {
-      filters['payment_status'] = filterPaymentStatus;
-    }
-    if ((filterClaimStatus ?? '').isNotEmpty) {
-      filters['claim_status'] = filterClaimStatus;
-    }
     final listResponse = await hrService.expenseClaims(filters: filters);
     final nextRows = listResponse.data ?? const <ExpenseClaimModel>[];
     final pickId = selectClaimId ?? editingClaimId;
@@ -673,15 +671,15 @@ class ExpenseClaimsManagementController extends GetxController {
   }
 
   String selectedEmployeeFilterLabel() {
-    if (filterEmployeeId == null) {
+    if (filterEmployeeIds.isEmpty) {
       return '';
     }
     for (final employee in employees) {
-      if (employee.id == filterEmployeeId) {
+      if (employee.id != null && filterEmployeeIds.contains(employee.id)) {
         return employee.toString();
       }
     }
-    return 'Employee #$filterEmployeeId';
+    return filterEmployeeIds.join(', ');
   }
 
   String editorEmployeeLabel() {
@@ -701,35 +699,41 @@ class ExpenseClaimsManagementController extends GetxController {
       if (companyBanner != null) 'Company: $companyBanner',
       if (searchController.text.trim().isNotEmpty)
         'Search: ${searchController.text.trim()}',
-      if (canViewAllClaims && filterEmployeeId != null)
-        'Employee: ${selectedEmployeeFilterLabel()}',
-      if ((filterPaymentStatus ?? '').isNotEmpty)
-        'Payment: ${hrDropdownLabel(paymentFilterItems, filterPaymentStatus)}',
-      if ((filterClaimStatus ?? '').isNotEmpty)
-        'Status: ${hrDropdownLabel(statusFilterItems, filterClaimStatus)}',
+      if (canViewAllClaims && filterEmployeeIds.isNotEmpty)
+        'Employee: ${filterEmployeeIds.map((id) => employees.cast<EmployeeModel?>().firstWhere((employee) => employee?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
+      if (filterPaymentStatuses.isNotEmpty)
+        'Payment: ${filterPaymentStatuses.join(', ')}',
+      if (filterClaimStatuses.isNotEmpty)
+        'Status: ${filterClaimStatuses.join(', ')}',
     ];
   }
 
   void clearExpenseFilters() {
     searchController.clear();
-    filterEmployeeId = null;
-    filterPaymentStatus = null;
-    filterClaimStatus = null;
+    filterEmployeeIds = <int>{};
+    filterPaymentStatuses = <String>{};
+    filterClaimStatuses = <String>{};
     update();
   }
 
-  void setFilterEmployeeId(int? value) {
-    filterEmployeeId = value;
+  void setFilterEmployeeIds(Set<int> values) {
+    filterEmployeeIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterPaymentStatus(String? value) {
-    filterPaymentStatus = value;
+  void setFilterPaymentStatuses(Set<String> values) {
+    filterPaymentStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 
-  void setFilterClaimStatus(String? value) {
-    filterClaimStatus = value;
+  void setFilterClaimStatuses(Set<String> values) {
+    filterClaimStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 

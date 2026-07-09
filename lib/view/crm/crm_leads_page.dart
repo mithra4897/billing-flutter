@@ -1,6 +1,5 @@
 import '../../controller/crm/crm_leads_controller.dart';
 import '../../controller/crm/crm_lead_register_controller.dart';
-import '../../components/app_checkbox_filter.dart';
 import '../../screen.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
@@ -323,29 +322,12 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
         ),
         AppDateField(labelText: 'From Date', controller: dateFromController),
         AppDateField(labelText: 'To Date', controller: dateToController),
-        AppCheckboxFilter<String>(
-          label: 'Status',
-          hintText: 'Search Status',
-          emptyLabel: 'Search Status',
-          allValue: '',
-          selectedValues: statuses,
-          options: statusItems
-              .map(
-                (item) => AppCheckboxFilterOption<String>(
-                  value: item.value,
-                  label: item.label,
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) {
-            final nextValues = Set<String>.from(statuses);
-            if (value.isEmpty) {
-              nextValues.clear();
-            } else if (!nextValues.add(value)) {
-              nextValues.remove(value);
-            }
-            onStatusesChanged(nextValues);
-          },
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Status',
+          mappedItems: statusItems,
+          multiInitialValues: statuses,
+          multiHintText: 'Select statuses',
+          onMultiChanged: onStatusesChanged,
         ),
       ],
     );
@@ -496,10 +478,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
-    int? selectedSourceId =
-        controller.filterSourceId ?? CrmLeadsController.allFilterIntValue;
-    int? selectedAssignedTo =
-        controller.filterAssignedTo ?? CrmLeadsController.allFilterIntValue;
+    final Set<int> selectedSourceIds = Set<int>.from(
+      controller.filterSourceIds,
+    );
+    final Set<int> selectedAssignedToIds = Set<int>.from(
+      controller.filterAssignedToIds,
+    );
     Set<String> selectedStatuses = Set<String>.from(
       controller.filterLeadStatuses,
     );
@@ -564,13 +548,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                           _filterBox(
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Source',
-                              initialValue: selectedSourceId,
-                              mappedItems: <AppDropdownItem<int>>[
-                                const AppDropdownItem<int>(
-                                  value: CrmLeadsController.allFilterIntValue,
-                                  label: 'All',
-                                ),
-                                ...controller.sources
+                              mappedItems: controller.sources
                                     .where(
                                       (item) =>
                                           intValue(item.toJson(), 'id') != null,
@@ -580,13 +558,15 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                                         value: intValue(item.toJson(), 'id')!,
                                         label: item.toString(),
                                       ),
-                                    ),
-                              ],
-                              onChanged: (value) {
+                                    )
+                                    .toList(growable: false),
+                              multiInitialValues: selectedSourceIds,
+                              multiHintText: 'Select sources',
+                              onMultiChanged: (values) {
                                 setDialogState(() {
-                                  selectedSourceId =
-                                      value ??
-                                      CrmLeadsController.allFilterIntValue;
+                                  selectedSourceIds
+                                    ..clear()
+                                    ..addAll(values);
                                 });
                               },
                             ),
@@ -594,13 +574,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                           _filterBox(
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Assigned To',
-                              initialValue: selectedAssignedTo,
-                              mappedItems: <AppDropdownItem<int>>[
-                                const AppDropdownItem<int>(
-                                  value: CrmLeadsController.allFilterIntValue,
-                                  label: 'All',
-                                ),
-                                ...controller.users
+                              mappedItems: controller.users
                                     .where((item) => item.id != null)
                                     .map(
                                       (item) => AppDropdownItem<int>(
@@ -610,48 +584,29 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                                             item.username ??
                                             '',
                                       ),
-                                    ),
-                              ],
-                              onChanged: (value) {
+                                    )
+                                    .toList(growable: false),
+                              multiInitialValues: selectedAssignedToIds,
+                              multiHintText: 'Select assignees',
+                              onMultiChanged: (values) {
                                 setDialogState(() {
-                                  selectedAssignedTo =
-                                      value ??
-                                      CrmLeadsController.allFilterIntValue;
+                                  selectedAssignedToIds
+                                    ..clear()
+                                    ..addAll(values);
                                 });
                               },
                             ),
                           ),
                           _filterBox(
-                            child: AppCheckboxFilter<String>(
-                              label: 'Status',
-                              selectedValues: selectedStatuses.isEmpty
-                                  ? <String>{
-                                      CrmLeadsController.allFilterStringValue,
-                                    }
-                                  : selectedStatuses,
-                              options: <AppCheckboxFilterOption<String>>[
-                                const AppCheckboxFilterOption<String>(
-                                  value:
-                                      CrmLeadsController.allFilterStringValue,
-                                  label: 'All',
-                                ),
-                                ...CrmLeadsController.leadFilterStatuses.map(
-                                  (item) => AppCheckboxFilterOption<String>(
-                                    value: item.value,
-                                    label: item.label,
-                                  ),
-                                ),
-                              ],
-                              onChanged: (value) {
+                            child: AppDropdownField<String>.fromMapped(
+                              labelText: 'Status',
+                              mappedItems:
+                                  CrmLeadsController.leadFilterStatuses,
+                              multiInitialValues: selectedStatuses,
+                              multiHintText: 'Select statuses',
+                              onMultiChanged: (values) {
                                 setDialogState(() {
-                                  if (value ==
-                                      CrmLeadsController.allFilterStringValue) {
-                                    selectedStatuses.clear();
-                                    return;
-                                  }
-                                  if (!selectedStatuses.add(value)) {
-                                    selectedStatuses.remove(value);
-                                  }
+                                  selectedStatuses = Set<String>.from(values);
                                 });
                               },
                             ),
@@ -665,17 +620,11 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         children: [
                           FilledButton.icon(
                             onPressed: () {
-                              controller.setFilterSourceId(
-                                selectedSourceId ==
-                                        CrmLeadsController.allFilterIntValue
-                                    ? null
-                                    : selectedSourceId,
+                              controller.setFilterSourceIds(
+                                Set<int>.from(selectedSourceIds),
                               );
-                              controller.setFilterAssignedTo(
-                                selectedAssignedTo ==
-                                        CrmLeadsController.allFilterIntValue
-                                    ? null
-                                    : selectedAssignedTo,
+                              controller.setFilterAssignedToIds(
+                                Set<int>.from(selectedAssignedToIds),
                               );
                               controller.setFilterLeadStatuses(
                                 Set<String>.from(selectedStatuses),
@@ -690,10 +639,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             onPressed: () {
                               controller.clearFilters();
                               setDialogState(() {
-                                selectedSourceId =
-                                    CrmLeadsController.allFilterIntValue;
-                                selectedAssignedTo =
-                                    CrmLeadsController.allFilterIntValue;
+                                selectedSourceIds.clear();
+                                selectedAssignedToIds.clear();
                                 selectedStatuses.clear();
                               });
                               Navigator.of(dialogContext).pop(true);
@@ -746,8 +693,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           _buildAppliedFilters(context, controller),
           if (controller.searchController.text.trim().isNotEmpty ||
               controller.filterCompanyId != null ||
-              controller.filterSourceId != null ||
-              controller.filterAssignedTo != null ||
+              controller.filterSourceIds.isNotEmpty ||
+              controller.filterAssignedToIds.isNotEmpty ||
               controller.filterLeadStatuses.isNotEmpty ||
               controller.filtersApplied)
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -824,10 +771,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         'Search: ${controller.searchController.text.trim()}',
       if (controller.filterCompanyId != null)
         'Company: ${controller.companies.cast<CompanyModel?>().firstWhere((item) => item?.id == controller.filterCompanyId, orElse: () => null)?.toString() ?? controller.filterCompanyId}',
-      if (controller.filterSourceId != null || controller.filtersApplied)
-        'Source: ${controller.filterSourceId == null ? 'All' : controller.sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterSourceId, orElse: () => null)?.toString() ?? controller.filterSourceId}',
-      if (controller.filterAssignedTo != null || controller.filtersApplied)
-        'Assigned: ${controller.filterAssignedTo == null ? 'All' : controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.username ?? controller.filterAssignedTo}',
+      if (controller.filterSourceIds.isNotEmpty || controller.filtersApplied)
+        'Source: ${controller.filterSourceIds.isEmpty ? 'All' : controller.filterSourceIds.map((id) => controller.sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
+      if (controller.filterAssignedToIds.isNotEmpty || controller.filtersApplied)
+        'Assigned: ${controller.filterAssignedToIds.isEmpty ? 'All' : controller.filterAssignedToIds.map((id) => controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.username ?? id.toString()).join(', ')}',
       if (controller.filterLeadStatuses.isNotEmpty || controller.filtersApplied)
         'Status: ${controller.filterLeadStatuses.isEmpty ? 'All' : controller.filterLeadStatuses.map(controller.leadStatusLabel).join(', ')}',
     ];

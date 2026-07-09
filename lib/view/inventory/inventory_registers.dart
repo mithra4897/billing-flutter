@@ -293,8 +293,8 @@ class InventoryRegisterController<T> extends GetxController {
   bool loading = true;
   String? error;
   List<T> rows = <T>[];
-  String status = '';
-  String category = '';
+  Set<String> statuses = <String>{};
+  Set<String> categories = <String>{};
   List<AppDropdownItem<String>> loadedCategoryItems =
       const <AppDropdownItem<String>>[];
   Worker? _refreshWorker;
@@ -306,21 +306,21 @@ class InventoryRegisterController<T> extends GetxController {
           if (query.isNotEmpty && !matches(row, query)) {
             return false;
           }
-          if (status.trim().isNotEmpty) {
+          if (statuses.isNotEmpty) {
             final rowStatus = (statusValue?.call(row) ?? '')
                 .trim()
                 .toLowerCase();
-            if (rowStatus != status.trim().toLowerCase()) {
+            if (!statuses.contains(rowStatus)) {
               return false;
             }
           }
-          if (category.trim().isNotEmpty && categoryValues != null) {
+          if (categories.isNotEmpty && categoryValues != null) {
             final rowCategories =
                 (categoryValues?.call(row) ?? const <String>[])
                     .map((value) => value.trim().toLowerCase())
                     .where((value) => value.isNotEmpty)
                     .toSet();
-            if (!rowCategories.contains(category.trim().toLowerCase())) {
+            if (!rowCategories.any(categories.contains)) {
               return false;
             }
           }
@@ -426,8 +426,19 @@ class InventoryRegisterController<T> extends GetxController {
     super.onClose();
   }
 
-  void setStatus(String value) {
-    status = value.trim().toLowerCase();
+  void setStatuses(Set<String> values) {
+    statuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    update();
+  }
+
+  void setCategories(Set<String> values) {
+    categories = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 
@@ -435,8 +446,8 @@ class InventoryRegisterController<T> extends GetxController {
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
-    status = '';
-    category = '';
+    statuses = <String>{};
+    categories = <String>{};
     update();
   }
 
@@ -466,10 +477,10 @@ class _RegisterFilters extends StatelessWidget {
     required this.searchHint,
     this.dateFromController,
     this.dateToController,
-    required this.status,
+    required this.statuses,
     required this.statusItems,
     required this.onStatusChanged,
-    required this.category,
+    required this.categories,
     required this.categoryItems,
     required this.onCategoryChanged,
     this.showAdvancedFilters = true,
@@ -480,12 +491,12 @@ class _RegisterFilters extends StatelessWidget {
   final String searchHint;
   final TextEditingController? dateFromController;
   final TextEditingController? dateToController;
-  final String status;
+  final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
-  final String category;
+  final ValueChanged<Set<String>> onStatusChanged;
+  final Set<String> categories;
   final List<AppDropdownItem<String>> categoryItems;
-  final ValueChanged<String?> onCategoryChanged;
+  final ValueChanged<Set<String>> onCategoryChanged;
   final bool showAdvancedFilters;
   final VoidCallback? onSearchSubmitted;
 
@@ -534,18 +545,24 @@ class _RegisterFilters extends StatelessWidget {
           const SizedBox(height: AppUiConstants.spacingMd),
           AppDropdownField<String>.fromMapped(
             labelText: 'Status',
-            mappedItems: statusItems,
-            initialValue: status.isEmpty ? null : status,
-            onChanged: onStatusChanged,
+            mappedItems: statusItems
+                .where((item) => item.value.trim().isNotEmpty)
+                .toList(growable: false),
+            multiInitialValues: statuses,
+            multiHintText: 'Select statuses',
+            onMultiChanged: onStatusChanged,
           ),
         ],
         if (showAdvancedFilters && categoryItems.isNotEmpty) ...[
           const SizedBox(height: AppUiConstants.spacingMd),
           AppDropdownField<String>.fromMapped(
             labelText: 'Category',
-            mappedItems: categoryItems,
-            initialValue: category.isEmpty ? null : category,
-            onChanged: onCategoryChanged,
+            mappedItems: categoryItems
+                .where((item) => item.value.trim().isNotEmpty)
+                .toList(growable: false),
+            multiInitialValues: categories,
+            multiHintText: 'Select categories',
+            onMultiChanged: onCategoryChanged,
           ),
         ],
       ],
@@ -648,15 +665,12 @@ class _InventoryRegisterShellState<T>
             searchController: controller.searchController,
             searchHint: widget.searchHint,
             showAdvancedFilters: false,
-            status: controller.status,
+            statuses: controller.statuses,
             statusItems: controller.statusItems,
-            onStatusChanged: (value) => controller.setStatus(value ?? ''),
-            category: controller.category,
+            onStatusChanged: controller.setStatuses,
+            categories: controller.categories,
             categoryItems: controller.categoryItems,
-            onCategoryChanged: (value) {
-              controller.category = (value ?? '').trim().toLowerCase();
-              controller.update();
-            },
+            onCategoryChanged: controller.setCategories,
           ),
           rows: controller.filteredRows,
           columns: widget.columns,
@@ -680,16 +694,15 @@ class _InventoryRegisterShellState<T>
     final dialogDateToController = TextEditingController(
       text: controller.dateToController.text,
     );
-    var tempStatus = controller.status;
-    var tempCategory = controller.category;
+    final tempStatuses = Set<String>.from(controller.statuses);
+    final tempCategories = Set<String>.from(controller.categories);
 
     void applyDialogFilters(BuildContext dialogContext) {
       controller.searchController.text = dialogSearchController.text;
       controller.dateFromController.text = dialogDateFromController.text;
       controller.dateToController.text = dialogDateToController.text;
-      controller.setStatus(tempStatus);
-      controller.category = tempCategory;
-      controller.update();
+      controller.setStatuses(tempStatuses);
+      controller.setCategories(tempCategories);
       Navigator.of(dialogContext).pop();
     }
 
@@ -763,20 +776,22 @@ class _InventoryRegisterShellState<T>
                             dateToController: controller.supportsDateFilter
                                 ? dialogDateToController
                                 : null,
-                            status: tempStatus,
+                            statuses: tempStatuses,
                             statusItems: controller.statusItems,
-                            onStatusChanged: (value) {
+                            onStatusChanged: (values) {
                               setDialogState(() {
-                                tempStatus = (value ?? '').trim().toLowerCase();
+                                tempStatuses
+                                  ..clear()
+                                  ..addAll(values);
                               });
                             },
-                            category: tempCategory,
+                            categories: tempCategories,
                             categoryItems: controller.categoryItems,
-                            onCategoryChanged: (value) {
+                            onCategoryChanged: (values) {
                               setDialogState(() {
-                                tempCategory = (value ?? '')
-                                    .trim()
-                                    .toLowerCase();
+                                tempCategories
+                                  ..clear()
+                                  ..addAll(values);
                               });
                             },
                             onSearchSubmitted: () =>

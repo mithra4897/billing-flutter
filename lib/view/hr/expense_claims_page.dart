@@ -64,44 +64,58 @@ class _ExpenseClaimsManagementPageState
         ),
         if (controller.canViewAllClaims)
           hrListFilterBox(
-            child: AppDropdownField<int?>.fromMapped(
+            child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
-              mappedItems: <AppDropdownItem<int?>>[
-                const AppDropdownItem<int?>(
-                  value: null,
-                  label: 'All employees',
-                ),
-                ...controller.employees
+              mappedItems: controller.employees
                     .where(
                       (employee) =>
                           employee.companyId == controller.companyId &&
                           employee.id != null,
                     )
                     .map(
-                      (employee) => AppDropdownItem<int?>(
-                        value: employee.id,
+                      (employee) => AppDropdownItem<int>(
+                        value: employee.id!,
                         label: employee.toString(),
                       ),
-                    ),
-              ],
-              initialValue: controller.filterEmployeeId,
-              onChanged: controller.setFilterEmployeeId,
+                    )
+                    .toList(growable: false),
+              multiInitialValues: controller.filterEmployeeIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: controller.setFilterEmployeeIds,
             ),
           ),
         hrListFilterBox(
-          child: AppDropdownField<String?>.fromMapped(
+          child: AppDropdownField<String>.fromMapped(
             labelText: 'Payment',
-            mappedItems: ExpenseClaimsManagementController.paymentFilterItems,
-            initialValue: controller.filterPaymentStatus,
-            onChanged: controller.setFilterPaymentStatus,
+            mappedItems: ExpenseClaimsManagementController.paymentFilterItems
+                .where((item) => item.value != null)
+                .map(
+                  (item) => AppDropdownItem<String>(
+                    value: item.value!,
+                    label: item.label,
+                  ),
+                )
+                .toList(growable: false),
+            multiInitialValues: controller.filterPaymentStatuses,
+            multiHintText: 'Select payments',
+            onMultiChanged: controller.setFilterPaymentStatuses,
           ),
         ),
         hrListFilterBox(
-          child: AppDropdownField<String?>.fromMapped(
+          child: AppDropdownField<String>.fromMapped(
             labelText: 'Status',
-            mappedItems: ExpenseClaimsManagementController.statusFilterItems,
-            initialValue: controller.filterClaimStatus,
-            onChanged: controller.setFilterClaimStatus,
+            mappedItems: ExpenseClaimsManagementController.statusFilterItems
+                .where((item) => item.value != null)
+                .map(
+                  (item) => AppDropdownItem<String>(
+                    value: item.value!,
+                    label: item.label,
+                  ),
+                )
+                .toList(growable: false),
+            multiInitialValues: controller.filterClaimStatuses,
+            multiHintText: 'Select statuses',
+            onMultiChanged: controller.setFilterClaimStatuses,
           ),
         ),
       ],

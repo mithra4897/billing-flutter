@@ -68,8 +68,8 @@ class CrmLeadsController extends GetxController {
   int? sourceId;
   int? assignedTo;
   int? filterCompanyId;
-  int? filterSourceId;
-  int? filterAssignedTo;
+  Set<int> filterSourceIds = <int>{};
+  Set<int> filterAssignedToIds = <int>{};
   Set<String> filterLeadStatuses = <String>{};
   String leadStatus = 'new';
   List<LeadActivityDraft> activities = <LeadActivityDraft>[];
@@ -362,14 +362,12 @@ class CrmLeadsController extends GetxController {
                   intValue(data, 'company_id') != filterCompanyId) {
                 return false;
               }
-              if (filterSourceId != null &&
-                  filterSourceId != allFilterIntValue &&
-                  intValue(data, 'source_id') != filterSourceId) {
+              if (filterSourceIds.isNotEmpty &&
+                  !filterSourceIds.contains(intValue(data, 'source_id'))) {
                 return false;
               }
-              if (filterAssignedTo != null &&
-                  filterAssignedTo != allFilterIntValue &&
-                  intValue(data, 'assigned_to') != filterAssignedTo) {
+              if (filterAssignedToIds.isNotEmpty &&
+                  !filterAssignedToIds.contains(intValue(data, 'assigned_to'))) {
                 return false;
               }
               if (!matchesLeadFilterStatus(rowStatus, filterLeadStatuses)) {
@@ -666,13 +664,13 @@ class CrmLeadsController extends GetxController {
     }
   }
 
-  void setFilterSourceId(int? value) {
-    filterSourceId = value;
+  void setFilterSourceIds(Set<int> values) {
+    filterSourceIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterAssignedTo(int? value) {
-    filterAssignedTo = value;
+  void setFilterAssignedToIds(Set<int> values) {
+    filterAssignedToIds = Set<int>.from(values);
     update();
   }
 
@@ -682,8 +680,8 @@ class CrmLeadsController extends GetxController {
   }
 
   void clearFilters() {
-    filterSourceId = null;
-    filterAssignedTo = null;
+    filterSourceIds = <int>{};
+    filterAssignedToIds = <int>{};
     filterLeadStatuses = <String>{};
     filtersApplied = false;
     applySearch();

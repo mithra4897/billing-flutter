@@ -40,8 +40,8 @@ class LeaveRequestManagementController extends GetxController {
   int? sessionCompanyId;
   bool canViewAllHr = false;
   int? linkedEmployeeId;
-  int? listFilterEmployeeId;
-  String? listFilterStatus;
+  Set<int> listFilterEmployeeIds = <int>{};
+  Set<String> listFilterStatuses = <String>{};
   List<LeaveRequestModel> leaveRequests = const <LeaveRequestModel>[];
   List<LeaveRequestModel> filteredLeaveRequests = const <LeaveRequestModel>[];
   List<EmployeeModel> employees = const <EmployeeModel>[];
@@ -129,12 +129,6 @@ class LeaveRequestManagementController extends GetxController {
       }
 
       final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
-      if (viewAll && listFilterEmployeeId != null) {
-        filters['employee_id'] = listFilterEmployeeId;
-      }
-      if (viewAll && (listFilterStatus ?? '').isNotEmpty) {
-        filters['status'] = listFilterStatus;
-      }
       final dateFrom = listDateFromController.text.trim();
       final dateTo = listDateToController.text.trim();
       if (dateFrom.isNotEmpty) {
@@ -255,14 +249,29 @@ class LeaveRequestManagementController extends GetxController {
     String query,
   ) {
     return filterMasterList(source, query, (LeaveRequestModel item) {
-      return [
-        item.employeeCode ?? '',
-        item.employeeName ?? '',
-        item.leaveTypeName ?? '',
-        item.status ?? '',
-        item.reason ?? '',
-      ];
-    });
+          return [
+            item.employeeCode ?? '',
+            item.employeeName ?? '',
+            item.leaveTypeName ?? '',
+            item.status ?? '',
+            item.reason ?? '',
+          ];
+        })
+        .where((item) {
+          if (canViewAllHr &&
+              listFilterEmployeeIds.isNotEmpty &&
+              !listFilterEmployeeIds.contains(item.employeeId)) {
+            return false;
+          }
+          if (listFilterStatuses.isNotEmpty &&
+              !listFilterStatuses.contains(
+                (item.status ?? '').trim().toLowerCase(),
+              )) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   void _applySearch() {
@@ -411,15 +420,15 @@ class LeaveRequestManagementController extends GetxController {
   }
 
   String leaveListSelectedEmployeeLabel() {
-    if (listFilterEmployeeId == null) {
+    if (listFilterEmployeeIds.isEmpty) {
       return '';
     }
     for (final EmployeeModel e in employees) {
-      if (e.id == listFilterEmployeeId) {
+      if (e.id != null && listFilterEmployeeIds.contains(e.id)) {
         return e.toString();
       }
     }
-    return 'Employee #$listFilterEmployeeId';
+    return listFilterEmployeeIds.join(', ');
   }
 
   List<String> leaveListAppliedFilterChips() {
@@ -427,10 +436,10 @@ class LeaveRequestManagementController extends GetxController {
       if (companyBanner != null) 'Company: $companyBanner',
       if (searchController.text.trim().isNotEmpty)
         'Search: ${searchController.text.trim()}',
-      if (canViewAllHr && listFilterEmployeeId != null)
-        'Employee: ${leaveListSelectedEmployeeLabel()}',
-      if (canViewAllHr && (listFilterStatus ?? '').isNotEmpty)
-        'Status: ${hrDropdownLabel(listStatusFilterItems, listFilterStatus)}',
+      if (canViewAllHr && listFilterEmployeeIds.isNotEmpty)
+        'Employee: ${listFilterEmployeeIds.map((id) => employees.cast<EmployeeModel?>().firstWhere((e) => e?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
+      if (canViewAllHr && listFilterStatuses.isNotEmpty)
+        'Status: ${listFilterStatuses.join(', ')}',
       if (listDateFromController.text.trim().isNotEmpty)
         'From: ${listDateFromController.text.trim()}',
       if (listDateToController.text.trim().isNotEmpty)
@@ -440,8 +449,8 @@ class LeaveRequestManagementController extends GetxController {
 
   void clearLeaveListFilters() {
     searchController.clear();
-    listFilterEmployeeId = null;
-    listFilterStatus = null;
+    listFilterEmployeeIds = <int>{};
+    listFilterStatuses = <String>{};
     listDateFromController.clear();
     listDateToController.clear();
     filteredLeaveRequests = filterLeaveRequests(
@@ -451,13 +460,16 @@ class LeaveRequestManagementController extends GetxController {
     update();
   }
 
-  void setListFilterEmployeeId(int? value) {
-    listFilterEmployeeId = value;
+  void setListFilterEmployeeIds(Set<int> values) {
+    listFilterEmployeeIds = Set<int>.from(values);
     update();
   }
 
-  void setListFilterStatus(String? value) {
-    listFilterStatus = value;
+  void setListFilterStatuses(Set<String> values) {
+    listFilterStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 

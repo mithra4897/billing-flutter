@@ -67,10 +67,10 @@ class CrmEnquiriesController extends GetxController {
   int? customerPartyId;
   int? stageId;
   int? assignedTo;
-  int? filterCustomerPartyId;
-  int? filterStageId;
-  int? filterAssignedTo;
-  String? filterEnquiryStatus;
+  Set<int> filterCustomerPartyIds = <int>{};
+  Set<int> filterStageIds = <int>{};
+  Set<int> filterAssignedToIds = <int>{};
+  Set<String> filterEnquiryStatuses = <String>{};
   String enquiryStatus = 'open';
   String opportunityStatus = 'open';
   List<EnquiryLineDraft> lines = <EnquiryLineDraft>[];
@@ -195,6 +195,13 @@ class CrmEnquiriesController extends GetxController {
       default:
         return 'Open';
     }
+  }
+
+  bool _matchesEnquiryStatus(String rowStatus) {
+    if (filterEnquiryStatuses.isEmpty) {
+      return true;
+    }
+    return filterEnquiryStatuses.contains(rowStatus.trim().toLowerCase());
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -346,14 +353,9 @@ class CrmEnquiriesController extends GetxController {
               final rowStatus = stringValue(data, 'status') == 'won'
                   ? 'converted'
                   : stringValue(data, 'enquiry_status');
-              final requestedStatus =
-                  (filtersApplied
-                          ? (filterEnquiryStatus ?? allFilterStringValue)
-                          : (filterEnquiryStatus ?? ''))
-                      .trim();
               final showAllStatuses =
-                  filtersApplied && requestedStatus == allFilterStringValue;
-              if (hidden && !showAllStatuses && requestedStatus != rowStatus) {
+                  filtersApplied && filterEnquiryStatuses.isEmpty;
+              if (hidden && !showAllStatuses && !_matchesEnquiryStatus(rowStatus)) {
                 return false;
               }
               final enquiryDate = displayDate(
@@ -361,22 +363,21 @@ class CrmEnquiriesController extends GetxController {
               );
               final filterFrom = filterDateFromController.text.trim();
               final filterTo = filterDateToController.text.trim();
-              if (filterCustomerPartyId != null &&
-                  intValue(data, 'customer_party_id') !=
-                      filterCustomerPartyId) {
+              if (filterCustomerPartyIds.isNotEmpty &&
+                  !filterCustomerPartyIds.contains(
+                    intValue(data, 'customer_party_id'),
+                  )) {
                 return false;
               }
-              if (filterStageId != null &&
-                  intValue(data, 'stage_id') != filterStageId) {
+              if (filterStageIds.isNotEmpty &&
+                  !filterStageIds.contains(intValue(data, 'stage_id'))) {
                 return false;
               }
-              if (filterAssignedTo != null &&
-                  intValue(data, 'assigned_to') != filterAssignedTo) {
+              if (filterAssignedToIds.isNotEmpty &&
+                  !filterAssignedToIds.contains(intValue(data, 'assigned_to'))) {
                 return false;
               }
-              if ((filterEnquiryStatus ?? '').isNotEmpty &&
-                  filterEnquiryStatus != allFilterStringValue &&
-                  rowStatus != filterEnquiryStatus) {
+              if (!_matchesEnquiryStatus(rowStatus)) {
                 return false;
               }
               if (filterFrom.isNotEmpty &&
@@ -861,31 +862,34 @@ class CrmEnquiriesController extends GetxController {
     update();
   }
 
-  void setFilterCustomerPartyId(int? value) {
-    filterCustomerPartyId = value == allFilterIntValue ? null : value;
+  void setFilterCustomerPartyIds(Set<int> values) {
+    filterCustomerPartyIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterStageId(int? value) {
-    filterStageId = value == allFilterIntValue ? null : value;
+  void setFilterStageIds(Set<int> values) {
+    filterStageIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterAssignedTo(int? value) {
-    filterAssignedTo = value == allFilterIntValue ? null : value;
+  void setFilterAssignedToIds(Set<int> values) {
+    filterAssignedToIds = Set<int>.from(values);
     update();
   }
 
-  void setFilterEnquiryStatus(String? value) {
-    filterEnquiryStatus = value;
+  void setFilterEnquiryStatuses(Set<String> values) {
+    filterEnquiryStatuses = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
     update();
   }
 
   void clearFilters() {
-    filterCustomerPartyId = null;
-    filterStageId = null;
-    filterAssignedTo = null;
-    filterEnquiryStatus = null;
+    filterCustomerPartyIds = <int>{};
+    filterStageIds = <int>{};
+    filterAssignedToIds = <int>{};
+    filterEnquiryStatuses = <String>{};
     filtersApplied = false;
     filterDateFromController.clear();
     filterDateToController.clear();

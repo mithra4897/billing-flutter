@@ -3,12 +3,37 @@ import '../../controller/sales/sales_module_refresh_controller.dart';
 
 typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
 typedef SalesRegisterMatcher<T> =
-    bool Function(T row, String query, String status);
+    bool Function(T row, String query, Set<String> statuses);
 typedef SalesRegisterDashboardMatcher<T> =
     bool Function(T row, String dashboardFilter);
 typedef SalesRegisterDateValue<T> = String? Function(T row);
 typedef SalesRegisterDocumentValue<T> = String Function(T row);
 typedef SalesRegisterBalanceValue<T> = double? Function(T row);
+
+Set<T> _selectedSet<T>(dynamic value) {
+  if (value is Set<T>) {
+    return value;
+  }
+  if (value is Set) {
+    return value.whereType<T>().toSet();
+  }
+  return <T>{};
+}
+
+bool _matchesSelectedValue<T>(T? value, Set<T> selectedValues) {
+  if (selectedValues.isEmpty) {
+    return true;
+  }
+  return value != null && selectedValues.contains(value);
+}
+
+bool _matchesSelectedStatus(String? value, Set<String> selectedStatuses) {
+  if (selectedStatuses.isEmpty) {
+    return true;
+  }
+  final normalized = (value ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty && selectedStatuses.contains(normalized);
+}
 
 const _salesRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: '', label: 'Default order'),
@@ -91,7 +116,7 @@ class SalesRegisterController<T> extends GetxController {
 
   bool loading = true;
   String? error;
-  String status = '';
+  Set<String> selectedStatuses = <String>{};
   String sort = '';
   String dashboardFilter = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
@@ -103,7 +128,7 @@ class SalesRegisterController<T> extends GetxController {
     final filtered = rows
         .where(
           (row) =>
-              matches(row, query, status) &&
+              matches(row, query, selectedStatuses) &&
               matchesDateValueRange(
                 dateValueOf(row),
                 fromValue: dateFromController.text,
@@ -150,8 +175,8 @@ class SalesRegisterController<T> extends GetxController {
     super.onClose();
   }
 
-  void setStatus(String value) {
-    status = value;
+  void setStatuses(Set<String> values) {
+    selectedStatuses = Set<String>.from(values);
     update();
   }
 
@@ -161,13 +186,21 @@ class SalesRegisterController<T> extends GetxController {
   }
 
   void setCustomFilter(String key, dynamic value) {
-    customFilters[key] = value;
+    if (value == null) {
+      customFilters.remove(key);
+    } else if (value is Set && value.isEmpty) {
+      customFilters.remove(key);
+    } else {
+      customFilters[key] = value;
+    }
     update();
   }
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
     dashboardFilter = value.trim();
-    status = statusOverride;
+    selectedStatuses = statusOverride.trim().isEmpty
+        ? <String>{}
+        : <String>{statusOverride.trim().toLowerCase()};
     sort = initialSort;
     searchController.clear();
     dateFromController.clear();
@@ -397,7 +430,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
   }
 }
 
-List<AppDropdownItem<int?>> _mappedCustomerItems<T>(
+List<AppDropdownItem<int>> _mappedCustomerItems<T>(
   SalesRegisterController<T> controller,
 ) {
   final uniqueCustomers = <int, String>{};
@@ -412,10 +445,9 @@ List<AppDropdownItem<int?>> _mappedCustomerItems<T>(
       uniqueCustomers[id] = name;
     }
   }
-  return <AppDropdownItem<int?>>[
-    const AppDropdownItem<int?>(value: null, label: 'All Customers'),
+  return <AppDropdownItem<int>>[
     ...uniqueCustomers.entries.map(
-      (entry) => AppDropdownItem<int?>(value: entry.key, label: entry.value),
+      (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
     ),
   ];
 }
@@ -434,7 +466,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   final List<AppDropdownItem<String>> statusItems;
   final String title;
   final String searchHint;
-  final List<AppDropdownItem<int?>> Function(SalesRegisterController<T>)?
+  final List<AppDropdownItem<int>> Function(SalesRegisterController<T>)?
   customerItemsBuilder;
   final List<AppDropdownItem<String>> sortItems;
 
@@ -442,8 +474,8 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.searchController.clear();
     controller.dateFromController.clear();
     controller.dateToController.clear();
-    controller.setCustomFilter('customer_id', null);
-    controller.setStatus('');
+    controller.setCustomFilter('customer_ids', <int>{});
+    controller.setStatuses(<String>{});
     controller.setSort('');
   }
 
@@ -456,20 +488,29 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _customerField() {
-    return AppDropdownField<int?>.fromMapped(
+    return AppDropdownField<int>.fromMapped(
       labelText: 'Customer',
       mappedItems: customerItemsBuilder!(controller),
-      initialValue: controller.customFilters['customer_id'] as int?,
-      onChanged: (value) => controller.setCustomFilter('customer_id', value),
+      multiInitialValues: _selectedSet<int>(
+        controller.customFilters['customer_ids'],
+      ),
+      multiHintText: 'Select customers',
+      onMultiChanged: (values) => controller.setCustomFilter(
+        'customer_ids',
+        values,
+      ),
     );
   }
 
   Widget _statusField() {
     return AppDropdownField<String>.fromMapped(
       labelText: 'Status',
-      mappedItems: statusItems,
-      initialValue: controller.status,
-      onChanged: (value) => controller.setStatus(value ?? ''),
+      mappedItems: statusItems
+          .where((item) => item.value.trim().isNotEmpty)
+          .toList(growable: false),
+      multiInitialValues: controller.selectedStatuses,
+      multiHintText: 'Select statuses',
+      onMultiChanged: controller.setStatuses,
     );
   }
 
@@ -680,7 +721,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'quotation_status');
         final searchText = [
@@ -692,11 +733,14 @@ class SalesQuotationRegisterPage extends StatelessWidget {
             Get.find<SalesRegisterController<SalesQuotationModel>>(
               tag: persistentControllerTag('SalesQuotationRegisterController'),
             );
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
-        return (status.isEmpty || rowStatus == status) &&
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
+        return _matchesSelectedStatus(rowStatus, statuses) &&
             (query.isEmpty || searchText.contains(query)) &&
             customerOk;
       },
@@ -822,7 +866,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'order_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'order_status');
         final searchText = [
@@ -833,11 +877,14 @@ class SalesOrderRegisterPage extends StatelessWidget {
         final controller = Get.find<SalesRegisterController<SalesOrderModel>>(
           tag: persistentControllerTag('SalesOrderRegisterController'),
         );
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
-        return (status.isEmpty || rowStatus == status) &&
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
+        return _matchesSelectedStatus(rowStatus, statuses) &&
             (query.isEmpty || searchText.contains(query)) &&
             customerOk;
       },
@@ -1013,7 +1060,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       initialSort: 'balance_desc',
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = row.invoiceStatus ?? '';
         final searchText = [
@@ -1022,18 +1069,20 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
 
-        final statusOk = status.isEmpty || rowStatus == status;
+        final statusOk = _matchesSelectedStatus(rowStatus, statuses);
         final searchOk = query.isEmpty || searchText.contains(query);
 
         final controller = Get.find<SalesRegisterController<SalesInvoiceModel>>(
           tag: persistentControllerTag('SalesInvoiceRegisterController'),
         );
 
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
 
         return statusOk && searchOk && customerOk;
       },
@@ -1164,7 +1213,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'delivery_status');
         final searchText = [
@@ -1176,11 +1225,14 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
             Get.find<SalesRegisterController<SalesDeliveryModel>>(
               tag: persistentControllerTag('SalesDeliveryRegisterController'),
             );
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
-        return (status.isEmpty || rowStatus == status) &&
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
+        return _matchesSelectedStatus(rowStatus, statuses) &&
             (query.isEmpty || searchText.contains(query)) &&
             customerOk;
       },
@@ -1257,7 +1309,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'receipt_status');
         final searchText = [
@@ -1268,11 +1320,14 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         final controller = Get.find<SalesRegisterController<SalesReceiptModel>>(
           tag: persistentControllerTag('SalesReceiptRegisterController'),
         );
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
-        return (status.isEmpty || rowStatus == status) &&
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
+        return _matchesSelectedStatus(rowStatus, statuses) &&
             (query.isEmpty || searchText.contains(query)) &&
             customerOk;
       },
@@ -1377,7 +1432,7 @@ class SalesReturnRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'return_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
-      matches: (row, query, status) {
+      matches: (row, query, statuses) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'return_status');
         final searchText = [
@@ -1388,11 +1443,14 @@ class SalesReturnRegisterPage extends StatelessWidget {
         final controller = Get.find<SalesRegisterController<SalesReturnModel>>(
           tag: persistentControllerTag('SalesReturnRegisterController'),
         );
-        final filterCustomerId =
-            controller.customFilters['customer_id'] as int?;
-        final customerOk =
-            filterCustomerId == null || row.customerPartyId == filterCustomerId;
-        return (status.isEmpty || rowStatus == status) &&
+        final filterCustomerIds = _selectedSet<int>(
+          controller.customFilters['customer_ids'],
+        );
+        final customerOk = _matchesSelectedValue(
+          row.customerPartyId,
+          filterCustomerIds,
+        );
+        return _matchesSelectedStatus(rowStatus, statuses) &&
             (query.isEmpty || searchText.contains(query)) &&
             customerOk;
       },

@@ -43,7 +43,6 @@ class _CrmOpportunityRegisterPageState
     extends State<CrmOpportunityRegisterPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
         AppDropdownItem(value: 'won', label: 'Won'),
@@ -55,15 +54,15 @@ class _CrmOpportunityRegisterPageState
   final TextEditingController _dateToController = TextEditingController();
   bool _loading = true;
   String? _error;
-  String _status = 'open';
+  Set<String> _statuses = <String>{'open'};
   List<CrmOpportunityModel> _rows = const <CrmOpportunityModel>[];
 
-  String _dashboardStatus() {
+  Set<String> _dashboardStatuses() {
     switch ((widget.queryParameters['dashboard_filter'] ?? '').trim()) {
       case 'open_pending':
-        return 'open';
+        return <String>{'open'};
       default:
-        return 'open';
+        return <String>{'open'};
     }
   }
 
@@ -71,7 +70,7 @@ class _CrmOpportunityRegisterPageState
     _searchController.clear();
     _dateFromController.clear();
     _dateToController.clear();
-    _status = _dashboardStatus();
+    _statuses = _dashboardStatuses();
   }
 
   @override
@@ -111,7 +110,7 @@ class _CrmOpportunityRegisterPageState
     final dateToController = TextEditingController(
       text: _dateToController.text,
     );
-    String tempStatus = _status;
+    Set<String> tempStatuses = Set<String>.from(_statuses);
 
     final applied = await showDialog<bool>(
       context: context,
@@ -170,11 +169,11 @@ class _CrmOpportunityRegisterPageState
                         searchController: searchController,
                         dateFromController: dateFromController,
                         dateToController: dateToController,
-                        status: tempStatus,
+                        statuses: tempStatuses,
                         statusItems: _statusItems,
-                        onStatusChanged: (value) {
+                        onStatusesChanged: (values) {
                           setDialogState(() {
-                            tempStatus = value ?? '';
+                            tempStatuses = Set<String>.from(values);
                           });
                         },
                       ),
@@ -190,7 +189,7 @@ class _CrmOpportunityRegisterPageState
                                 _dateFromController.text =
                                     dateFromController.text;
                                 _dateToController.text = dateToController.text;
-                                _status = tempStatus;
+                                _statuses = Set<String>.from(tempStatuses);
                               });
                               Navigator.of(dialogContext).pop(true);
                             },
@@ -203,7 +202,7 @@ class _CrmOpportunityRegisterPageState
                                 _searchController.clear();
                                 _dateFromController.clear();
                                 _dateToController.clear();
-                                _status = 'open';
+                                _statuses = <String>{'open'};
                               });
                               Navigator.of(dialogContext).pop(true);
                             },
@@ -271,7 +270,8 @@ class _CrmOpportunityRegisterPageState
           final lead =
               JsonModel.mapOf(data['lead']) ?? const <String, dynamic>{};
           final statusOk =
-              _status.isEmpty || stringValue(data, 'status') == _status;
+              _statuses.isEmpty ||
+              _statuses.contains(stringValue(data, 'status'));
           final enquiryDate = DateTime.tryParse(
             nullableStringValue(data, 'enquiry_date') ?? '',
           );
@@ -434,17 +434,17 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
     required this.searchController,
     required this.dateFromController,
     required this.dateToController,
-    required this.status,
+    required this.statuses,
     required this.statusItems,
-    required this.onStatusChanged,
+    required this.onStatusesChanged,
   });
 
   final TextEditingController searchController;
   final TextEditingController dateFromController;
   final TextEditingController dateToController;
-  final String status;
+  final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<Set<String>> onStatusesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -460,8 +460,9 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
           mappedItems: statusItems,
-          initialValue: status,
-          onChanged: onStatusChanged,
+          multiInitialValues: statuses,
+          multiHintText: 'Select statuses',
+          onMultiChanged: onStatusesChanged,
         ),
       ],
     );
@@ -682,16 +683,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
-                          initialValue:
-                              controller.filterStageId ??
-                              CrmOpportunitiesController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value:
-                                  CrmOpportunitiesController.allFilterIntValue,
-                              label: 'All',
-                            ),
-                            ...controller.stages
+                          mappedItems: controller.stages
                                 .where(
                                   (item) =>
                                       intValue(item.toJson(), 'id') != null,
@@ -703,26 +695,21 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                                       item.toString(),
                                     ),
                                   ),
-                                ),
-                          ],
-                          onChanged: controller.setFilterStageId,
+                                )
+                                .toList(growable: false),
+                          multiInitialValues: controller.filterStageIds,
+                          multiHintText: 'Select stages',
+                          onMultiChanged: controller.setFilterStageIds,
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue:
-                              controller.filterStatus ??
-                              CrmOpportunitiesController.allFilterStringValue,
-                          mappedItems: <AppDropdownItem<String>>[
-                            const AppDropdownItem<String>(
-                              value: CrmOpportunitiesController
-                                  .allFilterStringValue,
-                              label: 'All',
-                            ),
-                            ...CrmOpportunitiesController.filterStatusItems,
-                          ],
-                          onChanged: controller.setFilterStatus,
+                          mappedItems:
+                              CrmOpportunitiesController.filterStatusItems,
+                          multiInitialValues: controller.filterStatuses,
+                          multiHintText: 'Select statuses',
+                          onMultiChanged: controller.setFilterStatuses,
                         ),
                       ),
                       _filterBox(
@@ -812,8 +799,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         children: [
           _buildAppliedFilters(context, controller),
           if (controller.searchController.text.trim().isNotEmpty ||
-              controller.filterStageId != null ||
-              (controller.filterStatus ?? '').isNotEmpty ||
+              controller.filterStageIds.isNotEmpty ||
+              controller.filterStatuses.isNotEmpty ||
               controller.filtersApplied ||
               controller.filterCloseFromController.text.trim().isNotEmpty ||
               controller.filterCloseToController.text.trim().isNotEmpty)
@@ -878,11 +865,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     final chips = <String>[
       if (controller.searchController.text.trim().isNotEmpty)
         'Search: ${controller.searchController.text.trim()}',
-      if (controller.filterStageId != null || controller.filtersApplied)
-        'Stage: ${controller.filterStageId == null ? 'All' : _crmOpportunityStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString())}',
-      if ((controller.filterStatus ?? '').isNotEmpty ||
+      if (controller.filterStageIds.isNotEmpty || controller.filtersApplied)
+        'Stage: ${controller.filterStageIds.isEmpty ? 'All' : controller.filterStageIds.map((id) => _crmOpportunityStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString())).join(', ')}',
+      if (controller.filterStatuses.isNotEmpty ||
           controller.filtersApplied)
-        'Status: ${(controller.filterStatus ?? CrmOpportunitiesController.allFilterStringValue) == CrmOpportunitiesController.allFilterStringValue ? 'All' : controller.filterStatus}',
+        'Status: ${controller.filterStatuses.isEmpty ? 'All' : controller.filterStatuses.join(', ')}',
       if (controller.filterCloseFromController.text.trim().isNotEmpty)
         'Close From: ${controller.filterCloseFromController.text.trim()}',
       if (controller.filterCloseToController.text.trim().isNotEmpty)
