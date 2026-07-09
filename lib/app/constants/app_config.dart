@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   const AppConfig._();
 
@@ -15,7 +17,30 @@ class AppConfig {
       return configuredUrl;
     }
 
-    return 'http://bill:8000';
+    if (kIsWeb) {
+      final current = Uri.base;
+      final host = current.host;
+      final scheme = current.scheme.isNotEmpty ? current.scheme : 'http';
+
+      if (host.isNotEmpty) {
+        if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
+          return 'http://bill.local:8000';
+        }
+
+        if (current.pathSegments.contains('billing') && current.port != 8000) {
+          return '$scheme://$host:8000';
+        }
+
+        if (current.port == 8000) {
+          final origin = current.origin;
+          if (origin.isNotEmpty) {
+            return origin;
+          }
+        }
+      }
+    }
+
+    return 'http://bill.local:8000';
     // return 'https://bill.sakthicontroller.com/api/public';
   }
 
