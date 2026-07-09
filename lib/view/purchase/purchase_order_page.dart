@@ -626,7 +626,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         if (controller.selectedItem != null &&
                             !hasExistingReceipt &&
                             const {
-                              'draft',
                               'posted',
                               'confirmed',
                               'partially_received',

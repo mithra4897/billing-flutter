@@ -628,7 +628,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                   children: [
                     if (controller.selectedItem != null &&
                         !hasExistingInvoice &&
-                        const {'draft', 'posted', 'partially_invoiced'}
+                        const {'posted', 'partially_invoiced'}
                             .contains(status))
                       AppActionButton(
                         icon: Icons.receipt_long_outlined,
