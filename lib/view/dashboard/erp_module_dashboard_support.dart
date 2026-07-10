@@ -1051,57 +1051,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
     final today = DateTime.now();
     final normalizedToday = DateTime(today.year, today.month, today.day);
 
-    final overdueInvoicesCount = invoiceRows.where((item) {
-      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
-      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
-        return false;
-      }
-      final dueDate = DateTime.tryParse(item.dueDate ?? '');
-      if (dueDate == null) return false;
-      final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
-      return normalizedDue.isBefore(normalizedToday);
-    }).length;
-
-    final overdueInvoicesAmount = invoiceRows.fold<double>(0.0, (sum, item) {
-      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
-      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
-        return sum;
-      }
-      final dueDate = DateTime.tryParse(item.dueDate ?? '');
-      if (dueDate == null) return sum;
-      final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
-      if (normalizedDue.isBefore(normalizedToday)) {
-        return sum + outstanding;
-      }
-      return sum;
-    });
-
-    final delayedOrdersCount = orderRows.where((item) {
-      final status = (item.orderStatus ?? '').trim().toLowerCase();
-      if (status == 'cancelled' ||
-          status == 'completed' ||
-          status == 'closed') {
-        return false;
-      }
-      final deliveryDate = DateTime.tryParse(item.expectedDeliveryDate ?? '');
-      if (deliveryDate == null) {
-        return false;
-      }
-      final normalizedDelivery = DateTime(
-        deliveryDate.year,
-        deliveryDate.month,
-        deliveryDate.day,
-      );
-      return normalizedDelivery.isBefore(normalizedToday);
-    }).length;
-
-    final draftInvoicesCount = invoiceRows.where((item) {
-      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      return status == 'draft';
-    }).length;
-
     return ErpDashboardSnapshot(
       title: 'Sales Dashboard',
       subtitle: 'Shared ERP dashboard layout backed by live sales documents.',
@@ -1153,51 +1102,147 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
       ],
       primarySections: <ErpDashboardListSection>[
         ErpDashboardListSection(
-          title: 'Recent Sales Tasks',
-          subtitle: 'Live sales orders and invoices to keep the team moving.',
+          title: 'Important Sales Tasks',
+          subtitle: 'Actionable sales work that still needs follow-up.',
           icon: Icons.fact_check_outlined,
+          filterOptions: const <ErpDashboardListFilterOption>[
+            ErpDashboardListFilterOption(value: '', label: 'All tasks'),
+            ErpDashboardListFilterOption(value: 'overdue', label: 'Overdue'),
+            ErpDashboardListFilterOption(
+              value: 'partially_paid',
+              label: 'Partially Paid',
+            ),
+            ErpDashboardListFilterOption(value: 'draft', label: 'Draft'),
+            ErpDashboardListFilterOption(value: 'delayed', label: 'Delayed'),
+          ],
           items: <ErpDashboardListItem>[
-            ...orderJsonRows
-                .take(4)
+            ...invoiceRows
+                .where((item) {
+                  final status = (item.invoiceStatus ?? '')
+                      .trim()
+                      .toLowerCase();
+                  final outstanding =
+                      item.balanceAmount ?? item.totalAmount ?? 0;
+                  if (status == 'draft' || status == 'cancelled') {
+                    return false;
+                  }
+                  if (outstanding <= 0) {
+                    return false;
+                  }
+                  final dueDate = DateTime.tryParse(item.dueDate ?? '');
+                  if (dueDate == null) {
+                    return false;
+                  }
+                  return DateTime(
+                    dueDate.year,
+                    dueDate.month,
+                    dueDate.day,
+                  ).isBefore(normalizedToday);
+                })
+                .take(3)
                 .map(
-                  (order) => ErpDashboardListItem(
-                    title: () {
-                      final no = stringValue(order, 'order_no', '');
-                      return no.isEmpty ? 'Sales Order' : 'Sales Order - $no';
-                    }(),
-                    subtitle: [
-                      displayDate(nullableStringValue(order, 'order_date')),
-                      _customerName(order),
-                    ].where((part) => part.trim().isNotEmpty).join(' • '),
-                    detail: nullableStringValue(order, 'remarks'),
-                    statusLabel: _statusLabel(order, const [
-                      'order_status',
-                      'status',
-                    ]),
-                    route: _recordRoute('/sales/orders', order),
+                  (item) => ErpDashboardListItem(
+                    title:
+                        'Sales Invoice - ${_customerName(item.toJson()).trim().isEmpty ? 'Customer' : _customerName(item.toJson())}',
+                    subtitle: item.invoiceNo?.trim().isNotEmpty == true
+                        ? item.invoiceNo!
+                        : 'Sales Invoice',
+                    detail:
+                        'Date ${displayDate(item.invoiceDate)} • Due ${displayDate(item.dueDate)} • Balance ${_formatCurrency(item.balanceAmount ?? item.totalAmount ?? 0)}',
+                    statusLabel: 'OVERDUE',
+                    statusColor: const Color(0xFFDA4D78),
+                    route: _recordRoute('/sales/invoices', item.toJson()),
+                    filterTags: const <String>['overdue'],
                   ),
                 ),
-            ...invoiceJsonRows.take(2).map((json) {
-              return ErpDashboardListItem(
-                title: () {
-                  final no = stringValue(json, 'invoice_no', '');
-                  return no.isEmpty ? 'Sales Invoice' : 'Sales Invoice - $no';
-                }(),
-                subtitle: [
-                  displayDate(nullableStringValue(json, 'invoice_date')),
-                  _customerName(json),
-                ].where((part) => part.trim().isNotEmpty).join(' • '),
-                detail:
-                    nullableStringValue(json, 'grand_total') ??
-                    nullableStringValue(json, 'total_amount'),
-                statusLabel: _statusLabel(json, const [
-                  'invoice_status',
-                  'status',
-                ]),
-                route: _recordRoute('/sales/invoices', json),
-              );
-            }),
-          ],
+            ...invoiceRows
+                .where((item) {
+                  final status = (item.invoiceStatus ?? '')
+                      .trim()
+                      .toLowerCase();
+                  final outstanding =
+                      item.balanceAmount ?? item.totalAmount ?? 0;
+                  return status == 'partially_paid' && outstanding > 0;
+                })
+                .take(2)
+                .map(
+                  (item) => ErpDashboardListItem(
+                    title:
+                        'Sales Invoice - ${_customerName(item.toJson()).trim().isEmpty ? 'Customer' : _customerName(item.toJson())}',
+                    subtitle: item.invoiceNo?.trim().isNotEmpty == true
+                        ? item.invoiceNo!
+                        : 'Sales Invoice',
+                    detail:
+                        'Date ${displayDate(item.invoiceDate)} • Pending balance ${_formatCurrency(item.balanceAmount ?? item.totalAmount ?? 0)}',
+                    statusLabel: 'PARTIALLY PAID',
+                    statusColor: const Color(0xFFE67E22),
+                    route: _recordRoute('/sales/invoices', item.toJson()),
+                    filterTags: const <String>['partially_paid'],
+                  ),
+                ),
+            ...invoiceRows
+                .where((item) {
+                  final status = (item.invoiceStatus ?? '')
+                      .trim()
+                      .toLowerCase();
+                  return status == 'draft';
+                })
+                .take(2)
+                .map(
+                  (item) => ErpDashboardListItem(
+                    title:
+                        'Sales Invoice - ${_customerName(item.toJson()).trim().isEmpty ? 'Customer' : _customerName(item.toJson())}',
+                    subtitle: item.invoiceNo?.trim().isNotEmpty == true
+                        ? item.invoiceNo!
+                        : 'Sales Invoice',
+                    detail:
+                        'Date ${displayDate(item.invoiceDate)} • ${_formatCurrency(item.totalAmount)}',
+                    statusLabel: 'DRAFT',
+                    statusColor: const Color(0xFF8A8F98),
+                    route: _recordRoute('/sales/invoices', item.toJson()),
+                    filterTags: const <String>['draft'],
+                  ),
+                ),
+            ...orderRows
+                .where((item) {
+                  final status = (item.orderStatus ?? '').trim().toLowerCase();
+                  if (const <String>{
+                    'cancelled',
+                    'closed',
+                    'fully_invoiced',
+                    'fully_delivered',
+                  }.contains(status)) {
+                    return false;
+                  }
+                  final expectedDate = DateTime.tryParse(
+                    item.expectedDeliveryDate ?? '',
+                  );
+                  if (expectedDate == null) {
+                    return false;
+                  }
+                  return DateTime(
+                    expectedDate.year,
+                    expectedDate.month,
+                    expectedDate.day,
+                  ).isBefore(normalizedToday);
+                })
+                .take(2)
+                .map(
+                  (item) => ErpDashboardListItem(
+                    title:
+                        'Sales Order - ${_customerName(item.toJson()).trim().isEmpty ? 'Customer' : _customerName(item.toJson())}',
+                    subtitle: item.orderNo?.trim().isNotEmpty == true
+                        ? item.orderNo!
+                        : 'Sales Order',
+                    detail:
+                        'Date ${displayDate(item.orderDate)} • Expected ${displayDate(item.expectedDeliveryDate)} • ${_formatCurrency(item.totalAmount)}',
+                    statusLabel: 'DELAYED',
+                    statusColor: const Color(0xFFDA4D78),
+                    route: _recordRoute('/sales/orders', item.toJson()),
+                    filterTags: const <String>['delayed'],
+                  ),
+                ),
+          ].take(6).toList(growable: false),
         ),
       ],
       trend: _buildMonthlyTrendCard(
@@ -1237,33 +1282,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
             label: 'Collected (Receipts)',
             value: collectedValue,
             color: const Color(0xFF1FA971),
-          ),
-        ],
-      ),
-      highlights: ErpDashboardHighlightsCardData(
-        title: 'Sales Focus',
-        subtitle: 'Key operational pressure points for the sales desk.',
-        entries: <ErpDashboardHighlightEntry>[
-          ErpDashboardHighlightEntry(
-            label: 'Overdue Invoices',
-            value: _formatCurrency(overdueInvoicesAmount),
-            helper: '$overdueInvoicesCount invoices past due',
-            color: const Color(0xFFDA4D78),
-            route: '/sales/invoices?dashboard_filter=overdue',
-          ),
-          ErpDashboardHighlightEntry(
-            label: 'Delayed Orders',
-            value: _formatInt(delayedOrdersCount),
-            helper: 'Orders past expected delivery',
-            color: const Color(0xFFE67E22),
-            route: '/sales/orders?dashboard_filter=delayed',
-          ),
-          ErpDashboardHighlightEntry(
-            label: 'Draft Invoices',
-            value: _formatInt(draftInvoicesCount),
-            helper: 'Not yet posted/sent',
-            color: const Color(0xFF1FA971),
-            route: '/sales/invoices?dashboard_filter=draft',
           ),
         ],
       ),

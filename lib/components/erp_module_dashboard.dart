@@ -90,6 +90,8 @@ class ErpDashboardListSection {
     required this.subtitle,
     required this.icon,
     this.items = const <ErpDashboardListItem>[],
+    this.filterOptions = const <ErpDashboardListFilterOption>[],
+    this.initialFilterValue = '',
     this.emptyTitle = 'No records yet',
     this.emptyMessage = 'This section will populate when activity starts.',
   });
@@ -98,8 +100,20 @@ class ErpDashboardListSection {
   final String subtitle;
   final IconData icon;
   final List<ErpDashboardListItem> items;
+  final List<ErpDashboardListFilterOption> filterOptions;
+  final String initialFilterValue;
   final String emptyTitle;
   final String emptyMessage;
+}
+
+class ErpDashboardListFilterOption {
+  const ErpDashboardListFilterOption({
+    required this.value,
+    required this.label,
+  });
+
+  final String value;
+  final String label;
 }
 
 class ErpDashboardListItem {
@@ -110,6 +124,7 @@ class ErpDashboardListItem {
     this.statusLabel,
     this.statusColor,
     this.route,
+    this.filterTags = const <String>[],
   });
 
   final String title;
@@ -118,6 +133,7 @@ class ErpDashboardListItem {
   final String? statusLabel;
   final Color? statusColor;
   final String? route;
+  final List<String> filterTags;
 }
 
 class ErpDashboardTrendCardData {
@@ -634,14 +650,45 @@ class _DashboardInsightsColumn extends StatelessWidget {
   }
 }
 
-class _DashboardListCard extends StatelessWidget {
+class _DashboardListCard extends StatefulWidget {
   const _DashboardListCard({required this.section});
 
   final ErpDashboardListSection section;
 
   @override
+  State<_DashboardListCard> createState() => _DashboardListCardState();
+}
+
+class _DashboardListCardState extends State<_DashboardListCard> {
+  late String _selectedFilter;
+
+  ErpDashboardListSection get section => widget.section;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = section.initialFilterValue;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DashboardListCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.section.initialFilterValue != section.initialFilterValue ||
+        !listEquals(oldWidget.section.filterOptions, section.filterOptions)) {
+      _selectedFilter = section.initialFilterValue;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final items = section.items;
+    final items = section.items
+        .where((item) {
+          if (_selectedFilter.trim().isEmpty) {
+            return true;
+          }
+          return item.filterTags.contains(_selectedFilter);
+        })
+        .toList(growable: false);
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
     return _DashboardSurfaceCard(
@@ -653,6 +700,21 @@ class _DashboardListCard extends StatelessWidget {
             subtitle: section.subtitle,
             icon: section.icon,
           ),
+          if (section.filterOptions.isNotEmpty) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _DashboardListFilterDropdown(
+                options: section.filterOptions,
+                value: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: AppUiConstants.spacingMd),
           if (items.isEmpty)
             _DashboardInlineEmptyState(
@@ -792,6 +854,51 @@ class _DashboardListCard extends StatelessWidget {
   }
 
   Color get itemColor => const Color(0xFF2F6FED);
+}
+
+class _DashboardListFilterDropdown extends StatelessWidget {
+  const _DashboardListFilterDropdown({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<ErpDashboardListFilterOption> options;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option.value,
+                  child: Text(option.label),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (nextValue) {
+            if (nextValue != null) {
+              onChanged(nextValue);
+            }
+          },
+        ),
+      ),
+    );
+  }
 }
 
 class _DashboardTrendCard extends StatelessWidget {
