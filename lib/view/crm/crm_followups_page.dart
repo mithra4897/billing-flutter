@@ -808,7 +808,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                       AppFormTextField(
                         controller: _followupDateControllers[opportunityId]!,
                         labelText: 'Followup Date',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         allowType: false,
@@ -817,7 +817,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                       AppFormTextField(
                         controller: _nextFollowupControllers[opportunityId]!,
                         labelText: 'Next Followup',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         allowType: false,

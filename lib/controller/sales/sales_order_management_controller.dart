@@ -798,10 +798,7 @@ class SalesOrderManagementController extends GetxController {
           stringValue(data, 'direct_customer_details');
       unawaited(ensureCustomerPrintContext(customerPartyId));
       orderNoController.clear();
-      orderDateController.text = DateTime.now()
-          .toIso8601String()
-          .split('T')
-          .first;
+      orderDateController.text = displayTodayDate();
       expectedDeliveryController.text = displayDate(
         nullableStringValue(data, 'valid_until'),
       );
@@ -899,10 +896,7 @@ class SalesOrderManagementController extends GetxController {
     salesQuotationId = null;
     quotationLinesCache = null;
     orderNoController.clear();
-    orderDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    orderDateController.text = displayTodayDate();
     expectedDeliveryController.clear();
     customerRefNoController.clear();
     customerRefDateController.clear();
@@ -1505,10 +1499,10 @@ class SalesOrderManagementController extends GetxController {
     };
     try {
       final response = selectedItem == null
-          ? await _salesService.createOrder(SalesOrderModel.fromJson(payload))
+          ? await _salesService.createOrder(SalesOrderModel.fromJson(normalizeDatePayload(payload)))
           : await _salesService.updateOrder(
               intValue(selectedItem!.toJson(), 'id')!,
-              SalesOrderModel.fromJson(payload),
+              SalesOrderModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

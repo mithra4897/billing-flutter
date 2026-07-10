@@ -194,14 +194,14 @@ class PostingRuleGroupManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
-    final body = PostingRuleGroupModel.fromJson(<String, dynamic>{
+    final body = PostingRuleGroupModel.fromJson(normalizeDatePayload(<String, dynamic>{
       'group_code': codeController.text.trim(),
       'group_name': nameController.text.trim(),
       'document_type': documentType,
       'trigger_event': triggerEvent,
       'description': nullIfEmpty(descriptionController.text),
       'is_active': isActive,
-    });
+    }));
     try {
       final ApiResponse<PostingRuleGroupModel> response;
       final selectedId = intValue(json(selected), 'id');

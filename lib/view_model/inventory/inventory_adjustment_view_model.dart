@@ -445,10 +445,7 @@ class InventoryAdjustmentViewModel extends GetxController {
     selected = null;
     formError = null;
     adjustmentNoController.clear();
-    adjustmentDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    adjustmentDateController.text = displayTodayDate();
     remarksController.clear();
     _ensureContextSelection();
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
@@ -882,10 +879,10 @@ class InventoryAdjustmentViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createInventoryAdjustment(payload)
+          ? await _inventoryService.createInventoryAdjustment(normalizeDatePayload(payload))
           : await _inventoryService.updateInventoryAdjustment(
               intValue(selected!.toJson(), 'id')!,
-              payload,
+              normalizeDatePayload(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

@@ -2094,10 +2094,7 @@ class SalesInvoiceManagementController extends GetxController {
         orderLinesCache = null;
         deliveryLinesCache = null;
         invoiceNoController.clear();
-        invoiceDateController.text = DateTime.now()
-            .toIso8601String()
-            .split('T')
-            .first;
+        invoiceDateController.text = displayTodayDate();
         dueDateController.text = _defaultDueDateFrom(
           invoiceDateController.text,
         );
@@ -2128,10 +2125,7 @@ class SalesInvoiceManagementController extends GetxController {
         deliveryLinesCache = null;
         applyInvoiceHeaderFromOrderJson(orderJson);
         invoiceNoController.clear();
-        invoiceDateController.text = DateTime.now()
-            .toIso8601String()
-            .split('T')
-            .first;
+        invoiceDateController.text = displayTodayDate();
         dueDateController.text = _defaultDueDateFrom(
           invoiceDateController.text,
         );
@@ -2164,10 +2158,7 @@ class SalesInvoiceManagementController extends GetxController {
       }
       State(() {
         invoiceNoController.clear();
-        invoiceDateController.text = DateTime.now()
-            .toIso8601String()
-            .split('T')
-            .first;
+        invoiceDateController.text = displayTodayDate();
         dueDateController.text = _defaultDueDateFrom(
           invoiceDateController.text,
         );
@@ -2259,10 +2250,7 @@ class SalesInvoiceManagementController extends GetxController {
       orderLinesCache = null;
       deliveryLinesCache = null;
       invoiceNoController.clear();
-      invoiceDateController.text = DateTime.now()
-          .toIso8601String()
-          .split('T')
-          .first;
+      invoiceDateController.text = displayTodayDate();
       dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
       directCustomerDetailsController.clear();
       customerRefNoController.clear();

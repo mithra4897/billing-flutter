@@ -377,7 +377,7 @@ class StockTransferViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     transferNoController.clear();
     transferDateController.text = now;
     remarksController.clear();
@@ -888,11 +888,11 @@ class StockTransferViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockTransfer(
-              StockTransferModel.fromJson(payload),
+              StockTransferModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockTransfer(
               intValue(selected!.toJson(), 'id')!,
-              StockTransferModel.fromJson(payload),
+              StockTransferModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

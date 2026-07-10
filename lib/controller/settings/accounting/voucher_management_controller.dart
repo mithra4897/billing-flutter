@@ -707,11 +707,9 @@ class VoucherManagementController extends GetxController {
     voucherMode = resolveVoucherMode(full);
     documentSeriesId = full.documentSeriesId;
     voucherNoController.text = full.voucherNo ?? '';
-    voucherDateController.text =
-        full.voucherDate?.split('T').first.split(' ').first ?? '';
+    voucherDateController.text = displayDate(full.voucherDate);
     referenceNoController.text = full.referenceNo ?? '';
-    referenceDateController.text =
-        full.referenceDate?.split('T').first.split(' ').first ?? '';
+    referenceDateController.text = displayDate(full.referenceDate);
     narrationController.text = full.narration ?? '';
     adjustmentAccountId = full.adjustmentAccountId;
     adjustmentRemarksController.text = full.adjustmentRemarks ?? '';
@@ -759,10 +757,7 @@ class VoucherManagementController extends GetxController {
     documentSeriesId = null;
     syncDocumentSeriesSelection();
     voucherNoController.clear();
-    voucherDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    voucherDateController.text = displayTodayDate();
     referenceNoController.clear();
     referenceDateController.clear();
     narrationController.clear();

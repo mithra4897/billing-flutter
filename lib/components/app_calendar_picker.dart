@@ -382,7 +382,7 @@ String formatCalendarDateTime(DateTime value) {
   final hour = value.hour.toString().padLeft(2, '0');
   final minute = value.minute.toString().padLeft(2, '0');
   final second = value.second.toString().padLeft(2, '0');
-  return '${value.year}-$month-$day $hour:$minute:$second';
+  return displayDateTime('${value.year}-$month-$day $hour:$minute:$second');
 }
 
 DateTime? tryParseCalendarDate(String raw) {
@@ -390,9 +390,5 @@ DateTime? tryParseCalendarDate(String raw) {
 }
 
 DateTime? tryParseCalendarDateTime(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(trimmed);
+  return parseNormalizedDateTimeValue(raw);
 }

@@ -1,3 +1,5 @@
+import 'date_value_helper.dart';
+
 extension StringNullableExtensions on String? {
   bool get isNullOrBlank => this == null || this!.trim().isEmpty;
 
@@ -21,30 +23,11 @@ extension StringExtensions on String {
   }
 }
 
-
-
-
 String displayDateTime(String? value) {
   if (value == null || value.trim().isEmpty) {
     return '';
   }
-
-  final parsed = DateTime.tryParse(value.trim());
-  if (parsed != null) {
-    final local = parsed.isUtc ? parsed.toLocal() : parsed;
-    final year = local.year.toString().padLeft(4, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    final second = local.second.toString().padLeft(2, '0');
-    return '$year-$month-$day $hour:$minute:$second';
-  }
-
-  final normalized = value.trim().replaceFirst('T', ' ');
-  return normalized.endsWith('Z')
-      ? normalized.substring(0, normalized.length - 1)
-      : normalized;
+  return normalizeDateTimeValue(value);
 }
 
 String currentDateTimeInput() {

@@ -76,6 +76,28 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
           ) ??
           false);
 
+  String? get _effectiveHintText {
+    if (widget.hintText != null && widget.hintText!.trim().isNotEmpty) {
+      return widget.hintText;
+    }
+    if (_isAutoDateTimeField) {
+      final format = Get.isRegistered<AppFormatSettings>()
+          ? AppFormatSettings.to.dateFormat.value
+          : AppFormatSettings.defaultDateFormat;
+      return format
+              .replaceAll('yyyy', 'YYYY')
+              .replaceAll('dd', 'DD') +
+          ' HH:MM:SS';
+    }
+    if (_isAutoDateField) {
+      final format = Get.isRegistered<AppFormatSettings>()
+          ? AppFormatSettings.to.dateFormat.value
+          : AppFormatSettings.defaultDateFormat;
+      return format.replaceAll('yyyy', 'YYYY').replaceAll('dd', 'DD');
+    }
+    return widget.hintText;
+  }
+
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
 
@@ -377,7 +399,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         textCapitalization: widget.textCapitalization,
         decoration: InputDecoration(
           labelText: widget.labelText,
-          hintText: widget.hintText,
+          hintText: _effectiveHintText,
           alignLabelWithHint: widget.maxLines > 1,
           prefixIcon: widget.prefixIcon,
           suffixIcon:

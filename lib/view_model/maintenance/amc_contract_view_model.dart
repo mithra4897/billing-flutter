@@ -234,15 +234,9 @@ class AmcContractViewModel extends GetxController {
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     vendorPartyId = null;
     contractNoController.clear();
-    contractDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    contractDateController.text = displayTodayDate();
     contractTypeController.clear();
-    startDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    startDateController.text = displayTodayDate();
     endDateController.clear();
     coverageController.clear();
     visitFrequencyController.clear();

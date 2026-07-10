@@ -249,7 +249,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,
-            hintText: 'YYYY-MM-DD',
+            hintText: dateFormatHint(),
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
             validator: Validators.optionalDate('Date From'),
@@ -257,7 +257,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
           AppFormTextField(
             labelText: 'Date To',
             controller: controller.dateToController,
-            hintText: 'YYYY-MM-DD',
+            hintText: dateFormatHint(),
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
             validator: Validators.optionalDate('Date To'),

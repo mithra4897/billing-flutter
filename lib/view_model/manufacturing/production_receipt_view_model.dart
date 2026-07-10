@@ -241,10 +241,7 @@ class ProductionReceiptViewModel extends GetxController {
     selected = null;
     formError = null;
     receiptNoController.clear();
-    receiptDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    receiptDateController.text = displayTodayDate();
     remarksController.clear();
     productionOrderId = null;
     documentSeriesId = documentSeries
@@ -407,11 +404,11 @@ class ProductionReceiptViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createProductionReceipt(
-              ProductionReceiptModel.fromJson(payload),
+              ProductionReceiptModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateProductionReceipt(
               intValue(selected!.toJson(), 'id')!,
-              ProductionReceiptModel.fromJson(payload),
+              ProductionReceiptModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

@@ -358,7 +358,7 @@ Future<void> openAttendanceRecordEditor(
                       AppFormTextField(
                         controller: checkInCtrl,
                         labelText: 'Check in (optional)',
-                        hintText: 'YYYY-MM-DD HH:MM:SS (numeric keypad)',
+                        hintText: '${dateTimeFormatHint()} (numeric keypad)',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         validator: (v) =>
@@ -367,7 +367,7 @@ Future<void> openAttendanceRecordEditor(
                       AppFormTextField(
                         controller: checkOutCtrl,
                         labelText: 'Check out (optional)',
-                        hintText: 'YYYY-MM-DD HH:MM:SS (numeric keypad)',
+                        hintText: '${dateTimeFormatHint()} (numeric keypad)',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         validator: (v) =>

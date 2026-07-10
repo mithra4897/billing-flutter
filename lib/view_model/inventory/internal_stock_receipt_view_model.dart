@@ -382,7 +382,7 @@ class InternalStockReceiptViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     receiptNoController.clear();
     receiptDateController.text = now;
     receivedFromController.clear();
@@ -1021,11 +1021,11 @@ class InternalStockReceiptViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createInternalStockReceipt(
-              InternalStockReceiptModel.fromJson(payload),
+              InternalStockReceiptModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateInternalStockReceipt(
               intValue(selected!.toJson(), 'id')!,
-              InternalStockReceiptModel.fromJson(payload),
+              InternalStockReceiptModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

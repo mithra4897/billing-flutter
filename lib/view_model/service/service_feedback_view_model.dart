@@ -168,10 +168,7 @@ class ServiceFeedbackViewModel extends GetxController {
     serviceWorkOrderId = null;
     resolutionConfirmed = 0;
     revisitRequired = 0;
-    feedbackDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    feedbackDateController.text = displayTodayDate();
     ratingOverallController.clear();
     ratingTechnicianController.clear();
     ratingResolutionController.clear();

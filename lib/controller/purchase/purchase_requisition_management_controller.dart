@@ -421,10 +421,7 @@ class PurchaseRequisitionManagementController extends GetxController {
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     requestedById = null;
     requisitionNoController.clear();
-    requisitionDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    requisitionDateController.text = displayTodayDate();
     requiredDateController.clear();
     departmentName = null;
     purposeController.clear();
@@ -681,11 +678,11 @@ class PurchaseRequisitionManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _purchaseService.createRequisition(
-              PurchaseRequisitionModel.fromJson(payload),
+              PurchaseRequisitionModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _purchaseService.updateRequisition(
               intValue(selectedItem!.toJson(), 'id')!,
-              PurchaseRequisitionModel.fromJson(payload),
+              PurchaseRequisitionModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

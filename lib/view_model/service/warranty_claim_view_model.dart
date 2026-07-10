@@ -340,10 +340,7 @@ class WarrantyClaimViewModel extends GetxController {
     serviceContractAssetId = null;
     contractAssets = const <ServiceContractAssetModel>[];
     ticketNoController.clear();
-    ticketDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    ticketDateController.text = displayTodayDate();
     issueTitleController.clear();
     issueDescriptionController.clear();
     priorityController.text = 'normal';

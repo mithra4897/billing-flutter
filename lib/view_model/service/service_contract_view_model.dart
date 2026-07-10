@@ -215,10 +215,7 @@ class ServiceContractViewModel extends GetxController {
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     customerPartyId = null;
     contractNoController.clear();
-    contractDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    contractDateController.text = displayTodayDate();
     contractTypeController.text = 'warranty';
     startDateController.text = contractDateController.text;
     endDateController.clear();

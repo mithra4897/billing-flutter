@@ -493,10 +493,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
     selected = null;
     formError = null;
     issueNoController.clear();
-    issueDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    issueDateController.text = displayTodayDate();
     remarksController.clear();
     productionOrderId = null;
     warehouseId = warehouses.isNotEmpty ? warehouses.first.id : null;
@@ -1095,11 +1092,11 @@ class ProductionMaterialIssueViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createProductionMaterialIssue(
-              ProductionMaterialIssueModel.fromJson(payload),
+              ProductionMaterialIssueModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateProductionMaterialIssue(
               intValue(selected!.toJson(), 'id')!,
-              ProductionMaterialIssueModel.fromJson(payload),
+              ProductionMaterialIssueModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

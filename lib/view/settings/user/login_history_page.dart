@@ -382,7 +382,7 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           child: AppFormTextField(
             controller: controller.dateFromController,
             labelText: 'Date From',
-            hintText: 'YYYY-MM-DD',
+            hintText: dateFormatHint(),
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),
@@ -391,7 +391,7 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           child: AppFormTextField(
             controller: controller.dateToController,
             labelText: 'Date To',
-            hintText: 'YYYY-MM-DD',
+            hintText: dateFormatHint(),
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),

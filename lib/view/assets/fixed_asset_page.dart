@@ -302,19 +302,19 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                           AppFormTextField(
                             labelText: 'Purchase date',
                             controller: controller.purchaseDateController,
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
                           ),
                           AppFormTextField(
                             labelText: 'Capitalization date',
                             controller: controller.capitalizationDateController,
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
                           ),
                           AppFormTextField(
                             labelText: 'Put to use date',
                             controller: controller.putToUseDateController,
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
                           ),
                           ErpLinkField<int>(
@@ -414,13 +414,13 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                           AppFormTextField(
                             labelText: 'Warranty start',
                             controller: controller.warrantyStartController,
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
                           ),
                           AppFormTextField(
                             labelText: 'Warranty end',
                             controller: controller.warrantyEndController,
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
                           ),
                           AppFormTextField(

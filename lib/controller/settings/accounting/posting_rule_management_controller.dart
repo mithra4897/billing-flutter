@@ -245,7 +245,7 @@ class PostingRuleManagementController extends GetxController {
     update();
     final lineNo = int.tryParse(lineNoController.text.trim()) ?? 1;
     final priority = int.tryParse(priorityController.text.trim()) ?? 1;
-    final body = PostingRuleModel.fromJson(<String, dynamic>{
+    final body = PostingRuleModel.fromJson(normalizeDatePayload(<String, dynamic>{
       'posting_rule_group_id': groupId,
       'line_no': lineNo,
       'entry_side': entrySide,
@@ -257,7 +257,7 @@ class PostingRuleManagementController extends GetxController {
       'narration_template': nullIfEmpty(narrationTemplateController.text),
       'priority_order': priority,
       'is_active': isActive,
-    });
+    }));
     try {
       final ApiResponse<PostingRuleModel> response;
       final selectedId = intValue(json(selected), 'id');

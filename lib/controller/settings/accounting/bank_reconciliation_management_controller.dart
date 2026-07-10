@@ -203,10 +203,8 @@ class BankReconciliationManagementController extends GetxController {
     voucherId = item.voucherId;
     voucherLineId = item.voucherLineId;
     status = item.reconciliationStatus ?? 'pending';
-    bankDateController.text =
-        item.bankDate?.split('T').first.split(' ').first ?? '';
-    clearedDateController.text =
-        item.clearedDate?.split('T').first.split(' ').first ?? '';
+    bankDateController.text = displayDate(item.bankDate);
+    clearedDateController.text = displayDate(item.clearedDate);
     bankReferenceController.text = item.bankReferenceNo ?? '';
     remarksController.text = item.remarks ?? '';
     formError = null;

@@ -354,7 +354,7 @@ class AssetCategoryViewModel extends GetxController {
         return true;
       }
       final response = await _assets.createCategory(
-        AssetCategoryModel.fromJson(payload),
+        AssetCategoryModel.fromJson(normalizeDatePayload(payload)),
       );
       if (response.success != true || response.data == null) {
         formError = response.message;

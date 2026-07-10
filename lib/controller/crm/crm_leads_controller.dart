@@ -534,7 +534,7 @@ class CrmLeadsController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmLeadModel.fromJson({
+    final payload = CrmLeadModel.fromJson(normalizeDatePayload({
       'company_id': companyId,
       'lead_name': leadNameController.text.trim(),
       'company_name': nullIfEmpty(companyNameController.text),
@@ -547,7 +547,7 @@ class CrmLeadsController extends GetxController {
       'activities': activities
           .map((item) => item.toJson())
           .toList(growable: false),
-    });
+    }));
 
     try {
       final response = selectedItem == null
@@ -605,7 +605,7 @@ class CrmLeadsController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmLeadModel.fromJson({
+    final payload = CrmLeadModel.fromJson(normalizeDatePayload({
       'company_id': companyId,
       'lead_name': leadNameController.text.trim(),
       'company_name': nullIfEmpty(companyNameController.text),
@@ -618,7 +618,7 @@ class CrmLeadsController extends GetxController {
       'activities': activities
           .map((item) => item.toJson())
           .toList(growable: false),
-    });
+    }));
 
     try {
       final response = await _crmService.updateLead(id, payload);

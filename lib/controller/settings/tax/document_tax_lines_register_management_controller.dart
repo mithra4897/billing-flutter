@@ -26,7 +26,7 @@ class DocumentTaxLinesRegisterManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final today = DateTime.now().toIso8601String().split('T').first;
+    final today = displayTodayDate();
     dateFromController.text = today;
     dateToController.text = today;
     bootstrap();

@@ -1087,7 +1087,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       AppFormTextField(
                         controller: activity.activityDateTimeController,
                         labelText: 'Activity Date Time',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         enabled: !controller.isSelectedLeadReadOnly,
@@ -1095,7 +1095,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       AppFormTextField(
                         controller: activity.nextFollowupController,
                         labelText: 'Next Follow-up',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         enabled: !controller.isSelectedLeadReadOnly,

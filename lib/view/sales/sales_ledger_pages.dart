@@ -711,7 +711,7 @@ class _SalesLedgerFilters extends StatelessWidget {
       return AppFormTextField(
         labelText: label,
         controller: controller,
-        hintText: 'YYYY-MM-DD',
+        hintText: dateFormatHint(),
         keyboardType: TextInputType.datetime,
         inputFormatters: const [DateInputFormatter()],
         validator: Validators.optionalDate(label),

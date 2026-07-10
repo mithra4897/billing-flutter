@@ -338,10 +338,7 @@ class DocumentPostingManagementController extends GetxController {
     tableController.clear();
     documentIdController.clear();
     documentNoController.clear();
-    documentDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    documentDateController.text = displayTodayDate();
     postingRuleGroupId = null;
     voucherIdController.clear();
     postingStatus = 'pending';
@@ -490,7 +487,7 @@ class DocumentPostingManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = DocumentPostingModel.fromJson(_payload());
+    final body = DocumentPostingModel.fromJson(normalizeDatePayload(_payload()));
 
     try {
       final ApiResponse<DocumentPostingModel> response;

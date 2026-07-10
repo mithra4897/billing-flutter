@@ -379,10 +379,7 @@ class BomViewModel extends GetxController {
     standardOutputQtyController.text = '1';
     scrapPercentController.text = '0';
     yieldPercentController.text = '100';
-    effectiveFromController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    effectiveFromController.text = displayTodayDate();
     effectiveToController.clear();
     notesController.clear();
     isDefault = false;
@@ -655,10 +652,10 @@ class BomViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _service.createBom(BomModel.fromJson(payload))
+          ? await _service.createBom(BomModel.fromJson(normalizeDatePayload(payload)))
           : await _service.updateBom(
               intValue(selected!.toJson(), 'id')!,
-              BomModel.fromJson(payload),
+              BomModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

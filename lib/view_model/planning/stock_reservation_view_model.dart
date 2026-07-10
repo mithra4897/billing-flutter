@@ -378,11 +378,11 @@ class StockReservationViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createStockReservation(
-              StockReservationModel.fromJson(payload),
+              StockReservationModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateStockReservation(
               intValue(selected!.toJson(), 'id')!,
-              StockReservationModel.fromJson(payload),
+              StockReservationModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

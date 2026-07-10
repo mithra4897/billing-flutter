@@ -464,10 +464,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierPartyId = null;
     adjustmentAccountId = null;
     invoiceNoController.clear();
-    invoiceDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    invoiceDateController.text = displayTodayDate();
     dueDateController.text = _defaultDueDateFrom(invoiceDateController.text);
     supplierReferenceNoController.clear();
     supplierReferenceDateController.clear();

@@ -660,7 +660,7 @@ class ProduceTrackingViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     trackingNoController.clear();
     trackingDateController.text = now;
     destinationLocationController.clear();
@@ -1218,10 +1218,10 @@ class ProduceTrackingViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createProduceTracking(payload)
+          ? await _inventoryService.createProduceTracking(normalizeDatePayload(payload))
           : await _inventoryService.updateProduceTracking(
               intValue(selected!.toJson(), 'id')!,
-              payload,
+              normalizeDatePayload(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

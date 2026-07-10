@@ -292,7 +292,7 @@ class EmailRulesManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailRuleModel.fromJson({
+    final body = EmailRuleModel.fromJson(normalizeDatePayload({
       if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
         'id': intValue(selectedRecord!.toJson(), 'id'),
       if (companyId != null) 'company_id': companyId,
@@ -314,7 +314,7 @@ class EmailRulesManagementController extends GetxController {
       'subject_override': nullIfEmpty(subjectOverrideController.text),
       'body_override': nullIfEmpty(bodyOverrideController.text),
       'is_active': isActive,
-    });
+    }));
 
     try {
       final id = intValue(selectedRecord?.toJson() ?? const {}, 'id');

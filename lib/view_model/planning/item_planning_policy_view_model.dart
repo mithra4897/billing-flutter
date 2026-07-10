@@ -410,11 +410,11 @@ class ItemPlanningPolicyViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createItemPolicy(
-              ItemPlanningPolicyModel.fromJson(payload),
+              ItemPlanningPolicyModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateItemPolicy(
               intValue(selected!.toJson(), 'id')!,
-              ItemPlanningPolicyModel.fromJson(payload),
+              ItemPlanningPolicyModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

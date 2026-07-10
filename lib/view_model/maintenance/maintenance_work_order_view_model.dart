@@ -368,10 +368,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
     maintenancePlanId = null;
     vendorPartyId = null;
     workOrderNoController.clear();
-    workOrderDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    workOrderDateController.text = displayTodayDate();
     workOrderTypeController.clear();
     executionModeController.clear();
     assignedTechnicianController.clear();

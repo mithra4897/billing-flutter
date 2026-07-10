@@ -461,10 +461,7 @@ class SalesReceiptManagementController extends GetxController {
     accountId = null;
     paymentMode = 'bank';
     receiptNoController.clear();
-    receiptDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    receiptDateController.text = displayTodayDate();
     paymentReferenceNoController.clear();
     paymentReferenceDateController.clear();
     directCustomerDetailsController.clear();
@@ -782,11 +779,11 @@ class SalesReceiptManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _salesService.createReceipt(
-              SalesReceiptModel.fromJson(payload),
+              SalesReceiptModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _salesService.updateReceipt(
               intValue(selectedItem!.toJson(), 'id')!,
-              SalesReceiptModel.fromJson(payload),
+              SalesReceiptModel.fromJson(normalizeDatePayload(payload)),
             );
       final saved = response.data;
       if (saved != null) {

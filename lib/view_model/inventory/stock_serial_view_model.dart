@@ -385,11 +385,11 @@ class StockSerialViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockSerial(
-              StockSerialModel.fromJson(payload),
+              StockSerialModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockSerial(
               intValue(selected!.toJson(), 'id')!,
-              StockSerialModel.fromJson(payload),
+              StockSerialModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

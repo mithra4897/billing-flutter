@@ -601,10 +601,7 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierPartyId = null;
     warehouseId = null;
     receiptNoController.clear();
-    receiptDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    receiptDateController.text = displayTodayDate();
     supplierInvoiceNoController.clear();
     supplierInvoiceDateController.clear();
     supplierDcNoController.clear();
@@ -1311,11 +1308,11 @@ class PurchaseReceiptManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _purchaseService.createReceipt(
-              PurchaseReceiptModel.fromJson(payload),
+              PurchaseReceiptModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _purchaseService.updateReceipt(
               intValue(selectedItem!.toJson(), 'id')!,
-              PurchaseReceiptModel.fromJson(payload),
+              PurchaseReceiptModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

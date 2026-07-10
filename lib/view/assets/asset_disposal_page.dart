@@ -188,7 +188,7 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                       AppFormTextField(
                         labelText: 'Disposal date',
                         controller: controller.disposalDateController,
-                        hintText: 'YYYY-MM-DD',
+                        hintText: dateFormatHint(),
                       ),
                       AppFormTextField(
                         labelText: 'Disposal type',

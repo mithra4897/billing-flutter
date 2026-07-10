@@ -1004,10 +1004,7 @@ class SalesDeliveryManagementController extends GetxController {
     transporterPartyId = null;
     deliveryKind = 'dc';
     deliveryNoController.clear();
-    deliveryDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    deliveryDateController.text = displayTodayDate();
     vehicleNoController.clear();
     lrNoController.clear();
     lrDateController.clear();
@@ -1665,10 +1662,10 @@ class SalesDeliveryManagementController extends GetxController {
     };
     try {
       final response = selectedItem == null
-          ? await _salesService.createDelivery(payload)
+          ? await _salesService.createDelivery(normalizeDatePayload(payload))
           : await _salesService.updateDelivery(
               intValue(selectedItem!.toJson(), 'id')!,
-              payload,
+              normalizeDatePayload(payload),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

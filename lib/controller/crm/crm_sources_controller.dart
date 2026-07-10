@@ -160,10 +160,10 @@ class CrmSourcesController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmSourceModel.fromJson({
+    final payload = CrmSourceModel.fromJson(normalizeDatePayload({
       'source_name': nameController.text.trim(),
       'is_active': isActive,
-    });
+    }));
 
     try {
       final response = selectedItem == null

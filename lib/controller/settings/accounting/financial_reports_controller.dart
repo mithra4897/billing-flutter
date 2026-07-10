@@ -52,7 +52,7 @@ class FinancialReportsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final today = DateTime.now().toIso8601String().split('T').first;
+    final today = displayTodayDate();
     asOfDateController.text = today;
     dateFromController.text = today;
     dateToController.text = today;
@@ -402,7 +402,7 @@ class FinancialReportsController extends GetxController {
     accountId = null;
     partyId = null;
     dayBookBranchId = null;
-    final today = DateTime.now().toIso8601String().split('T').first;
+    final today = displayTodayDate();
     dateFromController.text = today;
     dateToController.text = today;
     asOfDateController.text = today;

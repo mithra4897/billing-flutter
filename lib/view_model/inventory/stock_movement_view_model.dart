@@ -199,7 +199,7 @@ class StockMovementViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     companyId = companies.isNotEmpty ? companies.first.id : null;
     itemId = initialItemId;
     warehouseId = warehouseOptions.isNotEmpty
@@ -419,11 +419,11 @@ class StockMovementViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockMovement(
-              StockMovementModel.fromJson(payload),
+              StockMovementModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockMovement(
               intValue(selected!.toJson(), 'id')!,
-              StockMovementModel.fromJson(payload),
+              StockMovementModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

@@ -266,10 +266,7 @@ class MaintenanceRequestViewModel extends GetxController {
     locationId = null;
     maintenancePlanId = null;
     requestNoController.clear();
-    requestDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    requestDateController.text = displayTodayDate();
     issueTitleController.clear();
     issueDescriptionController.clear();
     requestTypeController.clear();

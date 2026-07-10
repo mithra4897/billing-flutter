@@ -261,7 +261,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                 AppFormTextField(
                   labelText: 'Count Date',
                   controller: controller.countDateController,
-                  hintText: 'YYYY-MM-DD',
+                  hintText: dateFormatHint(),
                   validator: Validators.compose([
                     Validators.required('Count Date'),
                     Validators.optionalDate('Count Date'),

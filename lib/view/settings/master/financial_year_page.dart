@@ -182,7 +182,7 @@ class _FinancialYearManagementPageState
               AppFormTextField(
                 controller: controller.startDateController,
                 labelText: 'Start Date',
-                hintText: 'YYYY-MM-DD',
+                hintText: dateFormatHint(),
                 inputFormatters: const [DateInputFormatter()],
                 validator: Validators.compose([
                   Validators.required('Start date'),
@@ -192,7 +192,7 @@ class _FinancialYearManagementPageState
               AppFormTextField(
                 controller: controller.endDateController,
                 labelText: 'End Date',
-                hintText: 'YYYY-MM-DD',
+                hintText: dateFormatHint(),
                 inputFormatters: const [DateInputFormatter()],
                 validator: Validators.compose([
                   Validators.required('End date'),
@@ -206,7 +206,7 @@ class _FinancialYearManagementPageState
               AppFormTextField(
                 controller: controller.lockDateController,
                 labelText: 'Lock Date',
-                hintText: 'YYYY-MM-DD',
+                hintText: dateFormatHint(),
                 inputFormatters: const [DateInputFormatter()],
                 validator: Validators.optionalDate('Lock date'),
               ),

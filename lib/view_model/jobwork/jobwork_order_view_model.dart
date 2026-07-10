@@ -454,10 +454,7 @@ class JobworkOrderViewModel extends GetxController {
         ? warehouseOptions.first.id
         : null;
     jobworkNoController.clear();
-    jobworkDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    jobworkDateController.text = displayTodayDate();
     processNameController.clear();
     notesController.clear();
     expectedReturnDateController.clear();

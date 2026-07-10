@@ -530,7 +530,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     return AppFormTextField(
       labelText: label,
       controller: textController,
-      hintText: 'YYYY-MM-DD',
+      hintText: dateFormatHint(),
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: Validators.optionalDate(label),

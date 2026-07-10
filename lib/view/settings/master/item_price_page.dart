@@ -258,13 +258,13 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               AppDateField(
                 labelText: 'Valid From',
                 controller: controller.validFromController,
-                hintText: 'YYYY-MM-DD',
+                hintText: dateFormatHint(),
                 validator: Validators.optionalDate('Valid From'),
               ),
               AppDateField(
                 labelText: 'Valid To',
                 controller: controller.validToController,
-                hintText: 'YYYY-MM-DD',
+                hintText: dateFormatHint(),
                 validator: Validators.optionalDateOnOrAfter(
                   'Valid To',
                   () => controller.validFromController.text,

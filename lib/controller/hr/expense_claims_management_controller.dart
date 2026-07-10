@@ -611,7 +611,7 @@ class ExpenseClaimsManagementController extends GetxController {
     update();
 
     try {
-      final model = ExpenseClaimModel.fromJson(body);
+      final model = ExpenseClaimModel.fromJson(normalizeDatePayload(body));
       final response = isNewClaim || editingClaimId == null
           ? await hrService.createExpenseClaim(model)
           : await hrService.updateExpenseClaim(editingClaimId!, model);

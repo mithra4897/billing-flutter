@@ -561,10 +561,7 @@ class PurchaseOrderManagementController extends GetxController {
     purchaseRequisitionId = null;
     supplierPartyId = null;
     orderNoController.clear();
-    orderDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    orderDateController.text = displayTodayDate();
     expectedReceiptDateController.clear();
     supplierReferenceNoController.clear();
     supplierReferenceDateController.clear();
@@ -1619,11 +1616,11 @@ class PurchaseOrderManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _purchaseService.createOrder(
-              PurchaseOrderModel.fromJson(payload),
+              PurchaseOrderModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _purchaseService.updateOrder(
               intValue(selectedItem!.toJson(), 'id')!,
-              PurchaseOrderModel.fromJson(payload),
+              PurchaseOrderModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

@@ -188,7 +188,7 @@ class CrmStagesController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmStageModel.fromJson({
+    final payload = CrmStageModel.fromJson(normalizeDatePayload({
       'stage_name': nameController.text.trim(),
       'stage_type': stageType,
       'sequence_no': int.tryParse(sequenceController.text.trim()) ?? 1,
@@ -196,7 +196,7 @@ class CrmStagesController extends GetxController {
           double.tryParse(probabilityController.text.trim()) ?? 0,
       'is_default': isDefault,
       'is_active': isActive,
-    });
+    }));
 
     try {
       final response = selectedItem == null

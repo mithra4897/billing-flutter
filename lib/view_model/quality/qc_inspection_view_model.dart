@@ -328,10 +328,7 @@ class QcInspectionViewModel extends GetxController {
     documentSeriesId = qcSeriesOptions.isNotEmpty
         ? qcSeriesOptions.first.id
         : null;
-    inspectionDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    inspectionDateController.text = displayTodayDate();
     inspectionScope = 'purchase_receipt';
     sourceDocumentType = 'purchase_receipt';
     sourceDocumentIdController.clear();
@@ -376,7 +373,7 @@ class QcInspectionViewModel extends GetxController {
       documentSeriesId = intValue(_detail!, 'document_series_id');
       inspectionDateController.text =
           nullableStringValue(_detail!, 'inspection_date') ??
-          DateTime.now().toIso8601String().split('T').first;
+          displayTodayDate();
       inspectionScope = stringValue(_detail!, 'inspection_scope').isNotEmpty
           ? stringValue(_detail!, 'inspection_scope')
           : 'purchase_receipt';
@@ -639,7 +636,9 @@ class QcInspectionViewModel extends GetxController {
     update();
     try {
       if (selectedId == null) {
-        final body = QcInspectionModel.fromJson(_buildPayload(forCreate: true));
+        final body = QcInspectionModel.fromJson(
+          normalizeDatePayload(_buildPayload(forCreate: true)),
+        );
         final response = await _service.createQcInspection(body);
         actionMessage = response.message;
         if (response.data != null) {

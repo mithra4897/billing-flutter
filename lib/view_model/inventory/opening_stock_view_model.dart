@@ -377,7 +377,7 @@ class OpeningStockViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     openingNoController.clear();
     openingDateController.text = now;
     remarksController.clear();
@@ -741,12 +741,12 @@ class OpeningStockViewModel extends GetxController {
       return null;
     }
 
-    final payload = StockBatchModel.fromJson(<String, dynamic>{
+    final payload = StockBatchModel.fromJson(normalizeDatePayload(<String, dynamic>{
       'item_id': itemId,
       'warehouse_id': line.warehouseId,
       'batch_no': batchNo,
       'is_active': true,
-    });
+    }));
 
     try {
       final response = await _inventoryService.createStockBatch(payload);
@@ -1311,10 +1311,10 @@ class OpeningStockViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createOpeningStock(payload)
+          ? await _inventoryService.createOpeningStock(normalizeDatePayload(payload))
           : await _inventoryService.updateOpeningStock(
               intValue(selected!.toJson(), 'id')!,
-              payload,
+              normalizeDatePayload(payload),
             );
       final saved = response.data;
       final id = intValue(saved?.toJson() ?? const <String, dynamic>{}, 'id');

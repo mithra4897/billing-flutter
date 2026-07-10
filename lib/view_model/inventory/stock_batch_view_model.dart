@@ -301,11 +301,11 @@ class StockBatchViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockBatch(
-              StockBatchModel.fromJson(payload),
+              StockBatchModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockBatch(
               intValue(selected!.toJson(), 'id')!,
-              StockBatchModel.fromJson(payload),
+              StockBatchModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

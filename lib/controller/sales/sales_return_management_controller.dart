@@ -507,10 +507,7 @@ class SalesReturnManagementController extends GetxController {
     customerPartyId = null;
     selectedInvoiceDetail = null;
     returnNoController.clear();
-    returnDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    returnDateController.text = displayTodayDate();
     reasonController.clear();
     roundOffController.clear();
     applyRoundOff = true;
@@ -997,10 +994,10 @@ class SalesReturnManagementController extends GetxController {
     };
     try {
       final response = selectedItem == null
-          ? await _salesService.createReturn(SalesReturnModel.fromJson(payload))
+          ? await _salesService.createReturn(SalesReturnModel.fromJson(normalizeDatePayload(payload)))
           : await _salesService.updateReturn(
               intValue(selectedItem!.toJson(), 'id')!,
-              SalesReturnModel.fromJson(payload),
+              SalesReturnModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

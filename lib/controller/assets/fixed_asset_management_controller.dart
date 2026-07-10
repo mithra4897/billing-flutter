@@ -576,8 +576,8 @@ class FixedAssetManagementController extends GetxController {
 
       final existingId = intValue(detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createAsset(AssetModel.fromJson(payload))
-          : await _assets.updateAsset(existingId, AssetModel.fromJson(payload));
+          ? await _assets.createAsset(AssetModel.fromJson(normalizeDatePayload(payload)))
+          : await _assets.updateAsset(existingId, AssetModel.fromJson(normalizeDatePayload(payload)));
       if (response.success != true || response.data == null) {
         formError = response.message;
         return null;

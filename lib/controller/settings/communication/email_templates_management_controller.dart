@@ -211,7 +211,7 @@ class EmailTemplatesManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailTemplateModel.fromJson({
+    final body = EmailTemplateModel.fromJson(normalizeDatePayload({
       if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
         'id': intValue(selectedRecord!.toJson(), 'id'),
       if (companyId != null) 'company_id': companyId,
@@ -224,7 +224,7 @@ class EmailTemplatesManagementController extends GetxController {
       'body_template': bodyController.text.trim(),
       'is_html': isHtml,
       'is_active': isActive,
-    });
+    }));
 
     try {
       final id = intValue(selectedRecord?.toJson() ?? const {}, 'id');

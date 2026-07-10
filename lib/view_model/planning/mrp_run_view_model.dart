@@ -231,7 +231,7 @@ class MrpRunViewModel extends GetxController {
     runScope = 'all_items';
     runMode = 'official';
     runNoController.clear();
-    final today = DateTime.now().toIso8601String().split('T').first;
+    final today = displayTodayDate();
     runDateController.text = today;
     startDateController.text = today;
     endDateController.text = today;
@@ -389,10 +389,10 @@ class MrpRunViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _service.createMrpRun(MrpRunModel.fromJson(payload))
+          ? await _service.createMrpRun(MrpRunModel.fromJson(normalizeDatePayload(payload)))
           : await _service.updateMrpRun(
               intValue(selected!.toJson(), 'id')!,
-              MrpRunModel.fromJson(payload),
+              MrpRunModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

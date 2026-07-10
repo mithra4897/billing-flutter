@@ -228,7 +228,7 @@ class EmailSettingsManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailSettingModel.fromJson({
+    final body = EmailSettingModel.fromJson(normalizeDatePayload({
       if (intValue(selectedSetting?.toJson() ?? const {}, 'id') != null)
         'id': intValue(selectedSetting!.toJson(), 'id'),
       if (companyId != null) 'company_id': companyId,
@@ -245,7 +245,7 @@ class EmailSettingsManagementController extends GetxController {
       'auto_email_enabled': autoEmailEnabled,
       'is_default': isDefault,
       'is_active': isActive,
-    });
+    }));
 
     try {
       final id = intValue(selectedSetting?.toJson() ?? const {}, 'id');

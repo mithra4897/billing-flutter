@@ -371,7 +371,7 @@ class StockDamageViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     damageNoController.clear();
     damageDateController.text = now;
     remarksController.clear();
@@ -870,11 +870,11 @@ class StockDamageViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockDamageEntry(
-              StockDamageEntryModel.fromJson(payload),
+              StockDamageEntryModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockDamageEntry(
               intValue(selected!.toJson(), 'id')!,
-              StockDamageEntryModel.fromJson(payload),
+              StockDamageEntryModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

@@ -554,10 +554,7 @@ class SalesQuotationManagementController extends GetxController {
     customerPartyId = null;
     isDirectCustomer = false;
     quotationNoController.clear();
-    quotationDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    quotationDateController.text = displayTodayDate();
     validUntilController.clear();
     customerRefNoController.clear();
     customerRefDateController.clear();
@@ -1195,11 +1192,11 @@ class SalesQuotationManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _salesService.createQuotation(
-              SalesQuotationModel.fromJson(payload),
+              SalesQuotationModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _salesService.updateQuotation(
               intValue(selectedItem!.toJson(), 'id')!,
-              SalesQuotationModel.fromJson(payload),
+              SalesQuotationModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -1432,10 +1429,7 @@ class SalesQuotationManagementController extends GetxController {
     isDirectCustomer = boolValue(data, 'is_direct_customer');
     customerPartyId = isDirectCustomer ? null : customerPartyId;
     quotationNoController.clear();
-    quotationDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    quotationDateController.text = displayTodayDate();
     validUntilController.text = displayDate(
       nullableStringValue(data, 'valid_until'),
     );

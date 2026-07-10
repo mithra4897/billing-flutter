@@ -416,10 +416,7 @@ class JobworkDispatchViewModel extends GetxController {
         : null;
     transporterPartyId = null;
     dispatchNoController.clear();
-    dispatchDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    dispatchDateController.text = displayTodayDate();
     dcNoController.clear();
     dcDateController.clear();
     vehicleNoController.clear();

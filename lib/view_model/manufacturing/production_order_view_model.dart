@@ -343,10 +343,7 @@ class ProductionOrderViewModel extends GetxController {
         ? warehouseOptions.first.id
         : null;
     productionNoController.clear();
-    productionDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    productionDateController.text = displayTodayDate();
     plannedQtyController.text = '1';
     notesController.clear();
     isActive = true;
@@ -551,11 +548,11 @@ class ProductionOrderViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createProductionOrder(
-              ProductionOrderModel.fromJson(payload),
+              ProductionOrderModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateProductionOrder(
               intValue(selected!.toJson(), 'id')!,
-              ProductionOrderModel.fromJson(payload),
+              ProductionOrderModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

@@ -715,18 +715,18 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       _filterBox(
                         child: TextField(
                           controller: controller.filterCloseFromController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Close From',
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                           ),
                         ),
                       ),
                       _filterBox(
                         child: TextField(
                           controller: controller.filterCloseToController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Close To',
-                            hintText: 'YYYY-MM-DD',
+                            hintText: dateFormatHint(),
                           ),
                         ),
                       ),
@@ -1706,7 +1706,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       AppFormTextField(
                         controller: followup.followupDateController,
                         labelText: 'Followup Date',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         allowType: false,
@@ -1715,7 +1715,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       AppFormTextField(
                         controller: followup.nextFollowupController,
                         labelText: 'Next Followup',
-                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        hintText: 'Date and time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         allowType: false,

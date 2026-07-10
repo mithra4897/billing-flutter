@@ -2397,14 +2397,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               labelText: 'Effective From',
               controller: _creditFromController,
               inputFormatters: [DateInputFormatter()],
-              hintText: 'YYYY-MM-DD',
+              hintText: dateFormatHint(),
               validator: Validators.optionalDate('Effective from'),
             ),
             AppFormTextField(
               labelText: 'Effective To',
               controller: _creditToController,
               inputFormatters: [DateInputFormatter()],
-              hintText: 'YYYY-MM-DD',
+              hintText: dateFormatHint(),
               validator: Validators.optionalDateOnOrAfter(
                 'Effective to',
                 () => _creditFromController.text,

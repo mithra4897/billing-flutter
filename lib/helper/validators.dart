@@ -395,7 +395,7 @@ class Validators {
       return null;
     }
 
-    final parsed = DateTime.tryParse(trimmed);
+    final parsed = parseNormalizedDateTimeValue(trimmed);
     if (parsed == null) {
       return '$fieldName must be a valid date/time';
     }

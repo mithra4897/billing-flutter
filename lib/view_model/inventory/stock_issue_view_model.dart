@@ -392,7 +392,7 @@ class StockIssueViewModel extends GetxController {
     selected = null;
     selectedDetail = null;
     formError = null;
-    final now = DateTime.now().toIso8601String().split('T').first;
+    final now = displayTodayDate();
     issueNoController.clear();
     issueDateController.text = now;
     departmentNameController.clear();
@@ -905,11 +905,11 @@ class StockIssueViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createStockIssue(
-              StockIssueModel.fromJson(payload),
+              StockIssueModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _inventoryService.updateStockIssue(
               intValue(selected!.toJson(), 'id')!,
-              StockIssueModel.fromJson(payload),
+              StockIssueModel.fromJson(normalizeDatePayload(payload)),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

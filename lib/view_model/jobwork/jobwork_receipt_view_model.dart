@@ -437,10 +437,7 @@ class JobworkReceiptViewModel extends GetxController {
     transporterPartyId = null;
     receiptMode = 'processed_receipt';
     receiptNoController.clear();
-    receiptDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    receiptDateController.text = displayTodayDate();
     supplierDcNoController.clear();
     supplierDcDateController.clear();
     vehicleNoController.clear();

@@ -735,10 +735,10 @@ class CrmOpportunitiesController extends GetxController {
 
     try {
       final response = selectedItem == null
-          ? await _crmService.createOpportunity(payload)
+          ? await _crmService.createOpportunity(normalizeDatePayload(payload))
           : await _crmService.updateOpportunity(
               intValue(selectedItem!.toJson(), 'id')!,
-              payload,
+              normalizeDatePayload(payload),
             );
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),

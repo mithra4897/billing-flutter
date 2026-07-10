@@ -459,10 +459,7 @@ class PurchaseReturnManagementController extends GetxController {
     purchaseInvoiceId = null;
     supplierPartyId = null;
     returnNoController.clear();
-    returnDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    returnDateController.text = displayTodayDate();
     returnReasonController.clear();
     roundOffController.clear();
     applyRoundOff = true;
@@ -786,11 +783,11 @@ class PurchaseReturnManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _purchaseService.createReturn(
-              PurchaseReturnModel.fromJson(payload),
+              PurchaseReturnModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _purchaseService.updateReturn(
               intValue(selectedItem!.toJson(), 'id')!,
-              PurchaseReturnModel.fromJson(payload),
+              PurchaseReturnModel.fromJson(normalizeDatePayload(payload)),
             );
       if (context.mounted) {
         ScaffoldMessenger.of(

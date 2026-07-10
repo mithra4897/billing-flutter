@@ -1225,7 +1225,7 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     return AppFormTextField(
       labelText: label,
       controller: textController,
-      hintText: 'YYYY-MM-DD',
+      hintText: dateFormatHint(),
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: Validators.optionalDate(label),
@@ -1495,7 +1495,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     return AppFormTextField(
       labelText: 'Date From',
       controller: controller.dateFromController,
-      hintText: 'YYYY-MM-DD',
+      hintText: dateFormatHint(),
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: Validators.optionalDate('Date From'),
@@ -1506,7 +1506,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     return AppFormTextField(
       labelText: 'Date To',
       controller: controller.dateToController,
-      hintText: 'YYYY-MM-DD',
+      hintText: dateFormatHint(),
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: Validators.optionalDate('Date To'),

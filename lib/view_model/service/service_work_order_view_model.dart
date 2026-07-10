@@ -290,10 +290,7 @@ class ServiceWorkOrderViewModel extends GetxController {
     locationId = null;
     executionMode = 'onsite';
     workOrderNoController.clear();
-    workOrderDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    workOrderDateController.text = displayTodayDate();
     diagnosisNotesController.clear();
     remarksController.clear();
     resolutionSummaryController.clear();

@@ -388,10 +388,7 @@ class JobworkChargeViewModel extends GetxController {
     jobworkOrderId = null;
     supplierPartyId = null;
     chargeNoController.clear();
-    chargeDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    chargeDateController.text = displayTodayDate();
     purchaseInvoiceIdController.clear();
     remarksController.clear();
     isActive = true;

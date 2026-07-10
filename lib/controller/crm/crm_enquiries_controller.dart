@@ -659,10 +659,7 @@ class CrmEnquiriesController extends GetxController {
     enquiryStatus = 'open';
     opportunityStatus = 'open';
     enquiryNoController.clear();
-    enquiryDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    enquiryDateController.text = displayTodayDate();
     remarksController.clear();
     lines = <EnquiryLineDraft>[];
     followups = <FollowupDraft>[];
@@ -728,7 +725,7 @@ class CrmEnquiriesController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmEnquiryModel.fromJson({
+    final payload = CrmEnquiryModel.fromJson(normalizeDatePayload({
       'company_id': companyId,
       'enquiry_no': nullIfEmpty(enquiryNoController.text),
       'enquiry_date': nullIfEmpty(enquiryDateController.text),
@@ -741,7 +738,7 @@ class CrmEnquiriesController extends GetxController {
       'followups': followups
           .map((item) => item.toJson())
           .toList(growable: false),
-    });
+    }));
 
     try {
       final response = selectedItem == null

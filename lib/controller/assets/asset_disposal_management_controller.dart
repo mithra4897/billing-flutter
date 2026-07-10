@@ -410,10 +410,10 @@ class AssetDisposalManagementController extends GetxController {
 
       final existingId = intValue(detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createDisposal(AssetDisposalModel.fromJson(payload))
+          ? await _assets.createDisposal(AssetDisposalModel.fromJson(normalizeDatePayload(payload)))
           : await _assets.updateDisposal(
               existingId,
-              AssetDisposalModel.fromJson(payload),
+              AssetDisposalModel.fromJson(normalizeDatePayload(payload)),
             );
       if (response.success != true || response.data == null) {
         formError = response.message;

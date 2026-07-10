@@ -219,14 +219,14 @@ class AssetDepreciationRunViewModel extends GetxController {
     createBusy = true;
     update();
     try {
-      final body = AssetDepreciationRunModel.fromJson(<String, dynamic>{
+      final body = AssetDepreciationRunModel.fromJson(normalizeDatePayload(<String, dynamic>{
         'company_id': cid,
         'run_date': runDateController.text.trim(),
         'depreciation_from_date': fromDateController.text.trim(),
         'depreciation_to_date': toDateController.text.trim(),
         'book_type': bookType,
         'document_series_id': documentSeriesId,
-      });
+      }));
       final response = await _assets.createDepreciationRun(body);
       if (response.success != true || response.data == null) {
         actionMessage = response.message;

@@ -409,10 +409,7 @@ class PurchasePaymentManagementController extends GetxController {
     accountId = null;
     paymentMode = 'bank';
     paymentNoController.clear();
-    paymentDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    paymentDateController.text = displayTodayDate();
     referenceNoController.clear();
     referenceDateController.clear();
     paidAmountController.clear();
@@ -797,11 +794,11 @@ class PurchasePaymentManagementController extends GetxController {
     try {
       final response = selectedItem == null
           ? await _purchaseService.createPayment(
-              PurchasePaymentModel.fromJson(payload),
+              PurchasePaymentModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _purchaseService.updatePayment(
               intValue(selectedItem!.toJson(), 'id')!,
-              PurchasePaymentModel.fromJson(payload),
+              PurchasePaymentModel.fromJson(normalizeDatePayload(payload)),
             );
       _showMessage(response.message);
       final saved = response.data;

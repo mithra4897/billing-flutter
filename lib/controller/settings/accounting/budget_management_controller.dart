@@ -261,8 +261,8 @@ class BudgetManagementController extends GetxController {
     selectedBudget = null;
     codeController.clear();
     nameController.clear();
-    dateFromController.text = DateTime.now().toIso8601String().split('T').first;
-    dateToController.text = DateTime.now().toIso8601String().split('T').first;
+    dateFromController.text = displayTodayDate();
+    dateToController.text = displayTodayDate();
     status = 'draft';
     notesController.clear();
     isActive = true;
@@ -350,7 +350,7 @@ class BudgetManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = BudgetModel.fromJson(_payload());
+    final body = BudgetModel.fromJson(normalizeDatePayload(_payload()));
     try {
       final ApiResponse<BudgetModel> response;
       final selectedId = intValue(json(selectedBudget), 'id');

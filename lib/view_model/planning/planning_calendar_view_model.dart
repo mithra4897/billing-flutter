@@ -239,11 +239,11 @@ class PlanningCalendarViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createCalendar(
-              PlanningCalendarModel.fromJson(payload),
+              PlanningCalendarModel.fromJson(normalizeDatePayload(payload)),
             )
           : await _service.updateCalendar(
               intValue(selected!.toJson(), 'id')!,
-              PlanningCalendarModel.fromJson(payload),
+              PlanningCalendarModel.fromJson(normalizeDatePayload(payload)),
             );
       actionMessage = response.message;
       await load(

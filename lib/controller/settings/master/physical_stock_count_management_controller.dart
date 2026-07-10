@@ -230,8 +230,7 @@ class PhysicalStockCountManagementController extends GetxController {
     warehouseId = item.warehouseId;
     countNoController.text = item.countNo ?? '';
     countDateController.text =
-        item.countDate?.split('T').first.split(' ').first ??
-        DateTime.now().toIso8601String().split('T').first;
+        displayDate(item.countDate) == '' ? displayTodayDate() : displayDate(item.countDate);
     remarksController.text = item.remarks ?? '';
     countScope = item.countScope ?? 'selected_items';
     lines = item.items.toList(growable: true);
@@ -254,10 +253,7 @@ class PhysicalStockCountManagementController extends GetxController {
         ? filteredWarehouseOptions.first.id
         : null;
     countNoController.clear();
-    countDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    countDateController.text = displayTodayDate();
     remarksController.clear();
     countScope = 'selected_items';
     lines = <PhysicalStockCountLineModel>[];

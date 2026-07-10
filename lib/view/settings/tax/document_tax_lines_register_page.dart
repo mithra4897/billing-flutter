@@ -116,7 +116,7 @@ class _DocumentTaxLinesRegisterPageState
                             child: AppFormTextField(
                               controller: controller.dateFromController,
                               labelText: 'From',
-                              hintText: 'YYYY-MM-DD',
+                              hintText: dateFormatHint(),
                               keyboardType: TextInputType.datetime,
                               inputFormatters: const [DateInputFormatter()],
                             ),
@@ -125,7 +125,7 @@ class _DocumentTaxLinesRegisterPageState
                             child: AppFormTextField(
                               controller: controller.dateToController,
                               labelText: 'To',
-                              hintText: 'YYYY-MM-DD',
+                              hintText: dateFormatHint(),
                               keyboardType: TextInputType.datetime,
                               inputFormatters: const [DateInputFormatter()],
                             ),

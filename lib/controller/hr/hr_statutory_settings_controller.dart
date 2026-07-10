@@ -181,14 +181,10 @@ class HrStatutorySettingsController extends GetxController {
     final data = row.toJson();
     clearPtSlabs();
     nameCtrl.text = data['profile_name']?.toString() ?? 'Default';
-    effFromCtrl.text = (data['effective_from']?.toString() ?? '')
-        .split('T')
-        .first
-        .split(' ')
-        .first;
+    effFromCtrl.text = displayDate(data['effective_from']?.toString());
     final effectiveTo = data['effective_to']?.toString();
     effToCtrl.text = effectiveTo != null && effectiveTo.isNotEmpty
-        ? effectiveTo.split('T').first.split(' ').first
+        ? displayDate(effectiveTo)
         : '';
     remarksCtrl.text = data['remarks']?.toString() ?? '';
     professionalTaxStateCode =
@@ -312,8 +308,8 @@ class HrStatutorySettingsController extends GetxController {
     try {
       final body = buildPayload();
       final ApiResponse<ErpRecordModel> res = selectedProfileId == null
-          ? await hr.createStatutoryProfile(body)
-          : await hr.updateStatutoryProfile(selectedProfileId!, body);
+          ? await hr.createStatutoryProfile(normalizeDatePayload(body))
+          : await hr.updateStatutoryProfile(selectedProfileId!, normalizeDatePayload(body));
       if (res.success != true || res.data == null) {
         saving = false;
         error = res.message;

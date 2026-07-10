@@ -206,7 +206,7 @@ class EmailModuleSettingsManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailModuleSettingModel.fromJson({
+    final body = EmailModuleSettingModel.fromJson(normalizeDatePayload({
       if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
         'id': intValue(selectedRecord!.toJson(), 'id'),
       if (companyId != null) 'company_id': companyId,
@@ -216,7 +216,7 @@ class EmailModuleSettingsManagementController extends GetxController {
       'manual_email_enabled': manualEmailEnabled,
       'is_active': isActive,
       'remarks': nullIfEmpty(remarksController.text),
-    });
+    }));
 
     try {
       final id = intValue(selectedRecord?.toJson() ?? const {}, 'id');
