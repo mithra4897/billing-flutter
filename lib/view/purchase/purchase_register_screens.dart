@@ -5,6 +5,8 @@ typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(PurchaseService service);
 typedef PurchaseRegisterMatcher<T> =
     bool Function(T row, String query, Set<String> statuses);
+typedef PurchaseRegisterDashboardMatcher<T> =
+    bool Function(T row, String dashboardFilter);
 typedef PurchaseRegisterDateValue<T> = String? Function(T row);
 typedef PurchaseRegisterDocumentValue<T> = String Function(T row);
 typedef PurchaseRegisterBalanceValue<T> = double? Function(T row);
@@ -99,6 +101,7 @@ class PurchaseListRegisterController<T> extends GetxController {
   PurchaseListRegisterController({
     required this.loader,
     required this.matches,
+    required this.dashboardMatches,
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
@@ -106,6 +109,7 @@ class PurchaseListRegisterController<T> extends GetxController {
 
   final PurchaseRegisterLoader<T> loader;
   final PurchaseRegisterMatcher<T> matches;
+  final PurchaseRegisterDashboardMatcher<T> dashboardMatches;
   final PurchaseRegisterDateValue<T> dateValueOf;
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
@@ -120,6 +124,7 @@ class PurchaseListRegisterController<T> extends GetxController {
   String? error;
   Set<String> selectedStatuses = <String>{};
   String sort = '';
+  String dashboardFilter = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
   Worker? _refreshWorker;
@@ -127,7 +132,11 @@ class PurchaseListRegisterController<T> extends GetxController {
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
     final filtered = rows
-        .where((row) => matches(row, query, selectedStatuses))
+        .where(
+          (row) =>
+              matches(row, query, selectedStatuses) &&
+              dashboardMatches(row, dashboardFilter),
+        )
         .toList(growable: false);
     filtered.sort(_compareRows);
     return filtered;
@@ -173,6 +182,19 @@ class PurchaseListRegisterController<T> extends GetxController {
 
   void setSort(String value) {
     sort = value;
+    update();
+  }
+
+  void applyDashboardFilter(String value, {String statusOverride = ''}) {
+    dashboardFilter = value.trim();
+    selectedStatuses = statusOverride
+        .split(',')
+        .map((status) => status.trim().toLowerCase())
+        .where((status) => status.isNotEmpty)
+        .toSet();
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
     update();
   }
 
@@ -259,6 +281,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.embedded,
     required this.loader,
     required this.matches,
+    required this.dashboardMatches,
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
@@ -269,6 +292,8 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.statusItems,
     required this.columns,
     required this.rowRoute,
+    this.queryParameters = const <String, String>{},
+    this.dashboardStatusForFilter,
     this.customFiltersBuilder,
     this.extraActionsBuilder,
     this.filterFieldsBuilder,
@@ -281,6 +306,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final bool embedded;
   final PurchaseRegisterLoader<T> loader;
   final PurchaseRegisterMatcher<T> matches;
+  final PurchaseRegisterDashboardMatcher<T> dashboardMatches;
   final PurchaseRegisterDateValue<T> dateValueOf;
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
@@ -291,6 +317,8 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final List<AppDropdownItem<String>> statusItems;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final Map<String, String> queryParameters;
+  final String Function(String dashboardFilter)? dashboardStatusForFilter;
   final Widget Function(
     BuildContext context,
     PurchaseListRegisterController<T> controller,
@@ -321,6 +349,36 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
 class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
   late final String _controllerTag;
 
+  String _dashboardFilterValue() =>
+      (widget.queryParameters['dashboard_filter'] ?? '').trim();
+
+  String _queryDateValue(String key) =>
+      normalizeDateValue(widget.queryParameters[key]);
+
+  String _querySortValue() => (widget.queryParameters['sort'] ?? '').trim();
+
+  void _applyDashboardFilter(PurchaseListRegisterController<T> controller) {
+    final dashboardFilter = _dashboardFilterValue();
+    final statusOverride =
+        widget.dashboardStatusForFilter?.call(dashboardFilter) ?? '';
+    controller.applyDashboardFilter(
+      dashboardFilter,
+      statusOverride: statusOverride,
+    );
+    final sort = _querySortValue();
+    if (sort.isNotEmpty && controller.sort != sort) {
+      controller.setSort(sort);
+    }
+    final dateFrom = _queryDateValue('date_from');
+    final dateTo = _queryDateValue('date_to');
+    if (controller.dateFromController.text != dateFrom) {
+      controller.dateFromController.text = dateFrom;
+    }
+    if (controller.dateToController.text != dateTo) {
+      controller.dateToController.text = dateTo;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -332,12 +390,42 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
         PurchaseListRegisterController<T>(
           loader: widget.loader,
           matches: widget.matches,
+          dashboardMatches: widget.dashboardMatches,
           dateValueOf: widget.dateValueOf,
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
         ),
         tag: _controllerTag,
       );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !Get.isRegistered<PurchaseListRegisterController<T>>(
+            tag: _controllerTag,
+          )) {
+        return;
+      }
+      _applyDashboardFilter(
+        Get.find<PurchaseListRegisterController<T>>(tag: _controllerTag),
+      );
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _PurchaseRegisterShell<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<PurchaseListRegisterController<T>>(
+              tag: _controllerTag,
+            )) {
+          return;
+        }
+        _applyDashboardFilter(
+          Get.find<PurchaseListRegisterController<T>>(tag: _controllerTag),
+        );
+      });
     }
   }
 
@@ -390,9 +478,14 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
 }
 
 class PurchaseRequisitionRegisterPage extends StatelessWidget {
-  const PurchaseRequisitionRegisterPage({super.key, this.embedded = false});
+  const PurchaseRequisitionRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
@@ -410,9 +503,23 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       controllerName: 'PurchaseRequisitionRegisterController',
       title: 'Purchase Requisitions',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.requisitions(
         filters: {'per_page': 200, 'sort_by': 'requisition_date'},
       ),
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'pending_request':
+            final status = stringValue(
+              row.toJson(),
+              'requisition_status',
+            ).trim().toLowerCase();
+            return status.isNotEmpty &&
+                !<String>{'approved', 'closed', 'cancelled'}.contains(status);
+          default:
+            return true;
+        }
+      },
       dateValueOf: (row) =>
           nullableStringValue(row.toJson(), 'requisition_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'requisition_no'),
@@ -456,6 +563,14 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       newLabel: 'New Requisition',
       searchHint: 'Search requisitions',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'pending_request':
+            return 'draft';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -498,9 +613,14 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
 }
 
 class PurchaseOrderRegisterPage extends StatelessWidget {
-  const PurchaseOrderRegisterPage({super.key, this.embedded = false});
+  const PurchaseOrderRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
@@ -520,8 +640,22 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       controllerName: 'PurchaseOrderRegisterController',
       title: 'Purchase Orders',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) =>
           service.ordersAll(filters: {'sort_by': 'order_date'}),
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'submitted':
+            final status = stringValue(
+              row.toJson(),
+              'order_status',
+            ).trim().toLowerCase();
+            return status.isNotEmpty &&
+                !<String>{'draft', 'cancelled'}.contains(status);
+          default:
+            return true;
+        }
+      },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
       matches: (row, query, statuses) {
@@ -567,6 +701,14 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       newLabel: 'New Order',
       searchHint: 'Search orders',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'submitted':
+            return 'confirmed,partially_received,fully_received,partially_invoiced,fully_invoiced,closed';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -636,6 +778,7 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
       loader: (service) => service.receipts(
         filters: {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
+      dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
       matches: (row, query, statuses) {
@@ -727,9 +870,14 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
 }
 
 class PurchaseInvoiceRegisterPage extends StatelessWidget {
-  const PurchaseInvoiceRegisterPage({super.key, this.embedded = false});
+  const PurchaseInvoiceRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
@@ -749,6 +897,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       controllerName: 'PurchaseInvoiceRegisterController',
       title: 'Purchase Invoices',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.invoices(
         filters: {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
@@ -756,8 +905,10 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, statuses) {
-        final statusOk =
-            _purchaseMatchesSelectedStatus(row.invoiceStatus, statuses);
+        final statusOk = _purchaseMatchesSelectedStatus(
+          row.invoiceStatus,
+          statuses,
+        );
         final searchOk =
             query.isEmpty ||
             [
@@ -790,6 +941,28 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
 
         return statusOk && searchOk && supplierOk && dateOk;
       },
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
+            return status.isNotEmpty &&
+                !<String>{'draft', 'cancelled'}.contains(status) &&
+                outstanding > 0;
+          case 'overdue':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            return status == 'overdue';
+          case 'draft':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            return status == 'draft';
+          case 'partially_paid':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
+            return status == 'partially_paid' && outstanding > 0;
+          default:
+            return true;
+        }
+      },
       emptyMessage: 'No purchase invoices found.',
       customFiltersBuilder: (context, controller) => _PurchaseInvoiceFilters(
         controller: controller,
@@ -799,6 +972,20 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       newLabel: 'New Invoice',
       searchHint: 'Search invoices',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            return 'posted,overdue,partially_paid';
+          case 'overdue':
+            return 'overdue';
+          case 'draft':
+            return 'draft';
+          case 'partially_paid':
+            return 'partially_paid';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -876,6 +1063,7 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
       loader: (service) => service.payments(
         filters: {'per_page': 200, 'sort_by': 'payment_date'},
       ),
+      dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'payment_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'payment_no'),
       matches: (row, query, statuses) {
@@ -987,6 +1175,7 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
       embedded: embedded,
       loader: (service) =>
           service.returns(filters: {'per_page': 200, 'sort_by': 'return_date'}),
+      dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
       matches: (row, query, statuses) {

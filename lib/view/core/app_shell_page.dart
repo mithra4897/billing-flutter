@@ -535,13 +535,25 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/sales/returns':
         return SalesReturnRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
-        return PurchaseRequisitionRegisterPage(key: routeKey, embedded: true);
+        return PurchaseRequisitionRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/purchase/orders':
-        return PurchaseOrderRegisterPage(key: routeKey, embedded: true);
+        return PurchaseOrderRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/purchase/receipts':
         return PurchaseReceiptRegisterPage(key: routeKey, embedded: true);
       case '/purchase/invoices':
-        return PurchaseInvoiceRegisterPage(key: routeKey, embedded: true);
+        return PurchaseInvoiceRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/purchase/payments':
         return PurchasePaymentRegisterPage(key: routeKey, embedded: true);
       case '/purchase/returns':

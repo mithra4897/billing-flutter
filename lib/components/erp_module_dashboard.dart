@@ -572,7 +572,11 @@ class _DashboardPrimaryColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (sections.isEmpty) {
+    final visibleSections = sections
+        .where((section) => section.items.isNotEmpty)
+        .toList(growable: false);
+
+    if (visibleSections.isEmpty) {
       return const _DashboardEmptyState(
         title: 'No operational sections',
         message:
@@ -581,11 +585,13 @@ class _DashboardPrimaryColumn extends StatelessWidget {
     }
 
     return Column(
-      children: sections
+      children: visibleSections
           .map(
             (section) => Padding(
               padding: EdgeInsets.only(
-                bottom: section == sections.last ? 0 : AppUiConstants.spacingLg,
+                bottom: section == visibleSections.last
+                    ? 0
+                    : AppUiConstants.spacingLg,
               ),
               child: _DashboardListCard(section: section),
             ),
@@ -613,7 +619,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
-      if (snapshot.trend != null)
+      if (snapshot.trend?.points.isNotEmpty == true)
         _DashboardTrendCard(
           data: snapshot.trend!,
           trendControlValue: trendControlValue,
@@ -621,9 +627,10 @@ class _DashboardInsightsColumn extends StatelessWidget {
           showTrendControls: showTrendControls,
           isLoading: trendLoading,
         ),
-      if (snapshot.distribution != null)
+      if (snapshot.distribution != null &&
+          snapshot.distribution!.segments.any((segment) => segment.value > 0))
         _DashboardDistributionCard(data: snapshot.distribution!),
-      if (snapshot.highlights != null)
+      if (snapshot.highlights?.entries.isNotEmpty == true)
         _DashboardHighlightsCard(data: snapshot.highlights!),
     ];
 
@@ -699,22 +706,18 @@ class _DashboardListCardState extends State<_DashboardListCard> {
             title: section.title,
             subtitle: section.subtitle,
             icon: section.icon,
+            trailing: section.filterOptions.isEmpty
+                ? null
+                : _DashboardListFilterDropdown(
+                    options: section.filterOptions,
+                    value: _selectedFilter,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedFilter = value;
+                      });
+                    },
+                  ),
           ),
-          if (section.filterOptions.isNotEmpty) ...[
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Align(
-              alignment: Alignment.centerRight,
-              child: _DashboardListFilterDropdown(
-                options: section.filterOptions,
-                value: _selectedFilter,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedFilter = value;
-                  });
-                },
-              ),
-            ),
-          ],
           const SizedBox(height: AppUiConstants.spacingMd),
           if (items.isEmpty)
             _DashboardInlineEmptyState(
@@ -901,7 +904,7 @@ class _DashboardListFilterDropdown extends StatelessWidget {
   }
 }
 
-class _DashboardTrendCard extends StatelessWidget {
+class _DashboardTrendCard extends StatefulWidget {
   const _DashboardTrendCard({
     required this.data,
     required this.trendControlValue,
@@ -917,7 +920,54 @@ class _DashboardTrendCard extends StatelessWidget {
   final bool isLoading;
 
   @override
+  State<_DashboardTrendCard> createState() => _DashboardTrendCardState();
+}
+
+class _DashboardTrendCardState extends State<_DashboardTrendCard> {
+  int? _hoveredIndex;
+  Offset? _hoveredAnchor;
+
+  void _clearHover() {
+    if (_hoveredIndex == null && _hoveredAnchor == null) {
+      return;
+    }
+    setState(() {
+      _hoveredIndex = null;
+      _hoveredAnchor = null;
+    });
+  }
+
+  void _updateHover(Offset localPosition, Size size) {
+    final points = widget.data.points;
+    if (points.isEmpty || size.width <= 0 || size.height <= 0) {
+      _clearHover();
+      return;
+    }
+    final metrics = _trendPointMetrics(
+      points,
+      size,
+      chartStyle: widget.data.chartStyle,
+    );
+    if (metrics.isEmpty) {
+      _clearHover();
+      return;
+    }
+    final hovered = metrics.reduce(
+      (best, next) =>
+          (next.anchor.dx - localPosition.dx).abs() <
+              (best.anchor.dx - localPosition.dx).abs()
+          ? next
+          : best,
+    );
+    setState(() {
+      _hoveredIndex = hovered.index;
+      _hoveredAnchor = hovered.anchor;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     return _DashboardSurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -927,20 +977,20 @@ class _DashboardTrendCard extends StatelessWidget {
             subtitle: data.subtitle,
             icon: Icons.show_chart_outlined,
           ),
-          if (showTrendControls &&
-              trendControlValue != null &&
-              onTrendControlChanged != null) ...[
+          if (widget.showTrendControls &&
+              widget.trendControlValue != null &&
+              widget.onTrendControlChanged != null) ...[
             const SizedBox(height: AppUiConstants.spacingMd),
             Align(
               alignment: Alignment.centerLeft,
               child: _TrendControlDropdown(
-                value: trendControlValue!,
-                onChanged: onTrendControlChanged!,
+                value: widget.trendControlValue!,
+                onChanged: widget.onTrendControlChanged!,
               ),
             ),
           ],
           const SizedBox(height: AppUiConstants.spacingMd),
-          if (isLoading)
+          if (widget.isLoading)
             const SizedBox(
               height: AppUiConstants.dashboardChartHeight,
               child: Center(
@@ -959,33 +1009,82 @@ class _DashboardTrendCard extends StatelessWidget {
           else ...[
             SizedBox(
               height: AppUiConstants.dashboardChartHeight,
-              child: CustomPaint(
-                painter: data.chartStyle == ErpDashboardTrendChartStyle.bar
-                    ? _TrendBarChartPainter(
-                        points: data.points,
-                        color: data.color,
-                        gridColor: Theme.of(
-                          context,
-                        ).dividerColor.withValues(alpha: 0.12),
-                        isCurrency: data.isCurrency,
-                        textColor:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.black87,
-                        cardColor: Theme.of(context).cardColor,
-                      )
-                    : _TrendChartPainter(
-                        points: data.points,
-                        color: data.color,
-                        gridColor: Theme.of(
-                          context,
-                        ).dividerColor.withValues(alpha: 0.12),
-                        isCurrency: data.isCurrency,
-                        textColor:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.black87,
-                        cardColor: Theme.of(context).cardColor,
-                      ),
-                child: const SizedBox.expand(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final chartSize = Size(
+                    constraints.maxWidth,
+                    AppUiConstants.dashboardChartHeight,
+                  );
+                  final hoveredPoint = _hoveredIndex == null
+                      ? null
+                      : data.points[_hoveredIndex!.clamp(
+                          0,
+                          data.points.length - 1,
+                        )];
+                  return MouseRegion(
+                    onExit: (_) => _clearHover(),
+                    onHover: (event) =>
+                        _updateHover(event.localPosition, chartSize),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter:
+                                data.chartStyle ==
+                                    ErpDashboardTrendChartStyle.bar
+                                ? _TrendBarChartPainter(
+                                    points: data.points,
+                                    color: data.color,
+                                    gridColor: Theme.of(
+                                      context,
+                                    ).dividerColor.withValues(alpha: 0.12),
+                                    isCurrency: data.isCurrency,
+                                    textColor:
+                                        Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color ??
+                                        Colors.black87,
+                                    cardColor: Theme.of(context).cardColor,
+                                  )
+                                : _TrendChartPainter(
+                                    points: data.points,
+                                    color: data.color,
+                                    gridColor: Theme.of(
+                                      context,
+                                    ).dividerColor.withValues(alpha: 0.12),
+                                    isCurrency: data.isCurrency,
+                                    textColor:
+                                        Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color ??
+                                        Colors.black87,
+                                    cardColor: Theme.of(context).cardColor,
+                                  ),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
+                        if (hoveredPoint != null && _hoveredAnchor != null)
+                          Positioned(
+                            left: (_hoveredAnchor!.dx - 64).clamp(
+                              0,
+                              math.max(0.0, constraints.maxWidth - 128),
+                            ),
+                            top: math.max(0, _hoveredAnchor!.dy - 58),
+                            child: IgnorePointer(
+                              child: _TrendHoverTooltip(
+                                label: hoveredPoint.label,
+                                value: _formatTrendHoverValue(
+                                  hoveredPoint.value,
+                                  isCurrency: data.isCurrency,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -1057,6 +1156,118 @@ class _TrendControlDropdown extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TrendHoverTooltip extends StatelessWidget {
+  const _TrendHoverTooltip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: appTheme.mutedText,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrendPointMetric {
+  const _TrendPointMetric({required this.index, required this.anchor});
+
+  final int index;
+  final Offset anchor;
+}
+
+List<_TrendPointMetric> _trendPointMetrics(
+  List<ErpDashboardTrendPoint> points,
+  Size size, {
+  required ErpDashboardTrendChartStyle chartStyle,
+}) {
+  if (points.isEmpty || size.isEmpty) {
+    return const <_TrendPointMetric>[];
+  }
+
+  final maxValue = points
+      .map((point) => point.value)
+      .fold<double>(0, math.max)
+      .clamp(1, double.infinity);
+
+  switch (chartStyle) {
+    case ErpDashboardTrendChartStyle.line:
+      const horizontalPadding = 12.0;
+      const verticalPadding = 28.0;
+      final chartWidth = size.width - (horizontalPadding * 2);
+      final chartHeight = size.height - (verticalPadding * 2);
+      if (chartWidth <= 0 || chartHeight <= 0) {
+        return const <_TrendPointMetric>[];
+      }
+      return List<_TrendPointMetric>.generate(points.length, (index) {
+        final ratio = points.length == 1 ? 0.5 : index / (points.length - 1);
+        final dx = horizontalPadding + (chartWidth * ratio);
+        final dy =
+            verticalPadding +
+            chartHeight -
+            ((points[index].value / maxValue) * chartHeight);
+        return _TrendPointMetric(index: index, anchor: Offset(dx, dy));
+      });
+    case ErpDashboardTrendChartStyle.bar:
+      const horizontalPadding = 20.0;
+      const verticalPadding = 28.0;
+      const minBarWidth = 22.0;
+      final chartWidth = size.width - (horizontalPadding * 2);
+      final chartHeight = size.height - (verticalPadding * 2);
+      if (chartWidth <= 0 || chartHeight <= 0) {
+        return const <_TrendPointMetric>[];
+      }
+      final slotWidth = chartWidth / points.length;
+      final barWidth = math.max(minBarWidth, math.min(slotWidth * 0.56, 56.0));
+      return List<_TrendPointMetric>.generate(points.length, (index) {
+        final barHeight = (points[index].value / maxValue) * chartHeight;
+        final left =
+            horizontalPadding +
+            (slotWidth * index) +
+            ((slotWidth - barWidth) / 2);
+        final top = verticalPadding + chartHeight - barHeight;
+        return _TrendPointMetric(
+          index: index,
+          anchor: Offset(left + (barWidth / 2), top),
+        );
+      });
   }
 }
 
@@ -1334,11 +1545,13 @@ class _DashboardCardTitle extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.trailing,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -1346,36 +1559,49 @@ class _DashboardCardTitle extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: appTheme.subtleFill.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-          ),
-          child: Icon(icon, size: 20),
-        ),
-        const SizedBox(width: AppUiConstants.spacingSm),
         Expanded(
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: appTheme.subtleFill.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+                child: Icon(icon, size: 20),
               ),
-              const SizedBox(height: AppUiConstants.spacingXxs),
-              Text(
-                subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingXxs),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
+        if (trailing != null) ...[
+          const SizedBox(width: AppUiConstants.spacingSm),
+          trailing!,
+        ],
       ],
     );
   }
@@ -1587,50 +1813,6 @@ class _TrendChartPainter extends CustomPainter {
         7,
         Paint()..color = color.withValues(alpha: 0.16),
       );
-
-      // Draw value label above each dot
-      final pointValue = points[index].value;
-      final labelText = _formatTrendLabel(pointValue, isCurrency: isCurrency);
-      final valuePainter = TextPainter(
-        text: TextSpan(
-          text: labelText,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            shadows: [
-              Shadow(
-                color: cardColor,
-                offset: const Offset(-1.5, -1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(1.5, -1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(1.5, 1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(-1.5, 1.5),
-                blurRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      valuePainter.paint(
-        canvas,
-        Offset(
-          dx - valuePainter.width / 2,
-          math.max(0, dy - valuePainter.height - 10),
-        ),
-      );
     }
   }
 
@@ -1645,22 +1827,12 @@ class _TrendChartPainter extends CustomPainter {
   }
 }
 
-String _formatTrendLabel(double value, {required bool isCurrency}) {
-  final prefix = isCurrency ? '₹' : '';
-  final settings = Get.isRegistered<AppFormatSettings>()
-      ? AppFormatSettings.to
-      : null;
-  final decimals = settings?.decimalPlaces.value ?? 2;
-  final compactDecimals = decimals > 1 ? 1 : decimals;
-  if (value >= 10000000) {
-    return '$prefix${(value / 10000000).toStringAsFixed(compactDecimals)}Cr';
-  } else if (value >= 100000) {
-    return '$prefix${(value / 100000).toStringAsFixed(compactDecimals)}L';
-  } else if (value >= 1000) {
-    return '$prefix${(value / 1000).toStringAsFixed(compactDecimals)}K';
-  } else {
-    return '$prefix${formatAmount(value)}';
+String _formatTrendHoverValue(double value, {required bool isCurrency}) {
+  if (value == 0) {
+    return 'No data';
   }
+  final prefix = isCurrency ? '₹' : '';
+  return '$prefix${formatAmount(value)}';
 }
 
 class _TrendBarChartPainter extends CustomPainter {
@@ -1731,47 +1903,6 @@ class _TrendBarChartPainter extends CustomPainter {
 
       canvas.drawRRect(rect, Paint()..color = barColor.withValues(alpha: 0.18));
       canvas.drawRRect(rect, Paint()..color = barColor);
-
-      final countPainter = TextPainter(
-        text: TextSpan(
-          text: _formatTrendLabel(point.value, isCurrency: isCurrency),
-          style: TextStyle(
-            color: textColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            shadows: [
-              Shadow(
-                color: cardColor,
-                offset: const Offset(-1.5, -1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(1.5, -1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(1.5, 1.5),
-                blurRadius: 1,
-              ),
-              Shadow(
-                color: cardColor,
-                offset: const Offset(-1.5, 1.5),
-                blurRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: slotWidth);
-      countPainter.paint(
-        canvas,
-        Offset(
-          left + ((barWidth - countPainter.width) / 2),
-          math.max(0, top - countPainter.height - 6),
-        ),
-      );
     }
   }
 
