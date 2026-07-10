@@ -24,6 +24,8 @@ class AppFormTextField extends StatefulWidget {
     this.enabled,
     this.allowType = true,
     this.textAlign,
+    this.numericDisplayKind,
+    this.quantityAllowsFraction,
   });
 
   final String labelText;
@@ -47,6 +49,8 @@ class AppFormTextField extends StatefulWidget {
   final bool? enabled;
   final bool allowType;
   final TextAlign? textAlign;
+  final AppNumericDisplayKind? numericDisplayKind;
+  final bool? quantityAllowsFraction;
 
   @override
   State<AppFormTextField> createState() => _AppFormTextFieldState();
@@ -84,10 +88,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
       final format = Get.isRegistered<AppFormatSettings>()
           ? AppFormatSettings.to.dateFormat.value
           : AppFormatSettings.defaultDateFormat;
-      return format
-              .replaceAll('yyyy', 'YYYY')
-              .replaceAll('dd', 'DD') +
-          ' HH:MM:SS';
+      return '${format.replaceAll('yyyy', 'YYYY').replaceAll('dd', 'DD')} HH:MM:SS';
     }
     if (_isAutoDateField) {
       final format = Get.isRegistered<AppFormatSettings>()
@@ -111,12 +112,59 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         label.contains('value');
   }
 
+  AppNumericDisplayKind? get _inferredNumericDisplayKind {
+    final probe = '${widget.labelText} ${widget.hintText ?? ''}'
+        .trim()
+        .toLowerCase();
+    if (probe.isEmpty) {
+      return null;
+    }
+    if (probe.contains('qty') || probe.contains('quantity')) {
+      return AppNumericDisplayKind.quantity;
+    }
+    if (probe.contains('discount')) {
+      return AppNumericDisplayKind.discountPercent;
+    }
+    if (probe.contains('%') || probe.contains('percent')) {
+      return AppNumericDisplayKind.percent;
+    }
+    if (probe.contains('rate') ||
+        probe.contains('price') ||
+        probe.contains('cost')) {
+      return AppNumericDisplayKind.rate;
+    }
+    if (_looksLikeAmountField || probe.contains('total')) {
+      return AppNumericDisplayKind.amount;
+    }
+    return _isNumericField ? AppNumericDisplayKind.generic : null;
+  }
+
+  AppNumericDisplayKind? get _effectiveNumericDisplayKind =>
+      widget.numericDisplayKind ?? _inferredNumericDisplayKind;
+
+  bool get _effectiveQuantityAllowsFraction =>
+      widget.quantityAllowsFraction ?? true;
+
+  String _formatNumericDisplay(String rawValue) {
+    final kind = _effectiveNumericDisplayKind;
+    if (kind == null) {
+      return Validators.formatFlexibleNumberString(rawValue);
+    }
+    return formatNumericText(
+      rawValue,
+      kind: kind,
+      quantityAllowsFraction: _effectiveQuantityAllowsFraction,
+    );
+  }
+
   TextAlign get _effectiveTextAlign =>
       widget.textAlign ??
-      (_looksLikeAmountField ? TextAlign.right : TextAlign.start);
+      ((_isNumericField || _looksLikeAmountField)
+          ? TextAlign.right
+          : TextAlign.start);
 
   bool get _usesManagedControllerBehavior =>
-      _isNumericField || _looksLikeAmountField;
+      _effectiveNumericDisplayKind != null || _looksLikeAmountField;
 
   bool get _useSanitizedReadOnlyDisplay =>
       (widget.readOnly || widget.enabled == false) &&
@@ -126,6 +174,16 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     final raw = (rawValue ?? '').trim();
     if (raw.isEmpty || raw == '-') {
       return '';
+    }
+    if (_effectiveNumericDisplayKind != null) {
+      final formatted = _formatNumericDisplay(raw);
+      if (_looksLikeAmountField) {
+        final parsed = Validators.parseFlexibleNumber(formatted);
+        if (parsed != null && parsed == 0) {
+          return '';
+        }
+      }
+      return formatted;
     }
     if (_looksLikeAmountField) {
       final parsed = Validators.parseFlexibleNumber(raw);
@@ -265,19 +323,24 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     super.initState();
     _syncDisplayController(allowImmediateUpdate: true);
     _attachControllerListener(widget.controller);
+    final numericController = _useSanitizedReadOnlyDisplay
+        ? _displayController
+        : widget.controller;
     final created = _numericBinding.sync(
       enable: _usesManagedControllerBehavior,
-      controller: _useSanitizedReadOnlyDisplay
-          ? _displayController
-          : widget.controller,
+      controller: numericController,
       clearZeroOnBlur: _looksLikeAmountField,
       onBlur: _handleControllerChanged,
+      formatter: _formatNumericDisplay,
     );
     _clearAmountZeroIfNeeded();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          NumericFieldFocusBinding.applyFormattedDisplay(
+            numericController,
+            formatter: _formatNumericDisplay,
+          );
           _clearAmountZeroIfNeeded();
         }
       });
@@ -292,19 +355,24 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
       _detachControllerListener(oldWidget.controller);
       _attachControllerListener(widget.controller);
     }
+    final numericController = _useSanitizedReadOnlyDisplay
+        ? _displayController
+        : widget.controller;
     final created = _numericBinding.sync(
       enable: _usesManagedControllerBehavior,
-      controller: _useSanitizedReadOnlyDisplay
-          ? _displayController
-          : widget.controller,
+      controller: numericController,
       clearZeroOnBlur: _looksLikeAmountField,
       onBlur: _handleControllerChanged,
+      formatter: _formatNumericDisplay,
     );
     _clearAmountZeroIfNeeded();
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          NumericFieldFocusBinding.applyFormattedDisplay(
+            numericController,
+            formatter: _formatNumericDisplay,
+          );
           _clearAmountZeroIfNeeded();
         }
       });

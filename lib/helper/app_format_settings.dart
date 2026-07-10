@@ -1,5 +1,14 @@
 import '../screen.dart';
 
+enum AppNumericDisplayKind {
+  generic,
+  quantity,
+  amount,
+  rate,
+  discountPercent,
+  percent,
+}
+
 class AppFormatSettings extends GetxController {
   AppFormatSettings._();
 
@@ -96,6 +105,79 @@ extension AppFormattedNumber on num {
   }
 }
 
+String formatNumericDisplay(
+  double? value, {
+  AppNumericDisplayKind kind = AppNumericDisplayKind.generic,
+  bool quantityAllowsFraction = true,
+  int? decimals,
+}) {
+  if (value == null) {
+    return '';
+  }
+
+  switch (kind) {
+    case AppNumericDisplayKind.quantity:
+      if (!quantityAllowsFraction) {
+        return _formatNumberCore(
+          value,
+          decimals: 0,
+          grouping: AppFormatSettings.resolvedAmountGrouping(),
+        );
+      }
+      return _formatNumberCore(
+        value,
+        decimals: decimals ?? AppFormatSettings.resolvedDecimalPlaces(),
+        grouping: AppFormatSettings.resolvedAmountGrouping(),
+        trimTrailingZeros: true,
+      );
+    case AppNumericDisplayKind.amount:
+    case AppNumericDisplayKind.rate:
+    case AppNumericDisplayKind.discountPercent:
+    case AppNumericDisplayKind.percent:
+    case AppNumericDisplayKind.generic:
+      return _formatNumberCore(
+        value,
+        decimals: decimals ?? AppFormatSettings.resolvedDecimalPlaces(),
+        grouping: AppFormatSettings.resolvedAmountGrouping(),
+      );
+  }
+}
+
+String formatNumericText(
+  String? rawValue, {
+  AppNumericDisplayKind kind = AppNumericDisplayKind.generic,
+  bool quantityAllowsFraction = true,
+  int? decimals,
+}) {
+  final raw = rawValue?.trim() ?? '';
+  if (raw.isEmpty) {
+    return '';
+  }
+  final parsed = Validators.parseFlexibleNumber(raw);
+  if (parsed == null) {
+    return raw;
+  }
+  return formatNumericDisplay(
+    parsed,
+    kind: kind,
+    quantityAllowsFraction: quantityAllowsFraction,
+    decimals: decimals,
+  );
+}
+
+String formatQuantity(
+  double? value, {
+  bool allowFraction = true,
+  int? decimals,
+}) {
+  return formatNumericDisplay(
+    value,
+    kind: AppNumericDisplayKind.quantity,
+    quantityAllowsFraction: allowFraction,
+    decimals: decimals,
+  );
+}
+
 String displayDate(String? value) {
   if (value == null || value.trim().isEmpty) return '';
   final normalized = normalizeDateForApi(value);
@@ -121,27 +203,40 @@ String displayDate(String? value) {
 String formatAmount(double? value) {
   if (value == null) return '-';
   if (value == 0) return '';
+  return _formatNumberCore(
+    value,
+    decimals: AppFormatSettings.resolvedDecimalPlaces(),
+    grouping: AppFormatSettings.resolvedAmountGrouping(),
+    negativeAsParentheses: true,
+  );
+}
 
-  final settings = Get.isRegistered<AppFormatSettings>()
-      ? AppFormatSettings.to
-      : null;
-
-  final decimals =
-      settings?.decimalPlaces.value ?? AppFormatSettings.defaultDecimalPlaces;
-  final grouping =
-      settings?.amountGrouping.value ?? AppFormatSettings.defaultAmountGrouping;
-
-  final fixed = value.appFixed(decimals: decimals);
+String _formatNumberCore(
+  double value, {
+  required int decimals,
+  required String grouping,
+  bool trimTrailingZeros = false,
+  bool negativeAsParentheses = false,
+}) {
+  final fixed = value.toStringAsFixed(decimals);
   final dotIndex = fixed.indexOf('.');
   final intPart = dotIndex >= 0 ? fixed.substring(0, dotIndex) : fixed;
-  final decPart = dotIndex >= 0 ? fixed.substring(dotIndex) : '';
+  var decPart = dotIndex >= 0 ? fixed.substring(dotIndex + 1) : '';
 
   final isNegative = intPart.startsWith('-');
   final digits = isNegative ? intPart.substring(1) : intPart;
-
   final grouped = _groupDigits(digits, grouping);
-  final formatted = '$grouped$decPart';
-  return isNegative ? '($formatted)' : formatted;
+
+  if (trimTrailingZeros && decPart.isNotEmpty) {
+    decPart = decPart.replaceFirst(RegExp(r'0+$'), '');
+  }
+
+  final decimalSuffix = decPart.isEmpty ? '' : '.$decPart';
+  final formatted = '$grouped$decimalSuffix';
+  if (isNegative && negativeAsParentheses) {
+    return '($formatted)';
+  }
+  return isNegative ? '-$formatted' : formatted;
 }
 
 String _groupDigits(String digits, String grouping) {

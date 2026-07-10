@@ -5,6 +5,7 @@ class NumericFieldFocusBinding {
   TextEditingController? _controller;
   bool _clearZeroOnBlur = false;
   VoidCallback? _onBlur;
+  String Function(String rawValue)? _formatter;
 
   FocusNode? get focusNode => _focusNode;
 
@@ -12,11 +13,16 @@ class NumericFieldFocusBinding {
     return keyboardType?.index == TextInputType.number.index;
   }
 
-  static void applyFormattedDisplay(TextEditingController? controller) {
+  static void applyFormattedDisplay(
+    TextEditingController? controller, {
+    String Function(String rawValue)? formatter,
+  }) {
     if (controller == null) {
       return;
     }
-    final formatted = Validators.formatFlexibleNumberString(controller.text);
+    final formatted =
+        formatter?.call(controller.text) ??
+        Validators.formatFlexibleNumberString(controller.text);
     if (formatted == controller.text) {
       return;
     }
@@ -32,10 +38,12 @@ class NumericFieldFocusBinding {
     required TextEditingController? controller,
     bool clearZeroOnBlur = false,
     VoidCallback? onBlur,
+    String Function(String rawValue)? formatter,
   }) {
     _controller = controller;
     _clearZeroOnBlur = clearZeroOnBlur;
     _onBlur = onBlur;
+    _formatter = formatter;
     if (enable && controller != null) {
       if (_focusNode == null) {
         _focusNode = FocusNode()..addListener(_handleFocusChanged);
@@ -57,7 +65,7 @@ class NumericFieldFocusBinding {
       if (_clearZeroOnBlur) {
         _clearZeroDisplay(_controller);
       }
-      applyFormattedDisplay(_controller);
+      applyFormattedDisplay(_controller, formatter: _formatter);
       _onBlur?.call();
     }
   }
@@ -106,5 +114,6 @@ class NumericFieldFocusBinding {
     _controller = null;
     _clearZeroOnBlur = false;
     _onBlur = null;
+    _formatter = null;
   }
 }

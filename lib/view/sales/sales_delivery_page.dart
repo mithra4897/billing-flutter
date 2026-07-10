@@ -172,14 +172,23 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       final rate =
           Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final amount = qty * rate;
-      final uomOptions = controller
-          .uomOptionsForItem(line.itemId)
+      final availableUoms = controller.uomOptionsForItem(line.itemId);
+      final uomOptions = availableUoms
           .where((item) => item.id != null)
           .map(
             (item) =>
                 AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
+      final quantityAllowsFraction =
+          availableUoms
+              .cast<UomModel?>()
+              .firstWhere(
+                (item) => item?.id == line.uomId,
+                orElse: () => null,
+              )
+              ?.isFractionAllowed ??
+          true;
 
       if (canEdit && uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
@@ -231,6 +240,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           value: line.uomId,
           fieldName: 'UOM',
         ),
+        quantityAllowsFraction: quantityAllowsFraction,
         qtyController: line.deliveredQtyController,
         qtyValidator: (_) {
           final quantityError = Validators.requiredPositiveNumberField(

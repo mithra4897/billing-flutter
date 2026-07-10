@@ -169,14 +169,23 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     ) {
       final line = controller.lines[index];
       final amount = controller.taxBreakdownForLine(line).total;
-      final uomOptions = controller
-          .uomOptionsForItem(line.itemId)
+      final availableUoms = controller.uomOptionsForItem(line.itemId);
+      final uomOptions = availableUoms
           .where((item) => item.id != null)
           .map(
             (item) =>
                 AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
+      final quantityAllowsFraction =
+          availableUoms
+              .cast<UomModel?>()
+              .firstWhere(
+                (item) => item?.id == line.uomId,
+                orElse: () => null,
+              )
+              ?.isFractionAllowed ??
+          true;
       if (controller.canEdit && uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
         if (line.uomId != onlyId) {
@@ -212,6 +221,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           value: line.uomId,
           fieldName: 'UOM',
         ),
+        quantityAllowsFraction: quantityAllowsFraction,
         qtyController: line.qtyController,
         onQtyChanged: controller.canEdit
             ? (_) => controller.refreshComputedState()

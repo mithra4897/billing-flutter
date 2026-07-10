@@ -110,14 +110,23 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       index,
     ) {
       final line = controller.lines[index];
-      final uomOptions = controller
-          .uomOptionsForItem(line.itemId)
+      final availableUoms = controller.uomOptionsForItem(line.itemId);
+      final uomOptions = availableUoms
           .where((item) => item.id != null)
           .map(
             (item) =>
                 AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
+      final quantityAllowsFraction =
+          availableUoms
+              .cast<UomModel?>()
+              .firstWhere(
+                (item) => item?.id == line.uomId,
+                orElse: () => null,
+              )
+              ?.isFractionAllowed ??
+          true;
 
       if (uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
@@ -160,6 +169,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
             ? null
             : (value) => controller.setLineUomId(line, value),
         uomValidator: (_) => line.uomId == null ? 'UOM is required' : null,
+        quantityAllowsFraction: quantityAllowsFraction,
         warehouseId: line.warehouseId,
         warehouseOptions: warehouseOptions,
         onWarehouseChanged: controller.isSelectedRequisitionReadOnly

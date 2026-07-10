@@ -3557,7 +3557,7 @@ String _formatCurrency(double? value) {
 }
 
 String _formatQuantity(double value) {
-  return formatAmount(value);
+  return formatQuantity(value);
 }
 
 String _buildSuggestedReorderDetail(StockBalanceModel item) {

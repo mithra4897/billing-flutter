@@ -135,14 +135,23 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     ) {
       final line = controller.lines[index];
       final amount = controller.taxBreakdownForLine(line).total;
-      final uomOptions = controller
-          .uomOptionsForItem(line.itemId)
+      final availableUoms = controller.uomOptionsForItem(line.itemId);
+      final uomOptions = availableUoms
           .where((item) => item.id != null)
           .map(
             (item) =>
                 AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
+      final quantityAllowsFraction =
+          availableUoms
+              .cast<UomModel?>()
+              .firstWhere(
+                (item) => item?.id == line.uomId,
+                orElse: () => null,
+              )
+              ?.isFractionAllowed ??
+          true;
 
       if (uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
@@ -188,6 +197,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           value: line.uomId,
           fieldName: 'UOM',
         ),
+        quantityAllowsFraction: quantityAllowsFraction,
         rateController: line.rateController,
         rateValidator: Validators.optionalNonNegativeNumber('Rate'),
         descriptionController: line.descriptionController,
@@ -202,6 +212,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             controller: line.receivedQtyController,
             hintText: 'Received Qty',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            numericDisplayKind: AppNumericDisplayKind.quantity,
+            quantityAllowsFraction: quantityAllowsFraction,
             validator: (value) {
               final parsed = Validators.parseFlexibleNumber(value);
               if ((parsed == null || parsed <= 0) &&

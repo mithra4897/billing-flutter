@@ -66,6 +66,8 @@ class ErpLineItemTextCell extends StatefulWidget {
     this.enabled = true,
     this.height = AppUiConstants.tableCompactFieldHeight,
     this.textAlign,
+    this.numericDisplayKind,
+    this.quantityAllowsFraction,
   }) : assert(
          controller != null || initialValue != null || readOnly,
          'Either a controller, an initialValue, or readOnly mode is required.',
@@ -82,6 +84,8 @@ class ErpLineItemTextCell extends StatefulWidget {
   final bool enabled;
   final double? height;
   final TextAlign? textAlign;
+  final AppNumericDisplayKind? numericDisplayKind;
+  final bool? quantityAllowsFraction;
 
   @override
   State<ErpLineItemTextCell> createState() => _ErpLineItemTextCellState();
@@ -93,6 +97,44 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
 
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
+
+  AppNumericDisplayKind? get _effectiveNumericDisplayKind {
+    if (widget.numericDisplayKind != null) {
+      return widget.numericDisplayKind;
+    }
+    if (!_isNumericField) {
+      return null;
+    }
+    final hint = widget.hintText.trim().toLowerCase();
+    if (hint.contains('qty') || hint.contains('quantity')) {
+      return AppNumericDisplayKind.quantity;
+    }
+    if (hint.contains('discount')) {
+      return AppNumericDisplayKind.discountPercent;
+    }
+    if (hint.contains('%') || hint.contains('percent')) {
+      return AppNumericDisplayKind.percent;
+    }
+    if (hint.contains('rate') || hint.contains('price') || hint.contains('cost')) {
+      return AppNumericDisplayKind.rate;
+    }
+    return AppNumericDisplayKind.generic;
+  }
+
+  bool get _effectiveQuantityAllowsFraction =>
+      widget.quantityAllowsFraction ?? true;
+
+  String _formatNumericDisplay(String rawValue) {
+    final kind = _effectiveNumericDisplayKind;
+    if (kind == null) {
+      return Validators.formatFlexibleNumberString(rawValue);
+    }
+    return formatNumericText(
+      rawValue,
+      kind: kind,
+      quantityAllowsFraction: _effectiveQuantityAllowsFraction,
+    );
+  }
 
   TextEditingController? get _effectiveController =>
       widget.controller ?? _internalController;
@@ -155,11 +197,15 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
     final created = _numericBinding.sync(
       enable: _isNumericField,
       controller: _effectiveController,
+      formatter: _formatNumericDisplay,
     );
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          NumericFieldFocusBinding.applyFormattedDisplay(_effectiveController);
+          NumericFieldFocusBinding.applyFormattedDisplay(
+            _effectiveController,
+            formatter: _formatNumericDisplay,
+          );
         }
       });
     }
@@ -222,6 +268,7 @@ class ErpLineItemTableRow {
     this.uomOptions = const <AppDropdownItem<int>>[],
     this.onUomChanged,
     this.uomValidator,
+    this.quantityAllowsFraction,
     this.warehouseId,
     this.warehouseOptions = const <AppDropdownItem<int>>[],
     this.onWarehouseChanged,
@@ -260,6 +307,7 @@ class ErpLineItemTableRow {
   final List<AppDropdownItem<int>> uomOptions;
   final ValueChanged<int?>? onUomChanged;
   final FormFieldValidator<int?>? uomValidator;
+  final bool? quantityAllowsFraction;
   final int? warehouseId;
   final List<AppDropdownItem<int>> warehouseOptions;
   final ValueChanged<int?>? onWarehouseChanged;
@@ -996,6 +1044,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     row.onQtyChanged?.call(value);
                     _notifyChanged();
                   },
+                  numericDisplayKind: AppNumericDisplayKind.quantity,
+                  quantityAllowsFraction: row.quantityAllowsFraction,
                 ),
         );
       case ErpLineItemTableColumn.rate:
@@ -1016,6 +1066,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     row.onRateChanged?.call(value);
                     _notifyChanged();
                   },
+                  numericDisplayKind: AppNumericDisplayKind.rate,
                 ),
         );
       case ErpLineItemTableColumn.discount:
@@ -1036,6 +1087,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     row.onDiscountChanged?.call(value);
                     _notifyChanged();
                   },
+                  numericDisplayKind: AppNumericDisplayKind.discountPercent,
                 ),
         );
       case ErpLineItemTableColumn.taxCode:
@@ -1219,6 +1271,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     TextInputType? keyboardType,
     int maxLines = 1,
     TextAlign? textAlign,
+    AppNumericDisplayKind? numericDisplayKind,
+    bool? quantityAllowsFraction,
   }) {
     return _ErpCompactTextField(
       controller: controller,
@@ -1228,6 +1282,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       textAlign: textAlign,
+      numericDisplayKind: numericDisplayKind,
+      quantityAllowsFraction: quantityAllowsFraction,
     );
   }
 
@@ -1295,6 +1351,8 @@ class _ErpCompactTextField extends StatefulWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.textAlign,
+    this.numericDisplayKind,
+    this.quantityAllowsFraction,
   });
 
   final TextEditingController controller;
@@ -1304,6 +1362,8 @@ class _ErpCompactTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final TextAlign? textAlign;
+  final AppNumericDisplayKind? numericDisplayKind;
+  final bool? quantityAllowsFraction;
 
   @override
   State<_ErpCompactTextField> createState() => _ErpCompactTextFieldState();
@@ -1315,17 +1375,36 @@ class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
   bool get _isNumericField =>
       NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
 
+  bool get _effectiveQuantityAllowsFraction =>
+      widget.quantityAllowsFraction ?? true;
+
+  String _formatNumericDisplay(String rawValue) {
+    final kind = widget.numericDisplayKind;
+    if (kind == null) {
+      return Validators.formatFlexibleNumberString(rawValue);
+    }
+    return formatNumericText(
+      rawValue,
+      kind: kind,
+      quantityAllowsFraction: _effectiveQuantityAllowsFraction,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     final created = _numericBinding.sync(
       enable: _isNumericField,
       controller: widget.controller,
+      formatter: _formatNumericDisplay,
     );
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          NumericFieldFocusBinding.applyFormattedDisplay(
+            widget.controller,
+            formatter: _formatNumericDisplay,
+          );
         }
       });
     }
@@ -1337,11 +1416,15 @@ class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
     final created = _numericBinding.sync(
       enable: _isNumericField,
       controller: widget.controller,
+      formatter: _formatNumericDisplay,
     );
     if (created) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          NumericFieldFocusBinding.applyFormattedDisplay(widget.controller);
+          NumericFieldFocusBinding.applyFormattedDisplay(
+            widget.controller,
+            formatter: _formatNumericDisplay,
+          );
         }
       });
     }

@@ -113,10 +113,7 @@ class ProduceTrackingLineDraft {
   }
 
   String _formatQty(double value) {
-    if (value == value.roundToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toString();
+    return formatQuantity(value);
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -960,10 +957,7 @@ class ProduceTrackingViewModel extends GetxController {
   }
 
   String _stringQty(double value) {
-    if (value == value.roundToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toString();
+    return formatQuantity(value);
   }
 
   void onSourceWarehouseChanged(int? value) {

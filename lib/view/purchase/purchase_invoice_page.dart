@@ -147,14 +147,23 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     ) {
       final line = controller.lines[index];
       final amount = controller.taxBreakdownForLine(line).total;
-      final uomOptions = controller
-          .uomOptionsForItem(line.itemId)
+      final availableUoms = controller.uomOptionsForItem(line.itemId);
+      final uomOptions = availableUoms
           .where((item) => item.id != null)
           .map(
             (item) =>
                 AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
+      final quantityAllowsFraction =
+          availableUoms
+              .cast<UomModel?>()
+              .firstWhere(
+                (item) => item?.id == line.uomId,
+                orElse: () => null,
+              )
+              ?.isFractionAllowed ??
+          true;
 
       if (uomOptions.length == 1) {
         final onlyId = uomOptions.first.value;
@@ -208,6 +217,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
         uomValidator: (_) =>
             Validators.requiredSelectionOrPositiveIdField(line.uomId, 'UOM'),
+        quantityAllowsFraction: quantityAllowsFraction,
         taxCodeId: line.taxCodeId,
         taxOptions: taxOptions,
         onTaxCodeChanged: controller.isSelectedInvoiceReadOnly
@@ -224,6 +234,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
             initialValue: line.invoicedQty.toString(),
             hintText: 'Invoiced Qty',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            numericDisplayKind: AppNumericDisplayKind.quantity,
+            quantityAllowsFraction: quantityAllowsFraction,
             onChanged: (value) => controller.updateLine(
               index,
               line.copyWith(
@@ -248,6 +260,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
             initialValue: line.rate.toString(),
             hintText: 'Rate',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            numericDisplayKind: AppNumericDisplayKind.rate,
             onChanged: (value) => controller.updateLine(
               index,
               line.copyWith(
@@ -264,6 +277,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
             initialValue: (line.discountPercent ?? 0).toString(),
             hintText: '0',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            numericDisplayKind: AppNumericDisplayKind.discountPercent,
             onChanged: (value) => controller.updateLine(
               index,
               line.copyWith(
