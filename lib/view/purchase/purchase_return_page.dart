@@ -437,7 +437,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     controller.selectedItem != null && status == 'draft';
                 final canCancel =
                     controller.selectedItem != null &&
-                    (status == 'draft' || status == 'posted');
+                    purchaseReturnCanCancel(status);
 
                 return Wrap(
                   spacing: AppUiConstants.spacingSm,

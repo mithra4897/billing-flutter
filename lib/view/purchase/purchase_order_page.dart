@@ -223,7 +223,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           ? null
           : controller.removeLine,
       addButtonLabel: 'Add Line',
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
@@ -233,7 +233,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.amount,
-        ErpLineItemTableColumn.action,
+        if (!controller.isSelectedOrderReadOnly) ErpLineItemTableColumn.action,
       },
       columnLabels: const <ErpLineItemTableColumn, String>{
         ErpLineItemTableColumn.qty: 'Ordered Qty',
@@ -622,12 +622,17 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         ((controller.purchaseChain?['receipts'] as List?) ??
                                 const [])
                             .isNotEmpty;
+                    final hasExistingInvoice =
+                        ((controller.purchaseChain?['invoices'] as List?) ??
+                                const [])
+                            .isNotEmpty;
                     final canCancel =
                         controller.selectedItem != null &&
-                        status != 'fully_received' &&
-                        status != 'fully_invoiced' &&
-                        status != 'closed' &&
-                        status != 'cancelled';
+                        purchaseOrderCanCancel(
+                          status,
+                          hasExistingReceipt: hasExistingReceipt,
+                          hasExistingInvoice: hasExistingInvoice,
+                        );
 
                     return Wrap(
                       spacing: AppUiConstants.spacingSm,

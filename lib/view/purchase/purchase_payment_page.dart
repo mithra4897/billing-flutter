@@ -506,7 +506,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     controller.selectedItem != null && status == 'draft';
                 final canCancel =
                     controller.selectedItem != null &&
-                    (status == 'draft' || status == 'posted');
+                    purchasePaymentCanCancel(status);
 
                 return Wrap(
                   spacing: AppUiConstants.spacingSm,

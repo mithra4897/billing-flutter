@@ -94,6 +94,60 @@ bool purchaseDocumentIsDraftEditable(String? status) {
   return normalized.isEmpty || normalized == 'draft';
 }
 
+bool purchaseReceiptCanCancel(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      !const {'posted', 'fully_invoiced', 'cancelled'}.contains(normalized);
+}
+
+bool purchaseInvoiceCanCancel(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      !const {
+        'posted',
+        'overdue',
+        'partially_paid',
+        'paid',
+        'cancelled',
+      }.contains(normalized);
+}
+
+bool purchasePaymentCanCancel(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      !const {
+        'posted',
+        'partially_allocated',
+        'fully_allocated',
+        'cancelled',
+      }.contains(normalized);
+}
+
+bool purchaseReturnCanCancel(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      !const {'posted', 'debited', 'cancelled'}.contains(normalized);
+}
+
+bool purchaseOrderCanCancel(
+  String? status, {
+  bool hasExistingReceipt = false,
+  bool hasExistingInvoice = false,
+}) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      !hasExistingReceipt &&
+      !hasExistingInvoice &&
+      !const {
+        'partially_received',
+        'fully_received',
+        'partially_invoiced',
+        'fully_invoiced',
+        'closed',
+        'cancelled',
+      }.contains(normalized);
+}
+
 String purchaseReadOnlyMessage(String documentLabel, String? status) {
   final normalized = (status ?? '').trim().toLowerCase();
   final label = purchaseStatusLabel(status);

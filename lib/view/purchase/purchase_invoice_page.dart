@@ -864,7 +864,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         controller.selectedItem != null && status == 'draft';
                     final canCancel =
                         controller.selectedItem != null &&
-                        (status == 'draft' || status == 'posted');
+                        purchaseInvoiceCanCancel(status);
 
                     return Wrap(
                       spacing: AppUiConstants.spacingSm,
