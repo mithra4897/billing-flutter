@@ -457,7 +457,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     if (canPost)
                       AppActionButton(
                         icon: Icons.publish_outlined,
-                        label: 'Post',
+                        label: 'Submit',
                         filled: false,
                         onPressed: () => controller.docAction(
                           context,

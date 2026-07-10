@@ -526,7 +526,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     if (canPost)
                       AppActionButton(
                         icon: Icons.publish_outlined,
-                        label: 'Post',
+                        label: 'Submit',
                         filled: false,
                         onPressed: () => controller.docAction(
                           context,

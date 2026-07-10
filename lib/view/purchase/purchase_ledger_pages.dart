@@ -520,7 +520,7 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
             title: 'Ledger Statement',
             rows: _statementRows,
             emptyMessage:
-                'No posted accounting transactions were found for this purchase ledger.',
+                'No submitted accounting transactions were found for this purchase ledger.',
           ),
         ],
       ),

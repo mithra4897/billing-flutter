@@ -7,7 +7,7 @@ String purchaseStatusLabel(String? status) {
   }
   final lower = normalized.toLowerCase();
   if (lower == 'posted') {
-    return 'Finished';
+    return 'Submitted';
   }
   if (lower == 'partially_allocated') {
     return 'Partially Completed';
@@ -155,7 +155,7 @@ String purchaseReadOnlyMessage(String documentLabel, String? status) {
     return 'This $documentLabel is read-only.';
   }
   if (normalized == 'posted') {
-    return 'This $documentLabel is finished and read-only.';
+    return 'This $documentLabel is submitted and read-only.';
   }
   return 'This $documentLabel is ${label.toLowerCase()}. Details are read-only.';
 }
@@ -604,7 +604,11 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
               else
                 Column(
                   children: [
-                    for (var index = 0; index < visibleItems.length; index++) ...[
+                    for (
+                      var index = 0;
+                      index < visibleItems.length;
+                      index++
+                    ) ...[
                       if (index > 0)
                         const SizedBox(height: AppUiConstants.spacingXs),
                       widget.itemBuilder(

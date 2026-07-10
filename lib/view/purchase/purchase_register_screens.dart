@@ -889,7 +889,7 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'partially_invoiced', label: 'Partially Invoiced'),
     AppDropdownItem(value: 'fully_invoiced', label: 'Fully Invoiced'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -1035,7 +1035,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -1231,7 +1231,7 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'partially_allocated', label: 'Partially Completed'),
     AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -1387,7 +1387,7 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'debited', label: 'Debited'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];

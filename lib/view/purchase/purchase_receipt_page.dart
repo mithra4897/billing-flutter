@@ -146,10 +146,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
 
@@ -639,8 +636,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                   children: [
                     if (controller.selectedItem != null &&
                         !hasExistingInvoice &&
-                        const {'posted', 'partially_invoiced'}
-                            .contains(status))
+                        const {'posted', 'partially_invoiced'}.contains(status))
                       AppActionButton(
                         icon: Icons.receipt_long_outlined,
                         label: 'Create Invoice',
@@ -674,7 +670,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     if (canPost)
                       AppActionButton(
                         icon: Icons.publish_outlined,
-                        label: 'Post',
+                        label: 'Submit',
                         filled: false,
                         onPressed: () => controller.docAction(
                           context,

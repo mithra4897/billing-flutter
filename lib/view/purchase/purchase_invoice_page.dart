@@ -64,8 +64,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialId != widget.initialId ||
         oldWidget.initialPurchaseOrderId != widget.initialPurchaseOrderId ||
-        oldWidget.initialPurchaseReceiptId !=
-            widget.initialPurchaseReceiptId ||
+        oldWidget.initialPurchaseReceiptId != widget.initialPurchaseReceiptId ||
         oldWidget.editorOnly != widget.editorOnly) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
@@ -158,10 +157,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
 
@@ -340,7 +336,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         total: summaryTotal,
         currencyCode: 'INR',
         subtitle: controller.isSelectedInvoiceReadOnly
-            ? 'Saved invoice totals from the posted document.'
+            ? 'Saved invoice totals from the submitted document.'
             : controller.applyRoundOff && roundOff != 0
             ? 'Live totals for the current purchase invoice lines. Includes round off ${formatAmount(roundOff)}${adjustment != 0 ? ' and adjustment ${formatAmount(adjustment)}' : ''}.'
             : adjustment != 0
@@ -873,7 +869,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         if (canPost)
                           AppActionButton(
                             icon: Icons.publish_outlined,
-                            label: 'Post',
+                            label: 'Submit',
                             filled: false,
                             onPressed: () => controller.docAction(
                               context,
