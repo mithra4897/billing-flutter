@@ -995,10 +995,11 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
 
     final outstandingAmount = invoiceRows.fold<double>(0.0, (sum, item) {
       final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      if (status == 'cancelled' || status == 'paid') {
+      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
+      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
         return sum;
       }
-      return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+      return sum + outstanding;
     });
 
     final pipelineValue = (quotations.data ?? const <SalesQuotationModel>[])
@@ -1052,7 +1053,10 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
 
     final overdueInvoicesCount = invoiceRows.where((item) {
       final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      if (status == 'cancelled' || status == 'paid') return false;
+      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
+      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
+        return false;
+      }
       final dueDate = DateTime.tryParse(item.dueDate ?? '');
       if (dueDate == null) return false;
       final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
@@ -1061,12 +1065,15 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
 
     final overdueInvoicesAmount = invoiceRows.fold<double>(0.0, (sum, item) {
       final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      if (status == 'cancelled' || status == 'paid') return sum;
+      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
+      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
+        return sum;
+      }
       final dueDate = DateTime.tryParse(item.dueDate ?? '');
       if (dueDate == null) return sum;
       final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
       if (normalizedDue.isBefore(normalizedToday)) {
-        return sum + (item.balanceAmount ?? item.totalAmount ?? 0.0);
+        return sum + outstanding;
       }
       return sum;
     });

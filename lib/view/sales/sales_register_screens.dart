@@ -719,7 +719,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'sent', label: 'Sent'),
     AppDropdownItem(value: 'accepted', label: 'Accepted'),
     AppDropdownItem(value: 'rejected', label: 'Rejected'),
@@ -794,7 +794,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'open':
-            return '';
+            return 'draft,posted,sent';
           default:
             return '';
         }
@@ -1110,11 +1110,18 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             return status != 'draft' && status != 'cancelled';
           case 'open':
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
             return status.isNotEmpty &&
-                !<String>{'paid', 'cancelled'}.contains(status);
+                !<String>{'draft', 'cancelled'}.contains(status) &&
+                outstanding > 0;
           case 'overdue':
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
-            if (status == 'paid' || status == 'cancelled') return false;
+            final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
+            if (status == 'draft' ||
+                status == 'cancelled' ||
+                outstanding <= 0) {
+              return false;
+            }
             final dueDateStr = row.dueDate;
             if (dueDateStr == null) return false;
             final dueDate = DateTime.tryParse(dueDateStr);
@@ -1160,7 +1167,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
           case 'submitted':
             return 'posted,partially_paid,paid';
           case 'open':
-            return '';
+            return 'posted,partially_paid';
           default:
             return '';
         }
