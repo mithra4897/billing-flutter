@@ -405,8 +405,6 @@ class PurchaseListCard<T> extends StatefulWidget {
   final List<Widget> headerActions;
   final Widget Function(T item, bool selected) itemBuilder;
 
-  static const double listViewportHeight = 520;
-
   @override
   State<PurchaseListCard<T>> createState() => _PurchaseListCardState<T>();
 }
@@ -550,18 +548,17 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                   child: Text(widget.emptyMessage),
                 )
               else
-                SizedBox(
-                  height: PurchaseListCard.listViewportHeight,
-                  child: ListView.separated(
-                    primary: false,
-                    itemCount: visibleItems.length,
-                    separatorBuilder: (context, index) =>
+                Column(
+                  children: [
+                    for (var index = 0; index < visibleItems.length; index++) ...[
+                      if (index > 0)
                         const SizedBox(height: AppUiConstants.spacingXs),
-                    itemBuilder: (context, index) => widget.itemBuilder(
-                      visibleItems[index],
-                      visibleItems[index] == widget.selectedItem,
-                    ),
-                  ),
+                      widget.itemBuilder(
+                        visibleItems[index],
+                        visibleItems[index] == widget.selectedItem,
+                      ),
+                    ],
+                  ],
                 ),
               LocalPageNavigation(
                 totalItems: widget.items.length,

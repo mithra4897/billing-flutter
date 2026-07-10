@@ -53,8 +53,6 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final bool embedded;
   final bool fullPageStyle;
 
-  static const double listViewportHeight = 560;
-
   @override
   State<PurchaseRegisterPage<T>> createState() =>
       _PurchaseRegisterPageState<T>();
@@ -191,19 +189,11 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       children: [
                         _RegisterHeader<T>(columns: widget.columns),
                         const Divider(height: 1),
-                        SizedBox(
-                          height: PurchaseRegisterPage.listViewportHeight,
-                          child: ListView.builder(
-                            primary: false,
-                            itemCount: visibleRows.length,
-                            itemBuilder: (context, index) {
-                              final row = visibleRows[index];
-                              return _RegisterRow<T>(
-                                row: row,
-                                columns: widget.columns,
-                                onTap: () => widget.onRowTap(row),
-                              );
-                            },
+                        ...visibleRows.map(
+                          (row) => _RegisterRow<T>(
+                            row: row,
+                            columns: widget.columns,
+                            onTap: () => widget.onRowTap(row),
                           ),
                         ),
                         Padding(
