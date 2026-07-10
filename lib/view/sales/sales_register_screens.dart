@@ -198,9 +198,11 @@ class SalesRegisterController<T> extends GetxController {
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
     dashboardFilter = value.trim();
-    selectedStatuses = statusOverride.trim().isEmpty
-        ? <String>{}
-        : <String>{statusOverride.trim().toLowerCase()};
+    selectedStatuses = statusOverride
+        .split(',')
+        .map((status) => status.trim().toLowerCase())
+        .where((status) => status.isNotEmpty)
+        .toSet();
     sort = initialSort;
     searchController.clear();
     dateFromController.clear();
@@ -332,6 +334,11 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
   String _dashboardFilterValue() =>
       (widget.queryParameters['dashboard_filter'] ?? '').trim();
 
+  String _queryDateValue(String key) =>
+      normalizeDateValue(widget.queryParameters[key]);
+
+  String _querySortValue() => (widget.queryParameters['sort'] ?? '').trim();
+
   void _applyDashboardFilter(SalesRegisterController<T> controller) {
     final dashboardFilter = _dashboardFilterValue();
     final statusOverride =
@@ -340,6 +347,18 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
       dashboardFilter,
       statusOverride: statusOverride,
     );
+    final sort = _querySortValue();
+    if (sort.isNotEmpty && controller.sort != sort) {
+      controller.setSort(sort);
+    }
+    final dateFrom = _queryDateValue('date_from');
+    final dateTo = _queryDateValue('date_to');
+    if (controller.dateFromController.text != dateFrom) {
+      controller.dateFromController.text = dateFrom;
+    }
+    if (controller.dateToController.text != dateTo) {
+      controller.dateToController.text = dateTo;
+    }
   }
 
   @override
@@ -495,10 +514,8 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
         controller.customFilters['customer_ids'],
       ),
       multiHintText: 'Select customers',
-      onMultiChanged: (values) => controller.setCustomFilter(
-        'customer_ids',
-        values,
-      ),
+      onMultiChanged: (values) =>
+          controller.setCustomFilter('customer_ids', values),
     );
   }
 
@@ -1040,7 +1057,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -1088,6 +1105,9 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       },
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
+          case 'submitted':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            return status != 'draft' && status != 'cancelled';
           case 'open':
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
             return status.isNotEmpty &&
@@ -1137,6 +1157,8 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       ),
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
+          case 'submitted':
+            return 'posted,partially_paid,paid';
           case 'open':
             return '';
           default:

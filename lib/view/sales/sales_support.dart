@@ -7,7 +7,7 @@ String salesStatusLabel(String? status) {
   }
   final lower = normalized.toLowerCase();
   if (lower == 'posted') {
-    return 'Finished';
+    return 'Submitted';
   }
   if (lower == 'partially_allocated') {
     return 'Partially Completed';

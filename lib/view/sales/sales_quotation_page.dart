@@ -180,10 +180,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
       if (controller.canEdit && uomOptions.length == 1) {
@@ -605,10 +602,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     ),
                   ),
                 if (controller.selectedItem != null &&
-                    const {
-                      'posted',
-                      'sent',
-                    }.contains(controller.status))
+                    const {'posted', 'sent'}.contains(controller.status))
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
                     label: 'Revise quote',
@@ -634,7 +628,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   if (controller.status == 'draft')
                     AppActionButton(
                       icon: Icons.publish_outlined,
-                      label: 'Post',
+                      label: 'Submit',
                       filled: false,
                       onPressed: () => controller.postSelected(context),
                     ),

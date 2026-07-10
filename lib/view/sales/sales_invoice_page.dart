@@ -1101,7 +1101,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   if (controller.status == 'draft') ...[
                     AppActionButton(
                       icon: Icons.publish_outlined,
-                      label: 'Post',
+                      label: 'Submit',
                       filled: false,
                       onPressed: () => controller.docAction(
                         context,

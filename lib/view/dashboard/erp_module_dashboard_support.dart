@@ -74,6 +74,21 @@ Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(
   }
 }
 
+String _salesInvoicesThisMonthRoute([DateTime? today]) {
+  final now = today ?? DateTime.now();
+  final monthStart = DateTime(now.year, now.month, 1);
+  final monthEnd = DateTime(now.year, now.month + 1, 0);
+  return Uri(
+    path: '/sales/invoices',
+    queryParameters: <String, String>{
+      'dashboard_filter': 'submitted',
+      'sort': 'date_desc',
+      'date_from': normalizeDateForApi(monthStart.toIso8601String()),
+      'date_to': normalizeDateForApi(monthEnd.toIso8601String()),
+    },
+  ).toString();
+}
+
 bool _crmIsCompletedBoardFollowupStatus(String? status) {
   return crmIsCompletedFollowupStatus(status);
 }
@@ -1007,7 +1022,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
       final now = DateTime.now();
       if (date.year == now.year && date.month == now.month) {
         final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-        if (status == 'cancelled') return sum;
+        if (status == 'draft' || status == 'cancelled') return sum;
         return sum + (item.totalAmount ?? 0.0);
       }
       return sum;
@@ -1126,7 +1141,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
           helper: 'Total invoiced this month',
           icon: Icons.trending_up_outlined,
           color: const Color(0xFF1FA971),
-          route: '/sales/invoices',
+          route: _salesInvoicesThisMonthRoute(),
         ),
       ],
       primarySections: <ErpDashboardListSection>[

@@ -191,13 +191,15 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
           children: [
             if (controller.selectedItem != null && !canEdit) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
                 child: Text(
                   'This document is read-only (Posted/Completed/Cancelled documents cannot be edited)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -281,7 +283,8 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                           queryParameters: {
                             'new': '1',
                             'party_context': 'customer',
-                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                            if (name.trim().isNotEmpty)
+                              'party_name': name.trim(),
                           },
                         );
                         final navigate = ShellRouteScope.maybeOf(context);
@@ -514,7 +517,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
-                    label: 'Post',
+                    label: 'Submit',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),

@@ -183,10 +183,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
 
@@ -800,7 +797,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                 if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
-                    label: 'Post',
+                    label: 'Submit',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),

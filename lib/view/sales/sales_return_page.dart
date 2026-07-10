@@ -435,7 +435,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                 if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
-                    label: 'Post',
+                    label: 'Submit',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),
