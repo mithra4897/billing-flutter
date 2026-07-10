@@ -22,6 +22,7 @@ class LoginManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreRememberMe());
     unawaited(loadBranding());
   }
 
@@ -36,6 +37,11 @@ class LoginManagementController extends GetxController {
     final message = actionMessage;
     actionMessage = null;
     return message;
+  }
+
+  Future<void> _restoreRememberMe() async {
+    rememberMe = await SessionStorage.shouldAutoLogin();
+    update();
   }
 
   Future<void> loadBranding() async {

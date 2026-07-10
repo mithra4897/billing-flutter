@@ -25,8 +25,11 @@ class AppSessionService {
     await _scheduleRefresh();
   }
 
-  Future<bool> bootstrap() async {
-    if (!await SessionStorage.hasRestorableSession()) {
+  Future<bool> bootstrap({bool requireRememberMe = false}) async {
+    final hasSession = requireRememberMe
+        ? await SessionStorage.hasRestorableSession()
+        : await SessionStorage.hasActiveSession();
+    if (!hasSession) {
       await clearSession();
       return false;
     }

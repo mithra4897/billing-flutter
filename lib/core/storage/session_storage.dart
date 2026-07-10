@@ -79,7 +79,7 @@ class SessionStorage {
   }
 
   static Future<bool> hasRestorableSession() async {
-    return hasActiveSession();
+    return (await shouldAutoLogin()) && (await hasActiveSession());
   }
 
   static Future<Map<String, dynamic>?> getCurrentUser() async {
