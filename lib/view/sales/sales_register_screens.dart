@@ -292,6 +292,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     this.dashboardStatusForFilter,
     this.extraActionsBuilder,
     this.customFiltersBuilder,
+    this.footerBuilder,
   });
 
   final String controllerName;
@@ -323,6 +324,11 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     SalesRegisterController<T> controller,
   )?
   customFiltersBuilder;
+  final Widget Function(
+    BuildContext context,
+    SalesRegisterController<T> controller,
+  )?
+  footerBuilder;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -443,8 +449,62 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           columns: widget.columns,
           onRowTap: (row) =>
               _openSalesShellRoute(context, widget.rowRoute(row)),
+          footer: widget.footerBuilder?.call(context, controller),
         );
       },
+    );
+  }
+}
+
+class _SalesRegisterFooterCell {
+  const _SalesRegisterFooterCell({
+    required this.flex,
+    this.text = '',
+    this.alignRight = false,
+  });
+
+  final int flex;
+  final String text;
+  final bool alignRight;
+}
+
+class _SalesRegisterSummaryFooter extends StatelessWidget {
+  const _SalesRegisterSummaryFooter({required this.cells});
+
+  final List<_SalesRegisterFooterCell> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: const Border(
+          top: BorderSide(color: Color(0x11000000)),
+          bottom: BorderSide(color: Color(0x11000000)),
+        ),
+      ),
+      child: Row(
+        children: cells
+            .map(
+              (cell) => Expanded(
+                flex: cell.flex,
+                child: Text(
+                  cell.text,
+                  textAlign: cell.alignRight ? TextAlign.right : TextAlign.left,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            )
+            .toList(growable: false),
+      ),
     );
   }
 }
@@ -787,6 +847,33 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         searchHint: 'Quotation no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
+      footerBuilder: (context, controller) {
+        final totalAmount = controller.filteredRows.fold<double>(
+          0,
+          (sum, row) =>
+              sum +
+              ((row.toJson()['total_amount'] is num)
+                  ? (row.toJson()['total_amount'] as num).toDouble()
+                  : (double.tryParse(
+                          row.toJson()['total_amount']?.toString() ?? '',
+                        ) ??
+                        0)),
+        );
+        return _SalesRegisterSummaryFooter(
+          cells: <_SalesRegisterFooterCell>[
+            const _SalesRegisterFooterCell(flex: 2, text: 'Total'),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 3),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 2),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       newRoute: '/sales/quotations/new',
       newLabel: 'New quotation',
       searchHint: 'Search number or customer',
@@ -979,6 +1066,33 @@ class SalesOrderRegisterPage extends StatelessWidget {
         searchHint: 'Order no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
+      footerBuilder: (context, controller) {
+        final totalAmount = controller.filteredRows.fold<double>(
+          0,
+          (sum, row) =>
+              sum +
+              ((row.toJson()['total_amount'] is num)
+                  ? (row.toJson()['total_amount'] as num).toDouble()
+                  : (double.tryParse(
+                          row.toJson()['total_amount']?.toString() ?? '',
+                        ) ??
+                        0)),
+        );
+        return _SalesRegisterSummaryFooter(
+          cells: <_SalesRegisterFooterCell>[
+            const _SalesRegisterFooterCell(flex: 2, text: 'Total'),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 3),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 2),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       newRoute: '/sales/orders/new',
       newLabel: 'New order',
       searchHint: 'Search number or customer',
@@ -1162,6 +1276,35 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
         sortItems: _salesInvoiceRegisterSortItems,
       ),
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final balanceAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.balanceAmount ?? 0),
+        );
+        return _SalesRegisterSummaryFooter(
+          cells: <_SalesRegisterFooterCell>[
+            const _SalesRegisterFooterCell(flex: 2, text: 'Total'),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 3),
+            const _SalesRegisterFooterCell(flex: 2),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(balanceAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'submitted':
@@ -1381,6 +1524,28 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         searchHint: 'Receipt no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
+      footerBuilder: (context, controller) {
+        final totalAmount = controller.filteredRows.fold<double>(0, (sum, row) {
+          final raw = row.toJson()['paid_amount'];
+          return sum +
+              (raw is num
+                  ? raw.toDouble()
+                  : double.tryParse(raw?.toString() ?? '') ?? 0);
+        });
+        return _SalesRegisterSummaryFooter(
+          cells: <_SalesRegisterFooterCell>[
+            const _SalesRegisterFooterCell(flex: 2, text: 'Total'),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 3),
+            const _SalesRegisterFooterCell(flex: 2),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       newRoute: '/sales/receipts/new',
       newLabel: 'New receipt',
       searchHint: 'Search receipts',

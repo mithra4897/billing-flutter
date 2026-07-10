@@ -327,6 +327,16 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         onBalanceChanged: _setBalanceFilters,
       ),
       rows: _filteredRows,
+      footer: _SalesLedgerSummaryFooter(
+        receivableAmount: _filteredRows.fold<double>(
+          0,
+          (sum, row) => sum + row.receivableAmount,
+        ),
+        advanceAmount: _filteredRows.fold<double>(
+          0,
+          (sum, row) => sum + row.advanceAmount,
+        ),
+      ),
       columns: [
         PurchaseRegisterColumn(
           label: 'Customer Code',
@@ -362,6 +372,71 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
       ],
       onRowTap: (row) =>
           _openSalesLedgerRoute(context, '/sales/ledgers/${row.id}'),
+    );
+  }
+}
+
+class _SalesLedgerSummaryFooter extends StatelessWidget {
+  const _SalesLedgerSummaryFooter({
+    required this.receivableAmount,
+    required this.advanceAmount,
+  });
+
+  final double receivableAmount;
+  final double advanceAmount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: const Border(
+          top: BorderSide(color: Color(0x11000000)),
+          bottom: BorderSide(color: Color(0x11000000)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Total',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Expanded(flex: 3, child: SizedBox.shrink()),
+          Expanded(
+            flex: 2,
+            child: Text(
+              formatAmount(receivableAmount),
+              textAlign: TextAlign.right,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              formatAmount(advanceAmount),
+              textAlign: TextAlign.right,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
+        ],
+      ),
     );
   }
 }

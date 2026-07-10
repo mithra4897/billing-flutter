@@ -38,6 +38,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.filters,
     this.embedded = false,
     this.fullPageStyle = false,
+    this.footer,
   });
 
   final String title;
@@ -52,6 +53,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final String emptyMessage;
   final bool embedded;
   final bool fullPageStyle;
+  final Widget? footer;
 
   @override
   State<PurchaseRegisterPage<T>> createState() =>
@@ -196,6 +198,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             onTap: () => widget.onRowTap(row),
                           ),
                         ),
+                        if (widget.footer != null) widget.footer!,
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppUiConstants.spacingSm,
@@ -281,7 +284,10 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       _buildDesktopTable(context, visibleRows)
                     else
                       _buildMobileCards(context, visibleRows, appTheme),
-                    const SizedBox(height: AppUiConstants.spacingMd),
+                    if (widget.footer != null) ...[
+                      widget.footer!,
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                    ],
                     LocalPageNavigation(
                       totalItems: widget.rows.length,
                       currentPage: controller.currentPage,
