@@ -170,13 +170,32 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.filters != null) ...[
-            SizedBox(
-              width: double.infinity,
-              child: AppSectionCard(child: widget.filters!),
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-          ],
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              return SizeTransition(
+                sizeFactor: animation,
+                axisAlignment: -1,
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: widget.filters == null
+                ? const SizedBox.shrink(
+                    key: ValueKey<String>('register-filters-hidden'),
+                  )
+                : Padding(
+                    key: const ValueKey<String>('register-filters-visible'),
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingLg,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: AppSectionCard(child: widget.filters!),
+                    ),
+                  ),
+          ),
           SizedBox(
             width: double.infinity,
             child: AppSectionCard(
@@ -235,10 +254,31 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (widget.filters != null) ...[
-            AppSectionCard(child: widget.filters!),
-            const SizedBox(height: AppUiConstants.spacingLg),
-          ],
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              return SizeTransition(
+                sizeFactor: animation,
+                axisAlignment: -1,
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            child: widget.filters == null
+                ? const SizedBox.shrink(
+                    key: ValueKey<String>('full-register-filters-hidden'),
+                  )
+                : Padding(
+                    key: const ValueKey<String>(
+                      'full-register-filters-visible',
+                    ),
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingLg,
+                    ),
+                    child: AppSectionCard(child: widget.filters!),
+                  ),
+          ),
           if (widget.rows.isEmpty)
             Container(
               constraints: const BoxConstraints(minHeight: 280),

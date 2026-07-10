@@ -568,32 +568,51 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                 ),
                 const SizedBox(height: AppUiConstants.spacingMd),
               ],
-              if (widget.showInlineFilters) ...[
-                SettingsFormWrap(
-                  children: [
-                    if (widget.filterFields.isNotEmpty)
-                      ...widget.filterFields
-                    else
-                      (widget.primaryFilter ??
-                          TextField(
-                            controller: widget.searchController,
-                            decoration: InputDecoration(
-                              hintText: widget.searchHint,
-                              prefixIcon: const Icon(Icons.search),
-                            ),
-                          )),
-                    if (widget.statusItems.isNotEmpty &&
-                        widget.onStatusChanged != null)
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Status',
-                        mappedItems: widget.statusItems,
-                        initialValue: widget.statusValue,
-                        onChanged: widget.onStatusChanged!,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return SizeTransition(
+                    sizeFactor: animation,
+                    axisAlignment: -1,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: widget.showInlineFilters
+                    ? Padding(
+                        key: const ValueKey<String>('purchase-list-filters'),
+                        padding: const EdgeInsets.only(
+                          bottom: AppUiConstants.spacingMd,
+                        ),
+                        child: SettingsFormWrap(
+                          children: [
+                            if (widget.filterFields.isNotEmpty)
+                              ...widget.filterFields
+                            else
+                              (widget.primaryFilter ??
+                                  TextField(
+                                    controller: widget.searchController,
+                                    decoration: InputDecoration(
+                                      hintText: widget.searchHint,
+                                      prefixIcon: const Icon(Icons.search),
+                                    ),
+                                  )),
+                            if (widget.statusItems.isNotEmpty &&
+                                widget.onStatusChanged != null)
+                              AppDropdownField<String>.fromMapped(
+                                labelText: 'Status',
+                                mappedItems: widget.statusItems,
+                                initialValue: widget.statusValue,
+                                onChanged: widget.onStatusChanged!,
+                              ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(
+                        key: ValueKey<String>('purchase-list-filters-hidden'),
                       ),
-                  ],
-                ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-              ],
+              ),
               if (widget.items.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(

@@ -23,6 +23,7 @@ class SalesQuotationPage extends StatefulWidget {
 
 class _SalesQuotationPageState extends State<SalesQuotationPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesQuotationManagementController get _controller =>
       Get.find<SalesQuotationManagementController>(tag: _controllerTag);
@@ -94,10 +95,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
@@ -120,34 +125,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesQuotationManagementController controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Sales Quotations',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search by number or customer',
-      status: controller.statusFilter,
-      statusItems: SalesQuotationManagementController.listStatusFilter,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.setStatusFilter(status);
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.setStatusFilter('');
       },
     );
   }
@@ -327,10 +304,44 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         emptyMessage: 'No quotations yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Quotation no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.setStatusFilter('');
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesQuotationManagementController.listStatusFilter,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        showInlineFilters: false,
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

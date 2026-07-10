@@ -21,6 +21,7 @@ class SalesReturnPage extends StatefulWidget {
 
 class _SalesReturnPageState extends State<SalesReturnPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesReturnManagementController get _controller =>
       Get.find<SalesReturnManagementController>(tag: _controllerTag);
@@ -56,6 +57,16 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
@@ -267,9 +278,44 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         emptyMessage: 'No sales returns found.',
         searchController: controller.searchController,
         searchHint: 'Search returns',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Return no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.setStatusFilter('');
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesReturnManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

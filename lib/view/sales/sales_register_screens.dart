@@ -336,6 +336,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
 
 class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   String _dashboardFilterValue() =>
       (widget.queryParameters['dashboard_filter'] ?? '').trim();
@@ -429,22 +430,33 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           errorMessage: controller.error,
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
-          filters:
-              widget.customFiltersBuilder?.call(context, controller) ??
-              _SalesRegisterFilters<T>(
-                controller: controller,
-                statusItems: widget.statusItems,
-                title: 'Find ${widget.title}',
-                searchHint: widget.searchHint,
-              ),
           actions: [
             ...extraActions,
+            AdaptiveShellActionButton(
+              onPressed: () {
+                setState(() {
+                  _filtersVisible = !_filtersVisible;
+                });
+              },
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
             AdaptiveShellActionButton(
               onPressed: () => _openSalesShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
               label: widget.newLabel,
             ),
           ],
+          filters: _filtersVisible
+              ? widget.customFiltersBuilder?.call(context, controller) ??
+                    _SalesRegisterFilters<T>(
+                      controller: controller,
+                      statusItems: widget.statusItems,
+                      title: 'Find ${widget.title}',
+                      searchHint: widget.searchHint,
+                    )
+              : null,
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) =>

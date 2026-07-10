@@ -23,6 +23,7 @@ class SalesDeliveryPage extends StatefulWidget {
 
 class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesDeliveryManagementController get _controller =>
       Get.find<SalesDeliveryManagementController>(tag: _controllerTag);
@@ -63,10 +64,14 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
@@ -89,34 +94,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesDeliveryManagementController controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Sales Deliveries',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search deliveries',
-      status: controller.statusFilter,
-      statusItems: SalesDeliveryManagementController.statusItems,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.setStatusFilter(status);
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.setStatusFilter('');
       },
     );
   }
@@ -555,10 +532,44 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         emptyMessage: 'No delivery challans found.',
         searchController: controller.searchController,
         searchHint: 'Search deliveries',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Delivery no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.setStatusFilter('');
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesDeliveryManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        showInlineFilters: false,
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

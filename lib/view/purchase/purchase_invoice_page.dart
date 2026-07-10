@@ -24,6 +24,7 @@ class PurchaseInvoicePage extends StatefulWidget {
 
 class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   PurchaseInvoiceManagementController get _controller =>
       Get.find<PurchaseInvoiceManagementController>(tag: _controllerTag);
@@ -87,6 +88,16 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
@@ -374,51 +385,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         emptyMessage: 'No purchase invoices found.',
         searchController: controller.searchController,
         searchHint: 'Search by bill no or supplier',
-        filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Bill no or supplier name',
-          ),
-          AppDropdownField<int?>.fromMapped(
-            labelText: 'Supplier',
-            mappedItems: [
-              const AppDropdownItem<int?>(value: null, label: 'All Suppliers'),
-              ...controller.suppliers
-                  .where((item) => item.id != null)
-                  .map(
-                    (item) => AppDropdownItem<int?>(
-                      value: item.id,
-                      label: item.toString(),
-                    ),
-                  ),
-            ],
-            initialValue: controller.filterSupplierId,
-            onChanged: controller.setFilterSupplierId,
-          ),
-          AppFormTextField(
-            labelText: 'Date From',
-            controller: controller.dateFromController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date From'),
-          ),
-          AppFormTextField(
-            labelText: 'Date To',
-            controller: controller.dateToController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date To'),
-          ),
-          AppActionButton(
-            icon: Icons.clear_outlined,
-            label: 'Clear',
-            filled: false,
-            onPressed: controller.clearFilters,
-          ),
-        ],
+        showInlineFilters: _filtersVisible,
         statusValue: controller.statusFilter,
         statusItems: PurchaseInvoiceManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

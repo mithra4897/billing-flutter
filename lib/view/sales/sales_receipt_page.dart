@@ -24,6 +24,7 @@ class SalesReceiptPage extends StatefulWidget {
 
 class _SalesReceiptPageState extends State<SalesReceiptPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesReceiptManagementController get _controller =>
       Get.find<SalesReceiptManagementController>(tag: _controllerTag);
@@ -66,10 +67,14 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
@@ -92,34 +97,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesReceiptManagementController controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Sales Receipts',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search receipts',
-      status: controller.statusFilter,
-      statusItems: SalesReceiptManagementController.statusItems,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.setStatusFilter(status);
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.setStatusFilter('');
       },
     );
   }
@@ -161,10 +138,44 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         emptyMessage: 'No sales receipts found.',
         searchController: controller.searchController,
         searchHint: 'Search receipts',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Receipt no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.setStatusFilter('');
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesReceiptManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        showInlineFilters: false,
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

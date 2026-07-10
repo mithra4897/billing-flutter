@@ -188,9 +188,6 @@ Future<void> openSalesSearchStatusFilterPanel({
   required VoidCallback onClear,
   Widget? extraFilterWidget,
 }) async {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
-  final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
   final dialogSearchController = TextEditingController(
     text: searchController.text,
   );
@@ -202,99 +199,62 @@ Future<void> openSalesSearchStatusFilterPanel({
   );
   var tempStatus = status;
 
-  await showDialog<bool>(
+  await showAppFilterPanel<bool>(
     context: context,
-    barrierDismissible: true,
+    title: title,
+    maxWidth: 760,
     builder: (dialogContext) {
-      final appTheme = Theme.of(dialogContext).extension<AppThemeExtension>()!;
       return StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          return Dialog(
-            insetPadding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: 20,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  dialogPadding,
-                  dialogPadding,
-                  dialogPadding,
-                  MediaQuery.of(dialogContext).viewInsets.bottom +
-                      dialogPadding,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: Theme.of(dialogContext).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close),
-                          color: appTheme.mutedText,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _SalesSearchStatusFilters(
-                      searchController: dialogSearchController,
-                      dateFromController: dialogDateFromController,
-                      dateToController: dialogDateToController,
-                      searchHint: searchHint,
-                      status: tempStatus,
-                      statusItems: statusItems,
-                      onStatusChanged: (value) {
-                        setDialogState(() {
-                          tempStatus = value ?? '';
-                        });
-                      },
-                    ),
-                    ?extraFilterWidget,
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: () {
-                            onApply(
-                              dialogSearchController.text,
-                              tempStatus,
-                              dialogDateFromController.text,
-                              dialogDateToController.text,
-                            );
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.search),
-                          label: const Text('Apply Filters'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            onClear();
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Clear'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SalesSearchStatusFilters(
+                searchController: dialogSearchController,
+                dateFromController: dialogDateFromController,
+                dateToController: dialogDateToController,
+                searchHint: searchHint,
+                status: tempStatus,
+                statusItems: statusItems,
+                onStatusChanged: (value) {
+                  setDialogState(() {
+                    tempStatus = value ?? '';
+                  });
+                },
               ),
-            ),
+              ...?(extraFilterWidget == null
+                  ? null
+                  : <Widget>[extraFilterWidget]),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () {
+                      onApply(
+                        dialogSearchController.text,
+                        tempStatus,
+                        dialogDateFromController.text,
+                        dialogDateToController.text,
+                      );
+                      Navigator.of(dialogContext).pop(true);
+                    },
+                    icon: const Icon(Icons.search),
+                    label: const Text('Apply Filters'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      onClear();
+                      Navigator.of(dialogContext).pop(true);
+                    },
+                    icon: const Icon(Icons.clear),
+                    label: const Text('Clear'),
+                  ),
+                ],
+              ),
+            ],
           );
         },
       );

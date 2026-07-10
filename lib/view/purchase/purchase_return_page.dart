@@ -20,6 +20,7 @@ class PurchaseReturnPage extends StatefulWidget {
 
 class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   PurchaseReturnManagementController get _controller =>
       Get.find<PurchaseReturnManagementController>(tag: _controllerTag);
@@ -57,6 +58,16 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
@@ -234,41 +245,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         emptyMessage: 'No purchase returns found.',
         searchController: controller.searchController,
         searchHint: 'Search returns',
-        filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Return no or supplier name',
-          ),
-          AppDropdownField<int?>.fromMapped(
-            labelText: 'Supplier',
-            mappedItems: controller.supplierFilterItems,
-            initialValue: controller.filterSupplierId,
-            onChanged: controller.setFilterSupplierId,
-          ),
-          AppFormTextField(
-            labelText: 'Date From',
-            controller: controller.dateFromController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date From'),
-          ),
-          AppFormTextField(
-            labelText: 'Date To',
-            controller: controller.dateToController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date To'),
-          ),
-          AppActionButton(
-            icon: Icons.clear_outlined,
-            label: 'Clear',
-            filled: false,
-            onPressed: controller.clearFilters,
-          ),
-        ],
+        showInlineFilters: _filtersVisible,
         statusValue: controller.statusFilter,
         statusItems: PurchaseReturnManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

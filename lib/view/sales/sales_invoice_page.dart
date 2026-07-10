@@ -29,6 +29,7 @@ class SalesInvoicePage extends StatefulWidget {
 
 class _SalesInvoicePageState extends State<SalesInvoicePage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesInvoiceManagementController get _controller =>
       Get.find<SalesInvoiceManagementController>(tag: _controllerTag);
@@ -79,10 +80,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
@@ -105,36 +110,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesInvoiceManagementController controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Sales Invoices',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search by number or customer',
-      status: controller.statusFilter,
-      statusItems: SalesInvoiceManagementController.listStatusFilter,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.statusFilter = status;
-        controller.applyFilters();
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.statusFilter = '';
-        controller.applyFilters();
       },
     );
   }
@@ -624,13 +599,48 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         emptyMessage: 'No invoices yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Invoice no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.statusFilter = '';
+              controller.applyFilters();
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesInvoiceManagementController.listStatusFilter,
         onStatusChanged: (value) {
           controller.statusFilter = value ?? '';
           controller.applyFilters();
         },
-        showInlineFilters: false,
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = controller.rowJson(item);
           final st = item.invoiceStatus ?? '';

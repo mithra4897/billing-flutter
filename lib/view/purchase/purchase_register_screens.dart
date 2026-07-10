@@ -354,6 +354,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
 
 class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   String _dashboardFilterValue() =>
       (widget.queryParameters['dashboard_filter'] ?? '').trim();
@@ -451,29 +452,38 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
             if (widget.extraActionsBuilder != null)
               ...widget.extraActionsBuilder!(context, controller),
             AdaptiveShellActionButton(
+              onPressed: () {
+                setState(() {
+                  _filtersVisible = !_filtersVisible;
+                });
+              },
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
+            AdaptiveShellActionButton(
               onPressed: () => _openShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
               label: widget.newLabel,
             ),
           ],
-          filters:
-              widget.customFiltersBuilder?.call(context, controller) ??
-              _RegisterFilters(
-                searchController: controller.searchController,
-                searchHint: widget.searchHint,
-                filterFields: widget.filterFieldsBuilder?.call(
-                  context,
-                  controller,
-                ),
-                trailingActions: widget.filterTrailingActionsBuilder?.call(
-                  context,
-                  controller,
-                ),
-                maxWidth: widget.filtersMaxWidth,
-                selectedStatuses: controller.selectedStatuses,
-                statusItems: widget.statusItems,
-                onStatusChanged: controller.setStatuses,
-              ),
+          filters: _filtersVisible
+              ? widget.customFiltersBuilder?.call(context, controller) ??
+                    _RegisterFilters(
+                      searchController: controller.searchController,
+                      searchHint: widget.searchHint,
+                      filterFields: widget.filterFieldsBuilder?.call(
+                        context,
+                        controller,
+                      ),
+                      trailingActions: widget.filterTrailingActionsBuilder
+                          ?.call(context, controller),
+                      maxWidth: widget.filtersMaxWidth,
+                      selectedStatuses: controller.selectedStatuses,
+                      statusItems: widget.statusItems,
+                      onStatusChanged: controller.setStatuses,
+                    )
+              : null,
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),

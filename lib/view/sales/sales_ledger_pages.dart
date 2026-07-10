@@ -39,6 +39,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   bool _loading = true;
   String? _errorMessage;
   Set<String> _balanceFilters = <String>{'receivable'};
+  bool _filtersVisible = false;
   Set<int> _customerIds = <int>{};
   List<_SalesLedgerRegisterRow> _rows = const <_SalesLedgerRegisterRow>[];
   bool _exporting = false;
@@ -303,6 +304,16 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
       emptyMessage: 'No sales ledgers found.',
       actions: [
         AdaptiveShellActionButton(
+          onPressed: () {
+            setState(() {
+              _filtersVisible = !_filtersVisible;
+            });
+          },
+          icon: Icons.filter_alt_outlined,
+          label: 'Filter',
+          filled: _filtersVisible,
+        ),
+        AdaptiveShellActionButton(
           onPressed: _exporting ? null : _exportRows,
           icon: Icons.file_download_outlined,
           label: 'Export',
@@ -315,17 +326,19 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           filled: false,
         ),
       ],
-      filters: _SalesLedgerFilters(
-        searchController: _searchController,
-        dateFromController: _dateFromController,
-        dateToController: _dateToController,
-        customerIds: _customerIds,
-        customerItems: _customerItems,
-        onCustomerChanged: _setCustomerIds,
-        balanceFilters: _balanceFilters,
-        balanceItems: _balanceItems,
-        onBalanceChanged: _setBalanceFilters,
-      ),
+      filters: _filtersVisible
+          ? _SalesLedgerFilters(
+              searchController: _searchController,
+              dateFromController: _dateFromController,
+              dateToController: _dateToController,
+              customerIds: _customerIds,
+              customerItems: _customerItems,
+              onCustomerChanged: _setCustomerIds,
+              balanceFilters: _balanceFilters,
+              balanceItems: _balanceItems,
+              onBalanceChanged: _setBalanceFilters,
+            )
+          : null,
       rows: _filteredRows,
       footer: _SalesLedgerSummaryFooter(
         receivableAmount: _filteredRows.fold<double>(

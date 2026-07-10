@@ -20,6 +20,7 @@ class PurchaseRequisitionPage extends StatefulWidget {
 
 class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   PurchaseRequisitionManagementController get _controller =>
       Get.find<PurchaseRequisitionManagementController>(tag: _controllerTag);
@@ -57,6 +58,16 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
@@ -121,10 +132,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
 
@@ -253,35 +261,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         emptyMessage: 'No purchase requisitions found.',
         searchController: controller.searchController,
         searchHint: 'Search requisitions',
-        filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Requisition no, purpose, department',
-          ),
-          AppFormTextField(
-            labelText: 'Date From',
-            controller: controller.dateFromController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date From'),
-          ),
-          AppFormTextField(
-            labelText: 'Date To',
-            controller: controller.dateToController,
-            hintText: dateFormatHint(),
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            validator: Validators.optionalDate('Date To'),
-          ),
-          AppActionButton(
-            icon: Icons.clear_outlined,
-            label: 'Clear',
-            filled: false,
-            onPressed: controller.clearFilters,
-          ),
-        ],
+        showInlineFilters: _filtersVisible,
         statusValue: controller.statusFilter,
         statusItems: PurchaseRequisitionManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

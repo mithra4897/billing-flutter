@@ -41,6 +41,7 @@ class _PurchaseLedgerRegisterPageState
   String? _errorMessage;
   Set<String> _statuses = <String>{};
   Set<String> _balanceFilters = <String>{};
+  bool _filtersVisible = false;
   List<_PurchaseLedgerRegisterRow> _rows = const <_PurchaseLedgerRegisterRow>[];
 
   List<_PurchaseLedgerRegisterRow> get _filteredRows {
@@ -227,21 +228,33 @@ class _PurchaseLedgerRegisterPageState
       emptyMessage: 'No payable ledgers found for purchase.',
       actions: [
         AdaptiveShellActionButton(
+          onPressed: () {
+            setState(() {
+              _filtersVisible = !_filtersVisible;
+            });
+          },
+          icon: Icons.filter_alt_outlined,
+          label: 'Filter',
+          filled: _filtersVisible,
+        ),
+        AdaptiveShellActionButton(
           onPressed: _loadRows,
           icon: Icons.refresh_outlined,
           label: 'Refresh',
           filled: false,
         ),
       ],
-      filters: _PurchaseLedgerFilters(
-        searchController: _searchController,
-        statuses: _statuses,
-        statusItems: _statusItems,
-        onStatusChanged: _setStatuses,
-        balanceFilters: _balanceFilters,
-        balanceItems: _balanceItems,
-        onBalanceChanged: _setBalanceFilters,
-      ),
+      filters: _filtersVisible
+          ? _PurchaseLedgerFilters(
+              searchController: _searchController,
+              statuses: _statuses,
+              statusItems: _statusItems,
+              onStatusChanged: _setStatuses,
+              balanceFilters: _balanceFilters,
+              balanceItems: _balanceItems,
+              onBalanceChanged: _setBalanceFilters,
+            )
+          : null,
       rows: _filteredRows,
       footer: _PurchaseLedgerSummaryFooter(
         payableTotal: _filteredRows.fold<double>(

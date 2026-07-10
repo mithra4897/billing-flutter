@@ -24,6 +24,7 @@ class SalesOrderPage extends StatefulWidget {
 
 class _SalesOrderPageState extends State<SalesOrderPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   SalesOrderManagementController get _controller =>
       Get.find<SalesOrderManagementController>(tag: _controllerTag);
@@ -170,10 +171,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
@@ -196,34 +201,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    SalesOrderManagementController controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Sales Orders',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search by number or customer',
-      status: controller.statusFilter,
-      statusItems: SalesOrderManagementController.listStatusFilter,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.setStatusFilter(status);
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.setStatusFilter('');
       },
     );
   }
@@ -293,10 +270,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       final quantityAllowsFraction =
           availableUoms
               .cast<UomModel?>()
-              .firstWhere(
-                (item) => item?.id == line.uomId,
-                orElse: () => null,
-              )
+              .firstWhere((item) => item?.id == line.uomId, orElse: () => null)
               ?.isFractionAllowed ??
           true;
 
@@ -442,10 +416,44 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         emptyMessage: 'No sales orders yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        filterFields: [
+          AppFormTextField(
+            labelText: 'Search',
+            controller: controller.searchController,
+            hintText: 'Order no or customer name',
+          ),
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: controller.dateFromController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date From'),
+          ),
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: controller.dateToController,
+            hintText: dateFormatHint(),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.optionalDate('Date To'),
+          ),
+          AppActionButton(
+            icon: Icons.clear_outlined,
+            label: 'Clear',
+            filled: false,
+            onPressed: () {
+              controller.searchController.clear();
+              controller.dateFromController.clear();
+              controller.dateToController.clear();
+              controller.setStatusFilter('');
+            },
+          ),
+        ],
         statusValue: controller.statusFilter,
         statusItems: SalesOrderManagementController.listStatusFilter,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        showInlineFilters: false,
+        showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
