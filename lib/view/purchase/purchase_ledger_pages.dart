@@ -243,6 +243,16 @@ class _PurchaseLedgerRegisterPageState
         onBalanceChanged: _setBalanceFilters,
       ),
       rows: _filteredRows,
+      footer: _PurchaseLedgerSummaryFooter(
+        payableTotal: _filteredRows.fold<double>(
+          0,
+          (sum, row) => sum + row.payableAmount,
+        ),
+        advanceTotal: _filteredRows.fold<double>(
+          0,
+          (sum, row) => sum + row.advanceAmount,
+        ),
+      ),
       columns: [
         PurchaseRegisterColumn(
           label: 'Supplier Code',
@@ -254,8 +264,18 @@ class _PurchaseLedgerRegisterPageState
           valueBuilder: (row) => row.partyName,
         ),
         PurchaseRegisterColumn(
+          label: 'Last Bill',
+          valueBuilder: (row) => displayDate(row.lastInvoiceDate),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Last Payment',
+          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
+          valueBuilder: (row) => displayDate(row.lastPaymentDate),
+        ),
+        PurchaseRegisterColumn(
           label: 'Payable',
           alignRight: true,
+          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
           showPlaceholderWhenEmpty: false,
           valueBuilder: (row) =>
               _formatPurchaseRegisterAmount(row.payableAmount),
@@ -264,18 +284,8 @@ class _PurchaseLedgerRegisterPageState
           label: 'Advance',
           alignRight: true,
           showPlaceholderWhenEmpty: false,
-          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
           valueBuilder: (row) =>
               _formatPurchaseRegisterAmount(row.advanceAmount),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Last Bill',
-          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
-          valueBuilder: (row) => displayDate(row.lastInvoiceDate),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Last Payment',
-          valueBuilder: (row) => displayDate(row.lastPaymentDate),
         ),
       ],
       onRowTap: (row) =>
@@ -657,6 +667,77 @@ class _StatementRowSortWrapper {
 }
 
 String _formatAmount(double value) => formatAmount(value);
+
+class _PurchaseLedgerSummaryFooter extends StatelessWidget {
+  const _PurchaseLedgerSummaryFooter({
+    required this.payableTotal,
+    required this.advanceTotal,
+  });
+
+  final double payableTotal;
+  final double advanceTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: const Border(
+          top: BorderSide(color: Color(0x11000000)),
+          bottom: BorderSide(color: Color(0x11000000)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Total',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Expanded(flex: 3, child: SizedBox.shrink()),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
+              child: Text(
+                _formatPurchaseRegisterAmount(payableTotal),
+                textAlign: TextAlign.right,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
+              child: Text(
+                _formatPurchaseRegisterAmount(advanceTotal),
+                textAlign: TextAlign.right,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 const String _ledgerHistoryDateFrom = '2000-01-01';
 

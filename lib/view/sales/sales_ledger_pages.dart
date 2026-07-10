@@ -348,8 +348,18 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           valueBuilder: (row) => row.customerName,
         ),
         PurchaseRegisterColumn(
+          label: 'Last Invoice',
+          valueBuilder: (row) => displayDate(row.lastInvoiceDate),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Last Receipt',
+          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
+          valueBuilder: (row) => displayDate(row.lastReceiptDate),
+        ),
+        PurchaseRegisterColumn(
           label: 'Receivable',
           alignRight: true,
+          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
           showPlaceholderWhenEmpty: false,
           valueBuilder: (row) => formatAmount(row.receivableAmount),
         ),
@@ -357,17 +367,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           label: 'Advance',
           alignRight: true,
           showPlaceholderWhenEmpty: false,
-          padding: const EdgeInsets.only(right: AppUiConstants.spacingMd),
           valueBuilder: (row) => formatAmount(row.advanceAmount),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Last Invoice',
-          padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
-          valueBuilder: (row) => displayDate(row.lastInvoiceDate),
-        ),
-        PurchaseRegisterColumn(
-          label: 'Last Receipt',
-          valueBuilder: (row) => displayDate(row.lastReceiptDate),
         ),
       ],
       onRowTap: (row) =>
@@ -413,13 +413,18 @@ class _SalesLedgerSummaryFooter extends StatelessWidget {
             ),
           ),
           const Expanded(flex: 3, child: SizedBox.shrink()),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
+          const Expanded(flex: 2, child: SizedBox.shrink()),
           Expanded(
             flex: 2,
-            child: Text(
-              formatAmount(receivableAmount),
-              textAlign: TextAlign.right,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+            child: Padding(
+              padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
+              child: Text(
+                formatAmount(receivableAmount),
+                textAlign: TextAlign.right,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -433,8 +438,6 @@ class _SalesLedgerSummaryFooter extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(flex: 2, child: SizedBox.shrink()),
-          const Expanded(flex: 2, child: SizedBox.shrink()),
         ],
       ),
     );

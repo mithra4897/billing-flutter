@@ -299,6 +299,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     this.filterFieldsBuilder,
     this.filterTrailingActionsBuilder,
     this.filtersMaxWidth,
+    this.footerBuilder,
   });
 
   final String controllerName;
@@ -340,6 +341,11 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   )?
   filterTrailingActionsBuilder;
   final double? filtersMaxWidth;
+  final Widget Function(
+    BuildContext context,
+    PurchaseListRegisterController<T> controller,
+  )?
+  footerBuilder;
 
   @override
   State<_PurchaseRegisterShell<T>> createState() =>
@@ -471,10 +477,75 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
+          footer: widget.footerBuilder?.call(context, controller),
         );
       },
     );
   }
+}
+
+class _PurchaseRegisterFooterCell {
+  const _PurchaseRegisterFooterCell({
+    required this.flex,
+    this.text = '',
+    this.alignRight = false,
+  });
+
+  final int flex;
+  final String text;
+  final bool alignRight;
+}
+
+class _PurchaseRegisterSummaryFooter extends StatelessWidget {
+  const _PurchaseRegisterSummaryFooter({required this.cells});
+
+  final List<_PurchaseRegisterFooterCell> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: const Border(
+          top: BorderSide(color: Color(0x11000000)),
+          bottom: BorderSide(color: Color(0x11000000)),
+        ),
+      ),
+      child: Row(
+        children: cells
+            .map(
+              (cell) => Expanded(
+                flex: cell.flex,
+                child: Text(
+                  cell.text,
+                  textAlign: cell.alignRight ? TextAlign.right : TextAlign.left,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
+double _purchaseRequisitionEstimatedTotal(PurchaseRequisitionModel row) {
+  return row.lines.fold<double>(
+    0,
+    (sum, line) => sum + (line.estimatedAmount ?? 0),
+  );
+}
+
+double _purchaseReceiptTotal(PurchaseReceiptModel row) {
+  return row.lines.fold<double>(0, (sum, line) => sum + (line.amount ?? 0));
 }
 
 class PurchaseRequisitionRegisterPage extends StatelessWidget {
@@ -605,7 +676,35 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
             statusKey: 'requisition_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Estimated Total',
+          alignRight: true,
+          valueBuilder: (row) =>
+              formatAmount(_purchaseRequisitionEstimatedTotal(row)),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final estimatedTotal = rows.fold<double>(
+          0,
+          (sum, row) => sum + _purchaseRequisitionEstimatedTotal(row),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(estimatedTotal),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) =>
           '/purchase/requisitions/${intValue(row.toJson(), 'id')}',
     );
@@ -749,7 +848,34 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
             statusKey: 'order_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Total',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.totalAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) => '/purchase/orders/${intValue(row.toJson(), 'id')}',
     );
   }
@@ -863,7 +989,34 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
             statusKey: 'receipt_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Total',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(_purchaseReceiptTotal(row)),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + _purchaseReceiptTotal(row),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) => '/purchase/receipts/${intValue(row.toJson(), 'id')}',
     );
   }
@@ -1035,6 +1188,36 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final outstandingAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.balanceAmount ?? 0),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(outstandingAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) => '/purchase/invoices/${row.id}',
     );
   }
@@ -1148,7 +1331,49 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
             statusKey: 'payment_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Paid Amount',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.paidAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
+        PurchaseRegisterColumn(
+          label: 'Unallocated',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.unallocatedAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final paidAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.paidAmount ?? 0),
+        );
+        final unallocatedAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.unallocatedAmount ?? 0),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(paidAmount),
+              alignRight: true,
+            ),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(unallocatedAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) => '/purchase/payments/${intValue(row.toJson(), 'id')}',
     );
   }
@@ -1260,7 +1485,34 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
             statusKey: 'return_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Total',
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.totalAmount ?? 0),
+          showPlaceholderWhenEmpty: false,
+        ),
       ],
+      footerBuilder: (context, controller) {
+        final rows = controller.filteredRows;
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        return _PurchaseRegisterSummaryFooter(
+          cells: <_PurchaseRegisterFooterCell>[
+            const _PurchaseRegisterFooterCell(flex: 2, text: 'Total'),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 3),
+            const _PurchaseRegisterFooterCell(flex: 2),
+            _PurchaseRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
       rowRoute: (row) => '/purchase/returns/${intValue(row.toJson(), 'id')}',
     );
   }
