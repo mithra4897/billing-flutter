@@ -559,16 +559,6 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
                   label: controller.saving ? 'Saving...' : 'Save Project',
                   busy: controller.saving,
                 ),
-                AppActionButton(
-                  onPressed: controller.saving
-                      ? null
-                      : () => controller.startNewProject(
-                          isDesktop: Responsive.isDesktop(context),
-                        ),
-                  icon: Icons.add_circle_outline,
-                  label: 'New',
-                  filled: false,
-                ),
               ],
             ),
           ],

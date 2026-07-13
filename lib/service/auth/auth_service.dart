@@ -14,6 +14,14 @@ class AuthService extends ErpModuleService {
     );
   }
 
+  Future<ApiResponse<dynamic>> forgotPassword(
+    ForgotPasswordRequestModel request,
+  ) => actionDynamic(ApiEndpoints.forgotPassword, body: request);
+
+  Future<ApiResponse<dynamic>> resetPassword(
+    PublicResetPasswordRequestModel request,
+  ) => actionDynamic(ApiEndpoints.resetPassword, body: request);
+
   Future<ApiResponse<AuthUserModel>> me() {
     return client.get<AuthUserModel>(
       ApiEndpoints.me,
@@ -202,8 +210,7 @@ class AuthService extends ErpModuleService {
   Future<ApiResponse<dynamic>> resetUserPassword(
     int id,
     ResetUserPasswordRequestModel body,
-  ) =>
-      actionDynamic('/users/$id/reset-password', body: body);
+  ) => actionDynamic('/users/$id/reset-password', body: body);
 
   Future<ApiResponse<UserModel>> userAccessSummary(int id) =>
       object('/users/$id/access-summary', fromJson: UserModel.fromJson);

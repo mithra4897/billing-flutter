@@ -920,7 +920,15 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    final navigator = appNavigatorKey.currentState;
+    try {
+      await AuthService().logout();
+    } catch (_) {}
     await AppSessionService.instance.clearSession();
+    if (navigator != null && navigator.mounted) {
+      navigator.pushNamedAndRemoveUntil('/login', (_) => false);
+      return;
+    }
     if (context.mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
     }

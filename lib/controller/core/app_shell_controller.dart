@@ -49,6 +49,23 @@ class AppShellController extends GetxController {
   }
 
   Future<void> loadShellContext() async {
+    final hasSession = await SessionStorage.hasActiveSession();
+    if (!hasSession) {
+      authContext = null;
+      isCheckingSession = false;
+      update();
+
+      final navigator = appNavigatorKey.currentState;
+      if (navigator != null && currentPath != '/login') {
+        _scheduleNavigation(() {
+          if (navigator.mounted) {
+            navigator.pushNamedAndRemoveUntil(loginRoute(), (_) => false);
+          }
+        });
+      }
+      return;
+    }
+
     final nextBranding = await SessionStorage.getBranding();
     final nextAuthContext = await SessionStorage.getAuthContext();
     final permissionCodes = await SessionStorage.getPermissionCodes();

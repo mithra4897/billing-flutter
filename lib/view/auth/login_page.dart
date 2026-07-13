@@ -122,138 +122,156 @@ class _LoginPageState extends State<LoginPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                AppBrandingLogo(branding: branding, size: 48),
-                                const SizedBox(height: 18),
-                                Text(
-                                  'Sign in',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Access your ERP workspace across mobile, tablet, desktop, and web.',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: appTheme.mutedText,
+                                  AppBrandingLogo(branding: branding, size: 48),
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    'Sign in',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.w700),
                                   ),
-                                ),
-                                const SizedBox(height: 28),
-                                AppTextField(
-                                  label: 'Email or ID',
-                                  hint: 'Enter email or ID',
-                                  icon: Icons.person_outline,
-                                  controller: controller.loginController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  validator: (value) =>
-                                      Validators.requiredField(value, 'Login'),
-                                ),
-                                const SizedBox(height: 16),
-                                AppTextField(
-                                  label: 'Password',
-                                  hint: 'Enter your password',
-                                  icon: Icons.lock_outline,
-                                  controller: controller.passwordController,
-                                  obscureText: controller.obscurePassword,
-                                  textInputAction: TextInputAction.done,
-                                  validator: (value) =>
-                                      Validators.requiredField(
-                                        value,
-                                        'Password',
-                                      ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      controller.obscurePassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                    ),
-                                    onPressed:
-                                        controller.togglePasswordVisibility,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Flexible(
-                                      child: Row(
-                                        children: [
-                                          Checkbox(
-                                            value: controller.rememberMe,
-                                            onChanged: (value) {
-                                              controller.setRememberMe(
-                                                value ?? false,
-                                              );
-                                            },
-                                          ),
-                                          const Flexible(
-                                            child: Text('Remember me'),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: controller.isLoading
-                                          ? null
-                                          : () {},
-                                      child: const Text('Forgot?'),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 50,
-                                  child: ElevatedButton(
-                                    onPressed: controller.isLoading
-                                        ? null
-                                        : () async {
-                                            final success = await controller
-                                                .signIn(formContext);
-                                            if (!context.mounted || !success) {
-                                              return;
-                                            }
-                                            FocusManager.instance.primaryFocus
-                                                ?.unfocus();
-                                            Navigator.of(
-                                              context,
-                                            ).pushNamedAndRemoveUntil(
-                                              widget.redirectTo ?? '/dashboard',
-                                              (_) => false,
-                                            );
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          AppUiConstants.buttonRadius,
-                                        ),
-                                      ),
-                                    ),
-                                    child: controller.isLoading
-                                        ? const SizedBox(
-                                            height: 22,
-                                            width: 22,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text('Sign in'),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    'Copyright $year ${branding.companyName}',
-                                    textAlign: TextAlign.center,
-                                    style: theme.textTheme.bodySmall?.copyWith(
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Access your ERP workspace across mobile, tablet, desktop, and web.',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
                                       color: appTheme.mutedText,
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(height: 28),
+                                  AppTextField(
+                                    label: 'Email or ID',
+                                    hint: 'Enter email or ID',
+                                    icon: Icons.person_outline,
+                                    controller: controller.loginController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validator: (value) =>
+                                        Validators.requiredField(
+                                          value,
+                                          'Login',
+                                        ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  AppTextField(
+                                    label: 'Password',
+                                    hint: 'Enter your password',
+                                    icon: Icons.lock_outline,
+                                    controller: controller.passwordController,
+                                    obscureText: controller.obscurePassword,
+                                    textInputAction: TextInputAction.done,
+                                    validator: (value) =>
+                                        Validators.requiredField(
+                                          value,
+                                          'Password',
+                                        ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        controller.obscurePassword
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                      ),
+                                      onPressed:
+                                          controller.togglePasswordVisibility,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Row(
+                                          children: [
+                                            Checkbox(
+                                              value: controller.rememberMe,
+                                              onChanged: (value) {
+                                                controller.setRememberMe(
+                                                  value ?? false,
+                                                );
+                                              },
+                                            ),
+                                            const Flexible(
+                                              child: Text('Remember me'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: controller.isLoading
+                                            ? null
+                                            : () {
+                                                Navigator.of(context).pushNamed(
+                                                  Uri(
+                                                    path: '/forgot-password',
+                                                    queryParameters:
+                                                        widget.redirectTo ==
+                                                            null
+                                                        ? null
+                                                        : <String, String>{
+                                                            'redirect': widget
+                                                                .redirectTo!,
+                                                          },
+                                                  ).toString(),
+                                                );
+                                              },
+                                        child: const Text('Forgot?'),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: controller.isLoading
+                                          ? null
+                                          : () async {
+                                              final success = await controller
+                                                  .signIn(formContext);
+                                              if (!context.mounted ||
+                                                  !success) {
+                                                return;
+                                              }
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              Navigator.of(
+                                                context,
+                                              ).pushNamedAndRemoveUntil(
+                                                widget.redirectTo ??
+                                                    '/dashboard',
+                                                (_) => false,
+                                              );
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppUiConstants.buttonRadius,
+                                          ),
+                                        ),
+                                      ),
+                                      child: controller.isLoading
+                                          ? const SizedBox(
+                                              height: 22,
+                                              width: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text('Sign in'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Copyright $year ${branding.companyName}',
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(color: appTheme.mutedText),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

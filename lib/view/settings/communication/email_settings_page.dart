@@ -139,6 +139,8 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                   labelText: 'SMTP Port',
                   controller: controller.smtpPortController,
                   keyboardType: TextInputType.number,
+                  numericDisplayKind: AppNumericDisplayKind.quantity,
+                  quantityAllowsFraction: false,
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Encryption',
