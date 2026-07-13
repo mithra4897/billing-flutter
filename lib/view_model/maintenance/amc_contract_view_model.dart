@@ -9,8 +9,6 @@ class AmcContractViewModel extends GetxController {
   final MaintenanceModuleRefreshController _refreshController =
       MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _maintenance = MaintenanceService();
-  final MasterService _master = MasterService();
-  final PartiesService _parties = PartiesService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController contractNoController = TextEditingController();
@@ -154,6 +152,8 @@ class AmcContractViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -162,33 +162,15 @@ class AmcContractViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _maintenance.amcContracts(filters: filters),
-        _master.companies(filters: const {'per_page': 200}),
-        _master.documentSeries(filters: const {'per_page': 400}),
-        _parties.parties(filters: const {'per_page': 500}),
-        _parties.partyTypes(filters: const {'per_page': 200}),
       ]);
 
       rows =
           (responses[0] as PaginatedResponse<AmcContractModel>).data ??
           const <AmcContractModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      partyTypes =
-          (responses[4] as PaginatedResponse<PartyTypeModel>).data ??
-          const <PartyTypeModel>[];
+      companies = cache.activeCompanies;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
+      partyTypes = cache.activePartyTypes;
 
       loading = false;
 

@@ -38,7 +38,6 @@ class CrmLeadsController extends GetxController {
   final int? initialCompanyId;
 
   final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
   final CrmModuleRefreshController _refreshController =
       CrmModuleRefreshController.ensureRegistered();
@@ -226,12 +225,11 @@ class CrmLeadsController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _crmService.leads(
           filters: const {'per_page': 200, 'sort_by': 'lead_name'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
         _crmService.sources(
           filters: const {'per_page': 200, 'sort_by': 'source_name'},
@@ -241,14 +239,9 @@ class CrmLeadsController extends GetxController {
         ),
       ]);
 
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: nextCompanies
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -257,16 +250,16 @@ class CrmLeadsController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<CrmLeadModel>).data ??
           const <CrmLeadModel>[];
-      companies = nextCompanies.where((item) => item.isActive).toList();
+      companies = cache.activeCompanies;
       sources =
-          ((responses[2] as PaginatedResponse<CrmSourceModel>).data ??
+          ((responses[1] as PaginatedResponse<CrmSourceModel>).data ??
                   const <CrmSourceModel>[])
               .where(
                 (item) => boolValue(item.toJson(), 'is_active', fallback: true),
               )
               .toList();
       users =
-          ((responses[3] as PaginatedResponse<UserModel>).data ??
+          ((responses[2] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((item) => (item.status ?? 'active') == 'active')
               .toList();
@@ -367,7 +360,9 @@ class CrmLeadsController extends GetxController {
                 return false;
               }
               if (filterAssignedToIds.isNotEmpty &&
-                  !filterAssignedToIds.contains(intValue(data, 'assigned_to'))) {
+                  !filterAssignedToIds.contains(
+                    intValue(data, 'assigned_to'),
+                  )) {
                 return false;
               }
               if (!matchesLeadFilterStatus(rowStatus, filterLeadStatuses)) {
@@ -534,20 +529,22 @@ class CrmLeadsController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmLeadModel.fromJson(normalizeDatePayload({
-      'company_id': companyId,
-      'lead_name': leadNameController.text.trim(),
-      'company_name': nullIfEmpty(companyNameController.text),
-      'mobile': nullIfEmpty(mobileController.text),
-      'email': nullIfEmpty(emailController.text),
-      'source_id': sourceId,
-      'assigned_to': assignedTo,
-      'lead_status': effectiveLeadStatus(),
-      'remarks': nullIfEmpty(remarksController.text),
-      'activities': activities
-          .map((item) => item.toJson())
-          .toList(growable: false),
-    }));
+    final payload = CrmLeadModel.fromJson(
+      normalizeDatePayload({
+        'company_id': companyId,
+        'lead_name': leadNameController.text.trim(),
+        'company_name': nullIfEmpty(companyNameController.text),
+        'mobile': nullIfEmpty(mobileController.text),
+        'email': nullIfEmpty(emailController.text),
+        'source_id': sourceId,
+        'assigned_to': assignedTo,
+        'lead_status': effectiveLeadStatus(),
+        'remarks': nullIfEmpty(remarksController.text),
+        'activities': activities
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      }),
+    );
 
     try {
       final response = selectedItem == null
@@ -605,20 +602,22 @@ class CrmLeadsController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmLeadModel.fromJson(normalizeDatePayload({
-      'company_id': companyId,
-      'lead_name': leadNameController.text.trim(),
-      'company_name': nullIfEmpty(companyNameController.text),
-      'mobile': nullIfEmpty(mobileController.text),
-      'email': nullIfEmpty(emailController.text),
-      'source_id': sourceId,
-      'assigned_to': assignedTo,
-      'lead_status': 'lost',
-      'remarks': nullIfEmpty(remarksController.text),
-      'activities': activities
-          .map((item) => item.toJson())
-          .toList(growable: false),
-    }));
+    final payload = CrmLeadModel.fromJson(
+      normalizeDatePayload({
+        'company_id': companyId,
+        'lead_name': leadNameController.text.trim(),
+        'company_name': nullIfEmpty(companyNameController.text),
+        'mobile': nullIfEmpty(mobileController.text),
+        'email': nullIfEmpty(emailController.text),
+        'source_id': sourceId,
+        'assigned_to': assignedTo,
+        'lead_status': 'lost',
+        'remarks': nullIfEmpty(remarksController.text),
+        'activities': activities
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      }),
+    );
 
     try {
       final response = await _crmService.updateLead(id, payload);

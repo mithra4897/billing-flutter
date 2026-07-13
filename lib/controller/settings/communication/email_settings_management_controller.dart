@@ -18,7 +18,6 @@ class EmailSettingsManagementController extends GetxController {
       ];
 
   final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -79,19 +78,14 @@ class EmailSettingsManagementController extends GetxController {
     update();
 
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final settingsResponse = await _communicationService.emailSettings();
 
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
       final nextSettings = settingsResponse.data ?? const <EmailSettingModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -228,24 +222,26 @@ class EmailSettingsManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailSettingModel.fromJson(normalizeDatePayload({
-      if (intValue(selectedSetting?.toJson() ?? const {}, 'id') != null)
-        'id': intValue(selectedSetting!.toJson(), 'id'),
-      if (companyId != null) 'company_id': companyId,
-      'setting_name': settingNameController.text.trim(),
-      'mail_driver': mailDriver,
-      'from_name': fromNameController.text.trim(),
-      'from_email': fromEmailController.text.trim(),
-      'reply_to_email': nullIfEmpty(replyToEmailController.text),
-      'smtp_host': nullIfEmpty(smtpHostController.text),
-      'smtp_port': int.tryParse(smtpPortController.text.trim()),
-      'smtp_encryption': smtpEncryption,
-      'smtp_username': nullIfEmpty(smtpUsernameController.text),
-      'smtp_password': nullIfEmpty(smtpPasswordController.text),
-      'auto_email_enabled': autoEmailEnabled,
-      'is_default': isDefault,
-      'is_active': isActive,
-    }));
+    final body = EmailSettingModel.fromJson(
+      normalizeDatePayload({
+        if (intValue(selectedSetting?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(selectedSetting!.toJson(), 'id'),
+        if (companyId != null) 'company_id': companyId,
+        'setting_name': settingNameController.text.trim(),
+        'mail_driver': mailDriver,
+        'from_name': fromNameController.text.trim(),
+        'from_email': fromEmailController.text.trim(),
+        'reply_to_email': nullIfEmpty(replyToEmailController.text),
+        'smtp_host': nullIfEmpty(smtpHostController.text),
+        'smtp_port': int.tryParse(smtpPortController.text.trim()),
+        'smtp_encryption': smtpEncryption,
+        'smtp_username': nullIfEmpty(smtpUsernameController.text),
+        'smtp_password': nullIfEmpty(smtpPasswordController.text),
+        'auto_email_enabled': autoEmailEnabled,
+        'is_default': isDefault,
+        'is_active': isActive,
+      }),
+    );
 
     try {
       final id = intValue(selectedSetting?.toJson() ?? const {}, 'id');

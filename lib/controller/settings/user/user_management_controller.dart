@@ -6,7 +6,6 @@ class UserManagementController extends GetxController {
   final AuthService _authService = AuthService();
   final HrService _hrService = HrService();
   final MediaService _mediaService = MediaService();
-  final MasterService _masterService = MasterService();
   final int? initialUserId;
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -112,6 +111,8 @@ class UserManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final usersResponse = await _authService.users(
         filters: const {'per_page': 100},
       );
@@ -124,28 +125,16 @@ class UserManagementController extends GetxController {
       final permissionsResponse = await _authService.permissions(
         filters: const {'per_page': 500},
       );
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 500},
-      );
-      final branchesResponse = await _masterService.branches(
-        filters: const {'per_page': 500},
-      );
-      final locationsResponse = await _masterService.businessLocations(
-        filters: const {'per_page': 500},
-      );
-      final warehousesResponse = await _masterService.warehouses(
-        filters: const {'per_page': 500},
-      );
 
       users = usersResponse.data ?? const <UserModel>[];
       filteredUsers = users;
       employees = employeesResponse.data ?? const <EmployeeModel>[];
       roles = rolesResponse.data ?? const <RoleModel>[];
       permissions = permissionsResponse.data ?? const <PermissionModel>[];
-      companies = companiesResponse.data ?? const <CompanyModel>[];
-      branches = branchesResponse.data ?? const <BranchModel>[];
-      locations = locationsResponse.data ?? const <BusinessLocationModel>[];
-      warehouses = warehousesResponse.data ?? const <WarehouseModel>[];
+      companies = cache.companies;
+      branches = cache.branches;
+      locations = cache.locations;
+      warehouses = cache.warehouses;
 
       if (initialUserId != null) {
         await loadUser(initialUserId!);

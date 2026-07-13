@@ -4,7 +4,6 @@ class DocumentTaxLinesRegisterManagementController extends GetxController {
   DocumentTaxLinesRegisterManagementController();
 
   final TaxesService taxesService = TaxesService();
-  final MasterService masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -64,47 +63,18 @@ class DocumentTaxLinesRegisterManagementController extends GetxController {
     pageError = null;
     update();
     try {
-      final results = await Future.wait<dynamic>([
-        masterService.companies(
-          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-        ),
-        masterService.branches(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        masterService.financialYears(
-          filters: const {'per_page': 200, 'sort_by': 'start_date'},
-        ),
-      ]);
-
-      final companies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (results[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final years =
-          (results[2] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-
-      final activeCompanies = companies
-          .where((CompanyModel item) => item.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((BranchModel item) => item.isActive)
-          .toList(growable: false);
-      final activeYears = years
-          .where((FinancialYearModel item) => item.isActive != false)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
             locations: const <BusinessLocationModel>[],
-            financialYears: activeYears,
+            financialYears: cache.activeFinancialYears,
           );
 
-      financialYears = activeYears;
+      financialYears = cache.activeFinancialYears;
       companyId = contextSelection.companyId;
       branchId = contextSelection.branchId;
       financialYearId = contextSelection.financialYearId;

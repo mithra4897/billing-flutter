@@ -9,7 +9,6 @@ class MaintenancePlanViewModel extends GetxController {
   final MaintenanceModuleRefreshController _refreshController =
       MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _service = MaintenanceService();
-  final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController planCodeController = TextEditingController();
@@ -88,6 +87,7 @@ class MaintenancePlanViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -96,18 +96,13 @@ class MaintenancePlanViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _service.plans(filters: filters),
-        _masterService.companies(filters: const {'per_page': 200}),
       ]);
 
       rows =
           (responses[0] as PaginatedResponse<MaintenancePlanModel>).data ??
           const <MaintenancePlanModel>[];
 
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = MasterDataCache.to.activeCompanies;
 
       loading = false;
 

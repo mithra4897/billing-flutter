@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class DocumentPostingLineDraft {
@@ -44,7 +44,6 @@ class DocumentPostingManagementController extends GetxController {
       ];
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -138,19 +137,9 @@ class DocumentPostingManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final results = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
         _accountsService.postingRuleGroupsAll(
           filters: const {'sort_by': 'group_name', 'per_page': 200},
         ),
@@ -159,44 +148,19 @@ class DocumentPostingManagementController extends GetxController {
         ),
       ]);
 
-      final companies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (results[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (results[2] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final nextYears =
-          (results[3] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
       final nextGroups =
-          (results[4] as ApiResponse<List<PostingRuleGroupModel>>).data ??
+          (results[0] as ApiResponse<List<PostingRuleGroupModel>>).data ??
           const <PostingRuleGroupModel>[];
       final nextAccounts =
-          (results[5] as ApiResponse<List<AccountModel>>).data ??
+          (results[1] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
-
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeLocations = locations
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeYears = nextYears
-          .where((item) => item.isActive)
-          .toList(growable: false);
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
-            financialYears: activeYears,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       final postings = await _accountsService.documentPostings(
@@ -208,7 +172,7 @@ class DocumentPostingManagementController extends GetxController {
         },
       );
 
-      years = activeYears;
+      years = cache.activeFinancialYears;
       companyId ??= contextSelection.companyId;
       branchId ??= contextSelection.branchId;
       locationId ??= contextSelection.locationId;
@@ -428,7 +392,8 @@ class DocumentPostingManagementController extends GetxController {
     final payloadLines = <Map<String, dynamic>>[];
     var index = 1;
     for (final line in lines) {
-      final amount = Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
+      final amount =
+          Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
       if (line.accountId == null || amount <= 0) {
         continue;
       }
@@ -487,7 +452,9 @@ class DocumentPostingManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = DocumentPostingModel.fromJson(normalizeDatePayload(_payload()));
+    final body = DocumentPostingModel.fromJson(
+      normalizeDatePayload(_payload()),
+    );
 
     try {
       final ApiResponse<DocumentPostingModel> response;

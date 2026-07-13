@@ -1,4 +1,4 @@
-﻿import '../../screen.dart';
+import '../../screen.dart';
 import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? fixedAssetJsonMap(dynamic value) {
@@ -32,8 +32,6 @@ class FixedAssetManagementController extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final PartiesService _partiesService = PartiesService();
-  final MasterService _master = MasterService();
   final HrService _hrService = HrService();
 
   final ScrollController pageScrollController = ScrollController();
@@ -326,6 +324,8 @@ class FixedAssetManagementController extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final listFilters = <String, dynamic>{'per_page': 200};
       final optionFilters = <String, dynamic>{'per_page': 500};
       if (info.companyId != null) {
@@ -337,12 +337,6 @@ class FixedAssetManagementController extends GetxController {
         _assets.assets(filters: listFilters),
         _assets.categories(filters: optionFilters),
         _assets.costCenters(filters: optionFilters),
-        _safeOptionList<WarehouseModel>(
-          _master.warehouses(filters: const {'per_page': 500}),
-        ),
-        _safeOptionList<PartyModel>(
-          _partiesService.parties(filters: const {'per_page': 500}),
-        ),
         _safeOptionList<DepartmentModel>(
           _hrService.departments(filters: const {'per_page': 300}),
         ),
@@ -360,16 +354,12 @@ class FixedAssetManagementController extends GetxController {
       costCenters =
           (responses[2] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
-      warehouses = (responses[3] as List<WarehouseModel>)
-          .where((warehouse) => warehouse.isActive)
-          .toList(growable: false);
-      parties = (responses[4] as List<PartyModel>)
-          .where((party) => party.isActive)
-          .toList(growable: false);
-      departments = (responses[5] as List<DepartmentModel>)
+      warehouses = cache.activeWarehouses;
+      parties = cache.activeParties;
+      departments = (responses[3] as List<DepartmentModel>)
           .where((department) => department.isActive)
           .toList(growable: false);
-      employees = (responses[6] as List<EmployeeModel>)
+      employees = (responses[4] as List<EmployeeModel>)
           .where((employee) {
             final status = (employee.status ?? '').trim().toLowerCase();
             return status.isEmpty || status == 'active';
@@ -554,13 +544,18 @@ class FixedAssetManagementController extends GetxController {
           'department_name': departmentController.text.trim(),
         if (nullIfEmpty(employeeController.text.trim()) != null)
           'employee_name': employeeController.text.trim(),
-        if (Validators.parseFlexibleNumber(acquisitionCostController.text) != null)
+        if (Validators.parseFlexibleNumber(acquisitionCostController.text) !=
+            null)
           'acquisition_cost': double.parse(
             acquisitionCostController.text.trim(),
           ),
-        if (Validators.parseFlexibleNumber(additionalCostController.text) != null)
+        if (Validators.parseFlexibleNumber(additionalCostController.text) !=
+            null)
           'additional_cost': double.parse(additionalCostController.text.trim()),
-        if (Validators.parseFlexibleNumber(capitalizationValueController.text) != null)
+        if (Validators.parseFlexibleNumber(
+              capitalizationValueController.text,
+            ) !=
+            null)
           'capitalization_value': double.parse(
             capitalizationValueController.text.trim(),
           ),
@@ -576,8 +571,13 @@ class FixedAssetManagementController extends GetxController {
 
       final existingId = intValue(detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createAsset(AssetModel.fromJson(normalizeDatePayload(payload)))
-          : await _assets.updateAsset(existingId, AssetModel.fromJson(normalizeDatePayload(payload)));
+          ? await _assets.createAsset(
+              AssetModel.fromJson(normalizeDatePayload(payload)),
+            )
+          : await _assets.updateAsset(
+              existingId,
+              AssetModel.fromJson(normalizeDatePayload(payload)),
+            );
       if (response.success != true || response.data == null) {
         formError = response.message;
         return null;

@@ -9,7 +9,6 @@ class AssetDepreciationRunViewModel extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final MasterService _master = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController runDateController = TextEditingController();
@@ -82,11 +81,8 @@ class AssetDepreciationRunViewModel extends GetxController {
   }
 
   Future<void> _loadSeriesOptions() async {
-    final response = await _master.documentSeries(
-      filters: const {'per_page': 400},
-    );
     final cid = sessionCompanyId;
-    final rows = (response.data ?? const <DocumentSeriesModel>[])
+    final rows = MasterDataCache.to.activeDocumentSeries
         .where((DocumentSeriesModel s) {
           if (!s.isActive) {
             return false;
@@ -119,6 +115,7 @@ class AssetDepreciationRunViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
       final filters = <String, dynamic>{'per_page': 200};
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
@@ -219,14 +216,16 @@ class AssetDepreciationRunViewModel extends GetxController {
     createBusy = true;
     update();
     try {
-      final body = AssetDepreciationRunModel.fromJson(normalizeDatePayload(<String, dynamic>{
-        'company_id': cid,
-        'run_date': runDateController.text.trim(),
-        'depreciation_from_date': fromDateController.text.trim(),
-        'depreciation_to_date': toDateController.text.trim(),
-        'book_type': bookType,
-        'document_series_id': documentSeriesId,
-      }));
+      final body = AssetDepreciationRunModel.fromJson(
+        normalizeDatePayload(<String, dynamic>{
+          'company_id': cid,
+          'run_date': runDateController.text.trim(),
+          'depreciation_from_date': fromDateController.text.trim(),
+          'depreciation_to_date': toDateController.text.trim(),
+          'book_type': bookType,
+          'document_series_id': documentSeriesId,
+        }),
+      );
       final response = await _assets.createDepreciationRun(body);
       if (response.success != true || response.data == null) {
         actionMessage = response.message;

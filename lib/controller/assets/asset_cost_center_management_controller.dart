@@ -31,7 +31,6 @@ class AssetCostCenterManagementController extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final MasterService _master = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -169,22 +168,18 @@ class AssetCostCenterManagementController extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
       final filters = <String, dynamic>{'per_page': 200};
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
       }
       final responses = await Future.wait<dynamic>([
         _assets.costCenters(filters: filters),
-        _master.companies(filters: const {'per_page': 200}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((company) => company.isActive)
-              .toList(growable: false);
+      companies = MasterDataCache.to.activeCompanies;
       loading = false;
 
       if (selectId != null) {

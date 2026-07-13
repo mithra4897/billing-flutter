@@ -94,8 +94,6 @@ class VoucherManagementController extends GetxController {
   final AccountsService _accountsService = AccountsService();
   final AssetsService _assetsService = AssetsService();
   final HrService _hrService = HrService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final ProjectService _projectService = ProjectService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -206,6 +204,8 @@ class VoucherManagementController extends GetxController {
     try {
       final permissionCodesResponse = await SessionStorage.getPermissionCodes();
       final currentUser = await SessionStorage.getCurrentUser();
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final superAdmin =
           currentUser?['is_super_admin'] == true ||
           currentUser?['is_super_admin'] == 1;
@@ -217,26 +217,10 @@ class VoucherManagementController extends GetxController {
             'sort_by': 'voucher_date',
           },
         ),
-        _accountsService.vouchersAll(filters: const {'sort_by': 'voucher_date'}),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
+        _accountsService.vouchersAll(
+          filters: const {'sort_by': 'voucher_date'},
         ),
         _accountsService.voucherTypesAll(filters: const {'sort_by': 'name'}),
-        _partiesService.parties(
-          filters: const {'per_page': 200, 'sort_by': 'party_name'},
-        ),
         _assetsService.costCenters(
           filters: const {'per_page': 500, 'sort_by': 'cost_center_name'},
         ),
@@ -254,49 +238,25 @@ class VoucherManagementController extends GetxController {
       final nextAllVouchers =
           (responses[1] as ApiResponse<List<VoucherModel>>).data ??
           const <VoucherModel>[];
-      final companies =
-          (responses[2] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (responses[3] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (responses[4] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final years =
-          (responses[5] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final nextSeries =
-          (responses[6] as PaginatedResponse<DocumentSeriesModel>).data ??
-          const <DocumentSeriesModel>[];
       final nextVoucherTypes =
-          (responses[7] as ApiResponse<List<VoucherTypeModel>>).data ??
+          (responses[2] as ApiResponse<List<VoucherTypeModel>>).data ??
           const <VoucherTypeModel>[];
-      final nextParties =
-          (responses[8] as PaginatedResponse<PartyModel>).data ??
-          const <PartyModel>[];
       final nextCostCenters =
-          (responses[9] as PaginatedResponse<CostCenterModel>).data ??
+          (responses[3] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
       final nextDepartments =
-          (responses[10] as PaginatedResponse<DepartmentModel>).data ??
+          (responses[4] as PaginatedResponse<DepartmentModel>).data ??
           const <DepartmentModel>[];
       final nextProjects =
-          (responses[11] as PaginatedResponse<ProjectModel>).data ??
+          (responses[5] as PaginatedResponse<ProjectModel>).data ??
           const <ProjectModel>[];
 
-      final activeCompanies = companies.where((item) => item.isActive).toList();
-      final activeBranches = branches.where((item) => item.isActive).toList();
-      final activeLocations = locations.where((item) => item.isActive).toList();
-      final activeFinancialYears = years
-          .where((item) => item.isActive)
-          .toList();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
-            financialYears: activeFinancialYears,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       final accountsResponse = await _accountsService.accountsAll(
@@ -324,7 +284,7 @@ class VoucherManagementController extends GetxController {
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
       contextFinancialYearId = contextSelection.financialYearId;
-      documentSeries = nextSeries.where((item) => item.isActive).toList();
+      documentSeries = cache.activeDocumentSeries;
       voucherTypes = nextVoucherTypes
           .where(
             (item) =>
@@ -338,7 +298,7 @@ class VoucherManagementController extends GetxController {
           )
           .toList();
       accounts = nextAccounts.where((item) => item.isActive).toList();
-      parties = nextParties.where((item) => item.isActive).toList();
+      parties = cache.activeParties;
       costCenters = nextCostCenters.where((item) => item.isActive).toList();
       departments = nextDepartments.where((item) => item.isActive).toList();
       projects = nextProjects.where((item) => item.isActive ?? true).toList();

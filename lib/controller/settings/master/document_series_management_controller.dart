@@ -63,28 +63,18 @@ class DocumentSeriesManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _masterService.documentSeries(
           filters: const {'per_page': 200, 'sort_by': 'series_name'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.financialYears(filters: const {'per_page': 200}),
       ]);
       final items =
           (responses[0] as PaginatedResponse<DocumentSeriesModel>).data ??
           const <DocumentSeriesModel>[];
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final financialYears =
-          (responses[2] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final activeCompanies = nextCompanies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeFinancialYears = financialYears
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      final activeCompanies = cache.activeCompanies;
+      final activeFinancialYears = cache.activeFinancialYears;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -136,7 +126,8 @@ class DocumentSeriesManagementController extends GetxController {
     final scoped = items
         .where(
           (entry) =>
-              (contextCompanyId == null || entry.companyId == contextCompanyId) &&
+              (contextCompanyId == null ||
+                  entry.companyId == contextCompanyId) &&
               (contextFinancialYearId == null ||
                   entry.financialYearId == contextFinancialYearId),
         )

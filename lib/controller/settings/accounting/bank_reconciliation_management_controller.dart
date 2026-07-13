@@ -82,16 +82,10 @@ class BankReconciliationManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _accountsService.bankReconciliation(),
-        _accountsService.accountsAll(
-          filters: const {
-            'account_type': 'bank',
-            'allow_reconciliation': 1,
-            'is_active': 1,
-            'sort_by': 'account_name',
-          },
-        ),
         _accountsService.vouchersAll(
           filters: const {
             'posting_status': 'posted',
@@ -103,16 +97,17 @@ class BankReconciliationManagementController extends GetxController {
       final nextRecords =
           (responses[0] as ApiResponse<List<BankReconciliationModel>>).data ??
           const <BankReconciliationModel>[];
-      final nextBankAccounts =
-          (responses[1] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
       final nextVouchers =
-          (responses[2] as ApiResponse<List<VoucherModel>>).data ??
+          (responses[1] as ApiResponse<List<VoucherModel>>).data ??
           const <VoucherModel>[];
 
       records = nextRecords;
       filteredRecords = _filterRecords(nextRecords, searchController.text);
-      bankAccounts = nextBankAccounts.where((item) => item.isActive).toList();
+      bankAccounts = cache.activeAccounts
+          .where(
+            (item) => item.accountType == 'bank' && item.allowReconciliation,
+          )
+          .toList(growable: false);
       vouchers = nextVouchers;
       initialLoading = false;
 

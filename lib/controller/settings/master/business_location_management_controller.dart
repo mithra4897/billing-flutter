@@ -87,27 +87,21 @@ class BusinessLocationManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _masterService.businessLocations(
           filters: const {'per_page': 100, 'sort_by': 'name'},
         ),
-        _masterService.companies(filters: const {'per_page': 100}),
-        _masterService.branches(filters: const {'per_page': 100}),
       ]);
 
       final nextLocations =
           (responses[0] as PaginatedResponse<BusinessLocationModel>).data ??
           const <BusinessLocationModel>[];
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextBranches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
 
       locations = nextLocations;
-      companies = nextCompanies;
-      branches = nextBranches;
+      companies = cache.companies;
+      branches = cache.branches;
       final visibleLocations = filterLocations(nextLocations);
       filteredLocations = visibleLocations;
       initialLoading = false;

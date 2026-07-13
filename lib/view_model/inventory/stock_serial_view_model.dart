@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockSerialStatusItems =
@@ -20,7 +20,6 @@ class StockSerialViewModel extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController serialNoController = TextEditingController();
   final TextEditingController inwardDateController = TextEditingController();
@@ -127,31 +126,21 @@ class StockSerialViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockSerials(
           filters: const {'per_page': 200, 'sort_by': 'serial_no'},
         ),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
-      items =
-          ((responses[1] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       batches =
-          (responses[3] as PaginatedResponse<StockBatchModel>).data ??
+          (responses[1] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
       loading = false;
       if (selectId != null) {
@@ -333,7 +322,9 @@ class StockSerialViewModel extends GetxController {
     if (!stockSerialStatusItems.any((e) => e.value == status)) {
       return 'Invalid status.';
     }
-    final purchaseRate = Validators.parseFlexibleNumber(purchaseRateController.text);
+    final purchaseRate = Validators.parseFlexibleNumber(
+      purchaseRateController.text,
+    );
     final salesRate = Validators.parseFlexibleNumber(salesRateController.text);
     if (purchaseRate != null && purchaseRate < 0) {
       return 'Purchase rate cannot be negative.';

@@ -1,4 +1,4 @@
-﻿import '../../screen.dart';
+import '../../screen.dart';
 import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? assetDisposalJsonMap(dynamic value) {
@@ -52,8 +52,6 @@ class AssetDisposalManagementController extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final MasterService _master = MasterService();
-  final PartiesService _partiesService = PartiesService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -227,6 +225,8 @@ class AssetDisposalManagementController extends GetxController {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
       companyBanner = info.banner;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final assetFilters = <String, dynamic>{'per_page': 300};
       if (info.companyId != null) {
         assetFilters['company_id'] = info.companyId;
@@ -234,8 +234,6 @@ class AssetDisposalManagementController extends GetxController {
       final responses = await Future.wait<dynamic>([
         _assets.disposals(filters: const {'per_page': 200}),
         _assets.assets(filters: assetFilters),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _master.documentSeries(filters: const {'per_page': 400}),
       ]);
 
       var nextRows =
@@ -254,14 +252,8 @@ class AssetDisposalManagementController extends GetxController {
       assetsList =
           (responses[1] as PaginatedResponse<AssetModel>).data ??
           const <AssetModel>[];
-      parties =
-          ((responses[2] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((party) => party.isActive)
-              .toList(growable: false);
-      series =
-          (responses[3] as PaginatedResponse<DocumentSeriesModel>).data ??
-          const <DocumentSeriesModel>[];
+      parties = cache.activeParties;
+      series = cache.activeDocumentSeries;
 
       loading = false;
 
@@ -400,7 +392,8 @@ class AssetDisposalManagementController extends GetxController {
         if (disposalNo.isNotEmpty) 'disposal_no': disposalNo,
         if (documentSeriesId != null) 'document_series_id': documentSeriesId,
         if (salePartyId != null) 'sale_party_id': salePartyId,
-        if (Validators.parseFlexibleNumber(disposalValueController.text) != null)
+        if (Validators.parseFlexibleNumber(disposalValueController.text) !=
+            null)
           'disposal_value': double.parse(disposalValueController.text.trim()),
         if (Validators.parseFlexibleNumber(expenseController.text) != null)
           'disposal_expense': double.parse(expenseController.text.trim()),
@@ -410,7 +403,9 @@ class AssetDisposalManagementController extends GetxController {
 
       final existingId = intValue(detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createDisposal(AssetDisposalModel.fromJson(normalizeDatePayload(payload)))
+          ? await _assets.createDisposal(
+              AssetDisposalModel.fromJson(normalizeDatePayload(payload)),
+            )
           : await _assets.updateDisposal(
               existingId,
               AssetDisposalModel.fromJson(normalizeDatePayload(payload)),

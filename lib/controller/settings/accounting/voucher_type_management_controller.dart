@@ -7,7 +7,6 @@ class VoucherTypeManagementController extends GetxController {
   static const String _refreshSource = 'VoucherTypeManagementController';
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -72,22 +71,19 @@ class VoucherTypeManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait([
         _accountsService.voucherTypes(
           filters: const {'per_page': 300, 'sort_by': 'name'},
         ),
-        _masterService.documentSeries(filters: const {'per_page': 500}),
       ]);
-      final voucherTypesResponse =
-          responses[0] as PaginatedResponse<VoucherTypeModel>;
-      final documentSeriesResponse =
-          responses[1] as PaginatedResponse<DocumentSeriesModel>;
-      final items = voucherTypesResponse.data ?? const <VoucherTypeModel>[];
+      final items = responses[0].data ?? const <VoucherTypeModel>[];
 
       types = items;
       filteredTypes = _filterTypes(items, searchController.text);
       documentTypeItems = buildDocumentTypeDropdownItems(
-        documentSeriesResponse.data ?? const <DocumentSeriesModel>[],
+        cache.activeDocumentSeries,
       );
       initialLoading = false;
 

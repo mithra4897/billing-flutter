@@ -18,7 +18,6 @@ class ItemManagementController extends GetxController {
   ItemManagementController();
 
   final InventoryService _inventoryService = InventoryService();
-  final MasterService _masterService = MasterService();
   final MediaService _mediaService = MediaService();
 
   final ScrollController pageScrollController = ScrollController();
@@ -117,48 +116,30 @@ class ItemManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _loadAllItems(),
-        _masterService.companies(filters: const {'per_page': 200}),
         _inventoryService.itemCategories(
           filters: const {'per_page': 200, 'sort_by': 'category_name'},
         ),
         _inventoryService.brands(
           filters: const {'per_page': 200, 'sort_by': 'brand_name'},
         ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'tax_name'},
-        ),
       ]);
 
       final nextItems =
           (responses[0] as PaginatedResponse<ItemModel>).data ??
           const <ItemModel>[];
-      final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
       final nextCategories =
-          (responses[2] as PaginatedResponse<ItemCategoryModel>).data ??
+          (responses[1] as PaginatedResponse<ItemCategoryModel>).data ??
           const <ItemCategoryModel>[];
       final nextBrands =
-          (responses[3] as PaginatedResponse<BrandModel>).data ??
+          (responses[2] as PaginatedResponse<BrandModel>).data ??
           const <BrandModel>[];
-      final nextUoms =
-          (responses[4] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final nextTaxCodes =
-          (responses[5] as PaginatedResponse<TaxCodeModel>).data ??
-          const <TaxCodeModel>[];
-
-      final activeCompanies = companies
-          .where((company) => company.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -172,10 +153,8 @@ class ItemManagementController extends GetxController {
       brands = nextBrands
           .where((brand) => brand.isActive)
           .toList(growable: false);
-      uoms = nextUoms.where((uom) => uom.isActive).toList(growable: false);
-      taxCodes = nextTaxCodes
-          .where((tax) => tax.isActive)
-          .toList(growable: false);
+      uoms = cache.activeUoms;
+      taxCodes = cache.activeTaxCodes;
       filteredItems = _filterItems(nextItems, searchController.text);
       initialLoading = false;
 

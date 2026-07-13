@@ -80,15 +80,14 @@ class PostingRuleManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final results = await Future.wait<dynamic>([
         _accountsService.postingRuleGroupsAll(
           filters: const {'sort_by': 'group_name', 'per_page': 500},
         ),
         _accountsService.postingRules(
           filters: const {'per_page': 500, 'sort_by': 'line_no'},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
         ),
       ]);
       final nextGroups =
@@ -97,13 +96,10 @@ class PostingRuleManagementController extends GetxController {
       final nextRows =
           (results[1] as PaginatedResponse<PostingRuleModel>).data ??
           const <PostingRuleModel>[];
-      final nextAccounts =
-          (results[2] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
       groups = nextGroups;
       rows = nextRows;
       filtered = _filter(nextRows, searchController.text);
-      accounts = nextAccounts.where((account) => account.isActive).toList();
+      accounts = cache.activeAccounts;
       initialLoading = false;
       if (groupId == null && nextGroups.isNotEmpty) {
         groupId = intValue(nextGroups.first.toJson(), 'id');
@@ -245,19 +241,21 @@ class PostingRuleManagementController extends GetxController {
     update();
     final lineNo = int.tryParse(lineNoController.text.trim()) ?? 1;
     final priority = int.tryParse(priorityController.text.trim()) ?? 1;
-    final body = PostingRuleModel.fromJson(normalizeDatePayload(<String, dynamic>{
-      'posting_rule_group_id': groupId,
-      'line_no': lineNo,
-      'entry_side': entrySide,
-      'account_source_type': accountSourceType,
-      'fixed_account_id': accountSourceType == 'fixed_account'
-          ? fixedAccountId
-          : null,
-      'amount_source': amountSource,
-      'narration_template': nullIfEmpty(narrationTemplateController.text),
-      'priority_order': priority,
-      'is_active': isActive,
-    }));
+    final body = PostingRuleModel.fromJson(
+      normalizeDatePayload(<String, dynamic>{
+        'posting_rule_group_id': groupId,
+        'line_no': lineNo,
+        'entry_side': entrySide,
+        'account_source_type': accountSourceType,
+        'fixed_account_id': accountSourceType == 'fixed_account'
+            ? fixedAccountId
+            : null,
+        'amount_source': amountSource,
+        'narration_template': nullIfEmpty(narrationTemplateController.text),
+        'priority_order': priority,
+        'is_active': isActive,
+      }),
+    );
     try {
       final ApiResponse<PostingRuleModel> response;
       final selectedId = intValue(json(selected), 'id');

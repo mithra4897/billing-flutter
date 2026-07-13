@@ -9,7 +9,6 @@ class MaintenanceRequestViewModel extends GetxController {
   final MaintenanceModuleRefreshController _refreshController =
       MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _maintenance = MaintenanceService();
-  final MasterService _master = MasterService();
   final AssetsService _assets = AssetsService();
 
   final TextEditingController searchController = TextEditingController();
@@ -147,6 +146,8 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -155,35 +156,15 @@ class MaintenanceRequestViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _maintenance.requests(filters: filters),
-        _master.companies(filters: const {'per_page': 200}),
-        _master.documentSeries(filters: const {'per_page': 400}),
-        _master.branches(filters: const {'per_page': 500}),
-        _master.businessLocations(filters: const {'per_page': 800}),
       ]);
 
       rows =
           (responses[0] as PaginatedResponse<MaintenanceRequestModel>).data ??
           const <MaintenanceRequestModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[3] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((b) => b.id != null)
-              .toList(growable: false);
-      locations =
-          ((responses[4] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((l) => l.id != null)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      documentSeries = cache.activeDocumentSeries;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
 
       loading = false;
 

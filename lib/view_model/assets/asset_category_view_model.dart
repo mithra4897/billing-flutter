@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'asset_module_refresh_controller.dart';
 
 class AssetCategoryViewModel extends GetxController {
@@ -9,7 +9,6 @@ class AssetCategoryViewModel extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final MasterService _master = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController categoryCodeController = TextEditingController();
@@ -190,11 +189,15 @@ class AssetCategoryViewModel extends GetxController {
     if (life != null) {
       body['default_useful_life_months'] = life;
     }
-    final sav = Validators.parseFlexibleNumber(defaultSalvageValueController.text);
+    final sav = Validators.parseFlexibleNumber(
+      defaultSalvageValueController.text,
+    );
     if (sav != null) {
       body['default_salvage_value'] = sav;
     }
-    final cap = Validators.parseFlexibleNumber(capitalizationThresholdController.text);
+    final cap = Validators.parseFlexibleNumber(
+      capitalizationThresholdController.text,
+    );
     if (cap != null) {
       body['capitalization_threshold'] = cap;
     }
@@ -208,22 +211,18 @@ class AssetCategoryViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
       final filters = <String, dynamic>{'per_page': 200};
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
       }
       final responses = await Future.wait<dynamic>([
         _assets.categories(filters: filters),
-        _master.companies(filters: const {'per_page': 200}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<AssetCategoryModel>).data ??
           const <AssetCategoryModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((CompanyModel c) => c.isActive)
-              .toList(growable: false);
+      companies = MasterDataCache.to.activeCompanies;
       loading = false;
 
       if (selectId != null) {

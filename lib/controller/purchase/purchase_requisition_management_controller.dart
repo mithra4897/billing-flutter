@@ -85,10 +85,8 @@ class PurchaseRequisitionManagementController extends GetxController {
   final PurchaseService _purchaseService = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
   final HrService _hrService = HrService();
-  final InventoryService _inventoryService = InventoryService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -202,24 +200,11 @@ class PurchaseRequisitionManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _purchaseService.requisitions(
           filters: const {'per_page': 200, 'sort_by': 'requisition_date'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
         ),
         _authService.users(
           filters: const {'per_page': 200, 'sort_by': 'username'},
@@ -227,94 +212,39 @@ class PurchaseRequisitionManagementController extends GetxController {
         _hrService.departments(
           filters: const {'per_page': 200, 'sort_by': 'department_name'},
         ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
       ]);
 
       final documents =
           (responses[0] as PaginatedResponse<PurchaseRequisitionModel>).data ??
           const <PurchaseRequisitionModel>[];
-      final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final nextFinancialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final nextDocumentSeries =
-          (responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-          const <DocumentSeriesModel>[];
       final nextUsers =
-          (responses[6] as PaginatedResponse<UserModel>).data ??
+          (responses[1] as PaginatedResponse<UserModel>).data ??
           const <UserModel>[];
       final nextDepartments =
-          (responses[7] as PaginatedResponse<DepartmentModel>).data ??
+          (responses[2] as PaginatedResponse<DepartmentModel>).data ??
           const <DepartmentModel>[];
-      final nextItems =
-          (responses[8] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final nextUoms =
-          (responses[9] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final nextConversions =
-          (responses[10] as ApiResponse<List<UomConversionModel>>).data ??
-          const <UomConversionModel>[];
-      final nextWarehouses =
-          (responses[11] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: companies
-                .where((item) => item.isActive)
-                .toList(growable: false),
-            branches: branches
-                .where((item) => item.isActive)
-                .toList(growable: false),
-            locations: locations
-                .where((item) => item.isActive)
-                .toList(growable: false),
-            financialYears: nextFinancialYears
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items = documents;
-      financialYears = nextFinancialYears;
-      documentSeries = nextDocumentSeries
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
       users = nextUsers
           .where((item) => (item.status ?? 'active') == 'active')
           .toList(growable: false);
       departments = nextDepartments
           .where((item) => item.isActive)
           .toList(growable: false);
-      itemsLookup = nextItems
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      uoms = nextUoms.where((item) => item.isActive).toList(growable: false);
-      uomConversions = nextConversions
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      warehouses = nextWarehouses
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      itemsLookup = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;

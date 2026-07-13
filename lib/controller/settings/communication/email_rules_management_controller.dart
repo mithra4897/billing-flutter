@@ -4,7 +4,6 @@ class EmailRulesManagementController extends GetxController {
   EmailRulesManagementController();
 
   final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -77,12 +76,8 @@ class EmailRulesManagementController extends GetxController {
     update();
 
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final documentSeriesResponse = await _masterService.documentSeries(
-        filters: const {'per_page': 500},
-      );
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final templatesResponse = await _communicationService.emailTemplates(
         filters: const {'per_page': 100},
       );
@@ -90,9 +85,8 @@ class EmailRulesManagementController extends GetxController {
         filters: const {'per_page': 100},
       );
 
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
       final documentTypes =
-          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+          cache.activeDocumentSeries
               .map((item) => (item.documentType ?? '').trim())
               .where((item) => item.isNotEmpty)
               .toSet()
@@ -101,12 +95,9 @@ class EmailRulesManagementController extends GetxController {
       final nextTemplates =
           templatesResponse.data ?? const <EmailTemplateModel>[];
       final nextRules = rulesResponse.data ?? const <EmailRuleModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -292,29 +283,31 @@ class EmailRulesManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailRuleModel.fromJson(normalizeDatePayload({
-      if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
-        'id': intValue(selectedRecord!.toJson(), 'id'),
-      if (companyId != null) 'company_id': companyId,
-      'rule_code': codeController.text.trim(),
-      'rule_name': nameController.text.trim(),
-      'module': moduleController.text.trim(),
-      'document_type': nullIfEmpty(documentType),
-      'event_code': eventCodeController.text.trim(),
-      if (templateId != null) 'template_id': templateId,
-      'auto_enabled': autoEnabled,
-      'manual_enabled': manualEnabled,
-      'send_to_party_email': sendToPartyEmail,
-      'send_to_contact_email': sendToContactEmail,
-      'send_to_assigned_user': sendToAssignedUser,
-      'send_to_owner_user': sendToOwnerUser,
-      'recipient_emails': nullIfEmpty(recipientEmailsController.text),
-      'cc_emails': nullIfEmpty(ccEmailsController.text),
-      'bcc_emails': nullIfEmpty(bccEmailsController.text),
-      'subject_override': nullIfEmpty(subjectOverrideController.text),
-      'body_override': nullIfEmpty(bodyOverrideController.text),
-      'is_active': isActive,
-    }));
+    final body = EmailRuleModel.fromJson(
+      normalizeDatePayload({
+        if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(selectedRecord!.toJson(), 'id'),
+        if (companyId != null) 'company_id': companyId,
+        'rule_code': codeController.text.trim(),
+        'rule_name': nameController.text.trim(),
+        'module': moduleController.text.trim(),
+        'document_type': nullIfEmpty(documentType),
+        'event_code': eventCodeController.text.trim(),
+        if (templateId != null) 'template_id': templateId,
+        'auto_enabled': autoEnabled,
+        'manual_enabled': manualEnabled,
+        'send_to_party_email': sendToPartyEmail,
+        'send_to_contact_email': sendToContactEmail,
+        'send_to_assigned_user': sendToAssignedUser,
+        'send_to_owner_user': sendToOwnerUser,
+        'recipient_emails': nullIfEmpty(recipientEmailsController.text),
+        'cc_emails': nullIfEmpty(ccEmailsController.text),
+        'bcc_emails': nullIfEmpty(bccEmailsController.text),
+        'subject_override': nullIfEmpty(subjectOverrideController.text),
+        'body_override': nullIfEmpty(bodyOverrideController.text),
+        'is_active': isActive,
+      }),
+    );
 
     try {
       final id = intValue(selectedRecord?.toJson() ?? const {}, 'id');

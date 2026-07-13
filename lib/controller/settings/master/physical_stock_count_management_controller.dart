@@ -13,7 +13,6 @@ class PhysicalStockCountManagementController extends GetxController {
       ];
 
   final InventoryService _inventoryService = InventoryService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -77,21 +76,11 @@ class PhysicalStockCountManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.physicalStockCounts(
           filters: const {'per_page': 200, 'sort_by': 'count_date'},
-        ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 200}),
-        _masterService.businessLocations(filters: const {'per_page': 200}),
-        _masterService.financialYears(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 200}),
-        _masterService.warehouses(filters: const {'per_page': 200}),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
         ),
         _inventoryService.stockBatchesDropdown(filters: const {}),
         _inventoryService.stockSerialsDropdown(filters: const {}),
@@ -103,58 +92,21 @@ class PhysicalStockCountManagementController extends GetxController {
       final counts =
           (responses[0] as PaginatedResponse<PhysicalStockCountModel>).data ??
           const <PhysicalStockCountModel>[];
-      final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branchesResponse =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locationsResponse =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final documentSeriesResponse =
-          (responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-          const <DocumentSeriesModel>[];
-      final warehouseResponse =
-          (responses[6] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
-      final itemsResponse =
-          (responses[7] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final uomsResponse =
-          (responses[8] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
       final batchesResponse =
-          (responses[9] as ApiResponse<List<StockBatchModel>>).data ??
+          (responses[1] as ApiResponse<List<StockBatchModel>>).data ??
           const <StockBatchModel>[];
       final serialsResponse =
-          (responses[10] as ApiResponse<List<StockSerialModel>>).data ??
+          (responses[2] as ApiResponse<List<StockSerialModel>>).data ??
           const <StockSerialModel>[];
       final stockBalanceResponse =
-          (responses[11] as PaginatedResponse<StockBalanceModel>).data ??
+          (responses[3] as PaginatedResponse<StockBalanceModel>).data ??
           const <StockBalanceModel>[];
-
-      final activeCompanies = companies
-          .where((company) => company.isActive)
-          .toList();
-      final activeBranches = branchesResponse
-          .where((branch) => branch.isActive)
-          .toList();
-      final activeLocations = locationsResponse
-          .where((location) => location.isActive)
-          .toList();
-      final activeFinancialYears = financialYears
-          .where((fy) => fy.isActive)
-          .toList();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
-            financialYears: activeFinancialYears,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items = counts;
@@ -163,14 +115,12 @@ class PhysicalStockCountManagementController extends GetxController {
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
       contextFinancialYearId = contextSelection.financialYearId;
-      documentSeries = documentSeriesResponse
+      documentSeries = cache.activeDocumentSeries
           .where((series) => series.documentType == 'STOCK_COUNT')
-          .toList();
-      warehouses = warehouseResponse
-          .where((warehouse) => warehouse.isActive)
-          .toList();
-      allItems = itemsResponse.where((item) => item.isActive).toList();
-      uoms = uomsResponse.where((uom) => uom.isActive).toList();
+          .toList(growable: false);
+      warehouses = cache.activeWarehouses;
+      allItems = cache.activeItems;
+      uoms = cache.activeUoms;
       batches = batchesResponse;
       serials = serialsResponse;
       stockBalances = stockBalanceResponse;
@@ -229,8 +179,9 @@ class PhysicalStockCountManagementController extends GetxController {
     documentSeriesId = item.documentSeriesId;
     warehouseId = item.warehouseId;
     countNoController.text = item.countNo ?? '';
-    countDateController.text =
-        displayDate(item.countDate) == '' ? displayTodayDate() : displayDate(item.countDate);
+    countDateController.text = displayDate(item.countDate) == ''
+        ? displayTodayDate()
+        : displayDate(item.countDate);
     remarksController.text = item.remarks ?? '';
     countScope = item.countScope ?? 'selected_items';
     lines = item.items.toList(growable: true);

@@ -29,9 +29,7 @@ class CrmEnquiriesController extends GetxController {
   final int? initialSelectId;
 
   final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
-  final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
   final CrmModuleRefreshController _refreshController =
       CrmModuleRefreshController.ensureRegistered();
@@ -210,18 +208,14 @@ class CrmEnquiriesController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _crmService.enquiries(
           filters: const {'per_page': 200, 'sort_by': 'enquiry_date'},
         ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
         _crmService.leads(
           filters: const {'per_page': 300, 'sort_by': 'lead_name'},
-        ),
-        _partiesService.parties(
-          filters: const {'per_page': 300, 'sort_by': 'party_name'},
         ),
         _crmService.stages(
           filters: const {'per_page': 200, 'sort_by': 'sequence_no'},
@@ -229,19 +223,11 @@ class CrmEnquiriesController extends GetxController {
         _authService.users(
           filters: const {'per_page': 200, 'sort_by': 'username'},
         ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
       ]);
 
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: nextCompanies
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -250,18 +236,14 @@ class CrmEnquiriesController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<CrmEnquiryModel>).data ??
           const <CrmEnquiryModel>[];
-      companies = nextCompanies.where((item) => item.isActive).toList();
+      companies = cache.activeCompanies;
       leads =
-          (responses[2] as PaginatedResponse<CrmLeadModel>).data ??
+          (responses[1] as PaginatedResponse<CrmLeadModel>).data ??
           const <CrmLeadModel>[];
-      customers =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((item) => item.isActive)
-              .toList();
+      customers = cache.activeParties;
       stages = () {
         final allStages =
-            ((responses[4] as PaginatedResponse<CrmStageModel>).data ??
+            ((responses[2] as PaginatedResponse<CrmStageModel>).data ??
                     const <CrmStageModel>[])
                 .where(
                   (item) =>
@@ -274,15 +256,11 @@ class CrmEnquiriesController extends GetxController {
         return filtered.isNotEmpty ? filtered : allStages;
       }();
       users =
-          ((responses[5] as PaginatedResponse<UserModel>).data ??
+          ((responses[3] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((item) => (item.status ?? 'active') == 'active')
               .toList();
-      itemsLookup =
-          ((responses[6] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList();
+      itemsLookup = cache.activeItems;
       contextCompanyId = contextSelection.companyId;
       initialLoading = false;
       applySearch(notify: false);
@@ -355,7 +333,9 @@ class CrmEnquiriesController extends GetxController {
                   : stringValue(data, 'enquiry_status');
               final showAllStatuses =
                   filtersApplied && filterEnquiryStatuses.isEmpty;
-              if (hidden && !showAllStatuses && !_matchesEnquiryStatus(rowStatus)) {
+              if (hidden &&
+                  !showAllStatuses &&
+                  !_matchesEnquiryStatus(rowStatus)) {
                 return false;
               }
               final enquiryDate = displayDate(
@@ -374,7 +354,9 @@ class CrmEnquiriesController extends GetxController {
                 return false;
               }
               if (filterAssignedToIds.isNotEmpty &&
-                  !filterAssignedToIds.contains(intValue(data, 'assigned_to'))) {
+                  !filterAssignedToIds.contains(
+                    intValue(data, 'assigned_to'),
+                  )) {
                 return false;
               }
               if (!_matchesEnquiryStatus(rowStatus)) {
@@ -396,7 +378,10 @@ class CrmEnquiriesController extends GetxController {
     if (notify) update();
   }
 
-  Future<void> cacheItems(Iterable<ItemModel> source, {bool notify = false}) async {
+  Future<void> cacheItems(
+    Iterable<ItemModel> source, {
+    bool notify = false,
+  }) async {
     final nextById = <int, ItemModel>{};
 
     for (final item in itemsLookup) {
@@ -427,12 +412,13 @@ class CrmEnquiriesController extends GetxController {
     }
   }
 
-  Future<void> ensureItemsLoadedById(Iterable<int?> itemIds, {bool notify = false}) async {
+  Future<void> ensureItemsLoadedById(
+    Iterable<int?> itemIds, {
+    bool notify = false,
+  }) async {
     final missingIds = itemIds
         .whereType<int>()
-        .where(
-          (id) => !itemsLookup.any((item) => item.id == id),
-        )
+        .where((id) => !itemsLookup.any((item) => item.id == id))
         .toSet()
         .toList(growable: false);
 
@@ -450,10 +436,7 @@ class CrmEnquiriesController extends GetxController {
       }),
     );
 
-    await cacheItems(
-      fetchedItems.whereType<ItemModel>(),
-      notify: notify,
-    );
+    await cacheItems(fetchedItems.whereType<ItemModel>(), notify: notify);
   }
 
   ErpLinkFieldOption<int>? selectedLeadOption() {
@@ -725,20 +708,22 @@ class CrmEnquiriesController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmEnquiryModel.fromJson(normalizeDatePayload({
-      'company_id': companyId,
-      'enquiry_no': nullIfEmpty(enquiryNoController.text),
-      'enquiry_date': nullIfEmpty(enquiryDateController.text),
-      'lead_id': leadId,
-      'customer_party_id': customerPartyId,
-      'stage_id': stageId,
-      'assigned_to': assignedTo,
-      'remarks': nullIfEmpty(remarksController.text),
-      'lines': lines.map((item) => item.toJson()).toList(growable: false),
-      'followups': followups
-          .map((item) => item.toJson())
-          .toList(growable: false),
-    }));
+    final payload = CrmEnquiryModel.fromJson(
+      normalizeDatePayload({
+        'company_id': companyId,
+        'enquiry_no': nullIfEmpty(enquiryNoController.text),
+        'enquiry_date': nullIfEmpty(enquiryDateController.text),
+        'lead_id': leadId,
+        'customer_party_id': customerPartyId,
+        'stage_id': stageId,
+        'assigned_to': assignedTo,
+        'remarks': nullIfEmpty(remarksController.text),
+        'lines': lines.map((item) => item.toJson()).toList(growable: false),
+        'followups': followups
+            .map((item) => item.toJson())
+            .toList(growable: false),
+      }),
+    );
 
     try {
       final response = selectedItem == null

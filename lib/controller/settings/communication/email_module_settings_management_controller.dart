@@ -4,7 +4,6 @@ class EmailModuleSettingsManagementController extends GetxController {
   EmailModuleSettingsManagementController();
 
   final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -56,17 +55,12 @@ class EmailModuleSettingsManagementController extends GetxController {
     update();
 
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final documentSeriesResponse = await _masterService.documentSeries(
-        filters: const {'per_page': 500},
-      );
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final recordsResponse = await _communicationService.emailModuleSettings();
 
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
       final documentTypes =
-          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+          cache.activeDocumentSeries
               .map((item) => (item.documentType ?? '').trim())
               .where((item) => item.isNotEmpty)
               .toSet()
@@ -74,12 +68,9 @@ class EmailModuleSettingsManagementController extends GetxController {
             ..sort();
       final nextRecords =
           recordsResponse.data ?? const <EmailModuleSettingModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
@@ -206,17 +197,19 @@ class EmailModuleSettingsManagementController extends GetxController {
     formError = null;
     update();
 
-    final body = EmailModuleSettingModel.fromJson(normalizeDatePayload({
-      if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
-        'id': intValue(selectedRecord!.toJson(), 'id'),
-      if (companyId != null) 'company_id': companyId,
-      'module': moduleController.text.trim(),
-      'document_type': nullIfEmpty(documentType),
-      'auto_email_enabled': autoEmailEnabled,
-      'manual_email_enabled': manualEmailEnabled,
-      'is_active': isActive,
-      'remarks': nullIfEmpty(remarksController.text),
-    }));
+    final body = EmailModuleSettingModel.fromJson(
+      normalizeDatePayload({
+        if (intValue(selectedRecord?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(selectedRecord!.toJson(), 'id'),
+        if (companyId != null) 'company_id': companyId,
+        'module': moduleController.text.trim(),
+        'document_type': nullIfEmpty(documentType),
+        'auto_email_enabled': autoEmailEnabled,
+        'manual_email_enabled': manualEmailEnabled,
+        'is_active': isActive,
+        'remarks': nullIfEmpty(remarksController.text),
+      }),
+    );
 
     try {
       final id = intValue(selectedRecord?.toJson() ?? const {}, 'id');

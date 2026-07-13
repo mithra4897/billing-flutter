@@ -37,7 +37,6 @@ class StockMovementViewModel extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController referenceTypeController = TextEditingController();
   final TextEditingController referenceIdController = TextEditingController();
@@ -131,37 +130,26 @@ class StockMovementViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockMovements(
           filters: const {'per_page': 200, 'sort_by': 'movement_date'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<StockMovementModel>).data ??
           const <StockMovementModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          (responses[2] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      warehouses =
-          (responses[3] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
+      companies = cache.activeCompanies;
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       batches =
-          (responses[4] as PaginatedResponse<StockBatchModel>).data ??
+          (responses[1] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
       serials =
-          (responses[5] as PaginatedResponse<StockSerialModel>).data ??
+          (responses[2] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
       loading = false;
       if (selectId != null) {

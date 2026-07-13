@@ -23,7 +23,6 @@ class GstRegistrationManagementController extends GetxController {
       ];
 
   final TaxesService taxesService = TaxesService();
-  final MasterService masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -91,51 +90,31 @@ class GstRegistrationManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         taxesService.gstRegistrations(filters: const {'per_page': 200}),
-        masterService.companies(filters: const {'per_page': 200}),
-        masterService.branches(filters: const {'per_page': 200}),
-        masterService.businessLocations(filters: const {'per_page': 200}),
         taxesService.states(filters: const {'per_page': 200}),
       ]);
 
       final nextItems =
           (responses[0] as PaginatedResponse<GstRegistrationModel>).data ??
           const <GstRegistrationModel>[];
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextBranches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final nextLocations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
       final nextStates =
-          (responses[4] as PaginatedResponse<StateModel>).data ??
+          (responses[1] as PaginatedResponse<StateModel>).data ??
           const <StateModel>[];
-
-      final activeCompanies = nextCompanies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeBranches = nextBranches
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeLocations = nextLocations
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
             financialYears: const <FinancialYearModel>[],
           );
 
       items = nextItems;
-      companies = activeCompanies;
-      branches = activeBranches;
-      locations = activeLocations;
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
       states = nextStates;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;

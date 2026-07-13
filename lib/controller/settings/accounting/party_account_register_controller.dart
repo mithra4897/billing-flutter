@@ -39,8 +39,6 @@ class PartyAccountRegisterController extends GetxController {
       ];
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final ScrollController pageScrollController = ScrollController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -117,29 +115,18 @@ class PartyAccountRegisterController extends GetxController {
 
     await loadPermissions();
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-      );
-      final partiesResponse = await _partiesService.parties(
-        filters: const {'per_page': 500, 'sort_by': 'party_name'},
-      );
-      final companies = (companiesResponse.data ?? const <CompanyModel>[])
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: companies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
 
       companyId = contextSelection.companyId;
-      parties =
-          partiesResponse.data
-              ?.where((item) => item.isActive)
-              .toList(growable: false) ??
-          const <PartyModel>[];
+      parties = cache.activeParties;
       initialLoading = false;
       update();
 

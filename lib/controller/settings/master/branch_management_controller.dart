@@ -68,13 +68,9 @@ class BranchManagementController extends GetxController {
     update();
 
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final nextCompanies = companiesResponse.data ?? const <CompanyModel>[];
-      final activeCompanies = nextCompanies
-          .where((company) => company.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
+      final activeCompanies = cache.activeCompanies;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -119,7 +115,9 @@ class BranchManagementController extends GetxController {
       }
 
       final resolvedContextCompanyId =
-          selectTarget?.companyId ?? companyIdHint ?? contextSelection.companyId;
+          selectTarget?.companyId ??
+          companyIdHint ??
+          contextSelection.companyId;
 
       branches = nextBranches;
       companies = activeCompanies;
@@ -190,7 +188,8 @@ class BranchManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedBranch = null;
-    companyId = contextCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    companyId =
+        contextCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
     _setCode('');
     nameController.clear();
     branchType = 'branch_office';

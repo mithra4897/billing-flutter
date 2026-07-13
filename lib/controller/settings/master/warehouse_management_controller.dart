@@ -72,32 +72,22 @@ class WarehouseManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _masterService.warehouses(
           filters: const {'per_page': 100, 'sort_by': 'name'},
         ),
-        _masterService.companies(filters: const {'per_page': 100}),
-        _masterService.branches(filters: const {'per_page': 100}),
-        _masterService.businessLocations(filters: const {'per_page': 100}),
       ]);
 
       final nextWarehouses =
           (responses[0] as PaginatedResponse<WarehouseModel>).data ??
           const <WarehouseModel>[];
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextBranches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final nextLocations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
 
       warehouses = nextWarehouses;
-      companies = nextCompanies;
-      branches = nextBranches;
-      locations = nextLocations;
+      companies = cache.companies;
+      branches = cache.branches;
+      locations = cache.locations;
       final visibleWarehouses = filterWarehouses(nextWarehouses);
       filteredWarehouses = visibleWarehouses;
       initialLoading = false;

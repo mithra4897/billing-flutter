@@ -7,7 +7,6 @@ class PostingRuleGroupManagementController extends GetxController {
   static const String _refreshSource = 'PostingRuleGroupManagementController';
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -73,21 +72,18 @@ class PostingRuleGroupManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait([
         _accountsService.postingRuleGroups(
           filters: const {'per_page': 300, 'sort_by': 'group_name'},
         ),
-        _masterService.documentSeries(filters: const {'per_page': 500}),
       ]);
-      final groupsResponse =
-          responses[0] as PaginatedResponse<PostingRuleGroupModel>;
-      final documentSeriesResponse =
-          responses[1] as PaginatedResponse<DocumentSeriesModel>;
-      final items = groupsResponse.data ?? const <PostingRuleGroupModel>[];
+      final items = responses[0].data ?? const <PostingRuleGroupModel>[];
       rows = items;
       filtered = _filter(items, searchController.text);
       documentTypeItems = buildDocumentTypeDropdownItems(
-        documentSeriesResponse.data ?? const <DocumentSeriesModel>[],
+        cache.activeDocumentSeries,
       );
 
       final nextSelected = selectId != null
@@ -194,14 +190,16 @@ class PostingRuleGroupManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
-    final body = PostingRuleGroupModel.fromJson(normalizeDatePayload(<String, dynamic>{
-      'group_code': codeController.text.trim(),
-      'group_name': nameController.text.trim(),
-      'document_type': documentType,
-      'trigger_event': triggerEvent,
-      'description': nullIfEmpty(descriptionController.text),
-      'is_active': isActive,
-    }));
+    final body = PostingRuleGroupModel.fromJson(
+      normalizeDatePayload(<String, dynamic>{
+        'group_code': codeController.text.trim(),
+        'group_name': nameController.text.trim(),
+        'document_type': documentType,
+        'trigger_event': triggerEvent,
+        'description': nullIfEmpty(descriptionController.text),
+        'is_active': isActive,
+      }),
+    );
     try {
       final ApiResponse<PostingRuleGroupModel> response;
       final selectedId = intValue(json(selected), 'id');

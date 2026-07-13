@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class CashSessionManagementController extends GetxController {
@@ -7,7 +7,6 @@ class CashSessionManagementController extends GetxController {
   static const String _refreshSource = 'CashSessionManagementController';
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -90,17 +89,10 @@ class CashSessionManagementController extends GetxController {
 
     try {
       final currentUser = await SessionStorage.getCurrentUser();
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _accountsService.cashSessions(),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
         _accountsService.accountsAll(
           filters: const {
             'account_type': 'cash',
@@ -113,32 +105,14 @@ class CashSessionManagementController extends GetxController {
       final nextSessions =
           (responses[0] as ApiResponse<List<CashSessionModel>>).data ??
           const <CashSessionModel>[];
-      final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
       final accounts =
-          (responses[4] as ApiResponse<List<AccountModel>>).data ??
+          (responses[1] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeLocations = locations
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
             financialYears: const <FinancialYearModel>[],
           );
 
@@ -292,7 +266,8 @@ class CashSessionManagementController extends GetxController {
           cashAccountId: cashAccountId,
           openingDatetime: openingDatetimeController.text.trim(),
           openingBalance:
-              Validators.parseFlexibleNumber(openingBalanceController.text) ?? 0,
+              Validators.parseFlexibleNumber(openingBalanceController.text) ??
+              0,
           remarks: nullIfEmpty(remarksController.text),
         ),
       );

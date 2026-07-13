@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class BudgetLineDraft {
@@ -30,7 +30,6 @@ class BudgetManagementController extends GetxController {
       ];
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -109,15 +108,11 @@ class BudgetManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final results = await Future.wait<dynamic>([
         _accountsService.budgets(
           filters: const {'per_page': 200, 'sort_by': 'budget_name'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
         ),
         _accountsService.accountsAll(
           filters: const {'sort_by': 'account_name'},
@@ -127,31 +122,21 @@ class BudgetManagementController extends GetxController {
       final budgets =
           (results[0] as PaginatedResponse<BudgetModel>).data ??
           const <BudgetModel>[];
-      final companies =
-          (results[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextYears =
-          (results[2] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
       final nextAccounts =
-          (results[3] as ApiResponse<List<AccountModel>>).data ??
+          (results[1] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: companies
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
-            financialYears: nextYears
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            financialYears: cache.activeFinancialYears,
           );
 
       rows = budgets;
       filteredRows = _filter(budgets, searchController.text);
-      years = nextYears.where((item) => item.isActive).toList();
+      years = cache.activeFinancialYears;
       accounts = nextAccounts.where((item) => item.isActive).toList();
       companyId ??= contextSelection.companyId;
       financialYearId ??= contextSelection.financialYearId;
@@ -306,7 +291,8 @@ class BudgetManagementController extends GetxController {
   Map<String, dynamic> _payload() {
     final payloadLines = <Map<String, dynamic>>[];
     for (final line in lines) {
-      final amount = Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
+      final amount =
+          Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
       if (line.accountId == null || amount <= 0) {
         continue;
       }

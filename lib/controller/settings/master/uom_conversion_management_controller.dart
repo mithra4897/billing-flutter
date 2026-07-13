@@ -47,6 +47,8 @@ class UomConversionManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.uomConversions(
           filters: const {
@@ -55,24 +57,14 @@ class UomConversionManagementController extends GetxController {
             'sort_order': 'desc',
           },
         ),
-        _inventoryService.uoms(
-          filters: const {
-            'per_page': 200,
-            'sort_by': 'uom_name',
-            'sort_order': 'asc',
-          },
-        ),
       ]);
 
       final nextItems =
           (responses[0] as PaginatedResponse<UomConversionModel>).data ??
           const <UomConversionModel>[];
-      final nextUoms =
-          (responses[1] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
 
       items = nextItems;
-      uoms = nextUoms;
+      uoms = cache.activeUoms;
       filteredItems = _filterItems(nextItems, searchController.text);
       initialLoading = false;
 

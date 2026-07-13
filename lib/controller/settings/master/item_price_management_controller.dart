@@ -80,48 +80,22 @@ class ItemPriceManagementController extends GetxController {
     update();
 
     try {
-      final responses = await Future.wait<dynamic>([
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
-        ),
-        _inventoryService.uomConversions(
-          filters: const {
-            'per_page': 500,
-            'sort_by': 'from_uom_id',
-            'sort_order': 'asc',
-          },
-        ),
-      ]);
-
-      final items =
-          (responses[0] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final nextUoms =
-          (responses[1] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final nextConversions =
-          (responses[2] as PaginatedResponse<UomConversionModel>).data ??
-          const <UomConversionModel>[];
-
-      allItems = items;
-      filteredItems = filterItemList(items, masterSearchController.text);
-      uoms = nextUoms.where((item) => item.isActive).toList(growable: false);
-      uomConversions = nextConversions
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
+      allItems = cache.activeItems;
+      filteredItems = filterItemList(allItems, masterSearchController.text);
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
 
       if (fixedItemId != null) {
         selectedItemMaster =
             fixedItem ??
-            items.cast<ItemModel?>().firstWhere(
+            allItems.cast<ItemModel?>().firstWhere(
               (item) => item?.id == fixedItemId,
               orElse: () => null,
             );
       } else {
-        selectedItemMaster ??= items.isNotEmpty ? items.first : null;
+        selectedItemMaster ??= allItems.isNotEmpty ? allItems.first : null;
       }
 
       update();

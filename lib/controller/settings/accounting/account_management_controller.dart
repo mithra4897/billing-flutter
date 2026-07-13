@@ -25,7 +25,6 @@ class AccountManagementController extends GetxController {
   AccountManagementController();
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -101,38 +100,22 @@ class AccountManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 300, 'sort_by': 'name'},
-        ),
         _accountsService.accountGroupsAll(
           filters: const {'sort_by': 'group_name'},
         ),
       ]);
 
-      final companies =
-          (responses[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (responses[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
       final nextGroups =
-          (responses[2] as ApiResponse<List<AccountGroupModel>>).data ??
+          (responses[0] as ApiResponse<List<AccountGroupModel>>).data ??
           const <AccountGroupModel>[];
 
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );

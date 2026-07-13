@@ -34,10 +34,7 @@ class CrmOpportunitiesController extends GetxController {
   final int? initialAssignedTo;
 
   final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
-  final PartiesService _partiesService = PartiesService();
-  final InventoryService _inventoryService = InventoryService();
   final CrmModuleRefreshController _refreshController =
       CrmModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -173,18 +170,14 @@ class CrmOpportunitiesController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _crmService.opportunities(
           filters: const {'per_page': 200, 'sort_by': 'opportunity_name'},
         ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
         _crmService.leads(
           filters: const {'per_page': 300, 'sort_by': 'lead_name'},
-        ),
-        _partiesService.parties(
-          filters: const {'per_page': 300, 'sort_by': 'party_name'},
         ),
         _crmService.stages(
           filters: const {'per_page': 200, 'sort_by': 'sequence_no'},
@@ -192,38 +185,26 @@ class CrmOpportunitiesController extends GetxController {
         _authService.users(
           filters: const {'per_page': 200, 'sort_by': 'username'},
         ),
-        _inventoryService.itemsDropdown(
-          filters: const {'is_active': 1},
-        ),
       ]);
 
       items =
           (responses[0] as PaginatedResponse<CrmOpportunityModel>).data ??
           const <CrmOpportunityModel>[];
-      final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: nextCompanies
-                .where((item) => item.isActive)
-                .toList(growable: false),
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
-      companies = nextCompanies.where((item) => item.isActive).toList();
+      companies = cache.activeCompanies;
       leads =
-          (responses[2] as PaginatedResponse<CrmLeadModel>).data ??
+          (responses[1] as PaginatedResponse<CrmLeadModel>).data ??
           const <CrmLeadModel>[];
-      customers =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((item) => item.isActive)
-              .toList();
+      customers = cache.activeParties;
       stages = () {
         final allStages =
-            ((responses[4] as PaginatedResponse<CrmStageModel>).data ??
+            ((responses[2] as PaginatedResponse<CrmStageModel>).data ??
                     const <CrmStageModel>[])
                 .where(
                   (item) =>
@@ -236,15 +217,11 @@ class CrmOpportunitiesController extends GetxController {
         return filtered.isNotEmpty ? filtered : allStages;
       }();
       users =
-          ((responses[5] as PaginatedResponse<UserModel>).data ??
+          ((responses[3] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((item) => (item.status ?? 'active') == 'active')
               .toList();
-      itemsLookup =
-          ((responses[6] as ApiResponse<List<ItemModel>>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList();
+      itemsLookup = cache.activeItems;
       contextCompanyId = contextSelection.companyId;
       initialLoading = false;
       applySearch(notify: false);

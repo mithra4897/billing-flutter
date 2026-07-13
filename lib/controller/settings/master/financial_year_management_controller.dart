@@ -82,6 +82,8 @@ class FinancialYearManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait([
         _masterService.financialYears(
           filters: {
@@ -90,19 +92,13 @@ class FinancialYearManagementController extends GetxController {
             'sort_order': 'desc',
           },
         ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
       ]);
 
       final nextFinancialYears =
-          (responses[0].data as List<FinancialYearModel>?) ??
-          const <FinancialYearModel>[];
-      final nextCompanies =
-          (responses[1].data as List<CompanyModel>?) ?? const <CompanyModel>[];
+          responses[0].data ?? const <FinancialYearModel>[];
 
       financialYears = nextFinancialYears;
-      companies = nextCompanies;
+      companies = cache.activeCompanies;
       filteredFinancialYears = _filteredItems(nextFinancialYears);
       initialLoading = false;
 

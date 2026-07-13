@@ -4,7 +4,6 @@ class EmailMessagesManagementController extends GetxController {
   EmailMessagesManagementController();
 
   final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
   final TextEditingController searchController = TextEditingController();
 
@@ -52,31 +51,23 @@ class EmailMessagesManagementController extends GetxController {
     update();
 
     try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final documentSeriesResponse = await _masterService.documentSeries(
-        filters: const {'per_page': 500},
-      );
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final messagesResponse = await _communicationService.emailMessages(
         filters: const {'per_page': 100},
       );
 
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
       final documentTypes =
-          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+          cache.activeDocumentSeries
               .map((item) => (item.documentType ?? '').trim())
               .where((item) => item.isNotEmpty)
               .toSet()
               .toList()
             ..sort();
       final nextMessages = messagesResponse.data ?? const <EmailMessageModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],

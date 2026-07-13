@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
 class StockBatchViewModel extends GetxController {
@@ -10,7 +10,6 @@ class StockBatchViewModel extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController batchNoController = TextEditingController();
   final TextEditingController mfgDateController = TextEditingController();
@@ -103,28 +102,18 @@ class StockBatchViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockBatches(
           filters: const {'per_page': 200, 'sort_by': 'batch_no'},
         ),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
-      items =
-          ((responses[1] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<StockBatchModel?>().firstWhere(
@@ -242,10 +231,15 @@ class StockBatchViewModel extends GetxController {
     if (batchNoController.text.trim().isEmpty) {
       return 'Batch no is required.';
     }
-    final inward = Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0;
-    final outward = Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0;
-    final balance = Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0;
-    final purchaseRate = Validators.parseFlexibleNumber(purchaseRateController.text);
+    final inward =
+        Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0;
+    final outward =
+        Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0;
+    final balance =
+        Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0;
+    final purchaseRate = Validators.parseFlexibleNumber(
+      purchaseRateController.text,
+    );
     final salesRate = Validators.parseFlexibleNumber(salesRateController.text);
     final mrp = Validators.parseFlexibleNumber(mrpController.text);
     if (inward < 0 || outward < 0 || balance < 0) {
@@ -283,9 +277,12 @@ class StockBatchViewModel extends GetxController {
       'batch_no': batchNoController.text.trim(),
       'mfg_date': nullIfEmpty(mfgDateController.text),
       'expiry_date': nullIfEmpty(expiryDateController.text),
-      'inward_qty': Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0,
-      'outward_qty': Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0,
-      'balance_qty': Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
+      'inward_qty':
+          Validators.parseFlexibleNumber(inwardQtyController.text) ?? 0,
+      'outward_qty':
+          Validators.parseFlexibleNumber(outwardQtyController.text) ?? 0,
+      'balance_qty':
+          Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
       'purchase_rate': nullIfEmpty(purchaseRateController.text) == null
           ? null
           : Validators.parseFlexibleNumber(purchaseRateController.text),

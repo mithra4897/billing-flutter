@@ -28,8 +28,6 @@ class FinancialReportsController extends GetxController {
       ];
 
   final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final ScrollController pageScrollController = ScrollController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -74,45 +72,26 @@ class FinancialReportsController extends GetxController {
     update();
 
     try {
-      final responses = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _partiesService.parties(
-          filters: const {'per_page': 200, 'sort_by': 'party_name'},
-        ),
-      ]);
-
-      final companies =
-          (responses[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextBranches =
-          (responses[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final nextParties =
-          (responses[2] as PaginatedResponse<PartyModel>).data ??
-          const <PartyModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies: activeCompanies,
+            companies: cache.activeCompanies,
             branches: const <BranchModel>[],
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
       final nextCompanyId = contextSelection.companyId;
+      final accountFilters = <String, dynamic>{
+        'sort_by': 'account_name',
+        'sort_order': 'asc',
+        'is_active': 1,
+      };
+      if (nextCompanyId != null) {
+        accountFilters['company_id'] = nextCompanyId;
+      }
       final accountsResponse = await _accountsService.accountsAll(
-        filters: <String, dynamic>{
-          'sort_by': 'account_name',
-          'sort_order': 'asc',
-          'is_active': 1,
-          'company_id': ?nextCompanyId,
-        },
+        filters: accountFilters,
       );
       final nextAccounts = accountsResponse.data ?? const <AccountModel>[];
       final partyAccountResponse = nextCompanyId == null
@@ -129,8 +108,8 @@ class FinancialReportsController extends GetxController {
 
       accounts = nextAccounts.where((item) => item.isActive).toList();
       partyAccounts = partyAccountResponse?.data ?? const <PartyAccountModel>[];
-      branches = nextBranches.where((item) => item.isActive).toList();
-      parties = nextParties.where((item) => item.isActive).toList();
+      branches = cache.activeBranches;
+      parties = cache.activeParties;
       companyId = nextCompanyId;
       _sanitizeSelections();
       initialLoading = false;

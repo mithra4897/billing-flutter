@@ -15,7 +15,6 @@ class InventoryInquiryManagementController extends GetxController {
       ];
 
   final InventoryService inventoryService = InventoryService();
-  final MasterService masterService = MasterService();
   final ScrollController pageScrollController = ScrollController();
 
   bool loadingLookups = true;
@@ -58,26 +57,9 @@ class InventoryInquiryManagementController extends GetxController {
     error = null;
     update();
     try {
-      final results = await Future.wait<dynamic>([
-        masterService.companies(
-          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-        ),
-        inventoryService.items(filters: const {'per_page': 500}),
-        masterService.warehouses(filters: const {'per_page': 500}),
-      ]);
-      final nextCompanies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final nextItems =
-          (results[1] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final nextWarehouses =
-          (results[2] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
-
-      final activeCompanies = nextCompanies
-          .where((CompanyModel company) => company.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
+      final activeCompanies = cache.activeCompanies;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -87,12 +69,8 @@ class InventoryInquiryManagementController extends GetxController {
           );
 
       companies = activeCompanies;
-      items = nextItems
-          .where((ItemModel item) => item.isActive)
-          .toList(growable: false);
-      warehouses = nextWarehouses
-          .where((WarehouseModel warehouse) => warehouse.isActive)
-          .toList(growable: false);
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       companyId = contextSelection.companyId;
       loadingLookups = false;
     } catch (errorValue) {

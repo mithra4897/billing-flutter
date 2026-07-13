@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 
 class UomManagementController extends GetxController {
   UomManagementController({required this.initialTabIndex});
@@ -64,10 +64,9 @@ class UomManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
-        ),
         _inventoryService.uomConversions(
           filters: const {
             'per_page': 500,
@@ -77,28 +76,25 @@ class UomManagementController extends GetxController {
         ),
       ]);
 
-      final nextUoms =
-          (responses[0] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
       final nextConversions =
-          (responses[1] as PaginatedResponse<UomConversionModel>).data ??
+          (responses[0] as PaginatedResponse<UomConversionModel>).data ??
           const <UomConversionModel>[];
 
-      uoms = nextUoms;
+      uoms = cache.activeUoms;
       conversions = nextConversions;
-      filteredUoms = _filterUoms(nextUoms, searchController.text);
+      filteredUoms = _filterUoms(uoms, searchController.text);
       initialLoading = false;
 
       final selected = selectId != null
-          ? nextUoms.cast<UomModel?>().firstWhere(
+          ? uoms.cast<UomModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
             )
           : (selectedUom == null
-                ? (nextUoms.isNotEmpty ? nextUoms.first : null)
-                : nextUoms.cast<UomModel?>().firstWhere(
+                ? (uoms.isNotEmpty ? uoms.first : null)
+                : uoms.cast<UomModel?>().firstWhere(
                     (item) => item?.id == selectedUom?.id,
-                    orElse: () => nextUoms.isNotEmpty ? nextUoms.first : null,
+                    orElse: () => uoms.isNotEmpty ? uoms.first : null,
                   ));
 
       if (selected != null) {
@@ -305,7 +301,9 @@ class UomManagementController extends GetxController {
     }
 
     final targetUomId = conversionTargetUomId;
-    final displayFactor = Validators.parseFlexibleNumber(conversionFactorController.text);
+    final displayFactor = Validators.parseFlexibleNumber(
+      conversionFactorController.text,
+    );
     if (targetUomId == null || displayFactor == null || displayFactor <= 0) {
       conversionError = 'Target UOM and valid conversion factor are required.';
       update();
@@ -318,7 +316,9 @@ class UomManagementController extends GetxController {
     final toUomId = selectedConversionRecord == null
         ? targetUomId
         : (selectedConversionReversed ? currentUomId : targetUomId);
-    final storedFactor = selectedConversionReversed ? 1 / displayFactor : displayFactor;
+    final storedFactor = selectedConversionReversed
+        ? 1 / displayFactor
+        : displayFactor;
 
     savingConversion = true;
     conversionError = null;

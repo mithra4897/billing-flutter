@@ -14,7 +14,6 @@ class ItemSupplierMapManagementController extends GetxController {
   final String? fixedItemLabel;
 
   final InventoryService _inventoryService = InventoryService();
-  final PartiesService _partiesService = PartiesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -83,59 +82,13 @@ class ItemSupplierMapManagementController extends GetxController {
     update();
 
     try {
-      final responses = await Future.wait<dynamic>([
-        _inventoryService.items(
-          filters: const {
-            'per_page': 200,
-            'sort_by': 'item_name',
-            'sort_order': 'asc',
-          },
-        ),
-        _partiesService.partyTypes(
-          filters: const {
-            'per_page': 200,
-            'sort_by': 'name',
-            'sort_order': 'asc',
-          },
-        ),
-        _partiesService.parties(
-          filters: const {
-            'per_page': 200,
-            'sort_by': 'display_name',
-            'sort_order': 'asc',
-          },
-        ),
-        _inventoryService.uoms(
-          filters: const {
-            'per_page': 200,
-            'sort_by': 'uom_name',
-            'sort_order': 'asc',
-          },
-        ),
-        _inventoryService.uomConversions(
-          filters: const {
-            'per_page': 500,
-            'sort_by': 'from_uom_id',
-            'sort_order': 'asc',
-          },
-        ),
-      ]);
-
-      final nextItems =
-          (responses[0] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final partyTypes =
-          (responses[1] as PaginatedResponse<PartyTypeModel>).data ??
-          const <PartyTypeModel>[];
-      final parties =
-          (responses[2] as PaginatedResponse<PartyModel>).data ??
-          const <PartyModel>[];
-      final nextUoms =
-          (responses[3] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final nextConversions =
-          (responses[4] as PaginatedResponse<UomConversionModel>).data ??
-          const <UomConversionModel>[];
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
+      final nextItems = cache.activeItems;
+      final partyTypes = cache.activePartyTypes;
+      final parties = cache.activeParties;
+      final nextUoms = cache.activeUoms;
+      final nextConversions = cache.activeUomConversions;
 
       final supplierTypeIds = partyTypes
           .where(isSupplierPartyType)
@@ -150,14 +103,10 @@ class ItemSupplierMapManagementController extends GetxController {
           )
           .toList(growable: false);
 
-      allItems = nextItems
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      allItems = nextItems;
       allSuppliers = suppliers;
-      uoms = nextUoms.where((uom) => uom.isActive).toList(growable: false);
-      uomConversions = nextConversions
-          .where((conversion) => conversion.isActive)
-          .toList(growable: false);
+      uoms = nextUoms;
+      uomConversions = nextConversions;
       filteredMastersItems = filterMasterItems(
         allItems,
         masterSearchController.text,

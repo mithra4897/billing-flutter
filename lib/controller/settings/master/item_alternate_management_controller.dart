@@ -61,14 +61,8 @@ class ItemAlternateManagementController extends GetxController {
     update();
 
     try {
-      final response = await _inventoryService.items(
-        filters: const {'per_page': 300, 'sort_by': 'item_name'},
-      );
-      final nextItems = response.data ?? const <ItemModel>[];
-
-      allItems = nextItems
-          .where((item) => item.isActive)
-          .toList(growable: false);
+      await MasterDataCache.to.ensureLoaded();
+      allItems = MasterDataCache.to.activeItems;
       filteredMasterItems = filterMasterListItems(
         allItems,
         masterSearchController.text,
