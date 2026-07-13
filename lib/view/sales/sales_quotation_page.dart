@@ -237,7 +237,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       onAddLine: controller.canEdit ? controller.addLine : null,
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
-      visibleColumns: const <ErpLineItemTableColumn>{
+      visibleColumns: <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
@@ -246,7 +246,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.amount,
-        ErpLineItemTableColumn.action,
+        if (controller.canEdit) ErpLineItemTableColumn.action,
       },
       footer: _buildTaxSummaryCard(controller),
       enabled: controller.canEdit,
@@ -657,14 +657,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       filled: false,
                       onPressed: () => controller.deleteSelected(context),
                     ),
-                  if (controller.status == 'posted')
+                  if (!hasPostedOrder && controller.status == 'posted')
                     AppActionButton(
                       icon: Icons.send_outlined,
                       label: 'Send to customer',
                       filled: false,
                       onPressed: () => controller.sendSelected(context),
                     ),
-                  if (controller.status == 'sent') ...[
+                  if (!hasPostedOrder && controller.status == 'sent') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,
                       label: 'Mark accepted',
