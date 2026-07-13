@@ -190,22 +190,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         .toList(growable: false);
 
     final customColumns = <ErpLineItemCustomColumn>[
-      if (controller.salesOrderId != null &&
-          (controller.orderLinesCache?.isNotEmpty ?? false))
-        const ErpLineItemCustomColumn(
-          id: 'order_line',
-          label: 'Order line',
-          width: 190,
-          insertAfter: ErpLineItemTableColumn.no,
-        ),
-      if (controller.salesDeliveryId != null &&
-          (controller.deliveryLinesCache?.isNotEmpty ?? false))
-        const ErpLineItemCustomColumn(
-          id: 'delivery_line',
-          label: 'Delivery line',
-          width: 190,
-          insertAfter: ErpLineItemTableColumn.no,
-        ),
+      // Order line and Delivery line columns are intentionally hidden from the
+      // table UI. The linked IDs (salesOrderLineId / salesDeliveryLineId) are
+      // still stored on each InvoiceLineDraft and persisted to the API — only
+      // the visible columns are suppressed to keep the table clean.
       ErpLineItemCustomColumn(
         id: 'batch',
         label: 'Batch',
