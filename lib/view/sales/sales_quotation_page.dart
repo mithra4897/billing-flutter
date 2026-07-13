@@ -283,12 +283,16 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
             .toList(growable: false);
-    final hasExistingOrder = selectedQuotationId == null
-        ? chainOrders.isNotEmpty
-        : chainOrders.any(
-            (order) =>
-                intValue(order, 'sales_quotation_id') == selectedQuotationId,
-          );
+    // Only consider the order as "progressed" once it has been posted
+    // (order_status != 'draft'). A draft order can still be deleted and
+    // should not lock out upstream actions.
+    //
+    // NOTE: The salesChain API is already scoped to this quotation, so all
+    // orders returned are linked to it. The API does not return
+    // sales_quotation_id in order summaries, so we simply check status.
+    final hasPostedOrder = chainOrders.any(
+      (o) => stringValue(o, 'order_status') != 'draft',
+    );
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -573,7 +577,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
-                    !hasExistingOrder &&
+                    !hasPostedOrder &&
                     const {
                       'posted',
                       'sent',
@@ -613,6 +617,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     ),
                   ),
                 if (controller.selectedItem != null &&
+                    !hasPostedOrder &&
                     const {'posted', 'sent'}.contains(controller.status))
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
@@ -679,11 +684,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => controller.expireSelected(context),
                     ),
                   ],
-                  if (const {
-                    'draft',
-                    'posted',
-                    'sent',
-                  }.contains(controller.status))
+                  if (!hasPostedOrder &&
+                      const {
+                        'draft',
+                        'posted',
+                        'sent',
+                      }.contains(controller.status))
                     AppActionButton(
                       icon: Icons.block_outlined,
                       label: 'Cancel quote',

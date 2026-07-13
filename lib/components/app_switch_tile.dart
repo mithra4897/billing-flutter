@@ -40,12 +40,15 @@ class AppSwitchTile extends StatelessWidget {
       ),
       child: IgnorePointer(
         ignoring: !interactive,
-        child: SwitchListTile(
-          contentPadding: contentPadding,
-          title: Text(label, overflow: TextOverflow.ellipsis),
-          subtitle: subtitle == null ? null : Text(subtitle!),
-          value: value,
-          onChanged: onChanged ?? (_) {},
+        child: Material(
+          color: Colors.transparent,
+          child: SwitchListTile(
+            contentPadding: contentPadding,
+            title: Text(label, overflow: TextOverflow.ellipsis),
+            subtitle: subtitle == null ? null : Text(subtitle!),
+            value: value,
+            onChanged: onChanged ?? (_) {},
+          ),
         ),
       ),
     );

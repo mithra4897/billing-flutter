@@ -116,6 +116,10 @@ class AppSessionService {
         await SessionStorage.saveAuthContext(contextResponse.data!);
         accessVersion.value++;
       }
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 || error.statusCode == 403) {
+        await clearSession();
+      }
     } catch (_) {}
   }
 

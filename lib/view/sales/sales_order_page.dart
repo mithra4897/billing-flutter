@@ -398,9 +398,17 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
 
     final selected = controller.selectedItem?.toJson() ?? const {};
     final totalStr = formatAmount(controller.taxSummary().total);
-    final hasExistingDelivery =
+    final chainDeliveries =
         ((controller.salesChain?['deliveries'] as List?) ?? const [])
-            .isNotEmpty;
+            .whereType<Map>()
+            .map((d) => Map<String, dynamic>.from(d))
+            .toList(growable: false);
+    // Only consider a delivery as "progressed" once it has been posted
+    // (delivery_status != 'draft'). A draft delivery can still be deleted
+    // and should not lock out Create delivery or Cancel order.
+    final hasPostedDelivery = chainDeliveries.any(
+      (d) => stringValue(d, 'delivery_status') != 'draft',
+    );
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -716,7 +724,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
-                    !hasExistingDelivery &&
+                    !hasPostedDelivery &&
                     const {
                       'confirmed',
                       'partially_delivered',
@@ -780,12 +788,13 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       onPressed: () => controller.deleteSelected(context),
                     ),
                   ],
-                  if (const {
-                    'draft',
-                    'confirmed',
-                    'partially_delivered',
-                    'partially_invoiced',
-                  }.contains(controller.status))
+                  if (!hasPostedDelivery &&
+                      const {
+                        'draft',
+                        'confirmed',
+                        'partially_delivered',
+                        'partially_invoiced',
+                      }.contains(controller.status))
                     AppActionButton(
                       icon: Icons.block_outlined,
                       label: 'Cancel order',
