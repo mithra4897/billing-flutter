@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 
 class StockReservationViewModel extends GetxController {
   static const List<AppDropdownItem<String>> referenceTypeItems =
@@ -17,7 +17,6 @@ class StockReservationViewModel extends GetxController {
       ];
 
   final PlanningService _service = PlanningService();
-  final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
@@ -146,37 +145,24 @@ class StockReservationViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.stockReservations(filters: const {'per_page': 200}),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<StockReservationModel>).data ??
           const <StockReservationModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[2] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[3] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       batches =
-          (responses[4] as PaginatedResponse<StockBatchModel>).data ??
+          (responses[1] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
       serials =
-          (responses[5] as PaginatedResponse<StockSerialModel>).data ??
+          (responses[2] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -343,7 +329,8 @@ class StockReservationViewModel extends GetxController {
     if ((int.tryParse(referenceIdController.text.trim()) ?? 0) <= 0) {
       return 'Reference id is required.';
     }
-    if ((Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0) <= 0) {
+    if ((Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0) <=
+        0) {
       return 'Reserved quantity must be greater than zero.';
     }
     return null;
@@ -371,7 +358,8 @@ class StockReservationViewModel extends GetxController {
       'reference_line_id': nullIfEmpty(referenceLineIdController.text) == null
           ? null
           : int.tryParse(referenceLineIdController.text.trim()),
-      'reserved_qty': Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0,
+      'reserved_qty':
+          Validators.parseFlexibleNumber(reservedQtyController.text) ?? 0,
       'status': status,
       'remarks': nullIfEmpty(remarksController.text),
     };

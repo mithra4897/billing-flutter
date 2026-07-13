@@ -1,12 +1,10 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionOrderViewModel extends GetxController {
   final ManufacturingModuleRefreshController _refreshController =
       ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
-  final MasterService _masterService = MasterService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController productionNoController = TextEditingController();
@@ -206,74 +204,29 @@ class ProductionOrderViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.productionOrders(
           filters: const {'per_page': 200, 'sort_by': 'production_date'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
         _service.boms(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<ProductionOrderModel>).data ??
           const <ProductionOrderModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
       boms =
-          (responses[6] as PaginatedResponse<BomModel>).data ??
+          (responses[1] as PaginatedResponse<BomModel>).data ??
           const <BomModel>[];
-      items =
-          ((responses[7] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[8] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[10] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -540,7 +493,8 @@ class ProductionOrderViewModel extends GetxController {
       'bom_id': bomId,
       'output_item_id': outputItemId,
       'output_uom_id': outputUomId,
-      'planned_qty': Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0,
+      'planned_qty':
+          Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0,
       'warehouse_id': warehouseId,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive ? 1 : 0,

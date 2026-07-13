@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionMaterialIssueLineDraft {
@@ -69,7 +69,6 @@ class ProductionMaterialIssueViewModel extends GetxController {
   final ManufacturingModuleRefreshController _refreshController =
       ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
-  final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
@@ -363,24 +362,14 @@ class ProductionMaterialIssueViewModel extends GetxController {
     pageError = null;
     _notifySafely();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         if (includeList)
           _service.productionMaterialIssues(
             filters: const {'per_page': 200, 'sort_by': 'issue_date'},
           ),
         _service.productionOrders(filters: const {'per_page': 200}),
-        _masterService.documentSeries(
-          filters: const {
-            'per_page': 1000,
-            'document_type': 'PRODUCTION_MATERIAL_ISSUE',
-          },
-        ),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
         _inventoryService.stockBalances(
@@ -402,36 +391,11 @@ class ProductionMaterialIssueViewModel extends GetxController {
           (responses[offset] as PaginatedResponse<ProductionOrderModel>).data ??
           const <ProductionOrderModel>[];
       offset += 1;
-      documentSeries =
-          ((responses[offset] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      offset += 1;
-      items =
-          ((responses[offset] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      offset += 1;
-      uoms =
-          ((responses[offset] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      offset += 1;
-      uomConversions =
-          ((responses[offset] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      offset += 1;
-      warehouses =
-          ((responses[offset] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      offset += 1;
+      documentSeries = cache.activeDocumentSeries;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
       batches =
           (responses[offset] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
@@ -1092,11 +1056,15 @@ class ProductionMaterialIssueViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _service.createProductionMaterialIssue(
-              ProductionMaterialIssueModel.fromJson(normalizeDatePayload(payload)),
+              ProductionMaterialIssueModel.fromJson(
+                normalizeDatePayload(payload),
+              ),
             )
           : await _service.updateProductionMaterialIssue(
               intValue(selected!.toJson(), 'id')!,
-              ProductionMaterialIssueModel.fromJson(normalizeDatePayload(payload)),
+              ProductionMaterialIssueModel.fromJson(
+                normalizeDatePayload(payload),
+              ),
             );
       actionMessage = response.message;
       await load(

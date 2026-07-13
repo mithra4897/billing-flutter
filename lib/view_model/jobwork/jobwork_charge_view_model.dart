@@ -95,9 +95,6 @@ class JobworkChargeViewModel extends GetxController {
   final JobworkModuleRefreshController _refreshController =
       JobworkModuleRefreshController.ensureRegistered();
   final JobworkService _service = JobworkService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController chargeNoController = TextEditingController();
@@ -239,69 +236,28 @@ class JobworkChargeViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.charges(
           filters: const {'per_page': 200, 'sort_by': 'charge_date'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _inventoryService.taxCodes(filters: const {'per_page': 300}),
         _service.orders(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<JobworkChargeModel>).data ??
           const <JobworkChargeModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[6] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      partyTypes =
-          (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-          const <PartyTypeModel>[];
-      items =
-          ((responses[8] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      taxCodes =
-          ((responses[9] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
+      partyTypes = cache.activePartyTypes;
+      items = cache.activeItems;
+      taxCodes = cache.activeTaxCodes;
       jobworkOrders =
-          (responses[10] as PaginatedResponse<JobworkOrderModel>).data ??
+          (responses[1] as PaginatedResponse<JobworkOrderModel>).data ??
           const <JobworkOrderModel>[];
       JobworkChargeLineDraft.taxCodesLookup = taxCodes;
 

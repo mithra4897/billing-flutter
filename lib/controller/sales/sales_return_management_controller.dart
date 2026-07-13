@@ -189,10 +189,7 @@ class SalesReturnManagementController extends GetxController {
       ];
 
   final SalesService _salesService = SalesService();
-  final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
-  final InventoryService _inventoryService = InventoryService();
-  final TaxesService _taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -293,115 +290,41 @@ class SalesReturnManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.returns(
           filters: const {'per_page': 200, 'sort_by': 'return_date'},
         ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
         _salesService.invoices(
           filters: const {'per_page': 300, 'sort_by': 'invoice_date'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _taxesService.gstRegistrationsAll(
-          filters: const {'is_active': 1, 'sort_by': 'id'},
         ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items =
           (responses[0] as PaginatedResponse<SalesReturnModel>).data ??
           const <SalesReturnModel>[];
-      companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      companies = cache.companies;
+      locations = cache.locations;
+      financialYears = cache.financialYears;
+      documentSeries = cache.activeDocumentSeries;
       invoices =
-          (responses[6] as PaginatedResponse<SalesInvoiceModel>).data ??
+          (responses[1] as PaginatedResponse<SalesInvoiceModel>).data ??
           const <SalesInvoiceModel>[];
-      itemsLookup =
-          ((responses[7] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[8] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      itemsLookup = cache.activeItems;
+      uoms = cache.activeUoms;
       warehouses = await WorkingContextService.instance
-          .filterWarehousesByAccess(
-            ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
-                    const <WarehouseModel>[])
-                .where((item) => item.isActive)
-                .toList(growable: false),
-          );
-      taxCodes =
-          ((responses[10] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      gstRegistrations =
-          (responses[11] as ApiResponse<List<GstRegistrationModel>>).data ??
-          const <GstRegistrationModel>[];
+          .filterWarehousesByAccess(cache.activeWarehouses);
+      taxCodes = cache.activeTaxCodes;
+      gstRegistrations = cache.gstRegistrations;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -994,7 +917,9 @@ class SalesReturnManagementController extends GetxController {
     };
     try {
       final response = selectedItem == null
-          ? await _salesService.createReturn(SalesReturnModel.fromJson(normalizeDatePayload(payload)))
+          ? await _salesService.createReturn(
+              SalesReturnModel.fromJson(normalizeDatePayload(payload)),
+            )
           : await _salesService.updateReturn(
               intValue(selectedItem!.toJson(), 'id')!,
               SalesReturnModel.fromJson(normalizeDatePayload(payload)),

@@ -97,10 +97,8 @@ class SalesQuotationManagementController extends GetxController {
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
-  final TaxesService _taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -305,31 +303,11 @@ class SalesQuotationManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.quotations(
           filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _partiesService.parties(
-          filters: const {'per_page': 400, 'sort_by': 'party_name'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 400, 'sort_by': 'item_name'},
         ),
         _inventoryService.itemPrices(
           filters: const {
@@ -338,67 +316,24 @@ class SalesQuotationManagementController extends GetxController {
             'sort_order': 'desc',
           },
         ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _taxesService.gstRegistrationsAll(
-          filters: const {'is_active': 1, 'sort_by': 'id'},
-        ),
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
       items =
           (responses[0] as PaginatedResponse<SalesQuotationModel>).data ??
           const <SalesQuotationModel>[];
-      companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      companies = cache.companies;
+      locations = cache.locations;
+      financialYears = cache.financialYears;
+      documentSeries = cache.activeDocumentSeries;
       customers = salesCustomersOrFallback(
-        parties:
-            ((responses[7] as PaginatedResponse<PartyModel>).data ??
-            const <PartyModel>[]),
-        partyTypes:
-            (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
-            const <PartyTypeModel>[],
+        parties: cache.parties,
+        partyTypes: cache.partyTypes,
       );
       customerDetailsById
         ..clear()
@@ -407,13 +342,9 @@ class SalesQuotationManagementController extends GetxController {
               .where((item) => item.id != null)
               .map((item) => MapEntry(item.id!, item)),
         );
-      itemsLookup =
-          ((responses[8] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      itemsLookup = cache.activeItems;
       itemPrices =
-          ((responses[9] as PaginatedResponse<ItemPriceModel>).data ??
+          ((responses[1] as PaginatedResponse<ItemPriceModel>).data ??
                   const <ItemPriceModel>[])
               .where((price) => price.isActive)
               .toList(growable: false);
@@ -424,24 +355,10 @@ class SalesQuotationManagementController extends GetxController {
               .where((item) => item.id != null)
               .map((item) => MapEntry(item.id!, item)),
         );
-      uoms =
-          ((responses[10] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[11] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      taxCodes =
-          ((responses[12] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      gstRegistrations =
-          (responses[13] as ApiResponse<List<GstRegistrationModel>>).data ??
-          const <GstRegistrationModel>[];
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      taxCodes = cache.activeTaxCodes;
+      gstRegistrations = cache.gstRegistrations;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -1034,8 +951,9 @@ class SalesQuotationManagementController extends GetxController {
     customerPartyId = value;
     if (value != null) {
       isDirectCustomer = false;
-      directCustomerDetailsController.text =
-          directCustomerDetailsController.text.trim();
+      directCustomerDetailsController.text = directCustomerDetailsController
+          .text
+          .trim();
     }
     unawaited(ensureCustomerPrintContext(value));
     update();
@@ -1048,8 +966,9 @@ class SalesQuotationManagementController extends GetxController {
     isDirectCustomer = value;
     if (value) {
       customerPartyId = null;
-      directCustomerDetailsController.text =
-          directCustomerDetailsController.text.trim();
+      directCustomerDetailsController.text = directCustomerDetailsController
+          .text
+          .trim();
     } else {
       directCustomerDetailsController.clear();
     }
@@ -1437,8 +1356,10 @@ class SalesQuotationManagementController extends GetxController {
     customerRefDateController.text = displayDate(
       nullableStringValue(data, 'customer_reference_date'),
     );
-    directCustomerDetailsController.text =
-        stringValue(data, 'direct_customer_details');
+    directCustomerDetailsController.text = stringValue(
+      data,
+      'direct_customer_details',
+    );
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''

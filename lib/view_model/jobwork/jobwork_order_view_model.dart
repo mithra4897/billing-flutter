@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkMaterialDraft {
@@ -50,7 +50,8 @@ class JobworkMaterialDraft {
   double standardAmount;
 
   JobworkOrderMaterialModel toModel() {
-    final planned = Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
+    final planned =
+        Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
     final pending = pendingWithVendorQty > 0 ? pendingWithVendorQty : planned;
     return JobworkOrderMaterialModel(
       itemId: itemId,
@@ -117,7 +118,8 @@ class JobworkOutputDraft {
   double standardAmount;
 
   JobworkOrderOutputModel toModel() {
-    final planned = Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
+    final planned =
+        Validators.parseFlexibleNumber(plannedQtyController.text) ?? 0;
     final acc = acceptedQty > 0 ? acceptedQty : planned;
     return JobworkOrderOutputModel(
       itemId: itemId,
@@ -148,9 +150,6 @@ class JobworkOrderViewModel extends GetxController {
   final JobworkModuleRefreshController _refreshController =
       JobworkModuleRefreshController.ensureRegistered();
   final JobworkService _service = JobworkService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController jobworkNoController = TextEditingController();
@@ -308,80 +307,27 @@ class JobworkOrderViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.orders(
           filters: const {'per_page': 200, 'sort_by': 'jobwork_date'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<JobworkOrderModel>).data ??
           const <JobworkOrderModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[6] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      partyTypes =
-          (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-          const <PartyTypeModel>[];
-      items =
-          ((responses[8] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[9] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
+      partyTypes = cache.activePartyTypes;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -775,14 +721,18 @@ class JobworkOrderViewModel extends GetxController {
       for (final d in materialDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ??
+                    0) <=
+                0) {
           return 'Each material line needs item, UOM and planned quantity.';
         }
       }
       for (final d in outputDrafts) {
         if (d.itemId == null ||
             d.uomId == null ||
-            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ?? 0) <= 0) {
+            (Validators.parseFlexibleNumber(d.plannedQtyController.text) ??
+                    0) <=
+                0) {
           return 'Each output line needs item, UOM and planned quantity.';
         }
       }

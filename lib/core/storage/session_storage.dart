@@ -16,6 +16,7 @@ class SessionStorage {
   static const String currentFinancialYearIdKey = 'current_financial_year_id';
   static const String authContextKey = 'auth_context';
   static const String permissionCodesKey = 'permission_codes';
+  static const String masterDataCacheEnabledKey = 'master_data_cache_enabled';
 
   static Future<void> saveSession({
     required String token,
@@ -205,6 +206,16 @@ class SessionStorage {
   static Future<List<String>> getPermissionCodes() async {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getStringList(permissionCodesKey) ?? const <String>[];
+  }
+
+  static Future<bool> isMasterDataCacheEnabled() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getBool(masterDataCacheEnabledKey) ?? true;
+  }
+
+  static Future<void> setMasterDataCacheEnabled(bool value) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(masterDataCacheEnabledKey, value);
   }
 
   static Future<PublicBrandingModel?> getBranding() async {

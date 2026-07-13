@@ -17,7 +17,6 @@ class MrpRunViewModel extends GetxController {
       ];
 
   final PlanningService _service = PlanningService();
-  final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController runNoController = TextEditingController();
@@ -124,39 +123,21 @@ class MrpRunViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.mrpRuns(filters: const {'per_page': 200}),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.warehouses(filters: const {'per_page': 300}),
         _service.calendars(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<MrpRunModel>).data ??
           const <MrpRunModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[4] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      warehouses = cache.activeWarehouses;
       calendars =
-          ((responses[5] as PaginatedResponse<PlanningCalendarModel>).data ??
+          ((responses[1] as PaginatedResponse<PlanningCalendarModel>).data ??
                   const <PlanningCalendarModel>[])
               .where((x) => x.isActive ?? true)
               .toList(growable: false);
@@ -389,7 +370,9 @@ class MrpRunViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _service.createMrpRun(MrpRunModel.fromJson(normalizeDatePayload(payload)))
+          ? await _service.createMrpRun(
+              MrpRunModel.fromJson(normalizeDatePayload(payload)),
+            )
           : await _service.updateMrpRun(
               intValue(selected!.toJson(), 'id')!,
               MrpRunModel.fromJson(normalizeDatePayload(payload)),

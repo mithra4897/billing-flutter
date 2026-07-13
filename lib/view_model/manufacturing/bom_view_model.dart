@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class BomLineDraft {
@@ -39,7 +39,8 @@ class BomLineDraft {
   Map<String, dynamic> toJson() => <String, dynamic>{
     'item_id': itemId,
     'uom_id': uomId,
-    'required_qty': Validators.parseFlexibleNumber(requiredQtyController.text) ?? 0,
+    'required_qty':
+        Validators.parseFlexibleNumber(requiredQtyController.text) ?? 0,
     'wastage_percent':
         Validators.parseFlexibleNumber(wastagePercentController.text) ?? 0,
     'line_type': nullIfEmpty(lineTypeController.text) ?? 'raw_material',
@@ -92,7 +93,8 @@ class BomOperationDraft {
     'work_center': nullIfEmpty(workCenterController.text),
     'setup_time_minutes':
         Validators.parseFlexibleNumber(setupMinutesController.text) ?? 0,
-    'run_time_minutes': Validators.parseFlexibleNumber(runMinutesController.text) ?? 0,
+    'run_time_minutes':
+        Validators.parseFlexibleNumber(runMinutesController.text) ?? 0,
   };
 
   void dispose() {
@@ -118,8 +120,6 @@ class BomViewModel extends GetxController {
   final ManufacturingModuleRefreshController _refreshController =
       ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
-  final MasterService _masterService = MasterService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController bomCodeController = TextEditingController();
@@ -258,52 +258,20 @@ class BomViewModel extends GetxController {
     pageError = null;
     _notifySafely();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.boms(filters: const {'per_page': 200, 'sort_by': 'bom_name'}),
-        _masterService.companies(filters: const {'per_page': 100}),
-        _masterService.branches(filters: const {'per_page': 200}),
-        _masterService.businessLocations(filters: const {'per_page': 200}),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
       ]);
       rows =
           (responses[0] as PaginatedResponse<BomModel>).data ??
           const <BomModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[4] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[5] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[6] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
       loading = false;
 
       final contextSelection = await WorkingContextService.instance
@@ -634,11 +602,14 @@ class BomViewModel extends GetxController {
       'output_item_id': outputItemId,
       'output_uom_id': outputUomId,
       'version_no': nullIfEmpty(versionNoController.text),
-      'batch_size': Validators.parseFlexibleNumber(batchSizeController.text) ?? 0,
+      'batch_size':
+          Validators.parseFlexibleNumber(batchSizeController.text) ?? 0,
       'standard_output_qty':
           Validators.parseFlexibleNumber(standardOutputQtyController.text) ?? 0,
-      'scrap_percent': Validators.parseFlexibleNumber(scrapPercentController.text) ?? 0,
-      'yield_percent': Validators.parseFlexibleNumber(yieldPercentController.text) ?? 0,
+      'scrap_percent':
+          Validators.parseFlexibleNumber(scrapPercentController.text) ?? 0,
+      'yield_percent':
+          Validators.parseFlexibleNumber(yieldPercentController.text) ?? 0,
       'effective_from': nullIfEmpty(effectiveFromController.text),
       'effective_to': nullIfEmpty(effectiveToController.text),
       'notes': nullIfEmpty(notesController.text),
@@ -652,7 +623,9 @@ class BomViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _service.createBom(BomModel.fromJson(normalizeDatePayload(payload)))
+          ? await _service.createBom(
+              BomModel.fromJson(normalizeDatePayload(payload)),
+            )
           : await _service.updateBom(
               intValue(selected!.toJson(), 'id')!,
               BomModel.fromJson(normalizeDatePayload(payload)),

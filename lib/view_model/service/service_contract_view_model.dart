@@ -9,8 +9,6 @@ class ServiceContractViewModel extends GetxController {
   final ServiceModuleRefreshController _refreshController =
       ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController contractNoController = TextEditingController();
@@ -139,6 +137,8 @@ class ServiceContractViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -147,29 +147,14 @@ class ServiceContractViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _service.contracts(filters: filters),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 400}),
-        _partiesService.parties(filters: const {'per_page': 500}),
       ]);
 
       rows =
           (responses[0] as PaginatedResponse<ServiceContractModel>).data ??
           const <ServiceContractModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
 
       loading = false;
 

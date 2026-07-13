@@ -1,9 +1,7 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 
 class ItemPlanningPolicyViewModel extends GetxController {
   final PlanningService _service = PlanningService();
-  final MasterService _masterService = MasterService();
-  final InventoryService _inventoryService = InventoryService();
   final ManufacturingService _manufacturingService = ManufacturingService();
 
   final TextEditingController searchController = TextEditingController();
@@ -126,30 +124,17 @@ class ItemPlanningPolicyViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.itemPolicies(filters: const {'per_page': 200}),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<ItemPlanningPolicyModel>).data ??
           const <ItemPlanningPolicyModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[2] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[3] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
       boms = await _loadBomsSafely();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -192,18 +177,18 @@ class ItemPlanningPolicyViewModel extends GetxController {
   }
 
   Future<List<PartyModel>> _loadSuppliersSafely({int? companyId}) async {
-    try {
-      final filters = <String, dynamic>{'per_page': 300};
-      if (companyId != null) {
-        filters['company_id'] = companyId;
-      }
-      final response = await _masterService.parties(filters: filters);
-      return (response.data ?? const <PartyModel>[])
-          .where((x) => x.id != null && x.isActive)
-          .toList(growable: false);
-    } catch (_) {
-      return const <PartyModel>[];
-    }
+    final parties = MasterDataCache.to.activeParties;
+    return parties
+        .where((x) {
+          if (x.id == null) {
+            return false;
+          }
+          if (companyId != null && x.companyId != companyId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   Future<List<BomModel>> _loadBomsSafely() async {
@@ -384,7 +369,9 @@ class ItemPlanningPolicyViewModel extends GetxController {
       'planning_method': nullIfEmpty(planningMethodController.text),
       'procurement_type': nullIfEmpty(procurementTypeController.text),
       'lead_time_days': int.tryParse(leadTimeDaysController.text.trim()),
-      'safety_stock_qty': Validators.parseFlexibleNumber(safetyStockQtyController.text),
+      'safety_stock_qty': Validators.parseFlexibleNumber(
+        safetyStockQtyController.text,
+      ),
       'reorder_level_qty': double.tryParse(
         reorderLevelQtyController.text.trim(),
       ),
@@ -392,7 +379,9 @@ class ItemPlanningPolicyViewModel extends GetxController {
       'minimum_order_qty': double.tryParse(
         minimumOrderQtyController.text.trim(),
       ),
-      'max_order_qty': Validators.parseFlexibleNumber(maxOrderQtyController.text),
+      'max_order_qty': Validators.parseFlexibleNumber(
+        maxOrderQtyController.text,
+      ),
       'order_multiple_qty': double.tryParse(
         orderMultipleQtyController.text.trim(),
       ),

@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 class QcPlanLineDraft {
@@ -99,7 +99,6 @@ class QcPlanViewModel extends GetxController {
   final QualityModuleRefreshController _refreshController =
       QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
-  final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
@@ -227,39 +226,21 @@ class QcPlanViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.qcPlans(filters: const {'per_page': 200}),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 800}),
         _inventoryService.itemCategories(filters: const {'per_page': 500}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<QcPlanModel>).data ??
           const <QcPlanModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[4] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      items = cache.activeItems;
       itemCategories =
-          ((responses[5] as PaginatedResponse<ItemCategoryModel>).data ??
+          ((responses[1] as PaginatedResponse<ItemCategoryModel>).data ??
                   const <ItemCategoryModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
@@ -527,7 +508,8 @@ class QcPlanViewModel extends GetxController {
       return 'QC scope is required.';
     }
     if (acceptanceBasis == 'min_pass_percent') {
-      final p = Validators.parseFlexibleNumber(minPassPercentController.text) ?? 0;
+      final p =
+          Validators.parseFlexibleNumber(minPassPercentController.text) ?? 0;
       if (p <= 0 || p > 100) {
         return 'Minimum pass percent must be between 1 and 100.';
       }
@@ -537,8 +519,12 @@ class QcPlanViewModel extends GetxController {
         if (d.checkpointNameController.text.trim().isEmpty) {
           return 'Each checkpoint needs a name.';
         }
-        final tMin = Validators.parseFlexibleNumber(d.toleranceMinController.text);
-        final tMax = Validators.parseFlexibleNumber(d.toleranceMaxController.text);
+        final tMin = Validators.parseFlexibleNumber(
+          d.toleranceMinController.text,
+        );
+        final tMax = Validators.parseFlexibleNumber(
+          d.toleranceMaxController.text,
+        );
         if (tMin != null && tMax != null && tMin > tMax) {
           return 'Tolerance min cannot exceed tolerance max.';
         }

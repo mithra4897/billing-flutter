@@ -39,37 +39,50 @@ class WorkingContextService {
   final MasterService _masterService = MasterService();
 
   Future<WorkingContextSnapshot> loadSnapshot() async {
-    final responses = await Future.wait<dynamic>([
-      _masterService.companies(
-        filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-      ),
-      _masterService.branches(
-        filters: const {'per_page': 300, 'sort_by': 'name'},
-      ),
-      _masterService.businessLocations(
-        filters: const {'per_page': 300, 'sort_by': 'name'},
-      ),
-      _masterService.financialYears(
-        filters: const {'per_page': 300, 'sort_by': 'fy_name'},
-      ),
-    ]);
+    List<CompanyModel> companies;
+    List<BranchModel> branches;
+    List<BusinessLocationModel> locations;
+    List<FinancialYearModel> financialYears;
 
-    final companies = responses[0].data
-        .whereType<CompanyModel>()
-        .where((CompanyModel item) => item.isActive)
-        .toList(growable: false);
-    final branches = responses[1].data
-        .whereType<BranchModel>()
-        .where((BranchModel item) => item.isActive)
-        .toList(growable: false);
-    final locations = responses[2].data
-        .whereType<BusinessLocationModel>()
-        .where((BusinessLocationModel item) => item.isActive)
-        .toList(growable: false);
-    final financialYears = responses[3].data
-        .whereType<FinancialYearModel>()
-        .where((FinancialYearModel item) => item.isActive)
-        .toList(growable: false);
+    try {
+      await MasterDataCache.to.ensureLoaded();
+      companies = MasterDataCache.to.activeCompanies;
+      branches = MasterDataCache.to.activeBranches;
+      locations = MasterDataCache.to.activeLocations;
+      financialYears = MasterDataCache.to.activeFinancialYears;
+    } catch (_) {
+      final responses = await Future.wait<dynamic>([
+        _masterService.companies(
+          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
+        ),
+        _masterService.branches(
+          filters: const {'per_page': 300, 'sort_by': 'name'},
+        ),
+        _masterService.businessLocations(
+          filters: const {'per_page': 300, 'sort_by': 'name'},
+        ),
+        _masterService.financialYears(
+          filters: const {'per_page': 300, 'sort_by': 'fy_name'},
+        ),
+      ]);
+
+      companies = responses[0].data
+          .whereType<CompanyModel>()
+          .where((CompanyModel item) => item.isActive)
+          .toList(growable: false);
+      branches = responses[1].data
+          .whereType<BranchModel>()
+          .where((BranchModel item) => item.isActive)
+          .toList(growable: false);
+      locations = responses[2].data
+          .whereType<BusinessLocationModel>()
+          .where((BusinessLocationModel item) => item.isActive)
+          .toList(growable: false);
+      financialYears = responses[3].data
+          .whereType<FinancialYearModel>()
+          .where((FinancialYearModel item) => item.isActive)
+          .toList(growable: false);
+    }
 
     final selection = await resolveSelection(
       companies: companies,

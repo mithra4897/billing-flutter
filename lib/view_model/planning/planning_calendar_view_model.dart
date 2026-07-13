@@ -21,7 +21,6 @@ class PlanningCalendarViewModel extends GetxController {
       ];
 
   final PlanningService _service = PlanningService();
-  final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController codeController = TextEditingController();
@@ -80,18 +79,14 @@ class PlanningCalendarViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
       final responses = await Future.wait<dynamic>([
         _service.calendars(filters: const {'per_page': 200}),
-        _masterService.companies(filters: const {'per_page': 200}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<PlanningCalendarModel>).data ??
           const <PlanningCalendarModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = MasterDataCache.to.activeCompanies;
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,

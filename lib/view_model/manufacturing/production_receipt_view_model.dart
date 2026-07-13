@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionReceiptLineDraft {
@@ -43,9 +43,12 @@ class ProductionReceiptLineDraft {
     'item_id': itemId,
     'uom_id': uomId,
     'warehouse_id': warehouseId,
-    'receipt_qty': Validators.parseFlexibleNumber(receiptQtyController.text) ?? 0,
-    'accepted_qty': Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
-    'rejected_qty': Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
+    'receipt_qty':
+        Validators.parseFlexibleNumber(receiptQtyController.text) ?? 0,
+    'accepted_qty':
+        Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
+    'rejected_qty':
+        Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
     'unit_cost': Validators.parseFlexibleNumber(unitCostController.text) ?? 0,
     'remarks': nullIfEmpty(remarksController.text),
   };
@@ -63,8 +66,6 @@ class ProductionReceiptViewModel extends GetxController {
   final ManufacturingModuleRefreshController _refreshController =
       ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
-  final MasterService _masterService = MasterService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController receiptNoController = TextEditingController();
@@ -157,18 +158,13 @@ class ProductionReceiptViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _service.productionReceipts(
           filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
         ),
         _service.productionOrders(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<ProductionReceiptModel>).data ??
@@ -176,31 +172,11 @@ class ProductionReceiptViewModel extends GetxController {
       productionOrders =
           (responses[1] as PaginatedResponse<ProductionOrderModel>).data ??
           const <ProductionOrderModel>[];
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[3] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[4] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[5] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      documentSeries = cache.activeDocumentSeries;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
       loading = false;
 
       if (selectId != null) {
@@ -369,7 +345,9 @@ class ProductionReceiptViewModel extends GetxController {
           line.warehouseId == null) {
         return 'Line ${i + 1}: item, UOM and warehouse are required.';
       }
-      if ((Validators.parseFlexibleNumber(line.receiptQtyController.text) ?? 0) <= 0) {
+      if ((Validators.parseFlexibleNumber(line.receiptQtyController.text) ??
+              0) <=
+          0) {
         return 'Line ${i + 1}: receipt qty must be > 0.';
       }
     }

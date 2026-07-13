@@ -125,10 +125,8 @@ class PurchaseOrderManagementController extends GetxController {
   final PurchaseService _purchaseService = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
-  final TaxesService _taxesService = TaxesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -291,139 +289,51 @@ class PurchaseOrderManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _purchaseService.ordersAll(filters: const {'sort_by': 'order_date'}),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
         _purchaseService.requisitionsAll(
           filters: const {'sort_by': 'requisition_date'},
         ),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _partiesService.parties(
-          filters: const {'per_page': 300, 'sort_by': 'party_name'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
         _inventoryService.itemSupplierMaps(
           filters: const {'per_page': 1000, 'is_active': 1},
-        ),
-        _taxesService.gstRegistrationsAll(
-          filters: const {'is_active': 1, 'sort_by': 'id'},
         ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items =
           (responses[0] as ApiResponse<List<PurchaseOrderModel>>).data ??
           const <PurchaseOrderModel>[];
-      companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      companies = cache.companies;
+      locations = cache.locations;
+      financialYears = cache.financialYears;
+      documentSeries = cache.activeDocumentSeries;
       requisitions =
-          (responses[6] as ApiResponse<List<PurchaseRequisitionModel>>).data ??
+          (responses[1] as ApiResponse<List<PurchaseRequisitionModel>>).data ??
           const <PurchaseRequisitionModel>[];
       suppliers = purchaseSuppliers(
-        parties:
-            ((responses[8] as PaginatedResponse<PartyModel>).data ??
-            const <PartyModel>[]),
-        partyTypes:
-            (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-            const <PartyTypeModel>[],
+        parties: cache.parties,
+        partyTypes: cache.partyTypes,
       );
-      itemsLookup =
-          ((responses[9] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[10] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[11] as ApiResponse<List<UomConversionModel>>).data ??
-                  const <UomConversionModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[12] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      taxCodes =
-          ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      itemsLookup = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
+      taxCodes = cache.activeTaxCodes;
       itemSupplierMaps =
-          ((responses[14] as PaginatedResponse<ItemSupplierMapModel>).data ??
+          ((responses[2] as PaginatedResponse<ItemSupplierMapModel>).data ??
                   const <ItemSupplierMapModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
-      gstRegistrations =
-          (responses[15] as ApiResponse<List<GstRegistrationModel>>).data ??
-          const <GstRegistrationModel>[];
+      gstRegistrations = cache.gstRegistrations;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;

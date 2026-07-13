@@ -9,8 +9,6 @@ class WarrantyClaimViewModel extends GetxController {
   final ServiceModuleRefreshController _refreshController =
       ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final AuthService _authService = AuthService();
   final InventoryService _inventoryService = InventoryService();
 
@@ -210,6 +208,8 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -218,15 +218,8 @@ class WarrantyClaimViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _service.warrantyClaims(filters: filters),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 400}),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _masterService.branches(filters: const {'per_page': 400}),
-        _masterService.businessLocations(filters: const {'per_page': 400}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
         _authService.users(filters: const {'per_page': 500}),
         _service.contracts(filters: filters),
-        _inventoryService.items(filters: filters),
         _inventoryService.stockSerials(filters: filters),
         _service.workOrders(filters: filters),
       ]);
@@ -235,56 +228,28 @@ class WarrantyClaimViewModel extends GetxController {
           (responses[0] as PaginatedResponse<ServiceTicketModel>).data ??
           const <ServiceTicketModel>[];
 
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[4] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[5] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[6] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
       users =
-          ((responses[7] as PaginatedResponse<UserModel>).data ??
+          ((responses[1] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
               .toList(growable: false);
       contracts =
-          ((responses[8] as PaginatedResponse<ServiceContractModel>).data ??
+          ((responses[2] as PaginatedResponse<ServiceContractModel>).data ??
                   const <ServiceContractModel>[])
               .where((x) => x.contractStatus == 'active')
               .toList(growable: false);
-      items =
-          ((responses[9] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      items = cache.activeItems;
       serials =
-          (responses[10] as PaginatedResponse<StockSerialModel>).data ??
+          (responses[3] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
       workOrders =
-          (responses[11] as PaginatedResponse<ServiceWorkOrderModel>).data ??
+          (responses[4] as PaginatedResponse<ServiceWorkOrderModel>).data ??
           const <ServiceWorkOrderModel>[];
       _contextFinancialYearId = await _resolveContextFinancialYearId();
 

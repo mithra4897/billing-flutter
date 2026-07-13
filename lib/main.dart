@@ -7,9 +7,7 @@ import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'core/navigation/app_route_state.dart';
 import 'helper/app_format_settings.dart';
-import 'view/auth/forgot_password_page.dart';
 import 'view/auth/login_page.dart';
-import 'view/auth/reset_password_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/app_shell_page.dart';
 
@@ -41,6 +39,7 @@ void main() {
     usePathUrlStrategy();
   }
   AppFormatSettings.ensureRegistered();
+  MasterDataCache.ensureRegistered();
   runApp(const BillingApp());
 }
 
@@ -87,21 +86,6 @@ class BillingApp extends StatelessWidget {
               settings: settings,
               builder: (_) =>
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
-            );
-          case '/forgot-password':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => ForgotPasswordPage(
-                redirectTo: uri.queryParameters['redirect'],
-              ),
-            );
-          case '/reset-password':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => ResetPasswordPage(
-                token: uri.queryParameters['token'] ?? '',
-                redirectTo: uri.queryParameters['redirect'],
-              ),
             );
           default:
             final normalizedPath = _normalizeShellEditorPath(uri.path);

@@ -9,8 +9,6 @@ class ServiceTicketViewModel extends GetxController {
   final ServiceModuleRefreshController _refreshController =
       ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final AuthService _authService = AuthService();
 
   final TextEditingController searchController = TextEditingController();
@@ -163,6 +161,8 @@ class ServiceTicketViewModel extends GetxController {
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
 
       final filters = <String, dynamic>{'per_page': 200};
       if (_sessionCompanyId != null) {
@@ -171,12 +171,6 @@ class ServiceTicketViewModel extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _service.tickets(filters: filters),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 400}),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _masterService.branches(filters: const {'per_page': 400}),
-        _masterService.businessLocations(filters: const {'per_page': 400}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
         _authService.users(filters: const {'per_page': 500}),
         _service.contracts(filters: filters),
       ]);
@@ -190,43 +184,19 @@ class ServiceTicketViewModel extends GetxController {
           )
           .toList(growable: false);
 
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[3] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[4] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[5] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[6] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      documentSeries = cache.activeDocumentSeries;
+      parties = cache.activeParties;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
       users =
-          ((responses[7] as PaginatedResponse<UserModel>).data ??
+          ((responses[1] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
               .toList(growable: false);
       contracts =
-          ((responses[8] as PaginatedResponse<ServiceContractModel>).data ??
+          ((responses[2] as PaginatedResponse<ServiceContractModel>).data ??
                   const <ServiceContractModel>[])
               .where((x) {
                 final status = (x.contractStatus ?? '').toLowerCase();

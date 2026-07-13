@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
@@ -97,14 +97,15 @@ class ProduceTrackingLineDraft {
   final TextEditingController remarksController;
 
   void _syncBalanceQty() {
-    final trackedQty = Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0;
+    final trackedQty =
+        Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0;
     final deliveredQty =
         Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0;
     final receivedQty =
         Validators.parseFlexibleNumber(receivedQtyController.text) ?? 0;
-    final balanceQty =
-        math.max(trackedQty - math.max(deliveredQty, receivedQty), 0)
-            .toDouble();
+    final balanceQty = math
+        .max(trackedQty - math.max(deliveredQty, receivedQty), 0)
+        .toDouble();
     final nextValue = _formatQty(balanceQty);
     if (balanceQtyController.text == nextValue) {
       return;
@@ -125,10 +126,14 @@ class ProduceTrackingLineDraft {
     'uom_id': uomId,
     'batch_id': batchId,
     'serial_id': serialId,
-    'tracked_qty': Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0,
-    'delivered_qty': Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0,
-    'received_qty': Validators.parseFlexibleNumber(receivedQtyController.text) ?? 0,
-    'balance_qty': Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
+    'tracked_qty':
+        Validators.parseFlexibleNumber(trackedQtyController.text) ?? 0,
+    'delivered_qty':
+        Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0,
+    'received_qty':
+        Validators.parseFlexibleNumber(receivedQtyController.text) ?? 0,
+    'balance_qty':
+        Validators.parseFlexibleNumber(balanceQtyController.text) ?? 0,
     'line_status': lineStatus,
     'current_location': nullIfEmpty(currentLocationController.text),
     'remarks': nullIfEmpty(remarksController.text),
@@ -160,8 +165,6 @@ class ProduceTrackingViewModel extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final SalesService _salesService = SalesService();
   final PurchaseService _purchaseService = PurchaseService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
   final HrService _hrService = HrService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
@@ -268,21 +271,23 @@ class ProduceTrackingViewModel extends GetxController {
     financialYearId: financialYearId,
   );
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
-    if (w.id == null) {
-      return false;
-    }
-    if (companyId != null && w.companyId != companyId) {
-      return false;
-    }
-    if (branchId != null && w.branchId != branchId) {
-      return false;
-    }
-    if (locationId != null && w.locationId != locationId) {
-      return false;
-    }
-    return true;
-  }).toList(growable: false);
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
+        if (w.id == null) {
+          return false;
+        }
+        if (companyId != null && w.companyId != companyId) {
+          return false;
+        }
+        if (branchId != null && w.branchId != branchId) {
+          return false;
+        }
+        if (locationId != null && w.locationId != locationId) {
+          return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
 
   List<DocumentSeriesModel> get seriesOptions => documentSeriesForContext(
     documentSeries: documentSeries,
@@ -298,13 +303,10 @@ class ProduceTrackingViewModel extends GetxController {
       .map(
         (row) => AppDropdownItem<int>(
           value: row.id!,
-          label: JsonModel.combineValues(
-            [
-              stringValue(row.toJson(), 'delivery_no'),
-              displayDate(nullableStringValue(row.toJson(), 'delivery_date')),
-            ],
-            defaultValue: 'Delivery',
-          ),
+          label: JsonModel.combineValues([
+            stringValue(row.toJson(), 'delivery_no'),
+            displayDate(nullableStringValue(row.toJson(), 'delivery_date')),
+          ], defaultValue: 'Delivery'),
         ),
       )
       .toList(growable: false);
@@ -314,37 +316,32 @@ class ProduceTrackingViewModel extends GetxController {
       .map(
         (row) => AppDropdownItem<int>(
           value: row.id!,
-          label: JsonModel.combineValues(
-            [
-              stringValue(row.toJson(), 'order_no'),
-              displayDate(nullableStringValue(row.toJson(), 'order_date')),
-            ],
-            defaultValue: 'Purchase Order',
-          ),
+          label: JsonModel.combineValues([
+            stringValue(row.toJson(), 'order_no'),
+            displayDate(nullableStringValue(row.toJson(), 'order_date')),
+          ], defaultValue: 'Purchase Order'),
         ),
       )
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get partyDropdownItems => parties
       .where((row) => row.id != null)
-      .map(
-        (row) => AppDropdownItem<int>(value: row.id!, label: row.toString()),
-      )
+      .map((row) => AppDropdownItem<int>(value: row.id!, label: row.toString()))
       .toList(growable: false);
 
-  List<PartyModel> get supplierOptions => parties.where((row) {
-    if (!row.isActive) {
-      return false;
-    }
-    final name = (row.partyName ?? row.displayName ?? '').toLowerCase();
-    return name.isNotEmpty;
-  }).toList(growable: false);
+  List<PartyModel> get supplierOptions => parties
+      .where((row) {
+        if (!row.isActive) {
+          return false;
+        }
+        final name = (row.partyName ?? row.displayName ?? '').toLowerCase();
+        return name.isNotEmpty;
+      })
+      .toList(growable: false);
 
   List<AppDropdownItem<int>> get supplierDropdownItems => supplierOptions
       .where((row) => row.id != null)
-      .map(
-        (row) => AppDropdownItem<int>(value: row.id!, label: row.toString()),
-      )
+      .map((row) => AppDropdownItem<int>(value: row.id!, label: row.toString()))
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get employeeDropdownItems => employees
@@ -355,61 +352,55 @@ class ProduceTrackingViewModel extends GetxController {
                 row.status!.toLowerCase() == 'active' ||
                 row.status!.toLowerCase() == 'working'),
       )
-      .map(
-        (row) => AppDropdownItem<int>(value: row.id!, label: row.toString()),
-      )
+      .map((row) => AppDropdownItem<int>(value: row.id!, label: row.toString()))
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get transporterDropdownItems => transporters
       .where((row) => row.id != null && row.isActive)
-      .map(
-        (row) => AppDropdownItem<int>(
-          value: row.id!,
-          label: row.toString(),
-        ),
-      )
+      .map((row) => AppDropdownItem<int>(value: row.id!, label: row.toString()))
       .toList(growable: false);
 
   List<ProduceTrackingModel> get filteredRows {
     final fromDate = tryParseCalendarDate(dateFromController.text.trim());
     final toDate = tryParseCalendarDate(dateToController.text.trim());
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      final rowStatus = stringValue(data, 'tracking_status');
-      if (statusFilter.isNotEmpty && rowStatus != statusFilter) {
-        return false;
-      }
-      final trackingDate = tryParseCalendarDate(
-        nullableStringValue(data, 'tracking_date') ?? '',
-      );
-      if (fromDate != null && (trackingDate == null || trackingDate.isBefore(fromDate))) {
-        return false;
-      }
-      if (toDate != null && (trackingDate == null || trackingDate.isAfter(toDate))) {
-        return false;
-      }
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        stringValue(data, 'tracking_no'),
-        stringValue(data, 'tracking_status'),
-        stringValue(data, 'reference_flow'),
-        stringValue(data, 'vehicle_no'),
-        stringValue(data, 'current_location'),
-        stringValue(data, 'destination_location'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          final rowStatus = stringValue(data, 'tracking_status');
+          if (statusFilter.isNotEmpty && rowStatus != statusFilter) {
+            return false;
+          }
+          final trackingDate = tryParseCalendarDate(
+            nullableStringValue(data, 'tracking_date') ?? '',
+          );
+          if (fromDate != null &&
+              (trackingDate == null || trackingDate.isBefore(fromDate))) {
+            return false;
+          }
+          if (toDate != null &&
+              (trackingDate == null || trackingDate.isAfter(toDate))) {
+            return false;
+          }
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            stringValue(data, 'tracking_no'),
+            stringValue(data, 'tracking_status'),
+            stringValue(data, 'reference_flow'),
+            stringValue(data, 'vehicle_no'),
+            stringValue(data, 'current_location'),
+            stringValue(data, 'destination_location'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   List<ProduceTrackingModel> get filteredItems => filteredRows;
   ProduceTrackingModel? get selectedItem => selected;
 
-  Future<void> initialize({
-    int? initialId,
-    bool editorOnly = false,
-  }) async {
+  Future<void> initialize({int? initialId, bool editorOnly = false}) async {
     if (_initialized) {
       return;
     }
@@ -458,9 +449,7 @@ class ProduceTrackingViewModel extends GetxController {
 
   bool get showTransportDetails {
     final type = transporterById(transporterId)?.transporterType;
-    return type == 'courier' ||
-        type == 'third_party' ||
-        type == 'own_vehicle';
+    return type == 'courier' || type == 'third_party' || type == 'own_vehicle';
   }
 
   bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
@@ -474,13 +463,16 @@ class ProduceTrackingViewModel extends GetxController {
     return allowedUomsForItem(itemById(itemId), uoms, uomConversions);
   }
 
-  List<Map<String, dynamic>> batchOptionsForLine(ProduceTrackingLineDraft line) {
+  List<Map<String, dynamic>> batchOptionsForLine(
+    ProduceTrackingLineDraft line,
+  ) {
     return batches
         .map((e) => e.toJson())
         .where((batch) {
-          final itemOk = line.itemId == null ||
-              intValue(batch, 'item_id') == line.itemId;
-          final warehouseOk = line.warehouseId == null ||
+          final itemOk =
+              line.itemId == null || intValue(batch, 'item_id') == line.itemId;
+          final warehouseOk =
+              line.warehouseId == null ||
               intValue(batch, 'warehouse_id') == line.warehouseId;
           return itemOk && warehouseOk;
         })
@@ -493,11 +485,13 @@ class ProduceTrackingViewModel extends GetxController {
     return serials
         .map((e) => e.toJson())
         .where((serial) {
-          final itemOk = line.itemId == null ||
-              intValue(serial, 'item_id') == line.itemId;
-          final warehouseOk = line.warehouseId == null ||
+          final itemOk =
+              line.itemId == null || intValue(serial, 'item_id') == line.itemId;
+          final warehouseOk =
+              line.warehouseId == null ||
               intValue(serial, 'warehouse_id') == line.warehouseId;
-          final batchOk = line.batchId == null ||
+          final batchOk =
+              line.batchId == null ||
               intValue(serial, 'batch_id') == line.batchId;
           final status = stringValue(serial, 'status');
           return itemOk &&
@@ -514,26 +508,14 @@ class ProduceTrackingViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.produceTrackings(
           filters: const {'per_page': 200, 'sort_by': 'tracking_date'},
         ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
-        _masterService.warehouses(filters: const {'per_page': 300}),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
-        _partiesService.parties(filters: const {'per_page': 500}),
         _hrService.employees(filters: const {'per_page': 500}),
         _inventoryService.transporters(
           filters: const {'per_page': 200, 'sort_by': 'name'},
@@ -549,75 +531,35 @@ class ProduceTrackingViewModel extends GetxController {
       rows =
           (responses[0] as PaginatedResponse<ProduceTrackingModel>).data ??
           const <ProduceTrackingModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[7] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[8] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
+      warehouses = cache.activeWarehouses;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
       batches =
-          (responses[10] as PaginatedResponse<StockBatchModel>).data ??
+          (responses[1] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
       serials =
-          (responses[11] as PaginatedResponse<StockSerialModel>).data ??
+          (responses[2] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
-      parties =
-          ((responses[12] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      parties = cache.activeParties;
       employees =
-          (responses[13] as PaginatedResponse<EmployeeModel>).data ??
+          (responses[3] as PaginatedResponse<EmployeeModel>).data ??
           const <EmployeeModel>[];
       transporters =
-          ((responses[14] as PaginatedResponse<TransporterModel>).data ??
+          ((responses[4] as PaginatedResponse<TransporterModel>).data ??
                   const <TransporterModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
       salesDeliveries =
-          (responses[15] as PaginatedResponse<SalesDeliveryModel>).data ??
+          (responses[5] as PaginatedResponse<SalesDeliveryModel>).data ??
           const <SalesDeliveryModel>[];
       purchaseOrders =
-          (responses[16] as PaginatedResponse<PurchaseOrderModel>).data ??
+          (responses[6] as PaginatedResponse<PurchaseOrderModel>).data ??
           const <PurchaseOrderModel>[];
 
       final contextSelection = await WorkingContextService.instance
@@ -867,9 +809,10 @@ class ProduceTrackingViewModel extends GetxController {
       financialYearId = delivery.financialYearId ?? financialYearId;
       sourceWarehouseId =
           delivery.lines.firstWhere(
-            (line) => line['warehouse_id'] != null,
-            orElse: () => const <String, dynamic>{},
-          )['warehouse_id'] as int? ??
+                (line) => line['warehouse_id'] != null,
+                orElse: () => const <String, dynamic>{},
+              )['warehouse_id']
+              as int? ??
           sourceWarehouseId;
       destinationType = 'customer';
       destinationPartyId = delivery.customerPartyId ?? destinationPartyId;
@@ -882,8 +825,7 @@ class ProduceTrackingViewModel extends GetxController {
             (line) => ProduceTrackingLineDraft(
               salesDeliveryLineId: intValue(line, 'id'),
               itemId: intValue(line, 'item_id'),
-              warehouseId:
-                  intValue(line, 'warehouse_id') ?? sourceWarehouseId,
+              warehouseId: intValue(line, 'warehouse_id') ?? sourceWarehouseId,
               uomId: intValue(line, 'uom_id'),
               batchId: intValue(line, 'batch_id'),
               serialId: intValue(line, 'serial_id'),
@@ -927,10 +869,12 @@ class ProduceTrackingViewModel extends GetxController {
       destinationType = 'warehouse';
       destinationPartyId = null;
       sourceWarehouseId =
-          order.lines.firstWhere(
-            (line) => line.warehouseId != null,
-            orElse: () => const PurchaseOrderLineModel(),
-          ).warehouseId ??
+          order.lines
+              .firstWhere(
+                (line) => line.warehouseId != null,
+                orElse: () => const PurchaseOrderLineModel(),
+              )
+              .warehouseId ??
           sourceWarehouseId;
 
       final mappedLines = order.lines
@@ -1126,7 +1070,9 @@ class ProduceTrackingViewModel extends GetxController {
           Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
       final receivedQty =
           Validators.parseFlexibleNumber(line.receivedQtyController.text) ?? 0;
-      if (line.itemId == null || line.warehouseId == null || line.uomId == null) {
+      if (line.itemId == null ||
+          line.warehouseId == null ||
+          line.uomId == null) {
         return 'Item, warehouse, and UOM are required at line $lineNo.';
       }
       if (trackedQty <= 0) {
@@ -1202,7 +1148,9 @@ class ProduceTrackingViewModel extends GetxController {
       'lr_date': nullIfEmpty(lrDateController.text),
       'tracking_status': trackingStatus,
       'current_location': nullIfEmpty(currentLocationController.text),
-      'current_latitude': Validators.parseFlexibleNumber(currentLatitudeController.text),
+      'current_latitude': Validators.parseFlexibleNumber(
+        currentLatitudeController.text,
+      ),
       'current_longitude': double.tryParse(
         currentLongitudeController.text.trim(),
       ),
@@ -1212,7 +1160,9 @@ class ProduceTrackingViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createProduceTracking(normalizeDatePayload(payload))
+          ? await _inventoryService.createProduceTracking(
+              normalizeDatePayload(payload),
+            )
           : await _inventoryService.updateProduceTracking(
               intValue(selected!.toJson(), 'id')!,
               normalizeDatePayload(payload),

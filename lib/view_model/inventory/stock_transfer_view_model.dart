@@ -65,7 +65,6 @@ class StockTransferViewModel extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -256,22 +255,11 @@ class StockTransferViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockTransfers(
           filters: const {'per_page': 200, 'sort_by': 'transfer_date'},
-        ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 300}),
-        _masterService.businessLocations(filters: const {'per_page': 300}),
-        _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
-        _inventoryService.items(
-          filters: const {'per_page': 500, 'sort_by': 'item_name'},
-        ),
-        _masterService.warehouses(filters: const {'per_page': 300}),
-        _inventoryService.uoms(filters: const {'per_page': 300}),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
         ),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
@@ -279,56 +267,20 @@ class StockTransferViewModel extends GetxController {
       rows =
           (responses[0] as PaginatedResponse<StockTransferModel>).data ??
           const <StockTransferModel>[];
-      companies =
-          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[6] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[7] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[8] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      documentSeries = cache.activeDocumentSeries;
+      items = cache.activeItems;
+      warehouses = cache.activeWarehouses;
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
       batches =
-          (responses[10] as PaginatedResponse<StockBatchModel>).data ??
+          (responses[1] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
       serials =
-          (responses[11] as PaginatedResponse<StockSerialModel>).data ??
+          (responses[2] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(

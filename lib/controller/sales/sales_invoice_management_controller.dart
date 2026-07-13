@@ -19,11 +19,8 @@ class SalesInvoiceManagementController extends GetxController {
 
   final SalesService salesService = SalesService();
   final CrmService crmService = CrmService();
-  final MasterService masterService = MasterService();
   final PartiesService partiesService = PartiesService();
-  final AccountsService accountsService = AccountsService();
   final InventoryService inventoryService = InventoryService();
-  final TaxesService taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -1709,29 +1706,15 @@ class SalesInvoiceManagementController extends GetxController {
 
   Future<void> loadReferenceDataInBackground() async {
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
-        inventoryService.items(
-          filters: const {'per_page': 400, 'sort_by': 'item_name'},
-        ),
         inventoryService.itemPrices(
           filters: const {
             'per_page': 1000,
             'sort_by': 'valid_from',
             'sort_order': 'desc',
           },
-        ),
-        inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
       ]);
 
@@ -1740,45 +1723,20 @@ class SalesInvoiceManagementController extends GetxController {
       }
 
       final filteredWarehouses = await WorkingContextService.instance
-          .filterWarehousesByAccess(
-            ((responses[5] as PaginatedResponse<WarehouseModel>).data ??
-                    const <WarehouseModel>[])
-                .where((item) => item.isActive)
-                .toList(),
-          );
+          .filterWarehousesByAccess(cache.activeWarehouses);
 
       State(() {
-        accounts =
-            ((responses[0] as ApiResponse<List<AccountModel>>).data ??
-                    const <AccountModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        itemsLookup =
-            ((responses[1] as PaginatedResponse<ItemModel>).data ??
-                    const <ItemModel>[])
-                .where((item) => item.isActive)
-                .toList();
+        accounts = cache.activeAccounts;
+        itemsLookup = cache.activeItems;
         itemPrices =
-            ((responses[2] as PaginatedResponse<ItemPriceModel>).data ??
+            ((responses[0] as PaginatedResponse<ItemPriceModel>).data ??
                     const <ItemPriceModel>[])
                 .where((price) => price.isActive)
                 .toList();
-        uoms =
-            ((responses[3] as PaginatedResponse<UomModel>).data ??
-                    const <UomModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        uomConversions =
-            ((responses[4] as PaginatedResponse<UomConversionModel>).data ??
-                    const <UomConversionModel>[])
-                .where((item) => item.isActive)
-                .toList();
+        uoms = cache.activeUoms;
+        uomConversions = cache.activeUomConversions;
         warehouses = filteredWarehouses;
-        taxCodes =
-            ((responses[6] as PaginatedResponse<TaxCodeModel>).data ??
-                    const <TaxCodeModel>[])
-                .where((item) => item.isActive)
-                .toList();
+        taxCodes = cache.activeTaxCodes;
       });
     } catch (_) {}
   }
@@ -1806,6 +1764,8 @@ class SalesInvoiceManagementController extends GetxController {
     });
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final invoiceFilters = <String, dynamic>{
         'per_page': 200,
         'sort_by': 'invoice_date',
@@ -1828,54 +1788,12 @@ class SalesInvoiceManagementController extends GetxController {
         }
       }
 
-      final responses = await Future.wait<dynamic>([
-        masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
-        partiesService.partyTypes(filters: const {'per_page': 100}),
-        partiesService.parties(
-          filters: const {'per_page': 400, 'sort_by': 'party_name'},
-        ),
-        taxesService.gstRegistrationsAll(
-          filters: const {'is_active': 1, 'sort_by': 'id'},
-        ),
-      ]);
-
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[0] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[1] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[2] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[3] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       if (!mounted) {
@@ -1943,31 +1861,15 @@ class SalesInvoiceManagementController extends GetxController {
             items = <SalesInvoiceModel>[pending, ...items];
           }
         }
-        companies =
-            (responses[0] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        locations =
-            (responses[2] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
-        financialYears =
-            (responses[3] as PaginatedResponse<FinancialYearModel>).data ??
-            const <FinancialYearModel>[];
-        documentSeries =
-            ((responses[4] as PaginatedResponse<DocumentSeriesModel>).data ??
-                    const <DocumentSeriesModel>[])
-                .where((item) => item.isActive)
-                .toList();
+        companies = cache.companies;
+        locations = cache.locations;
+        financialYears = cache.financialYears;
+        documentSeries = cache.activeDocumentSeries;
         customers = salesCustomersOrFallback(
-          parties:
-              ((responses[6] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[]),
-          partyTypes:
-              (responses[5] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[],
+          parties: cache.parties,
+          partyTypes: cache.partyTypes,
         );
-        gstRegistrations =
-            (responses[7] as ApiResponse<List<GstRegistrationModel>>).data ??
-            const <GstRegistrationModel>[];
+        gstRegistrations = cache.gstRegistrations;
         contextCompanyId = contextSelection.companyId;
         contextBranchId = contextSelection.branchId;
         contextLocationId = contextSelection.locationId;

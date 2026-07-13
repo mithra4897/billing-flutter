@@ -13,17 +13,24 @@ class ModulePreferencesManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool cacheSettingsLoading = false;
+  bool cacheToggleSaving = false;
+  bool cacheClearing = false;
   String? pageError;
   String? formError;
   List<ModuleModel> modules = const <ModuleModel>[];
   List<ModuleModel> filteredModules = const <ModuleModel>[];
   ModuleModel? selectedModule;
   bool isHidden = false;
+  bool isSuperAdmin = false;
+  bool cacheEnabled = true;
+  DateTime? cacheLastLoadedAt;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    unawaited(loadCacheSettings());
     loadModules();
   }
 
@@ -84,6 +91,83 @@ class ModulePreferencesManagementController extends GetxController {
     }
 
     update();
+  }
+
+  Future<void> loadCacheSettings() async {
+    cacheSettingsLoading = true;
+    update();
+    try {
+      final currentUser = await SessionStorage.getCurrentUser();
+      final cache = MasterDataCache.ensureRegistered();
+      await cache.ensureSettingsLoaded();
+      isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1;
+      cacheEnabled = cache.isEnabled;
+      cacheLastLoadedAt = cache.lastLoadedAt;
+    } finally {
+      cacheSettingsLoading = false;
+      update();
+    }
+  }
+
+  Future<void> setCacheEnabled(bool value) async {
+    if (cacheToggleSaving) {
+      return;
+    }
+    cacheToggleSaving = true;
+    formError = null;
+    update();
+    try {
+      final cache = MasterDataCache.ensureRegistered();
+      await cache.setEnabled(value);
+      cacheEnabled = cache.isEnabled;
+      cacheLastLoadedAt = cache.lastLoadedAt;
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            value
+                ? 'Master data cache enabled.'
+                : 'Master data cache disabled and cleared.',
+          ),
+        ),
+      );
+    } catch (error) {
+      formError = error.toString();
+    } finally {
+      cacheToggleSaving = false;
+      update();
+    }
+  }
+
+  Future<void> clearCache() async {
+    if (cacheClearing) {
+      return;
+    }
+    cacheClearing = true;
+    formError = null;
+    update();
+    try {
+      final cache = MasterDataCache.ensureRegistered();
+      cache.clearAllCaches();
+      cacheLastLoadedAt = cache.lastLoadedAt;
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(content: Text('Master data and API caches cleared.')),
+      );
+    } catch (error) {
+      formError = error.toString();
+    } finally {
+      cacheClearing = false;
+      update();
+    }
+  }
+
+  String get cacheLastLoadedLabel {
+    final value = cacheLastLoadedAt;
+    if (value == null) {
+      return 'Not loaded yet';
+    }
+    return value.toLocal().toString().split('.').first;
   }
 
   List<ModuleModel> _filterModules(List<ModuleModel> source, String query) {

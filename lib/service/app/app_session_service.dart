@@ -42,6 +42,9 @@ class AppSessionService {
     _refreshTimer?.cancel();
     _refreshTimer = null;
     advancePersistentControllerSessionScope();
+    if (Get.isRegistered<MasterDataCache>()) {
+      MasterDataCache.to.invalidate();
+    }
     await SessionStorage.clearSessionOnly();
     accessVersion.value++;
   }
@@ -113,6 +116,9 @@ class AppSessionService {
 
       final contextResponse = await _authService.context();
       if (contextResponse.success && contextResponse.data != null) {
+        if (Get.isRegistered<MasterDataCache>()) {
+          MasterDataCache.to.invalidate();
+        }
         await SessionStorage.saveAuthContext(contextResponse.data!);
         accessVersion.value++;
       }

@@ -70,9 +70,6 @@ class SalesReceiptManagementController extends GetxController {
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
-  final AccountsService _accountsService = AccountsService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -236,31 +233,11 @@ class SalesReceiptManagementController extends GetxController {
     update();
 
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.receipts(
           filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _partiesService.parties(
-          filters: const {'per_page': 300, 'sort_by': 'party_name'},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
         ),
         _salesService.invoices(
           filters: const {'per_page': 300, 'sort_by': 'invoice_date'},
@@ -269,27 +246,10 @@ class SalesReceiptManagementController extends GetxController {
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items =
@@ -311,29 +271,15 @@ class SalesReceiptManagementController extends GetxController {
           }
         }
       }
-      financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      financialYears = cache.financialYears;
+      documentSeries = cache.activeDocumentSeries;
       customers = salesCustomersOrFallback(
-        parties:
-            (responses[7] as PaginatedResponse<PartyModel>).data ??
-            const <PartyModel>[],
-        partyTypes:
-            (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
-            const <PartyTypeModel>[],
+        parties: cache.parties,
+        partyTypes: cache.partyTypes,
       );
-      accounts =
-          ((responses[8] as ApiResponse<List<AccountModel>>).data ??
-                  const <AccountModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      accounts = cache.activeAccounts;
       invoices =
-          (responses[9] as PaginatedResponse<SalesInvoiceModel>).data ??
+          (responses[1] as PaginatedResponse<SalesInvoiceModel>).data ??
           const <SalesInvoiceModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
@@ -593,7 +539,8 @@ class SalesReceiptManagementController extends GetxController {
           return invoice.isDirectCustomer;
         }
         return !invoice.isDirectCustomer &&
-            (customerPartyId == null || invoice.customerPartyId == customerPartyId);
+            (customerPartyId == null ||
+                invoice.customerPartyId == customerPartyId);
       })
       .toList(growable: false);
 
@@ -661,8 +608,9 @@ class SalesReceiptManagementController extends GetxController {
     isDirectCustomer = value;
     if (value) {
       customerPartyId = null;
-      directCustomerDetailsController.text =
-          directCustomerDetailsController.text.trim();
+      directCustomerDetailsController.text = directCustomerDetailsController
+          .text
+          .trim();
     } else {
       directCustomerDetailsController.clear();
     }

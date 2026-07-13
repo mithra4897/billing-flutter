@@ -25,11 +25,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   final PurchaseService _purchaseService = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
-  final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
-  final AccountsService _accountsService = AccountsService();
-  final InventoryService _inventoryService = InventoryService();
-  final TaxesService _taxesService = TaxesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -181,111 +177,42 @@ class PurchaseInvoiceManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _purchaseService.invoicesAll(
           filters: const {'sort_by': 'invoice_date'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
         ),
         _purchaseService.ordersAll(filters: const {'sort_by': 'order_date'}),
         _purchaseService.receiptsAll(
           filters: const {'sort_by': 'receipt_date'},
         ),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _partiesService.parties(
-          filters: const {'per_page': 300, 'sort_by': 'party_name'},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _taxesService.gstRegistrationsAll(
-          filters: const {'is_active': 1, 'sort_by': 'id'},
-        ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
+            companies: cache.activeCompanies,
+            branches: cache.activeBranches,
+            locations: cache.activeLocations,
+            financialYears: cache.activeFinancialYears,
           );
 
       items =
           (responses[0] as ApiResponse<List<PurchaseInvoiceModel>>).data ??
           const <PurchaseInvoiceModel>[];
-      companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      companies = cache.companies;
+      locations = cache.locations;
+      financialYears = cache.financialYears;
+      documentSeries = cache.activeDocumentSeries;
       orders =
-          (responses[6] as ApiResponse<List<PurchaseOrderModel>>).data ??
+          (responses[1] as ApiResponse<List<PurchaseOrderModel>>).data ??
           const <PurchaseOrderModel>[];
       receipts =
-          (responses[7] as ApiResponse<List<PurchaseReceiptModel>>).data ??
+          (responses[2] as ApiResponse<List<PurchaseReceiptModel>>).data ??
           const <PurchaseReceiptModel>[];
       suppliers = purchaseSuppliers(
-        parties:
-            (responses[9] as PaginatedResponse<PartyModel>).data ??
-            const <PartyModel>[],
-        partyTypes:
-            (responses[8] as PaginatedResponse<PartyTypeModel>).data ??
-            const <PartyTypeModel>[],
+        parties: cache.parties,
+        partyTypes: cache.partyTypes,
       );
       supplierLookupById
         ..clear()
@@ -294,16 +221,8 @@ class PurchaseInvoiceManagementController extends GetxController {
               .where((item) => item.id != null)
               .map((item) => MapEntry(item.id!, item)),
         );
-      accounts =
-          ((responses[10] as ApiResponse<List<AccountModel>>).data ??
-                  const <AccountModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      itemsLookup =
-          ((responses[11] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
+      accounts = cache.activeAccounts;
+      itemsLookup = cache.activeItems;
       itemLookupById
         ..clear()
         ..addEntries(
@@ -311,29 +230,11 @@ class PurchaseInvoiceManagementController extends GetxController {
               .where((item) => item.id != null)
               .map((item) => MapEntry(item.id!, item)),
         );
-      uoms =
-          ((responses[12] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      uomConversions =
-          ((responses[13] as ApiResponse<List<UomConversionModel>>).data ??
-                  const <UomConversionModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[14] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      taxCodes =
-          ((responses[15] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
-              .where((item) => item.isActive)
-              .toList(growable: false);
-      gstRegistrations =
-          (responses[16] as ApiResponse<List<GstRegistrationModel>>).data ??
-          const <GstRegistrationModel>[];
+      uoms = cache.activeUoms;
+      uomConversions = cache.activeUomConversions;
+      warehouses = cache.activeWarehouses;
+      taxCodes = cache.activeTaxCodes;
+      gstRegistrations = cache.gstRegistrations;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -675,7 +576,6 @@ class PurchaseInvoiceManagementController extends GetxController {
             taxAmount: (breakdown.total - breakdown.taxable).appRounded(),
 
             lineTotal: breakdown.total.appRounded(),
-
           );
         })
         .toList(growable: false);
@@ -717,13 +617,13 @@ class PurchaseInvoiceManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'round_off_amount': _roundOffAmountForSave(),
-        'adjustment_amount': (Validators.parseFlexibleNumber(
-                  adjustmentAmountController.text.trim(),
-                ) ??
-                0)
-            .appRounded(),
+        'adjustment_amount':
+            (Validators.parseFlexibleNumber(
+                      adjustmentAmountController.text.trim(),
+                    ) ??
+                    0)
+                .appRounded(),
         'taxable_total_amount': summary.taxable.appRounded(),
-
       },
     );
   }
@@ -1078,8 +978,12 @@ class PurchaseInvoiceManagementController extends GetxController {
               : Validators.parseFlexibleNumber(
                   stringValue(sourceOrderLine, 'tax_percent'),
                 );
-          final resolvedTaxCodeId = sourceOrderTaxCodeId ?? fallbackItemTaxCodeId;
-          final resolvedTaxCode = purchaseTaxCodeById(taxCodes, resolvedTaxCodeId);
+          final resolvedTaxCodeId =
+              sourceOrderTaxCodeId ?? fallbackItemTaxCodeId;
+          final resolvedTaxCode = purchaseTaxCodeById(
+            taxCodes,
+            resolvedTaxCodeId,
+          );
           final resolvedTaxPercent =
               sourceOrderTaxPercent ??
               fallbackItemTaxCode?.taxRate ??

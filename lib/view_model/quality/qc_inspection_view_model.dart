@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'quality_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> kQcInspectionScopeItems =
@@ -57,8 +57,6 @@ class QcInspectionViewModel extends GetxController {
   final QualityModuleRefreshController _refreshController =
       QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
-  final MasterService _masterService = MasterService();
-  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController inspectionDateController =
       TextEditingController();
@@ -223,62 +221,24 @@ class QcInspectionViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
+      final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 400}),
-        _masterService.businessLocations(filters: const {'per_page': 400}),
-        _masterService.financialYears(filters: const {'per_page': 150}),
-        _inventoryService.items(filters: const {'per_page': 800}),
-        _inventoryService.uoms(filters: const {'per_page': 400}),
-        _masterService.warehouses(filters: const {'per_page': 400}),
         _service.qcPlans(filters: const {'per_page': 300}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
       ]);
 
-      companies =
-          ((responses[0] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      branches =
-          ((responses[1] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      locations =
-          ((responses[2] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      financialYears =
-          ((responses[3] as PaginatedResponse<FinancialYearModel>).data ??
-                  const <FinancialYearModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      items =
-          ((responses[4] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      uoms =
-          ((responses[5] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
-      warehouses =
-          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      companies = cache.activeCompanies;
+      branches = cache.activeBranches;
+      locations = cache.activeLocations;
+      financialYears = cache.activeFinancialYears;
+      items = cache.activeItems;
+      uoms = cache.activeUoms;
+      warehouses = cache.activeWarehouses;
       qcPlans =
-          ((responses[7] as PaginatedResponse<QcPlanModel>).data ??
+          ((responses[0] as PaginatedResponse<QcPlanModel>).data ??
                   const <QcPlanModel>[])
               .toList(growable: false);
-      documentSeries =
-          ((responses[8] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      documentSeries = cache.activeDocumentSeries;
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -571,11 +531,15 @@ class QcInspectionViewModel extends GetxController {
       'qc_plan_id': ?qcPlanId,
       'warehouse_id': ?warehouseId,
       if (lotNo.isNotEmpty) 'lot_no': lotNo,
-      'sample_size': Validators.parseFlexibleNumber(sampleSizeController.text) ?? 0,
-      'accepted_qty': Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
-      'rejected_qty': Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
+      'sample_size':
+          Validators.parseFlexibleNumber(sampleSizeController.text) ?? 0,
+      'accepted_qty':
+          Validators.parseFlexibleNumber(acceptedQtyController.text) ?? 0,
+      'rejected_qty':
+          Validators.parseFlexibleNumber(rejectedQtyController.text) ?? 0,
       'hold_qty': Validators.parseFlexibleNumber(holdQtyController.text) ?? 0,
-      'rework_qty': Validators.parseFlexibleNumber(reworkQtyController.text) ?? 0,
+      'rework_qty':
+          Validators.parseFlexibleNumber(reworkQtyController.text) ?? 0,
       if (remarksController.text.trim().isNotEmpty)
         'remarks': remarksController.text.trim(),
       'is_active': isActive ? 1 : 0,

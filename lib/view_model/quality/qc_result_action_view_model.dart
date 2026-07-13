@@ -26,7 +26,6 @@ class QcResultActionViewModel extends GetxController {
   final QualityModuleRefreshController _refreshController =
       QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
-  final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController actionQtyController = TextEditingController();
@@ -103,12 +102,12 @@ class QcResultActionViewModel extends GetxController {
     pageError = null;
     update();
     try {
+      await MasterDataCache.to.ensureLoaded();
       final responses = await Future.wait<dynamic>([
         _service.qcResultActions(
           filters: const {'per_page': 200, 'sort_by': 'id'},
         ),
         _service.qcInspections(filters: const {'per_page': 400}),
-        _masterService.warehouses(filters: const {'per_page': 400}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<QcResultActionModel>).data ??
@@ -116,11 +115,7 @@ class QcResultActionViewModel extends GetxController {
       inspections =
           (responses[1] as PaginatedResponse<QcInspectionModel>).data ??
           const <QcInspectionModel>[];
-      warehouses =
-          ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((x) => x.isActive)
-              .toList(growable: false);
+      warehouses = MasterDataCache.to.activeWarehouses;
 
       loading = false;
 
