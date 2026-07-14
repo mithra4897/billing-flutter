@@ -7,12 +7,16 @@ class ProjectTaskManagementPage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.constrainedProjectId,
+    this.initialProjectId,
+    this.initialTaskId,
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
   });
 
   final bool embedded;
   final int? constrainedProjectId;
+  final int? initialProjectId;
+  final int? initialTaskId;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
 
@@ -46,6 +50,8 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       Get.put(
         ProjectTaskManagementController(
           constrainedProjectId: widget.constrainedProjectId,
+          initialProjectId: widget.initialProjectId,
+          initialTaskId: widget.initialTaskId,
         ),
         tag: _controllerTag,
       );

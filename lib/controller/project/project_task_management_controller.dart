@@ -2,7 +2,11 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectTaskManagementController extends GetxController {
-  ProjectTaskManagementController({this.constrainedProjectId});
+  ProjectTaskManagementController({
+    this.constrainedProjectId,
+    this.initialProjectId,
+    this.initialTaskId,
+  });
 
   final ProjectService _projectService = ProjectService();
   final HrService _hrService = HrService();
@@ -44,6 +48,8 @@ class ProjectTaskManagementController extends GetxController {
   String? formError;
   Worker? _refreshWorker;
   int? constrainedProjectId;
+  final int? initialProjectId;
+  final int? initialTaskId;
   int? projectId;
   int? assignedEmployeeId;
   Set<int> assignedEmployeeIds = <int>{};
@@ -70,7 +76,7 @@ class ProjectTaskManagementController extends GetxController {
         unawaited(loadData(selectTaskId: selectedRow?.task.id));
       },
     );
-    loadData();
+    loadData(selectTaskId: initialTaskId);
   }
 
   @override
@@ -172,7 +178,10 @@ class ProjectTaskManagementController extends GetxController {
 
       if (selectTaskId != null) {
         final selected = nextRows.cast<ProjectTaskRow?>().firstWhere(
-          (item) => item?.task.id == selectTaskId,
+          (item) =>
+              item?.task.id == selectTaskId &&
+              (initialProjectId == null ||
+                  item?.project.id == initialProjectId),
           orElse: () => null,
         );
         if (selected != null) {

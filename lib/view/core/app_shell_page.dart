@@ -652,7 +652,20 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/projects/dashboard':
         return ProjectDashboardPage(key: routeKey, embedded: true);
       case '/projects/tasks':
-        return ProjectTaskManagementPage(key: routeKey, embedded: true);
+        final projectId = int.tryParse(
+          _currentQueryParameters['project_id'] ?? '',
+        );
+        final taskId = int.tryParse(_currentQueryParameters['task_id'] ?? '');
+        return ProjectTaskManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialProjectId: projectId,
+          initialTaskId: taskId,
+          controllerScope: <String, Object?>{
+            'project_id': projectId,
+            'task_id': taskId,
+          },
+        );
       case '/projects/milestones':
         return ProjectMilestoneManagementPage(key: routeKey, embedded: true);
       case '/projects/timesheets':
