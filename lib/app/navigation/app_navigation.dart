@@ -67,6 +67,20 @@ class AppNavigation {
           path: '/settings/profile',
         ),
         AppNavigationItem(
+          key: 'settings-system',
+          title: 'System',
+          icon: Icons.settings_suggest_outlined,
+          adminOnly: true,
+          children: [
+            AppNavigationItem(
+              key: 'settings-cache-controls',
+              title: 'Cache Controls',
+              icon: Icons.storage_outlined,
+              path: '/settings/cache-controls',
+            ),
+          ],
+        ),
+        AppNavigationItem(
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,

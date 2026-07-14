@@ -7,6 +7,7 @@ import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'core/navigation/app_route_state.dart';
 import 'helper/app_format_settings.dart';
+import 'helper/master_data_cache.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/app_shell_page.dart';

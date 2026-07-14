@@ -55,6 +55,39 @@ class MasterDataCache extends GetxController {
   List<GstRegistrationModel> get activeGstRegistrations =>
       _active(gstRegistrations);
 
+  int get totalRecordCount =>
+      companies.length +
+      branches.length +
+      locations.length +
+      financialYears.length +
+      documentSeries.length +
+      warehouses.length +
+      parties.length +
+      partyTypes.length +
+      items.length +
+      uoms.length +
+      uomConversions.length +
+      taxCodes.length +
+      accounts.length +
+      gstRegistrations.length;
+
+  Map<String, int> get datasetCounts => <String, int>{
+    'Companies': companies.length,
+    'Branches': branches.length,
+    'Locations': locations.length,
+    'Financial Years': financialYears.length,
+    'Document Series': documentSeries.length,
+    'Warehouses': warehouses.length,
+    'Parties': parties.length,
+    'Party Types': partyTypes.length,
+    'Items': items.length,
+    'UOMs': uoms.length,
+    'UOM Conversions': uomConversions.length,
+    'Tax Codes': taxCodes.length,
+    'Accounts': accounts.length,
+    'GST Registrations': gstRegistrations.length,
+  };
+
   Future<void> ensureLoaded({bool forceRefresh = false}) async {
     await ensureSettingsLoaded();
     if (isEnabled && isLoaded && !forceRefresh) {

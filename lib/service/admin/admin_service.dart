@@ -68,4 +68,30 @@ class AdminService extends ErpModuleService {
       fromJson: PermissionModel.fromJson,
     );
   }
+
+  Future<ApiResponse<dynamic>> cacheStatus() {
+    return client.get<dynamic>('/admin/cache/status');
+  }
+
+  Future<ApiResponse<dynamic>> flushCacheGroup(String group) {
+    return client.post<dynamic>(
+      '/admin/cache/flush-group',
+      body: <String, dynamic>{'group': group},
+    );
+  }
+
+  Future<ApiResponse<dynamic>> flushAllCaches() {
+    return client.post<dynamic>('/admin/cache/flush-all');
+  }
+
+  Future<ApiResponse<dynamic>> warmCacheGroup(String group) {
+    return client.post<dynamic>(
+      '/admin/cache/warm-group',
+      body: <String, dynamic>{'group': group},
+    );
+  }
+
+  Future<ApiResponse<dynamic>> warmAllCaches() {
+    return client.post<dynamic>('/admin/cache/warm-all');
+  }
 }

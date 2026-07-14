@@ -269,6 +269,8 @@ class _AppShellPageState extends State<AppShellPage> {
         );
       case '/settings/profile':
         return ProfilePage(key: routeKey, embedded: true);
+      case '/settings/cache-controls':
+        return CacheControlsPage(key: routeKey, embedded: true);
       case '/settings/users':
         return UserManagementPage(
           key: routeKey,
