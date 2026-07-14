@@ -166,6 +166,14 @@ class AppSessionService {
           ApiCacheStore.clear();
         }
         await SessionStorage.saveAuthContext(contextResponse.data!);
+        final context = contextResponse.data!;
+        await WorkingContextService.instance.resolveSelection(
+          companies: context.companies,
+          branches: context.branches,
+          locations: context.locations,
+          warehouses: context.warehouses,
+          financialYears: context.financialYears,
+        );
         accessVersion.value++;
       }
     } on ApiException catch (error) {

@@ -83,6 +83,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
       final companyId = ValueNotifier<int?>(snapshot.selection.companyId);
       final branchId = ValueNotifier<int?>(snapshot.selection.branchId);
       final locationId = ValueNotifier<int?>(snapshot.selection.locationId);
+      final warehouseId = ValueNotifier<int?>(snapshot.selection.warehouseId);
       final financialYearId = ValueNotifier<int?>(
         snapshot.selection.financialYearId,
       );
@@ -92,16 +93,19 @@ class _SessionContextButtonState extends State<SessionContextButton> {
           companies: snapshot.companies,
           branches: snapshot.branches,
           locations: snapshot.locations,
+          warehouses: snapshot.warehouses,
           financialYears: snapshot.financialYears,
           companyId: companyId.value,
           branchId: branchId.value,
           locationId: locationId.value,
+          warehouseId: warehouseId.value,
           financialYearId: financialYearId.value,
           persist: false,
         );
         companyId.value = selection.companyId;
         branchId.value = selection.branchId;
         locationId.value = selection.locationId;
+        warehouseId.value = selection.warehouseId;
         financialYearId.value = selection.financialYearId;
       }
 
@@ -144,15 +148,31 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                             item.companyId == companyId.value,
                       )
                       .toList(growable: false);
+                  final scopedWarehouses = snapshot.warehouses
+                      .where((WarehouseModel item) {
+                        if (locationId.value != null) {
+                          return item.locationId == locationId.value;
+                        }
+                        if (branchId.value != null) {
+                          return item.branchId == branchId.value;
+                        }
+                        if (companyId.value != null) {
+                          return item.companyId == companyId.value;
+                        }
+                        return true;
+                      })
+                      .toList(growable: false);
                   final hasMissingOptions =
                       snapshot.companies.isEmpty ||
                       scopedBranches.isEmpty ||
                       scopedLocations.isEmpty ||
+                      scopedWarehouses.isEmpty ||
                       scopedFinancialYears.isEmpty;
                   final hasOnlyResolvedOptions =
                       snapshot.companies.length <= 1 &&
                       scopedBranches.length <= 1 &&
                       scopedLocations.length <= 1 &&
+                      scopedWarehouses.length <= 1 &&
                       scopedFinancialYears.length <= 1;
 
                   return Column(
@@ -271,6 +291,45 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                           ),
                         ),
                       ],
+                      if (scopedWarehouses.isEmpty) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        const InputDecorator(
+                          decoration: InputDecoration(labelText: 'Warehouse'),
+                          child: Text('No warehouse available'),
+                        ),
+                      ],
+                      if (scopedWarehouses.length > 1) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        AppDropdownField<int>.fromMapped(
+                          labelText: 'Warehouse',
+                          initialValue: warehouseId.value,
+                          mappedItems: scopedWarehouses
+                              .where((WarehouseModel item) => item.id != null)
+                              .map(
+                                (WarehouseModel item) => AppDropdownItem<int>(
+                                  value: item.id!,
+                                  label: item.name ?? item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) {
+                            warehouseId.value = value;
+                            setLocalState(() {});
+                          },
+                        ),
+                      ],
+                      if (scopedWarehouses.length == 1) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Warehouse',
+                          ),
+                          child: Text(
+                            scopedWarehouses.first.name ??
+                                scopedWarehouses.first.toString(),
+                          ),
+                        ),
+                      ],
                       if (scopedFinancialYears.isEmpty) ...[
                         const SizedBox(height: AppUiConstants.spacingMd),
                         const InputDecorator(
@@ -336,6 +395,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                       companyId: companyId.value,
                       branchId: branchId.value,
                       locationId: locationId.value,
+                      warehouseId: warehouseId.value,
                       financialYearId: financialYearId.value,
                     ),
                   );
@@ -353,6 +413,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
       companyId.dispose();
       branchId.dispose();
       locationId.dispose();
+      warehouseId.dispose();
       financialYearId.dispose();
     } finally {
       if (mounted) {

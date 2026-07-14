@@ -6,12 +6,14 @@ class WorkingContextSelection {
     required this.branchId,
     required this.locationId,
     required this.financialYearId,
+    this.warehouseId,
   });
 
   final int? companyId;
   final int? branchId;
   final int? locationId;
   final int? financialYearId;
+  final int? warehouseId;
 }
 
 class WorkingContextSnapshot {
@@ -20,6 +22,7 @@ class WorkingContextSnapshot {
     required this.companies,
     required this.branches,
     required this.locations,
+    required this.warehouses,
     required this.financialYears,
   });
 
@@ -27,6 +30,7 @@ class WorkingContextSnapshot {
   final List<CompanyModel> companies;
   final List<BranchModel> branches;
   final List<BusinessLocationModel> locations;
+  final List<WarehouseModel> warehouses;
   final List<FinancialYearModel> financialYears;
 }
 
@@ -42,6 +46,7 @@ class WorkingContextService {
     List<CompanyModel> companies;
     List<BranchModel> branches;
     List<BusinessLocationModel> locations;
+    List<WarehouseModel> warehouses;
     List<FinancialYearModel> financialYears;
 
     try {
@@ -49,6 +54,9 @@ class WorkingContextService {
       companies = MasterDataCache.to.activeCompanies;
       branches = MasterDataCache.to.activeBranches;
       locations = MasterDataCache.to.activeLocations;
+      warehouses = await filterWarehousesByAccess(
+        MasterDataCache.to.activeWarehouses,
+      );
       financialYears = MasterDataCache.to.activeFinancialYears;
     } catch (_) {
       final responses = await Future.wait<dynamic>([
@@ -60,6 +68,9 @@ class WorkingContextService {
         ),
         _masterService.businessLocations(
           filters: const {'per_page': 300, 'sort_by': 'name'},
+        ),
+        _masterService.warehouses(
+          filters: const {'per_page': 500, 'sort_by': 'name'},
         ),
         _masterService.financialYears(
           filters: const {'per_page': 300, 'sort_by': 'fy_name'},
@@ -78,7 +89,13 @@ class WorkingContextService {
           .whereType<BusinessLocationModel>()
           .where((BusinessLocationModel item) => item.isActive)
           .toList(growable: false);
-      financialYears = responses[3].data
+      warehouses = await filterWarehousesByAccess(
+        responses[3].data
+            .whereType<WarehouseModel>()
+            .where((WarehouseModel item) => item.isActive)
+            .toList(growable: false),
+      );
+      financialYears = responses[4].data
           .whereType<FinancialYearModel>()
           .where((FinancialYearModel item) => item.isActive)
           .toList(growable: false);
@@ -88,6 +105,7 @@ class WorkingContextService {
       companies: companies,
       branches: branches,
       locations: locations,
+      warehouses: warehouses,
       financialYears: financialYears,
     );
 
@@ -96,6 +114,7 @@ class WorkingContextService {
       companies: companies,
       branches: branches,
       locations: locations,
+      warehouses: warehouses,
       financialYears: financialYears,
     );
   }
@@ -104,10 +123,12 @@ class WorkingContextService {
     required List<CompanyModel> companies,
     required List<BranchModel> branches,
     required List<BusinessLocationModel> locations,
+    List<WarehouseModel>? warehouses,
     required List<FinancialYearModel> financialYears,
     int? companyId,
     int? branchId,
     int? locationId,
+    int? warehouseId,
     int? financialYearId,
     bool persist = true,
   }) async {
@@ -117,8 +138,14 @@ class WorkingContextService {
         branchId ?? await SessionStorage.getCurrentBranchId();
     final storedLocationId =
         locationId ?? await SessionStorage.getCurrentLocationId();
+    final storedWarehouseId =
+        warehouseId ?? await SessionStorage.getCurrentWarehouseId();
     final storedFinancialYearId =
         financialYearId ?? await SessionStorage.getCurrentFinancialYearId();
+    final availableWarehouses =
+        warehouses ??
+        (await SessionStorage.getAuthContext())?.warehouses ??
+        const <WarehouseModel>[];
 
     final resolvedCompanyId = _resolveCompanyId(companies, storedCompanyId);
     final scopedBranches = branches
@@ -146,6 +173,20 @@ class WorkingContextService {
       storedLocationId,
       forceSingleOption: resolvedBranchId != null || resolvedCompanyId != null,
     );
+    final scopedWarehouses = availableWarehouses
+        .where(
+          (WarehouseModel item) => _warehouseMatchesScope(
+            item,
+            companyId: resolvedCompanyId,
+            branchId: resolvedBranchId,
+            locationId: resolvedLocationId,
+          ),
+        )
+        .toList(growable: false);
+    final resolvedWarehouseId = _resolveWarehouseId(
+      scopedWarehouses,
+      storedWarehouseId,
+    );
     final scopedFinancialYears = financialYears
         .where(
           (FinancialYearModel item) =>
@@ -162,6 +203,7 @@ class WorkingContextService {
         companyId: resolvedCompanyId,
         branchId: resolvedBranchId,
         locationId: resolvedLocationId,
+        warehouseId: resolvedWarehouseId,
         financialYearId: resolvedFinancialYearId,
       );
     }
@@ -170,6 +212,7 @@ class WorkingContextService {
       companyId: resolvedCompanyId,
       branchId: resolvedBranchId,
       locationId: resolvedLocationId,
+      warehouseId: resolvedWarehouseId,
       financialYearId: resolvedFinancialYearId,
     );
   }
@@ -179,6 +222,7 @@ class WorkingContextService {
       companyId: selection.companyId,
       branchId: selection.branchId,
       locationId: selection.locationId,
+      warehouseId: selection.warehouseId,
       financialYearId: selection.financialYearId,
     );
     if (Get.isRegistered<MasterDataCache>()) {
@@ -282,11 +326,40 @@ class WorkingContextService {
     return financialYears.first.id;
   }
 
+  int? _resolveWarehouseId(List<WarehouseModel> warehouses, int? preferredId) {
+    if (preferredId != null &&
+        warehouses.any((WarehouseModel item) => item.id == preferredId)) {
+      return preferredId;
+    }
+    if (warehouses.isEmpty) {
+      return null;
+    }
+    return warehouses.first.id;
+  }
+
   bool _locationMatchesScope(
     BusinessLocationModel item, {
     required int? companyId,
     required int? branchId,
   }) {
+    if (branchId != null) {
+      return item.branchId == branchId;
+    }
+    if (companyId != null) {
+      return item.companyId == companyId;
+    }
+    return true;
+  }
+
+  bool _warehouseMatchesScope(
+    WarehouseModel item, {
+    required int? companyId,
+    required int? branchId,
+    required int? locationId,
+  }) {
+    if (locationId != null) {
+      return item.locationId == locationId;
+    }
     if (branchId != null) {
       return item.branchId == branchId;
     }

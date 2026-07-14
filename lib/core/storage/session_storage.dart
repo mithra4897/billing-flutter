@@ -13,6 +13,7 @@ class SessionStorage {
   static const String currentCompanyIdKey = 'current_company_id';
   static const String currentBranchIdKey = 'current_branch_id';
   static const String currentLocationIdKey = 'current_location_id';
+  static const String currentWarehouseIdKey = 'current_warehouse_id';
   static const String currentFinancialYearIdKey = 'current_financial_year_id';
   static const String authContextKey = 'auth_context';
   static const String permissionCodesKey = 'permission_codes';
@@ -103,6 +104,7 @@ class SessionStorage {
     int? companyId,
     int? branchId,
     int? locationId,
+    int? warehouseId,
     int? financialYearId,
   }) async {
     final preferences = await SharedPreferences.getInstance();
@@ -116,6 +118,9 @@ class SessionStorage {
     if (locationId != null) {
       await preferences.setInt(currentLocationIdKey, locationId);
     }
+    if (warehouseId != null) {
+      await preferences.setInt(currentWarehouseIdKey, warehouseId);
+    }
     if (financialYearId != null) {
       await preferences.setInt(currentFinancialYearIdKey, financialYearId);
     }
@@ -125,6 +130,7 @@ class SessionStorage {
     required int? companyId,
     required int? branchId,
     required int? locationId,
+    required int? warehouseId,
     required int? financialYearId,
   }) async {
     final preferences = await SharedPreferences.getInstance();
@@ -143,6 +149,11 @@ class SessionStorage {
       await preferences.setInt(currentLocationIdKey, locationId);
     } else {
       await preferences.remove(currentLocationIdKey);
+    }
+    if (warehouseId != null) {
+      await preferences.setInt(currentWarehouseIdKey, warehouseId);
+    } else {
+      await preferences.remove(currentWarehouseIdKey);
     }
     if (financialYearId != null) {
       await preferences.setInt(currentFinancialYearIdKey, financialYearId);
@@ -164,6 +175,11 @@ class SessionStorage {
   static Future<int?> getCurrentLocationId() async {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getInt(currentLocationIdKey);
+  }
+
+  static Future<int?> getCurrentWarehouseId() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt(currentWarehouseIdKey);
   }
 
   static Future<int?> getCurrentFinancialYearId() async {
@@ -244,6 +260,7 @@ class SessionStorage {
     await preferences.remove(currentCompanyIdKey);
     await preferences.remove(currentBranchIdKey);
     await preferences.remove(currentLocationIdKey);
+    await preferences.remove(currentWarehouseIdKey);
     await preferences.remove(currentFinancialYearIdKey);
     await preferences.remove(authContextKey);
     await preferences.remove(permissionCodesKey);
