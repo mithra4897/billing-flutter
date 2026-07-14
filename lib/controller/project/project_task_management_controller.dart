@@ -116,9 +116,7 @@ class ProjectTaskManagementController extends GetxController {
     try {
       final permissionCodes = await SessionStorage.getPermissionCodes();
       final responses = await Future.wait<dynamic>([
-        _projectService.projects(
-          filters: const {'per_page': 200, 'sort_by': 'project_name'},
-        ),
+        _refreshController.projects(loader: _projectService.projects),
         _hrService.employees(
           filters: const {'per_page': 300, 'sort_by': 'employee_name'},
         ),
@@ -127,9 +125,7 @@ class ProjectTaskManagementController extends GetxController {
         ),
       ]);
 
-      final nextProjects =
-          (responses[0] as PaginatedResponse<ProjectModel>).data ??
-          const <ProjectModel>[];
+      final nextProjects = responses[0] as List<ProjectModel>;
       final nextEmployees =
           (responses[1] as PaginatedResponse<EmployeeModel>).data ??
           const <EmployeeModel>[];

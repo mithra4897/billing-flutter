@@ -167,7 +167,9 @@ class ApiCacheStore {
     final counts = <String, int>{};
     for (final key in _entries.keys) {
       final parts = key.split('|');
-      final path = parts.length >= 7 ? parts[6] : key;
+      final path = parts.length >= 9
+          ? parts[7]
+          : (parts.length >= 8 ? parts[6] : key);
       counts[path] = (counts[path] ?? 0) + 1;
     }
     final sortedEntries = counts.entries.toList(growable: false)

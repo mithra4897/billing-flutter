@@ -90,9 +90,7 @@ class ProjectExpenseManagementController extends GetxController {
     update();
     try {
       final responses = await Future.wait<dynamic>([
-        _projectService.projects(
-          filters: const {'per_page': 200, 'sort_by': 'project_name'},
-        ),
+        _refreshController.projects(loader: _projectService.projects),
         _partiesService.parties(
           filters: const {'per_page': 300, 'sort_by': 'display_name'},
         ),
@@ -103,9 +101,7 @@ class ProjectExpenseManagementController extends GetxController {
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
       ]);
-      final nextProjects =
-          (responses[0] as PaginatedResponse<ProjectModel>).data ??
-          const <ProjectModel>[];
+      final nextProjects = responses[0] as List<ProjectModel>;
       final nextParties =
           (responses[1] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];

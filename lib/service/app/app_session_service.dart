@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../controller/project/project_module_refresh_controller.dart';
 
 class AppSessionService {
   AppSessionService._();
@@ -67,6 +68,7 @@ class AppSessionService {
     } else {
       ApiCacheStore.clear();
     }
+    ProjectModuleRefreshController.invalidateRegisteredCache();
 
     try {
       await _authService.logout();
@@ -85,6 +87,7 @@ class AppSessionService {
     } else {
       ApiCacheStore.clear();
     }
+    ProjectModuleRefreshController.invalidateRegisteredCache();
     await SessionStorage.clearSessionOnly();
     accessVersion.value++;
   }
@@ -130,6 +133,7 @@ class AppSessionService {
       // Remove them immediately so refreshed sessions do not retain sensitive
       // response bodies or unreachable cache keys.
       ApiCacheStore.clear();
+      ProjectModuleRefreshController.invalidateRegisteredCache();
       await _scheduleRefresh();
       return true;
     } on ApiException catch (error) {
@@ -165,6 +169,7 @@ class AppSessionService {
         } else {
           ApiCacheStore.clear();
         }
+        ProjectModuleRefreshController.invalidateRegisteredCache();
         await SessionStorage.saveAuthContext(contextResponse.data!);
         final context = contextResponse.data!;
         await WorkingContextService.instance.resolveSelection(
