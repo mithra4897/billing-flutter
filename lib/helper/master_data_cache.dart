@@ -89,6 +89,9 @@ class MasterDataCache extends GetxController {
   };
 
   Future<void> ensureLoaded({bool forceRefresh = false}) async {
+    if (AppSessionService.instance.isSessionEnding) {
+      return;
+    }
     await ensureSettingsLoaded();
     if (isEnabled && isLoaded && !forceRefresh) {
       return;
@@ -183,6 +186,9 @@ class MasterDataCache extends GetxController {
         isLoaded = false;
         lastError = error;
         update();
+      }
+      if (AppSessionService.instance.isSessionEnding) {
+        return;
       }
       rethrow;
     } finally {

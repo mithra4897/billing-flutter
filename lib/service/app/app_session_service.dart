@@ -8,11 +8,21 @@ class AppSessionService {
 
   final AuthService _authService = AuthService();
   Timer? _refreshTimer;
+  Future<void>? _clearSessionFuture;
+  bool _sessionEnding = false;
+
+  bool get isSessionEnding => _sessionEnding;
 
   Future<void> handleLoginSession(
     LoginResponseModel session, {
     required bool rememberMe,
   }) async {
+    final pendingClear = _clearSessionFuture;
+    if (pendingClear != null) {
+      await pendingClear;
+    }
+    _clearSessionFuture = null;
+    _sessionEnding = false;
     advancePersistentControllerSessionScope();
     await SessionStorage.saveSession(
       token: session.accessToken,
@@ -39,6 +49,34 @@ class AppSessionService {
   }
 
   Future<void> clearSession() async {
+    final inProgress = _clearSessionFuture;
+    if (inProgress != null) {
+      return inProgress;
+    }
+
+    _sessionEnding = true;
+    final future = _clearSessionImpl();
+    _clearSessionFuture = future;
+    return future;
+  }
+
+  Future<void> logout() async {
+    _sessionEnding = true;
+    if (Get.isRegistered<MasterDataCache>()) {
+      MasterDataCache.to.clearAllCaches();
+    } else {
+      ApiCacheStore.clear();
+    }
+
+    try {
+      await _authService.logout();
+    } catch (_) {
+    } finally {
+      await clearSession();
+    }
+  }
+
+  Future<void> _clearSessionImpl() async {
     _refreshTimer?.cancel();
     _refreshTimer = null;
     advancePersistentControllerSessionScope();

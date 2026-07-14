@@ -44,9 +44,7 @@ class AuthService extends ErpModuleService {
       updateModel('/auth/profile', body, fromJson: UserModel.fromJson);
 
   Future<ApiResponse<dynamic>> logout() async {
-    final response = await client.post<dynamic>(ApiEndpoints.logout);
-    await SessionStorage.clearSessionOnly();
-    return response;
+    return client.post<dynamic>(ApiEndpoints.logout);
   }
 
   Future<ApiResponse<LoginResponseModel>> refresh() {

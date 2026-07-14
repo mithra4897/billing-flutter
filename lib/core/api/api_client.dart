@@ -603,14 +603,19 @@ class ApiClient {
       return;
     }
 
-    _logFailedRequest(
-      requestContext,
-      statusCode: statusCode,
-      responseJson: json,
-      responseBody: responseBody,
-    );
+    final expectedLogoutResponse =
+        statusCode == 401 && AppSessionService.instance.isSessionEnding;
 
-    if (statusCode == 401) {
+    if (!expectedLogoutResponse) {
+      _logFailedRequest(
+        requestContext,
+        statusCode: statusCode,
+        responseJson: json,
+        responseBody: responseBody,
+      );
+    }
+
+    if (statusCode == 401 && !expectedLogoutResponse) {
       _handleUnauthorized();
     }
 

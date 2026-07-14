@@ -159,6 +159,10 @@ class AppShellController extends GetxController {
 
   Future<void> _reloadShellContext() async {
     await loadShellContext();
+    if (AppSessionService.instance.isSessionEnding ||
+        !await SessionStorage.hasActiveSession()) {
+      return;
+    }
     unawaited(MasterDataCache.to.ensureLoaded());
   }
 
