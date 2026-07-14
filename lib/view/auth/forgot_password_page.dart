@@ -148,7 +148,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                   const SizedBox(height: 8),
                                   Text(
                                     controller.requestSent
-                                        ? 'If the account exists, we will send reset instructions to the registered contact details.'
+                                        ? 'If the account exists and email delivery is available, reset instructions will be sent to the registered email address.'
                                         : 'Enter your email or user ID and we will submit a password reset request.',
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       color: appTheme.mutedText,
@@ -217,7 +217,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                         ),
                                       ),
                                       child: Text(
-                                        'We have accepted the request. If the account exists, the backend can now send the reset instructions once the endpoint is active.',
+                                        'We have accepted the request. If the account exists, the reset link will be sent from the configured company email setting to the employee email linked with that user.',
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(height: 1.5),
                                       ),
