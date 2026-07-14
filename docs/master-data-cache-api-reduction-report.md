@@ -1,14 +1,14 @@
 # Master Data Cache API Reduction Report
 
-Last updated: 2026-07-13
-Status: `Code-based estimate`
+Last updated: 2026-07-14
+Status: `Code-based estimate; runtime verification pending`
 Owner: `Codex + team`
 
 ## Executive Summary
 
 Based on the implemented cache migration diff, the app has removed **424 repeated master-data API call sites** across **85 migrated screens/services**.
 
-That works out to an average reduction of about **6.6 repeated API calls per migrated screen**.
+That works out to an average reduction of about **4.99 repeated API calls per migrated screen**.
 
 This is consistent with the original goal of taking many screens from roughly **10 to 15 API calls** down toward **1 to 4 page-specific calls**, depending on the page.
 
@@ -44,7 +44,7 @@ This report does **not** claim runtime network traces were captured yet. It is a
 
 Rounded summary:
 
-- **About 8 fewer API calls per migrated page**
+- **About 5 fewer repeated master-data calls per migrated screen/service**
 
 ## Previous vs Current Comparison
 
@@ -477,7 +477,11 @@ So the short answer is:
 - **Current per migrated page:** usually around `1 to 5`
 - **Most complex migrated outlier in current code:** `produce_tracking_view_model.dart` at about `7`
 
-## Reduction By Module
+## Original Rollout Subset
+
+The table below is retained as the original module-wave subtotal. It is not the
+overall figure; the complete current total is 424 across 85 screens/services as
+reported above.
 
 | Module | Repeated API calls removed |
 |---|---:|
@@ -614,11 +618,11 @@ These were not moved into cache because they are transactional or page-specific,
 
 ## Current Conclusion
 
-The implemented cache work has already removed a substantial amount of repeated API traffic:
+The implemented cache work has removed a substantial amount of repeated API traffic according to the code migration inventory:
 
-- **344 repeated master-data API call sites removed**
-- **54 screens/services migrated**
-- **~6.4 repeated calls removed per migrated screen on average**
+- **424 repeated master-data API call sites removed**
+- **85 screens/services migrated**
+- **~4.99 repeated calls removed per migrated screen/service on average**
 
 This confirms the cache rollout is materially reducing the “10 to 15 calls per page” problem in the migrated modules.
 

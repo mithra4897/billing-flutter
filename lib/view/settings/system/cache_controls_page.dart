@@ -242,8 +242,8 @@ class _DashboardHeader extends StatelessWidget {
               AppActionButton(
                 icon: Icons.bolt_rounded,
                 label: controller.serverWarming
-                    ? 'Refreshing server...'
-                    : 'Refresh server',
+                    ? 'Refreshing access...'
+                    : 'Refresh my access',
                 onPressed: controller.serverWarming
                     ? null
                     : controller.warmAllServerCaches,
@@ -310,7 +310,7 @@ class _MetricsGrid extends StatelessWidget {
               icon: Icons.http_rounded,
               label: 'Saved responses',
               value: controller.apiCacheEntryCount.toString(),
-              detail: 'Ready for reuse',
+              detail: '${controller.apiCacheHits} reused',
             ),
             _MetricCard(
               width: width,
@@ -428,7 +428,9 @@ class _ServerCachePanel extends StatelessWidget {
         children: [
           AppActionButton(
             icon: Icons.bolt_outlined,
-            label: controller.serverWarming ? 'Refreshing...' : 'Refresh all',
+            label: controller.serverWarming
+                ? 'Refreshing...'
+                : 'Refresh my access',
             onPressed: controller.serverWarming
                 ? null
                 : controller.warmAllServerCaches,
@@ -666,6 +668,16 @@ class _HttpCachePanel extends StatelessWidget {
           _KeyValueRow(
             label: 'Last response saved',
             value: controller.apiCacheLastStoredLabel,
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _KeyValueRow(
+            label: 'Responses reused',
+            value: controller.apiCacheReuseLabel,
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _KeyValueRow(
+            label: 'Memory used',
+            value: controller.apiCacheStorageLabel,
           ),
           if (controller.apiFamilyCounts.isNotEmpty) ...[
             const SizedBox(height: AppUiConstants.spacingLg),

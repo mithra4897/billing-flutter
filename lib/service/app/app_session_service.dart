@@ -43,7 +43,9 @@ class AppSessionService {
     _refreshTimer = null;
     advancePersistentControllerSessionScope();
     if (Get.isRegistered<MasterDataCache>()) {
-      MasterDataCache.to.invalidate();
+      MasterDataCache.to.clearAllCaches();
+    } else {
+      ApiCacheStore.clear();
     }
     await SessionStorage.clearSessionOnly();
     accessVersion.value++;
@@ -86,6 +88,10 @@ class AppSessionService {
         currentUser: (await SessionStorage.getCurrentUser()),
         rememberMe: await SessionStorage.shouldAutoLogin(),
       );
+      // Conditional-response entries are scoped to the previous access token.
+      // Remove them immediately so refreshed sessions do not retain sensitive
+      // response bodies or unreachable cache keys.
+      ApiCacheStore.clear();
       await _scheduleRefresh();
       return true;
     } on ApiException catch (error) {
@@ -117,7 +123,9 @@ class AppSessionService {
       final contextResponse = await _authService.context();
       if (contextResponse.success && contextResponse.data != null) {
         if (Get.isRegistered<MasterDataCache>()) {
-          MasterDataCache.to.invalidate();
+          MasterDataCache.to.clearAllCaches();
+        } else {
+          ApiCacheStore.clear();
         }
         await SessionStorage.saveAuthContext(contextResponse.data!);
         accessVersion.value++;

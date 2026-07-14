@@ -261,6 +261,82 @@ class MasterDataCache extends GetxController {
     gstRegistrations = await _loadGstRegistrations();
     _markRefreshed();
   }
+  Future<void> refreshForMutationPath(String path) async {
+    if (!isEnabled) {
+      return;
+    }
+    if (!isLoaded) {
+      if (_loadFuture != null) {
+        invalidate();
+      }
+      return;
+    }
+
+    if (path.startsWith('/masters/companies')) {
+      await Future.wait<void>([
+        refreshCompanies(),
+        refreshBranches(),
+        refreshLocations(),
+        refreshWarehouses(),
+      ]);
+      return;
+    }
+    if (path.startsWith('/masters/branches')) {
+      await Future.wait<void>([
+        refreshBranches(),
+        refreshLocations(),
+        refreshWarehouses(),
+      ]);
+      return;
+    }
+    if (path.startsWith('/masters/business-locations')) {
+      await Future.wait<void>([refreshLocations(), refreshWarehouses()]);
+      return;
+    }
+    if (path.startsWith('/masters/warehouses')) {
+      await refreshWarehouses();
+      return;
+    }
+    if (path.startsWith('/masters/financial-years')) {
+      await refreshFinancialYears();
+      return;
+    }
+    if (path.startsWith('/masters/document-series')) {
+      await refreshDocumentSeries();
+      return;
+    }
+    if (path.startsWith('/masters/party-types')) {
+      await refreshPartyTypes();
+      return;
+    }
+    if (path.startsWith('/masters/parties')) {
+      await refreshParties();
+      return;
+    }
+    if (path.startsWith(ApiEndpoints.uomConversions)) {
+      await refreshUomConversions();
+      return;
+    }
+    if (path.startsWith(ApiEndpoints.uoms)) {
+      await Future.wait<void>([refreshUoms(), refreshUomConversions()]);
+      return;
+    }
+    if (path.startsWith(ApiEndpoints.taxCodes)) {
+      await refreshTaxCodes();
+      return;
+    }
+    if (path.startsWith(ApiEndpoints.items)) {
+      await refreshItems();
+      return;
+    }
+    if (path.startsWith(ApiEndpoints.accounts)) {
+      await refreshAccounts();
+      return;
+    }
+    if (path.startsWith('/tax/gst-registrations')) {
+      await refreshGstRegistrations();
+    }
+  }
 
   void invalidate({bool notify = true}) {
     _generation++;

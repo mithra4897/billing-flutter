@@ -1,7 +1,7 @@
 # Master Data Cache and API Call Reduction Plan
 
-Last updated: 2026-07-13
-Status: `In Progress`
+Last updated: 2026-07-14
+Status: `Release Candidate - production deployment verification pending`
 Owner: `Codex + team`
 
 ## Why this exists
@@ -352,9 +352,9 @@ Deliverables:
 
 Tasks:
 
-- [ ] Confirm exact master datasets to cache
-- [ ] Confirm pagination strategy per dataset
-- [ ] Confirm fallback policy on startup failure
+- [x] Confirm exact master datasets to cache
+- [x] Confirm pagination strategy per dataset
+- [x] Confirm fallback policy on startup failure
 - [ ] Record baseline API count for 5 high-traffic pages
 
 Suggested baseline pages:
@@ -393,8 +393,8 @@ Tasks:
 
 - [x] Trigger cache warmup after successful session bootstrap
 - [x] Update working context to read from cache
-- [ ] Preserve active-only filters and current selection behavior
-- [ ] Add direct fallback only when cache load truly fails
+- [x] Preserve active-only filters and current selection behavior
+- [x] Add direct fallback only when cache load truly fails
 
 ## Phase 3: High-impact controller migration
 
@@ -410,7 +410,7 @@ Migrate first because they currently load the most shared data and are used ofte
 - [x] `lib/controller/purchase/purchase_payment_management_controller.dart`
 - [x] `lib/controller/purchase/purchase_receipt_management_controller.dart`
 - [x] `lib/controller/purchase/purchase_return_management_controller.dart`
-- [ ] `lib/controller/purchase/purchase_requisition_management_controller.dart`
+- [x] `lib/controller/purchase/purchase_requisition_management_controller.dart`
 
 Migration rule for each file:
 
@@ -437,20 +437,20 @@ Files likely involved:
 
 Tasks:
 
-- [ ] read from cache where appropriate
-- [ ] refresh only changed dataset after successful save
-- [ ] avoid full-page re-fetch when a small refresh is enough
+- [x] read from cache where appropriate
+- [x] refresh only changed dataset after successful save
+- [x] avoid full-page re-fetch when a small refresh is enough
 
 ## Phase 5: Secondary migration wave
 
 These still duplicate master data and should move onto the shared contract:
 
-- [ ] inventory view models
-- [ ] manufacturing view models
-- [ ] service view models
-- [ ] maintenance view models
-- [ ] project controllers
-- [ ] CRM controllers
+- [x] inventory view models
+- [x] manufacturing view models
+- [x] service view models
+- [x] maintenance view models
+- [ ] project controllers (intentionally excluded from this rollout)
+- [x] CRM controllers
 - [ ] dashboard support helpers where shared master data is involved
 
 ## Phase 6: Validation and rollout hardening
@@ -458,7 +458,7 @@ These still duplicate master data and should move onto the shared contract:
 Tasks:
 
 - [x] Run `flutter analyze`
-- [ ] Run `flutter test`
+- [x] Run `flutter test`
 - [ ] Measure API count before and after on target pages
 - [ ] Smoke test create, edit, delete, and reload flows
 - [ ] Smoke test logout/login and user-context change
@@ -585,3 +585,8 @@ Update format:
 - 2026-07-13: Migrated `voucher_management_controller.dart`, `cash_session_management_controller.dart`, `financial_reports_controller.dart`, and `party_account_register_controller.dart` to the shared cache for companies, branches, locations, financial years, document series, and parties where applicable. These screens still fetch vouchers, voucher types, accounts, cash sessions, report payloads, party-account rows, cost centers, departments, and projects directly because those remain accounting-module data or report-specific data rather than shared master datasets.
 - 2026-07-13: Migrated `posting_rule_group_management_controller.dart`, `posting_rule_management_controller.dart`, `voucher_type_management_controller.dart`, `bank_reconciliation_management_controller.dart`, `item_management_controller.dart`, `physical_stock_count_management_controller.dart`, `uom_conversion_management_controller.dart`, `uom_management_controller.dart`, `item_alternate_management_controller.dart`, `gst_registration_management_controller.dart`, and `document_tax_lines_register_management_controller.dart` to the shared cache for document series, accounts, companies, branches, locations, financial years, warehouses, items, UOMs, tax codes, and parties where applicable. These screens still fetch their own editable register rows, stock counts, balances, states, and reconciliation/voucher payloads directly because those remain module data rather than shared reference data.
 - 2026-07-13: `flutter analyze` passes for this work with only pre-existing warnings outside the cache implementation.
+- 2026-07-14: Production hardening bounded the conditional-response cache to 200 entries and approximately 8 MB, added a 10-minute TTL and LRU eviction, stopped retaining raw access tokens in cache keys, and added hit/miss/eviction/expiration diagnostics.
+- 2026-07-14: Session logout, token refresh, access refresh, and working-context changes now clear both master and conditional-response caches. Successful master mutations centrally refresh the smallest safe dependency set; failed refreshes invalidate the complete snapshot.
+- 2026-07-14: Added Flutter cache tests covering validator requirements, TTL, LRU, diagnostics, and clearing. The focused suite passes 5 tests. Full `flutter analyze` reports only three pre-existing warnings outside the cache implementation.
+- 2026-07-14: Backend production hardening added cache hit/miss metrics, structured administrative operation logs, minimum TTL guards, role/permission invalidation, and an optional shared database cache store whose tables are part of `billing-api/install.sql`. The full API suite passes 17 tests with 86 assertions.
+- 2026-07-14: Runtime request traces and environment-specific smoke/load verification remain deployment gates rather than code-completion claims. See `billing-api/doc/CACHE_MANAGEMENT_SYSTEM.md` for the production rollout checklist.

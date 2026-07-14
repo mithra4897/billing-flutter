@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:http/http.dart';
 import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart';
 import '../../screen.dart';
 
 class ApiClient {
@@ -43,8 +44,13 @@ class ApiClient {
         '/masters/financial-years': <String>{'/masters/financial-years'},
         '/masters/document-series': <String>{'/masters/document-series'},
         '/masters/party-types': <String>{'/masters/party-types'},
+        '/masters/parties': <String>{'/masters/parties'},
         ApiEndpoints.uoms: <String>{ApiEndpoints.uoms},
+        ApiEndpoints.uomConversions: <String>{ApiEndpoints.uomConversions},
         ApiEndpoints.taxCodes: <String>{ApiEndpoints.taxCodes},
+        ApiEndpoints.items: <String>{ApiEndpoints.items},
+        ApiEndpoints.accounts: <String>{ApiEndpoints.accounts},
+        '/tax/gst-registrations': <String>{'/tax/gst-registrations'},
       };
 
   Future<ApiResponse<T>> get<T>(
@@ -107,7 +113,7 @@ class ApiClient {
         body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -138,7 +144,7 @@ class ApiClient {
         body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -169,7 +175,7 @@ class ApiClient {
         body: jsonEncode(normalizedBody ?? <String, dynamic>{}),
       ),
     );
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -200,7 +206,7 @@ class ApiClient {
         body: normalizedBody == null ? null : jsonEncode(normalizedBody),
       ),
     );
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -270,7 +276,7 @@ class ApiClient {
     );
     final response = await http.Response.fromStream(streamed);
 
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -346,7 +352,7 @@ class ApiClient {
     );
     final response = await http.Response.fromStream(streamed);
 
-    _invalidateCacheForMutation(endpoint, response.statusCode);
+    await _invalidateCacheForMutation(endpoint, response.statusCode);
     return _parseResponse(
       response,
       fromData: fromData,
@@ -461,8 +467,8 @@ class ApiClient {
     final cachedEntry = ApiCacheStore.read(cacheKey);
     final requestHeaders = Map<String, String>.from(headers);
 
-    if (cachedEntry?.etag != null && cachedEntry!.etag!.isNotEmpty) {
-      requestHeaders['If-None-Match'] = cachedEntry.etag!;
+    if (cachedEntry != null && cachedEntry.etag.isNotEmpty) {
+      requestHeaders['If-None-Match'] = cachedEntry.etag;
     }
 
     final response = await _guardRequest(
@@ -692,16 +698,22 @@ class ApiClient {
 
   String _buildCacheKey(Uri uri, Map<String, String> headers) {
     final authorization = headers['Authorization'] ?? '';
+    final sessionFingerprint = authorization.isEmpty
+        ? 'anonymous'
+        : sha256.convert(utf8.encode(authorization)).toString();
     final companyId = headers['X-Company-Id'] ?? '';
     final branchId = headers['X-Branch-Id'] ?? '';
     final locationId = headers['X-Location-Id'] ?? '';
     final financialYearId = headers['X-Financial-Year-Id'] ?? '';
     final normalizedPath = _normalizePath(uri.path);
     final query = uri.query;
-    return 'GET|$authorization|$companyId|$branchId|$locationId|$financialYearId|$normalizedPath|$query';
+    return 'GET|$sessionFingerprint|$companyId|$branchId|$locationId|$financialYearId|$normalizedPath|$query';
   }
 
-  void _invalidateCacheForMutation(String endpoint, int statusCode) {
+  Future<void> _invalidateCacheForMutation(
+    String endpoint,
+    int statusCode,
+  ) async {
     if (statusCode < 200 || statusCode >= 300) {
       return;
     }
@@ -720,6 +732,25 @@ class ApiClient {
     ApiCacheStore.removeWhere(
       (key, _) => families.any((family) => key.contains('|$family|')),
     );
+
+    if (!Get.isRegistered<MasterDataCache>()) {
+      return;
+    }
+
+    try {
+      await MasterDataCache.to.refreshForMutationPath(path);
+    } catch (error, stackTrace) {
+      // A successful server mutation must never be reported as failed because
+      // a follow-up cache refresh failed. Invalidate so the next reader loads
+      // a complete, authoritative snapshot instead of serving stale data.
+      MasterDataCache.to.invalidate();
+      developer.log(
+        'Master-data cache refresh failed after mutation of $path.',
+        name: 'ApiClient',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   String _normalizePath(String path) {

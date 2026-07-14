@@ -23,6 +23,10 @@ class CacheControlsManagementController extends GetxController {
   int masterCacheRecordCount = 0;
   int apiCacheEntryCount = 0;
   int apiCacheEtagCount = 0;
+  int apiCacheBodyCharacters = 0;
+  int apiCacheHits = 0;
+  int apiCacheMisses = 0;
+  int apiCacheEvictions = 0;
   List<MapEntry<String, int>> masterDatasetCounts = const [];
   List<MapEntry<String, int>> apiFamilyCounts = const [];
   String serverCacheDriver = 'unknown';
@@ -54,6 +58,11 @@ class CacheControlsManagementController extends GetxController {
       masterDatasetCounts = cache.datasetCounts.entries.toList(growable: false);
       apiCacheEntryCount = ApiCacheStore.entryCount;
       apiCacheEtagCount = ApiCacheStore.etagEntryCount;
+      final apiDiagnostics = ApiCacheStore.diagnostics;
+      apiCacheBodyCharacters = apiDiagnostics.bodyCharacters;
+      apiCacheHits = apiDiagnostics.hits;
+      apiCacheMisses = apiDiagnostics.misses;
+      apiCacheEvictions = apiDiagnostics.evictions;
       apiCacheLastStoredAt = ApiCacheStore.lastStoredAt;
       apiFamilyCounts = ApiCacheStore.familyCounts().entries.toList(
         growable: false,
@@ -336,9 +345,24 @@ class CacheControlsManagementController extends GetxController {
   }
 
   String serverGroupStatusLine(Map<String, dynamic> group) {
-    final version = group['version']?.toString() ?? '-';
-    final ttl = group['ttl_seconds']?.toString() ?? '-';
-    return 'Version $version • Refresh window $ttl seconds';
+    final hits = _asInt(group['hits']);
+    final misses = _asInt(group['misses']);
+    final total = hits + misses;
+    final reuseRate = total == 0 ? 0 : ((hits / total) * 100).round();
+    return '$hits reused • $misses rebuilt • $reuseRate% reuse';
+  }
+
+  int _asInt(dynamic value) => int.tryParse(value?.toString() ?? '') ?? 0;
+
+  String get apiCacheReuseLabel {
+    final total = apiCacheHits + apiCacheMisses;
+    final rate = total == 0 ? 0 : ((apiCacheHits / total) * 100).round();
+    return '$rate% (${apiCacheHits.toString()} reused)';
+  }
+
+  String get apiCacheStorageLabel {
+    final kilobytes = apiCacheBodyCharacters / 1024;
+    return '${kilobytes.toStringAsFixed(kilobytes >= 10 ? 0 : 1)} KB of 8 MB • $apiCacheEvictions removed';
   }
 
   String masterCacheStatusLabel() {

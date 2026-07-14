@@ -181,6 +181,11 @@ class WorkingContextService {
       locationId: selection.locationId,
       financialYearId: selection.financialYearId,
     );
+    if (Get.isRegistered<MasterDataCache>()) {
+      MasterDataCache.to.clearAllCaches();
+    } else {
+      ApiCacheStore.clear();
+    }
     version.value++;
   }
 
