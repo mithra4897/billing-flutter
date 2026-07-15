@@ -2501,13 +2501,53 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
   ErpDashboardTrendFilter? trendFilter,
 }) async {
   final service = ProjectService();
-  final projectsResponse = await service.projects(
-    filters: const {'per_page': 100, 'sort_by': 'project_name'},
-  );
+  final responses = await Future.wait<dynamic>([
+    service.projects(
+      filters: const {'per_page': 100, 'sort_by': 'project_name'},
+    ),
+    service.moduleDashboard(),
+  ]);
+  final projectsResponse = responses[0] as PaginatedResponse<ProjectModel>;
+  final moduleDashboard =
+      (responses[1] as ApiResponse<Map<String, dynamic>>).data ??
+      const <String, dynamic>{};
   final projects = projectsResponse.data ?? const <ProjectModel>[];
-  final tasks = projects
+  final allTasks = projects
       .expand((project) => project.tasks)
       .toList(growable: false);
+  final currentUser = await SessionStorage.getCurrentUser();
+  final isSuperAdmin =
+      currentUser?['is_super_admin'] == true ||
+      currentUser?['is_super_admin'] == 1;
+  // Project task visibility is enforced by the API. Avoid filtering a second
+  // time using potentially stale session metadata from an earlier login.
+  final tasks = allTasks;
+  final pendingTasks = tasks
+      .where(
+        (task) => const <String>{
+          'open',
+          'working',
+          'on_hold',
+        }.contains((task.taskStatus ?? 'open').trim().toLowerCase()),
+      )
+      .toList(growable: false);
+  final dashboardRecentTasks =
+      (moduleDashboard['recent_tasks'] as List? ?? const [])
+          .whereType<Map>()
+          .map(
+            (task) =>
+                ProjectTaskModel.fromJson(Map<String, dynamic>.from(task)),
+          )
+          .toList(growable: false);
+  final dashboardAssignedEmployees =
+      (moduleDashboard['assigned_employees'] as List? ?? const [])
+          .whereType<Map>()
+          .map(
+            (employee) =>
+                EmployeeModel.fromJson(Map<String, dynamic>.from(employee)),
+          )
+          .where((employee) => employee.id != null)
+          .toList(growable: false);
   final milestones = projects
       .expand((project) => project.milestones)
       .toList(growable: false);
@@ -2540,41 +2580,92 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
     stats: <ErpDashboardStat>[
       ErpDashboardStat(
         label: 'Projects',
-        value: _formatInt(_totalFromPaginated(projectsResponse)),
+        value: _formatInt(
+          JsonModel.nullableInt(moduleDashboard['project_count']) ??
+              _totalFromPaginated(projectsResponse),
+        ),
         helper: 'Live project count',
         icon: Icons.folder_special_outlined,
+        route: '/projects',
       ),
       ErpDashboardStat(
         label: 'Active Projects',
-        value: _formatInt(activeProjects),
+        value: _formatInt(
+          JsonModel.nullableInt(moduleDashboard['active_project_count']) ??
+              activeProjects,
+        ),
         helper: 'Status-based active view',
         icon: Icons.play_circle_outline,
         color: const Color(0xFF1FA971),
+        route: '/projects?dashboard_filter=active',
       ),
       ErpDashboardStat(
-        label: 'Tasks',
-        value: _formatInt(tasks.length),
-        helper: 'Nested project task records',
+        label: 'Pending Tasks',
+        value: _formatInt(
+          JsonModel.nullableInt(moduleDashboard['pending_task_count']) ??
+              pendingTasks.length,
+        ),
+        helper: isSuperAdmin
+            ? 'Open assigned work across employees'
+            : 'Tasks currently assigned to you',
         icon: Icons.task_alt_outlined,
         color: const Color(0xFF19A7B8),
+        route: '/projects/tasks?dashboard_filter=pending',
       ),
       ErpDashboardStat(
         label: 'Due Milestones',
-        value: _formatInt(dueMilestones),
+        value: _formatInt(
+          JsonModel.nullableInt(moduleDashboard['due_milestone_count']) ??
+              dueMilestones,
+        ),
         helper: 'Milestones due today',
         icon: Icons.flag_outlined,
         color: const Color(0xFFE67E22),
+        route: '/projects/milestones?dashboard_filter=due_today',
       ),
     ],
     primarySections: <ErpDashboardListSection>[
       ErpDashboardListSection(
         title: 'Recent Project Tasks',
-        subtitle:
-            'Live project and task data from the current project service.',
+        subtitle: isSuperAdmin
+            ? 'Recent assigned work across employees.'
+            : 'Recent work assigned to you.',
         icon: Icons.calendar_today_outlined,
-        items: tasks
-            .take(6)
+        filterOptions: const <ErpDashboardListFilterOption>[
+          ErpDashboardListFilterOption(value: '', label: 'All statuses'),
+          ErpDashboardListFilterOption(value: 'pending', label: 'Pending'),
+          ErpDashboardListFilterOption(value: 'open', label: 'Open'),
+          ErpDashboardListFilterOption(value: 'working', label: 'Working'),
+          ErpDashboardListFilterOption(value: 'on_hold', label: 'On hold'),
+          ErpDashboardListFilterOption(value: 'completed', label: 'Completed'),
+          ErpDashboardListFilterOption(value: 'cancelled', label: 'Cancelled'),
+        ],
+        initialFilterValue: 'pending',
+        secondaryFilterOptions: isSuperAdmin
+            ? <ErpDashboardListFilterOption>[
+                const ErpDashboardListFilterOption(
+                  value: '',
+                  label: 'All employees',
+                ),
+                ...dashboardAssignedEmployees.map(
+                  (employee) => ErpDashboardListFilterOption(
+                    value: 'employee:${employee.id}',
+                    label: employee.toString(),
+                  ),
+                ),
+              ]
+            : const <ErpDashboardListFilterOption>[],
+        maxVisibleItems: 6,
+        emptyTitle: 'No matching tasks',
+        emptyMessage: 'No tasks match the selected status and employee.',
+        items: (dashboardRecentTasks.isNotEmpty ? dashboardRecentTasks : tasks)
             .map((task) {
+              final status = (task.taskStatus ?? 'open').trim().toLowerCase();
+              final isPending = const <String>{
+                'open',
+                'working',
+                'on_hold',
+              }.contains(status);
               return ErpDashboardListItem(
                 title: task.taskName ?? task.taskCode ?? 'Task',
                 subtitle: [
@@ -2584,7 +2675,18 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
                 detail: task.plannedEndDate ?? task.plannedStartDate,
                 statusLabel: (task.taskStatus ?? 'open').toUpperCase(),
                 statusColor: appStatusColor(task.taskStatus),
-                route: '/projects/tasks',
+                filterTags: <String>[status, if (isPending) 'pending'],
+                secondaryFilterTags: _projectTaskAssignedEmployeeIds(
+                  task,
+                ).map((id) => 'employee:$id').toList(growable: false),
+                route: Uri(
+                  path: '/projects/tasks',
+                  queryParameters: <String, String>{
+                    if (task.projectId != null)
+                      'project_id': task.projectId.toString(),
+                    if (task.id != null) 'task_id': task.id.toString(),
+                  },
+                ).toString(),
               );
             })
             .toList(growable: false),
@@ -2630,18 +2732,33 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
       entries: <ErpDashboardHighlightEntry>[
         ErpDashboardHighlightEntry(
           label: 'Milestones',
-          value: _formatInt(milestones.length),
+          value: _formatInt(
+            JsonModel.nullableInt(moduleDashboard['milestone_count']) ??
+                milestones.length,
+          ),
           helper: 'All tracked milestones',
+          route: '/projects/milestones',
         ),
         ErpDashboardHighlightEntry(
           label: 'Due today',
-          value: _formatInt(dueMilestones),
+          value: _formatInt(
+            JsonModel.nullableInt(moduleDashboard['due_milestone_count']) ??
+                dueMilestones,
+          ),
           helper: 'Needs immediate review',
           color: const Color(0xFFE67E22),
+          route: '/projects/milestones?dashboard_filter=due_today',
         ),
       ],
     ),
   );
+}
+
+List<int> _projectTaskAssignedEmployeeIds(ProjectTaskModel task) {
+  return <int>{
+    if (task.assignedEmployeeId != null) task.assignedEmployeeId!,
+    ...task.assignedEmployeeIds,
+  }.toList(growable: false);
 }
 
 Future<ErpDashboardSnapshot> _loadMaintenanceDashboard({

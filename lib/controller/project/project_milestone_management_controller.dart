@@ -2,7 +2,12 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectMilestoneManagementController extends GetxController {
-  ProjectMilestoneManagementController({this.constrainedProjectId});
+  ProjectMilestoneManagementController({
+    this.constrainedProjectId,
+    this.initialDashboardFilter = '',
+  });
+
+  final String initialDashboardFilter;
 
   final ProjectService _projectService = ProjectService();
   final MasterService _masterService = MasterService();
@@ -150,7 +155,22 @@ class ProjectMilestoneManagementController extends GetxController {
     List<ProjectMilestoneRow> items,
     String query,
   ) {
-    return filterMasterList(items, query, (row) {
+    var dashboardRows = items;
+    if (initialDashboardFilter.trim() == 'due_today') {
+      final now = DateTime.now();
+      dashboardRows = items
+          .where((row) {
+            final targetDate = DateTime.tryParse(
+              row.milestone.targetDate?.trim() ?? '',
+            );
+            return targetDate != null &&
+                targetDate.year == now.year &&
+                targetDate.month == now.month &&
+                targetDate.day == now.day;
+          })
+          .toList(growable: false);
+    }
+    return filterMasterList(dashboardRows, query, (row) {
       return [
         row.milestone.milestoneName ?? '',
         row.project.projectName ?? '',

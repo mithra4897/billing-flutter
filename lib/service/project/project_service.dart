@@ -70,6 +70,17 @@ class ProjectService extends ErpModuleService {
     );
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> moduleDashboard() {
+    return client.get<Map<String, dynamic>>(
+      '/projects/module-dashboard',
+      fromData: (dynamic json) {
+        if (json is Map<String, dynamic>) return json;
+        if (json is Map) return Map<String, dynamic>.from(json);
+        return <String, dynamic>{};
+      },
+    );
+  }
+
   Future<ApiResponse<ProjectTaskModel>> createTask(
     int projectId,
     ProjectTaskModel task,

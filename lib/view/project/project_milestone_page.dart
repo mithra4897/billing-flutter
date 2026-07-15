@@ -7,12 +7,14 @@ class ProjectMilestoneManagementPage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.constrainedProjectId,
+    this.initialDashboardFilter = '',
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
   });
 
   final bool embedded;
   final int? constrainedProjectId;
+  final String initialDashboardFilter;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
 
@@ -45,6 +47,7 @@ class _ProjectMilestoneManagementPageState
       Get.put(
         ProjectMilestoneManagementController(
           constrainedProjectId: widget.constrainedProjectId,
+          initialDashboardFilter: widget.initialDashboardFilter,
         ),
         tag: _controllerTag,
       );

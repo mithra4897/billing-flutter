@@ -648,7 +648,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/assets/reports':
         return AssetReportsHubPage(key: routeKey, embedded: true);
       case '/projects':
-        return ProjectManagementPage(key: routeKey, embedded: true);
+        return ProjectManagementPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/projects/dashboard':
         return ProjectDashboardPage(key: routeKey, embedded: true);
       case '/projects/tasks':
@@ -656,18 +660,31 @@ class _AppShellPageState extends State<AppShellPage> {
           _currentQueryParameters['project_id'] ?? '',
         );
         final taskId = int.tryParse(_currentQueryParameters['task_id'] ?? '');
+        final dashboardFilter =
+            _currentQueryParameters['dashboard_filter'] ?? '';
         return ProjectTaskManagementPage(
           key: routeKey,
           embedded: true,
           initialProjectId: projectId,
           initialTaskId: taskId,
+          initialDashboardFilter: dashboardFilter,
           controllerScope: <String, Object?>{
             'project_id': projectId,
             'task_id': taskId,
+            'dashboard_filter': dashboardFilter,
           },
         );
       case '/projects/milestones':
-        return ProjectMilestoneManagementPage(key: routeKey, embedded: true);
+        final dashboardFilter =
+            _currentQueryParameters['dashboard_filter'] ?? '';
+        return ProjectMilestoneManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialDashboardFilter: dashboardFilter,
+          controllerScope: <String, Object?>{
+            'dashboard_filter': dashboardFilter,
+          },
+        );
       case '/projects/timesheets':
         return ProjectTimesheetManagementPage(key: routeKey, embedded: true);
       case '/projects/expenses':

@@ -2,7 +2,9 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectManagementController extends GetxController {
-  ProjectManagementController();
+  ProjectManagementController({this.initialDashboardFilter = ''});
+
+  final String initialDashboardFilter;
 
   final ProjectService _projectService = ProjectService();
   final MasterService _masterService = MasterService();
@@ -167,9 +169,17 @@ class ProjectManagementController extends GetxController {
   }
 
   List<ProjectModel> filterProjects(List<ProjectModel> items, String query) {
-    final scoped = contextCompanyId == null
+    var scoped = contextCompanyId == null
         ? items
         : items.where((item) => item.companyId == contextCompanyId).toList();
+    if (initialDashboardFilter.trim() == 'active') {
+      scoped = scoped
+          .where((project) {
+            final status = (project.projectStatus ?? '').trim().toLowerCase();
+            return status == 'open' || status == 'working';
+          })
+          .toList(growable: false);
+    }
     return filterMasterList(scoped, query, (project) {
       return [
         project.projectCode ?? '',

@@ -9,6 +9,7 @@ class ProjectTaskManagementPage extends StatefulWidget {
     this.constrainedProjectId,
     this.initialProjectId,
     this.initialTaskId,
+    this.initialDashboardFilter = '',
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
   });
@@ -17,6 +18,7 @@ class ProjectTaskManagementPage extends StatefulWidget {
   final int? constrainedProjectId;
   final int? initialProjectId;
   final int? initialTaskId;
+  final String initialDashboardFilter;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
 
@@ -32,6 +34,17 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         AppDropdownItem(value: 'working', label: 'Working'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
         AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  static const List<AppDropdownItem<String>> _taskListStatusFilterItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'pending', label: 'Pending'),
+        AppDropdownItem(value: 'all', label: 'All Statuses'),
+        AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'working', label: 'Working'),
+        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'completed', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
@@ -52,6 +65,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
           constrainedProjectId: widget.constrainedProjectId,
           initialProjectId: widget.initialProjectId,
           initialTaskId: widget.initialTaskId,
+          initialDashboardFilter: widget.initialDashboardFilter,
         ),
         tag: _controllerTag,
       );
@@ -119,7 +133,14 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
     }
 
     if (controller.isProjectConstrained) {
-      return _buildConstrainedContent(context, controller);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTaskFilters(controller),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          _buildConstrainedContent(context, controller),
+        ],
+      );
     }
 
     final selectedRow = controller.selectedRow;
@@ -130,24 +151,54 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
           ? null
           : (selectedRow.task.taskName ?? selectedRow.task.taskCode),
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectTaskRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search tasks',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No tasks found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: row.task.taskName ?? 'Task',
-          subtitle: [
-            row.task.taskCode ?? '',
-            row.project.projectName ?? '',
-            row.task.taskStatus ?? '',
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
-        ),
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTaskFilters(controller),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          SettingsListCard<ProjectTaskRow>(
+            searchController: controller.searchController,
+            searchHint: 'Search tasks',
+            items: controller.filteredRows,
+            selectedItem: controller.selectedRow,
+            emptyMessage: 'No tasks match the selected filters.',
+            itemBuilder: (row, selected) => SettingsListTile(
+              title: row.task.taskName ?? 'Task',
+              subtitle: [
+                row.task.taskCode ?? '',
+                row.project.projectName ?? '',
+                row.task.taskStatus ?? '',
+              ].where((item) => item.isNotEmpty).join(' • '),
+              selected: selected,
+              onTap: () => controller.selectRow(row),
+            ),
+          ),
+        ],
       ),
       editorBuilder: (_) => _buildEditorForm(context, controller),
+    );
+  }
+
+  Widget _buildTaskFilters(ProjectTaskManagementController controller) {
+    return AppSectionCard(
+      child: SettingsFormWrap(
+        children: [
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Task status',
+            mappedItems: _taskListStatusFilterItems,
+            initialValue: controller.listStatusFilter,
+            onChanged: controller.setListStatusFilter,
+          ),
+          if (controller.isSuperAdmin)
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Assigned employees',
+              mappedItems: controller.assignedEmployeeFilterItems,
+              multiInitialValues: controller.filterEmployeeIds,
+              multiHintText: 'All assigned employees',
+              onMultiChanged: controller.setFilterEmployeeIds,
+            ),
+        ],
+      ),
     );
   }
 

@@ -7,11 +7,13 @@ class ProjectManagementPage extends StatefulWidget {
     this.embedded = false,
     this.initialTabIndex = 0,
     this.showOnlyTabIndex,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final int initialTabIndex;
   final int? showOnlyTabIndex;
+  final Map<String, String> queryParameters;
 
   @override
   State<ProjectManagementPage> createState() => _ProjectManagementPageState();
@@ -94,9 +96,17 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('ProjectManagementController');
+    final dashboardFilter = (widget.queryParameters['dashboard_filter'] ?? '')
+        .trim();
+    _controllerTag = persistentControllerTag(
+      'ProjectManagementController',
+      scope: <String, Object?>{'dashboard_filter': dashboardFilter},
+    );
     if (!Get.isRegistered<ProjectManagementController>(tag: _controllerTag)) {
-      Get.put(ProjectManagementController(), tag: _controllerTag);
+      Get.put(
+        ProjectManagementController(initialDashboardFilter: dashboardFilter),
+        tag: _controllerTag,
+      );
     }
 
     final tabs = _visibleTabs;

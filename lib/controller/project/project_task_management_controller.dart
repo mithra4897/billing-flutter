@@ -6,6 +6,7 @@ class ProjectTaskManagementController extends GetxController {
     this.constrainedProjectId,
     this.initialProjectId,
     this.initialTaskId,
+    this.initialDashboardFilter = '',
   });
 
   final ProjectService _projectService = ProjectService();
@@ -50,11 +51,15 @@ class ProjectTaskManagementController extends GetxController {
   int? constrainedProjectId;
   final int? initialProjectId;
   final int? initialTaskId;
+  final String initialDashboardFilter;
   int? projectId;
   int? assignedEmployeeId;
   Set<int> assignedEmployeeIds = <int>{};
   String taskStatus = 'open';
   bool isBillable = true;
+  bool isSuperAdmin = false;
+  String listStatusFilter = 'pending';
+  Set<int> filterEmployeeIds = <int>{};
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<EmployeeModel> employees = const <EmployeeModel>[];
@@ -121,6 +126,7 @@ class ProjectTaskManagementController extends GetxController {
     update();
     try {
       final permissionCodes = await SessionStorage.getPermissionCodes();
+      final currentUser = await SessionStorage.getCurrentUser();
       final responses = await Future.wait<dynamic>([
         _refreshController.projects(loader: _projectService.projects),
         _hrService.employees(
@@ -138,6 +144,10 @@ class ProjectTaskManagementController extends GetxController {
       final companies =
           (responses[2] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
+
+      isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1;
 
       final activeCompanies = companies.where((item) => item.isActive).toList();
       final contextSelection = await WorkingContextService.instance
@@ -219,7 +229,40 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   List<ProjectTaskRow> filterRows(List<ProjectTaskRow> items, String query) {
-    return filterMasterList(items, query, (row) {
+    var visibleRows = items
+        .where((row) {
+          if (!isSuperAdmin) {
+            return true;
+          }
+          if (filterEmployeeIds.isEmpty) {
+            return true;
+          }
+          return filterEmployeeIds.any(
+            (employeeId) => _isAssignedTo(row.task, employeeId),
+          );
+        })
+        .toList(growable: false);
+
+    final statusFilter = listStatusFilter;
+    visibleRows = visibleRows
+        .where((row) {
+          if (initialTaskId != null && row.task.id == initialTaskId) {
+            return true;
+          }
+          final status = (row.task.taskStatus ?? 'open').trim().toLowerCase();
+          if (statusFilter == 'all') return true;
+          if (statusFilter == 'pending') {
+            return const <String>{
+              'open',
+              'working',
+              'on_hold',
+            }.contains(status);
+          }
+          return status == statusFilter;
+        })
+        .toList(growable: false);
+
+    return filterMasterList(visibleRows, query, (row) {
       return [
         row.task.taskCode ?? '',
         row.task.taskName ?? '',
@@ -434,6 +477,55 @@ class ProjectTaskManagementController extends GetxController {
       )
       .where((item) => item.value != 0)
       .toList(growable: false);
+
+  List<AppDropdownItem<int>> get assignedEmployeeFilterItems {
+    final assignedIds = rows
+        .expand((row) => _assignedEmployeeIds(row.task))
+        .toSet();
+    return employees
+        .where(
+          (employee) =>
+              employee.id != null && assignedIds.contains(employee.id),
+        )
+        .map(
+          (employee) => AppDropdownItem<int>(
+            value: employee.id!,
+            label: employee.toString(),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  void setFilterEmployeeIds(Set<int> values) {
+    filterEmployeeIds = Set<int>.from(values);
+    filteredRows = filterRows(rows, searchController.text);
+    if (selectedRow != null && !filteredRows.contains(selectedRow)) {
+      selectedRow = null;
+    }
+    update();
+  }
+
+  void setListStatusFilter(String? value) {
+    listStatusFilter = value ?? 'pending';
+    filteredRows = filterRows(rows, searchController.text);
+    if (selectedRow != null && !filteredRows.contains(selectedRow)) {
+      selectedRow = null;
+    }
+    update();
+  }
+
+  List<int> _assignedEmployeeIds(ProjectTaskModel task) {
+    if (task.assignedEmployeeIds.isNotEmpty) {
+      return task.assignedEmployeeIds;
+    }
+    return task.assignedEmployeeId == null
+        ? const <int>[]
+        : <int>[task.assignedEmployeeId!];
+  }
+
+  bool _isAssignedTo(ProjectTaskModel task, int employeeId) {
+    return _assignedEmployeeIds(task).contains(employeeId);
+  }
 
   String employeeName(int? id) {
     return employees

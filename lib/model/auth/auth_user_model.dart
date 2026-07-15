@@ -7,6 +7,7 @@ class AuthUserModel extends JsonModel {
     this.displayName,
     this.email,
     this.mobile,
+    this.employeeId,
     this.profilePhotoPath,
     this.isActive = true,
     this.isSuperAdmin = false,
@@ -15,6 +16,7 @@ class AuthUserModel extends JsonModel {
   final String? displayName;
   final String? email;
   final String? mobile;
+  final int? employeeId;
   final String? profilePhotoPath;
   final bool isActive;
   final bool isSuperAdmin;
@@ -26,6 +28,7 @@ class AuthUserModel extends JsonModel {
       displayName: json['display_name']?.toString(),
       email: json['email']?.toString(),
       mobile: json['mobile']?.toString(),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       profilePhotoPath: json['profile_photo_path']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
       isSuperAdmin:
@@ -43,6 +46,7 @@ class AuthUserModel extends JsonModel {
       'display_name': displayName,
       'email': email,
       'mobile': mobile,
+      'employee_id': employeeId,
       'profile_photo_path': profilePhotoPath,
       'is_active': isActive,
       'is_super_admin': isSuperAdmin,

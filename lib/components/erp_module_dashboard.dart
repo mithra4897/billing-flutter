@@ -92,6 +92,9 @@ class ErpDashboardListSection {
     this.items = const <ErpDashboardListItem>[],
     this.filterOptions = const <ErpDashboardListFilterOption>[],
     this.initialFilterValue = '',
+    this.secondaryFilterOptions = const <ErpDashboardListFilterOption>[],
+    this.initialSecondaryFilterValue = '',
+    this.maxVisibleItems,
     this.emptyTitle = 'No records yet',
     this.emptyMessage = 'This section will populate when activity starts.',
   });
@@ -102,6 +105,9 @@ class ErpDashboardListSection {
   final List<ErpDashboardListItem> items;
   final List<ErpDashboardListFilterOption> filterOptions;
   final String initialFilterValue;
+  final List<ErpDashboardListFilterOption> secondaryFilterOptions;
+  final String initialSecondaryFilterValue;
+  final int? maxVisibleItems;
   final String emptyTitle;
   final String emptyMessage;
 }
@@ -125,6 +131,7 @@ class ErpDashboardListItem {
     this.statusColor,
     this.route,
     this.filterTags = const <String>[],
+    this.secondaryFilterTags = const <String>[],
   });
 
   final String title;
@@ -134,6 +141,7 @@ class ErpDashboardListItem {
   final Color? statusColor;
   final String? route;
   final List<String> filterTags;
+  final List<String> secondaryFilterTags;
 }
 
 class ErpDashboardTrendCardData {
@@ -668,6 +676,7 @@ class _DashboardListCard extends StatefulWidget {
 
 class _DashboardListCardState extends State<_DashboardListCard> {
   late String _selectedFilter;
+  late String _selectedSecondaryFilter;
 
   ErpDashboardListSection get section => widget.section;
 
@@ -675,26 +684,42 @@ class _DashboardListCardState extends State<_DashboardListCard> {
   void initState() {
     super.initState();
     _selectedFilter = section.initialFilterValue;
+    _selectedSecondaryFilter = section.initialSecondaryFilterValue;
   }
 
   @override
   void didUpdateWidget(covariant _DashboardListCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.section.initialFilterValue != section.initialFilterValue ||
-        !listEquals(oldWidget.section.filterOptions, section.filterOptions)) {
+        !listEquals(oldWidget.section.filterOptions, section.filterOptions) ||
+        oldWidget.section.initialSecondaryFilterValue !=
+            section.initialSecondaryFilterValue ||
+        !listEquals(
+          oldWidget.section.secondaryFilterOptions,
+          section.secondaryFilterOptions,
+        )) {
       _selectedFilter = section.initialFilterValue;
+      _selectedSecondaryFilter = section.initialSecondaryFilterValue;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final items = section.items
+    final filteredItems = section.items
         .where((item) {
-          if (_selectedFilter.trim().isEmpty) {
-            return true;
+          if (_selectedFilter.trim().isNotEmpty &&
+              !item.filterTags.contains(_selectedFilter)) {
+            return false;
           }
-          return item.filterTags.contains(_selectedFilter);
+          if (_selectedSecondaryFilter.trim().isNotEmpty &&
+              !item.secondaryFilterTags.contains(_selectedSecondaryFilter)) {
+            return false;
+          }
+          return true;
         })
+        .toList(growable: false);
+    final items = filteredItems
+        .take(section.maxVisibleItems ?? filteredItems.length)
         .toList(growable: false);
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
@@ -706,16 +731,35 @@ class _DashboardListCardState extends State<_DashboardListCard> {
             title: section.title,
             subtitle: section.subtitle,
             icon: section.icon,
-            trailing: section.filterOptions.isEmpty
+            trailing:
+                section.filterOptions.isEmpty &&
+                    section.secondaryFilterOptions.isEmpty
                 ? null
-                : _DashboardListFilterDropdown(
-                    options: section.filterOptions,
-                    value: _selectedFilter,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedFilter = value;
-                      });
-                    },
+                : Wrap(
+                    spacing: AppUiConstants.spacingXs,
+                    runSpacing: AppUiConstants.spacingXs,
+                    children: [
+                      if (section.filterOptions.isNotEmpty)
+                        _DashboardListFilterDropdown(
+                          options: section.filterOptions,
+                          value: _selectedFilter,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedFilter = value;
+                            });
+                          },
+                        ),
+                      if (section.secondaryFilterOptions.isNotEmpty)
+                        _DashboardListFilterDropdown(
+                          options: section.secondaryFilterOptions,
+                          value: _selectedSecondaryFilter,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSecondaryFilter = value;
+                            });
+                          },
+                        ),
+                    ],
                   ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
