@@ -1202,7 +1202,11 @@ SalesLineTaxBreakdown computeSalesLineTaxBreakdown({
   final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
   final discountAmount = roundToDouble((gross * clampedDiscount) / 100, 2);
   final taxable = roundToDouble(gross - discountAmount, 2);
-  var resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
+  var resolvedTaxPercent =
+      (taxPercent != null && taxPercent > 0
+              ? taxPercent
+              : taxCode?.taxRate ?? 0)
+          .toDouble();
   final resolvedTaxType =
       (taxType ??
               taxCode?.taxType ??

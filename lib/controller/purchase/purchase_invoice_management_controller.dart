@@ -321,7 +321,7 @@ class PurchaseInvoiceManagementController extends GetxController {
               rate: 0,
             ),
           ]
-        : full.lines;
+        : full.lines.map(_normalizeLineTaxRate).toList(growable: false);
     isActive = full.isActive;
     formError = null;
     unawaited(ensureSupplierPrintContext(supplierPartyId));
@@ -536,21 +536,25 @@ class PurchaseInvoiceManagementController extends GetxController {
     final printLines = lines
         .where((line) => line.itemId > 0)
         .map((line) {
-          final qty = line.invoicedQty;
-          final rate = line.rate;
-          final discount = line.discountPercent ?? 0;
-          final taxCode = purchaseTaxCodeById(taxCodes, line.taxCodeId);
+          final normalizedLine = _normalizeLineTaxRate(line);
+          final qty = normalizedLine.invoicedQty;
+          final rate = normalizedLine.rate;
+          final discount = normalizedLine.discountPercent ?? 0;
+          final taxCode = purchaseTaxCodeById(
+            taxCodes,
+            normalizedLine.taxCodeId,
+          );
           final breakdown = computePurchaseLineTaxBreakdown(
             qty: qty,
             rate: rate,
             discountPercent: discount,
             taxCode: taxCode,
             isInterState: isInterStateForSummary(),
-            taxPercent: line.taxPercent,
-            taxType: line.taxType,
+            taxPercent: normalizedLine.taxPercent,
+            taxType: normalizedLine.taxType,
           );
-          final taxPercent = (line.taxPercent ?? taxCode?.taxRate ?? 0)
-              .toDouble();
+          final taxPercent =
+              (normalizedLine.taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
           subtotal += breakdown.gross;
           taxAmount += breakdown.total - breakdown.taxable;
           accumulatePrintTemplateGstBreakup(
@@ -680,15 +684,31 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseInvoiceLineModel line) {
+    final normalizedLine = _normalizeLineTaxRate(line);
     return computePurchaseLineTaxBreakdown(
-      qty: line.invoicedQty,
-      rate: line.rate,
-      discountPercent: line.discountPercent ?? 0,
-      taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
+      qty: normalizedLine.invoicedQty,
+      rate: normalizedLine.rate,
+      discountPercent: normalizedLine.discountPercent ?? 0,
+      taxCode: purchaseTaxCodeById(taxCodes, normalizedLine.taxCodeId),
       isInterState: isInterStateForSummary(),
-      taxPercent: line.taxPercent,
-      taxType: line.taxType,
+      taxPercent: normalizedLine.taxPercent,
+      taxType: normalizedLine.taxType,
     );
+  }
+
+  /// Older purchase invoices may have been saved with a zero tax percentage
+  /// even though a positive-rate tax code (for example, GST 18%) is selected.
+  /// Treat the selected code as authoritative in that case so the summary and
+  /// the next update use the actual GST rate.
+  PurchaseInvoiceLineModel _normalizeLineTaxRate(
+    PurchaseInvoiceLineModel line,
+  ) {
+    final taxCode = purchaseTaxCodeById(taxCodes, line.taxCodeId);
+    final codeRate = taxCode?.taxRate ?? 0;
+    if (codeRate <= 0 || (line.taxPercent ?? 0) > 0) {
+      return line;
+    }
+    return line.copyWith(taxPercent: codeRate);
   }
 
   PurchaseDocumentTaxSummary _baseInvoiceTaxSummary() {
@@ -1285,8 +1305,17 @@ class PurchaseInvoiceManagementController extends GetxController {
             invoicedQty: line.invoicedQty > 0 ? line.invoicedQty : 1,
           )
         : line;
+    final taxCodeChanged = lines[index].taxCodeId != normalizedLine.taxCodeId;
+    final selectedTaxCode = purchaseTaxCodeById(
+      taxCodes,
+      normalizedLine.taxCodeId,
+    );
+    final lineWithTaxRate =
+        taxCodeChanged && (selectedTaxCode?.taxRate ?? 0) > 0
+        ? normalizedLine.copyWith(taxPercent: selectedTaxCode!.taxRate)
+        : _normalizeLineTaxRate(normalizedLine);
     final next = List<PurchaseInvoiceLineModel>.from(lines);
-    next[index] = normalizedLine;
+    next[index] = lineWithTaxRate;
     lines = next;
     refreshComputedState();
   }
@@ -1391,7 +1420,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       isActive: isActive,
       lines: lines
           .map(
-            (line) => line.copyWith(
+            (line) => _normalizeLineTaxRate(line).copyWith(
               warehouseId: lineUsesInventory(line.itemId)
                   ? line.warehouseId
                   : null,
