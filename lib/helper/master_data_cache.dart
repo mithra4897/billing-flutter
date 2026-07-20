@@ -233,6 +233,46 @@ class MasterDataCache extends GetxController {
     _markRefreshed();
   }
 
+  void applyMutationResult(Object? model) {
+    if (!isEnabled || !isLoaded || model is! JsonModel || model.id == null) {
+      return;
+    }
+
+    switch (model) {
+      case CompanyModel():
+        companies = _upsertModel(companies, model);
+      case BranchModel():
+        branches = _upsertModel(branches, model);
+      case BusinessLocationModel():
+        locations = _upsertModel(locations, model);
+      case FinancialYearModel():
+        financialYears = _upsertModel(financialYears, model);
+      case DocumentSeriesModel():
+        documentSeries = _upsertModel(documentSeries, model);
+      case WarehouseModel():
+        warehouses = _upsertModel(warehouses, model);
+      case PartyModel():
+        parties = _upsertModel(parties, model);
+      case PartyTypeModel():
+        partyTypes = _upsertModel(partyTypes, model);
+      case ItemModel():
+        items = _upsertModel(items, model);
+      case UomModel():
+        uoms = _upsertModel(uoms, model);
+      case UomConversionModel():
+        uomConversions = _upsertModel(uomConversions, model);
+      case TaxCodeModel():
+        taxCodes = _upsertModel(taxCodes, model);
+      case AccountModel():
+        accounts = _upsertModel(accounts, model);
+      case GstRegistrationModel():
+        gstRegistrations = _upsertModel(gstRegistrations, model);
+      default:
+        return;
+    }
+    _markRefreshed();
+  }
+
   Future<void> refreshPartyTypes() async {
     partyTypes = await _loadPartyTypes();
     _markRefreshed();
@@ -267,6 +307,7 @@ class MasterDataCache extends GetxController {
     gstRegistrations = await _loadGstRegistrations();
     _markRefreshed();
   }
+
   Future<void> refreshForMutationPath(String path) async {
     if (!isEnabled) {
       return;
@@ -520,6 +561,22 @@ class MasterDataCache extends GetxController {
 
   static List<T> _active<T>(List<T> items) {
     return items.where((item) => _isActive(item)).toList(growable: false);
+  }
+
+  static List<T> _upsertModel<T extends JsonModel>(List<T> items, T model) {
+    final nextItems = List<T>.from(items);
+    final existingIndex = nextItems.indexWhere((item) => item.id == model.id);
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = model;
+    } else {
+      nextItems.add(model);
+    }
+    nextItems.sort(
+      (left, right) => left.toString().trim().toLowerCase().compareTo(
+        right.toString().trim().toLowerCase(),
+      ),
+    );
+    return List<T>.unmodifiable(nextItems);
   }
 
   static bool _isActive(Object? value) {

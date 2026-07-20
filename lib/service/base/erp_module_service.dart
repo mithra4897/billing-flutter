@@ -54,48 +54,63 @@ class ErpModuleService {
     String endpoint,
     dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
-  }) {
-    return client.post<T>(
+  }) async {
+    final response = await client.post<T>(
       endpoint,
       body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
+    _applyCachedMutation(response.data);
+    return response;
   }
 
   Future<ApiResponse<T>> updateModel<T>(
     String endpoint,
     dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
-  }) {
-    return client.put<T>(
+  }) async {
+    final response = await client.put<T>(
       endpoint,
       body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
+    _applyCachedMutation(response.data);
+    return response;
   }
 
   Future<ApiResponse<T>> patchModel<T>(
     String endpoint,
     dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
-  }) {
-    return client.patch<T>(
+  }) async {
+    final response = await client.patch<T>(
       endpoint,
       body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
+    _applyCachedMutation(response.data);
+    return response;
   }
 
   Future<ApiResponse<T>> actionModel<T>(
     String endpoint, {
     dynamic body,
     required T Function(Map<String, dynamic> json) fromJson,
-  }) {
-    return client.post<T>(
+  }) async {
+    final response = await client.post<T>(
       endpoint,
       body: body == null ? null : _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
+    _applyCachedMutation(response.data);
+    return response;
+  }
+
+  void _applyCachedMutation(Object? model) {
+    if (!Get.isRegistered<MasterDataCache>()) {
+      return;
+    }
+    MasterDataCache.to.applyMutationResult(model);
   }
 
   Future<PaginatedResponse<ErpRecordModel>> index(
