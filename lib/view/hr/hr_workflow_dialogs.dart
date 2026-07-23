@@ -1434,6 +1434,7 @@ Future<void> openPayrollRunEditor(
   final monthCtrl = TextEditingController();
   final yearCtrl = TextEditingController();
   final runDateCtrl = TextEditingController();
+  var useAttendance = true;
   String? loadError;
   String? formError;
 
@@ -1445,6 +1446,7 @@ Future<void> openPayrollRunEditor(
         monthCtrl.text = stringValue(d, 'payroll_month');
         yearCtrl.text = stringValue(d, 'payroll_year');
         runDateCtrl.text = displayDate(nullableStringValue(d, 'run_date'));
+        useAttendance = JsonModel.boolOf(d['use_attendance'] ?? true);
       } else {
         loadError = detail.message;
       }
@@ -1503,6 +1505,7 @@ Future<void> openPayrollRunEditor(
                       controller: monthCtrl,
                       labelText: 'Payroll month (1–12)',
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: Validators.compose([
                         Validators.required('Month'),
                         (v) {
@@ -1518,6 +1521,7 @@ Future<void> openPayrollRunEditor(
                       controller: yearCtrl,
                       labelText: 'Payroll year',
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: Validators.compose([
                         Validators.required('Year'),
                         (v) {
@@ -1539,6 +1543,19 @@ Future<void> openPayrollRunEditor(
                         Validators.date('Run date'),
                       ]),
                     ),
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                    AppSwitchTile(
+                      label: 'Calculate using attendance',
+                      value: useAttendance,
+                      onChanged: (value) =>
+                          setDialogState(() => useAttendance = value),
+                    ),
+                    Text(
+                      useAttendance
+                          ? 'Attendance and approved loss-of-pay leave are included.'
+                          : 'Full salary is calculated without attendance or loss-of-pay deductions.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -1558,6 +1575,7 @@ Future<void> openPayrollRunEditor(
                     'payroll_month': int.parse(monthCtrl.text.trim()),
                     'payroll_year': int.parse(yearCtrl.text.trim()),
                     'run_date': runDateCtrl.text.trim(),
+                    'use_attendance': useAttendance,
                     'status': 'draft',
                   });
                   setDialogState(() => formError = null);
@@ -1658,6 +1676,10 @@ Future<void> showPayrollRunDetailDialog(
                             label: 'Lines',
                             value: (run.linesCount ?? lineRows.length)
                                 .toString(),
+                          ),
+                          _HrInfoChip(
+                            label: 'Attendance',
+                            value: run.useAttendance == false ? 'No' : 'Yes',
                           ),
                           if (run.voucherId != null)
                             _HrInfoChip(

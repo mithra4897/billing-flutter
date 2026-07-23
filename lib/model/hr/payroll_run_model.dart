@@ -7,6 +7,7 @@ class PayrollRunModel extends JsonModel {
     this.payrollMonth,
     this.payrollYear,
     this.runDate,
+    this.useAttendance,
     this.status,
     this.voucherId,
     this.createdBy,
@@ -23,6 +24,7 @@ class PayrollRunModel extends JsonModel {
   final String? payrollMonth;
   final String? payrollYear;
   final String? runDate;
+  final bool? useAttendance;
   final String? status;
   final int? voucherId;
   final int? createdBy;
@@ -56,6 +58,9 @@ class PayrollRunModel extends JsonModel {
       payrollMonth: json['payroll_month']?.toString(),
       payrollYear: json['payroll_year']?.toString(),
       runDate: json['run_date']?.toString(),
+      useAttendance: json['use_attendance'] == null
+          ? null
+          : JsonModel.boolOf(json['use_attendance']),
       status: json['status']?.toString(),
       voucherId: JsonModel.nullableInt(json['voucher_id'] ?? voucher['id']),
       createdBy: JsonModel.nullableInt(json['created_by']),
@@ -70,8 +75,10 @@ class PayrollRunModel extends JsonModel {
     );
   }
   @override
-  String toString() =>
-      JsonModel.combineValues([periodLabel, runDate], defaultValue: 'Payroll Run');
+  String toString() => JsonModel.combineValues([
+    periodLabel,
+    runDate,
+  ], defaultValue: 'Payroll Run');
 
   @override
   Map<String, dynamic> toJson() => {
@@ -80,6 +87,7 @@ class PayrollRunModel extends JsonModel {
     if (payrollMonth != null) 'payroll_month': payrollMonth,
     if (payrollYear != null) 'payroll_year': payrollYear,
     if (runDate != null) 'run_date': runDate,
+    if (useAttendance != null) 'use_attendance': useAttendance,
     if (status != null) 'status': status,
     if (voucherId != null) 'voucher_id': voucherId,
     if (createdBy != null) 'created_by': createdBy,

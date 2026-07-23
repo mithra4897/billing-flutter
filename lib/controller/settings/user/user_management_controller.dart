@@ -896,8 +896,11 @@ class UserManagementController extends GetxController {
 
   bool selectedRoleImpliesSuperAdmin() {
     final role = roles.where((item) => item.id == selectedRoleId).firstOrNull;
-    final tokens = '${role?.code ?? ''} ${role?.name ?? ''}'.toLowerCase();
-    return tokens.contains('superadmin') || tokens.contains('super admin');
+    final normalizedCode = (role?.code ?? '').trim().toUpperCase().replaceAll(
+      RegExp(r'[^A-Z0-9]'),
+      '',
+    );
+    return normalizedCode == 'SUPERADMIN';
   }
 
   List<UserPermissionModel> mergePermissionSet(

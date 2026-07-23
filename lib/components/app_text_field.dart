@@ -70,7 +70,9 @@ class _AppTextFieldState extends State<AppTextField> {
     if (_looksLikeAmountField || probe.contains('total')) {
       return AppNumericDisplayKind.amount;
     }
-    return _isNumericField ? AppNumericDisplayKind.generic : null;
+    return _isNumericField && widget.keyboardType?.decimal == true
+        ? AppNumericDisplayKind.generic
+        : null;
   }
 
   AppNumericDisplayKind? get _effectiveNumericDisplayKind =>

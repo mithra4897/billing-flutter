@@ -136,7 +136,9 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     if (_looksLikeAmountField || probe.contains('total')) {
       return AppNumericDisplayKind.amount;
     }
-    return _isNumericField ? AppNumericDisplayKind.generic : null;
+    return _isNumericField && widget.keyboardType?.decimal == true
+        ? AppNumericDisplayKind.generic
+        : null;
   }
 
   AppNumericDisplayKind? get _effectiveNumericDisplayKind =>
@@ -221,7 +223,9 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
   void _applyPendingDisplayValue() {
     final controller = _displayController;
     final nextValue = _pendingDisplayValue;
-    if (controller == null || nextValue == null || controller.text == nextValue) {
+    if (controller == null ||
+        nextValue == null ||
+        controller.text == nextValue) {
       _pendingDisplayValue = null;
       return;
     }
