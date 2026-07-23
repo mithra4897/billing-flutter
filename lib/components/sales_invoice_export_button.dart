@@ -14,6 +14,11 @@ class SalesInvoiceExportButton extends StatefulWidget {
 }
 
 class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
+  static final RegExp _gstinPattern = RegExp(
+    r'\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[A-Z0-9]\b',
+    caseSensitive: false,
+  );
+
   static const List<String> _headers = <String>[
     '',
     'Date',
@@ -202,7 +207,12 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
 
   List<List<_ExcelCell>> _buildInvoiceRows(Map<String, dynamic> invoice) {
     final customer = _asMap(invoice['customer']);
+    final directCustomerDetails = nullableStringValue(
+      invoice,
+      'direct_customer_details',
+    );
     final customerName = _firstNonEmpty(<String?>[
+      _formatDirectCustomerDetails(directCustomerDetails),
       stringValue(customer, 'party_name'),
       nullableStringValue(invoice, 'customer_name'),
     ]);
@@ -377,7 +387,22 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       nullableStringValue(customer, 'party_gstin'),
       nullableStringValue(customer, 'gst_no'),
       nullableStringValue(customer, 'customer_gstin'),
+      _gstinFromDirectCustomerDetails(
+        nullableStringValue(invoice, 'direct_customer_details'),
+      ),
     ]).toUpperCase();
+  }
+
+  String _formatDirectCustomerDetails(String? details) {
+    final value = details?.trim() ?? '';
+    if (value.isEmpty) {
+      return '';
+    }
+    return formatDirectCustomerDetailsLines(value).firstOrNull?.trim() ?? '';
+  }
+
+  String _gstinFromDirectCustomerDetails(String? details) {
+    return _gstinPattern.firstMatch(details ?? '')?.group(0)?.trim() ?? '';
   }
 
   String _resolveCustomerState(
