@@ -37,6 +37,28 @@ Future<void> openDocumentPrintDesigner(
   );
 }
 
+Future<Uint8List?> generateDocumentPrintPdf(
+  BuildContext context, {
+  required String documentType,
+  required String title,
+  required DocumentPrintDataModel documentData,
+}) {
+  return Navigator.of(context, rootNavigator: true).push<Uint8List>(
+    MaterialPageRoute<Uint8List>(
+      fullscreenDialog: true,
+      builder: (_) => DocumentPrintDesignerPage(
+        documentType: documentType,
+        title: title,
+        documentData: documentData,
+        allowPrint: false,
+        allowDownload: false,
+        allowTemplateEditing: false,
+        generateOnly: true,
+      ),
+    ),
+  );
+}
+
 class _DocumentPrintDesignerController extends GetxController {
   DocumentPrintTemplate? template;
   String? selectedShapeId;
@@ -165,6 +187,7 @@ class DocumentPrintDesignerPage extends StatefulWidget {
     this.allowTemplateEditing = true,
     this.pdfActionLabel,
     this.onPdfReady,
+    this.generateOnly = false,
   });
 
   final String documentType;
@@ -175,6 +198,7 @@ class DocumentPrintDesignerPage extends StatefulWidget {
   final bool allowTemplateEditing;
   final String? pdfActionLabel;
   final Future<void> Function(Uint8List pdfBytes)? onPdfReady;
+  final bool generateOnly;
 
   @override
   State<DocumentPrintDesignerPage> createState() =>
@@ -195,6 +219,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   Future<pw.Font>? _pdfUnicodeFallbackFont;
   late final String _controllerTag;
   late final _DocumentPrintDesignerController _controller;
+  bool _generateOnlyStarted = false;
 
   DocumentPrintTemplate? get _template => _controller.template;
   set _template(DocumentPrintTemplate? value) => _controller.template = value;
@@ -273,6 +298,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           _clearHistory();
           _loading = false;
         });
+        _scheduleGenerateOnly();
       } else {
         _controller.updateState(() {
           _template = _prepareTemplate(
@@ -284,6 +310,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           _clearHistory();
           _loading = false;
         });
+        _scheduleGenerateOnly();
       }
     } catch (e) {
       if (!mounted) {
@@ -299,7 +326,32 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         _clearHistory();
         _loading = false;
       });
+      _scheduleGenerateOnly();
     }
+  }
+
+  void _scheduleGenerateOnly() {
+    if (!widget.generateOnly || _generateOnlyStarted) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _generateOnlyStarted) {
+        return;
+      }
+      _generateOnlyStarted = true;
+      try {
+        final bytes = await _buildPdfBytes();
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pop(bytes);
+      } catch (error) {
+        debugPrint('Designed PDF generation failed: $error');
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }
+    });
   }
 
   DocumentPrintTemplate _cloneTemplate(DocumentPrintTemplate template) {
@@ -1102,6 +1154,36 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.generateOnly) {
+      return GetBuilder<_DocumentPrintDesignerController>(
+        tag: _controllerTag,
+        builder: (_) => Scaffold(
+          body: Stack(
+            children: [
+              // Keep the real designed page mounted and painted so automatic
+              // delivery has the same high-resolution capture fallback used
+              // by Download PDF and Email PDF in the visible preview.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Opacity(opacity: 0.01, child: _buildContent()),
+                ),
+              ),
+              const Positioned.fill(child: ColoredBox(color: Colors.white)),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text('Preparing ${widget.title} PDF...'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return GetBuilder<_DocumentPrintDesignerController>(
       tag: _controllerTag,
       builder: (_) => AppStandaloneShell(
@@ -2504,7 +2586,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   Future<pw.Font> _loadPdfUnicodeFallbackFont() {
     return _pdfUnicodeFallbackFont ??= _loadPdfFontAsset(
-      'assets/fonts/Arial Unicode.ttf',
+      'assets/fonts/ArialUnicode.ttf',
     );
   }
 
@@ -2872,7 +2954,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     var currentTop = headerHeight;
-    for (final row in visibleRows) {
+    for (var rowIndex = 0; rowIndex < visibleRows.length; rowIndex++) {
+      final row = visibleRows[rowIndex];
       final rowHeight = measurePrintTableRowHeight(
         row,
         columns,
@@ -2903,14 +2986,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         ),
       );
       currentTop += rowHeight;
-      children.add(
-        _buildPdfHorizontalRule(
-          top: currentTop,
-          width: shape.width,
-          color: _pdfColor(shape.strokeColor),
-          strokeWidth: strokeWidth,
-        ),
-      );
+      if (rowIndex < visibleRows.length - 1 || useFullHeight) {
+        children.add(
+          _buildPdfHorizontalRule(
+            top: currentTop,
+            width: shape.width,
+            color: _pdfColor(shape.strokeColor),
+            strokeWidth: strokeWidth,
+          ),
+        );
+      }
     }
 
     if (totals.isNotEmpty) {
@@ -2963,14 +3048,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ],
         ),
       );
-      children.add(
-        _buildPdfHorizontalRule(
-          top: totalRowTop + headerHeight,
-          width: shape.width,
-          color: _pdfColor(shape.strokeColor),
-          strokeWidth: strokeWidth,
-        ),
-      );
     }
 
     var cursorX = 0.0;
@@ -2989,31 +3066,39 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       cursorX += columnWidths[i];
     }
 
-    children.add(
-      pw.Positioned(
-        left: 0,
-        top: 0,
-        child: pw.SizedBox(
-          width: shape.width,
-          height: contentBottom,
+    final tableHeight = math.max(headerHeight, contentBottom);
+    final table = pw.SizedBox(
+      width: shape.width,
+      height: tableHeight,
+      child: pw.Stack(children: children),
+    );
+    final clippedTable = shape.borderRadius > 0
+        ? pw.ClipRRect(
+            horizontalRadius: shape.borderRadius,
+            verticalRadius: shape.borderRadius,
+            child: table,
+          )
+        : pw.ClipRect(child: table);
+
+    return pw.Stack(
+      children: [
+        pw.Positioned(
+          left: 0,
+          top: 0,
           child: pw.Container(
+            width: shape.width,
+            height: tableHeight,
             decoration: pw.BoxDecoration(
               border: pw.Border.all(
                 color: _pdfColor(shape.strokeColor),
                 width: strokeWidth,
               ),
+              borderRadius: pw.BorderRadius.circular(shape.borderRadius),
             ),
+            child: clippedTable,
           ),
         ),
-      ),
-    );
-
-    return pw.ClipRect(
-      child: pw.SizedBox(
-        width: shape.width,
-        height: shape.height,
-        child: pw.Stack(children: children),
-      ),
+      ],
     );
   }
 
@@ -4259,6 +4344,16 @@ class DocumentCanvasPainter extends CustomPainter {
       ..style = PaintingStyle.fill
       ..color = Color(shape.headerColor);
 
+    final roundedRect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(shape.borderRadius * scale),
+    );
+
+    canvas.save();
+    if (shape.borderRadius > 0) {
+      canvas.clipRRect(roundedRect);
+    }
+
     if (shape.fillAlpha > 0) {
       canvas.drawRect(rect, bodyFill);
     }
@@ -4316,6 +4411,7 @@ class DocumentCanvasPainter extends CustomPainter {
         ? rect.bottom - headerHeight
         : rect.bottom;
 
+    final rowBoundaries = <double>[];
     for (var index = 0; index < rows.length; index++) {
       final row = rows[index];
       if (row is! Map<String, dynamic>) {
@@ -4369,12 +4465,8 @@ class DocumentCanvasPainter extends CustomPainter {
         x += columnWidth;
       }
 
-      canvas.drawLine(
-        Offset(rect.left, currentY + rowHeight),
-        Offset(rect.right, currentY + rowHeight),
-        stroke,
-      );
       currentY += rowHeight;
+      rowBoundaries.add(currentY);
     }
 
     if (shape.printTotal) {
@@ -4442,11 +4534,6 @@ class DocumentCanvasPainter extends CustomPainter {
           Offset(rect.right, totalRowTop),
           stroke,
         );
-        canvas.drawLine(
-          Offset(rect.left, totalRowTop + headerHeight),
-          Offset(rect.right, totalRowTop + headerHeight),
-          stroke,
-        );
         currentY = totalRowTop + headerHeight;
       }
     }
@@ -4457,6 +4544,16 @@ class DocumentCanvasPainter extends CustomPainter {
             currentY,
             shape.printHeader ? rect.top + headerHeight : rect.top,
           );
+
+    for (final boundaryY in rowBoundaries) {
+      if (useFullHeight || boundaryY < contentBottom - 0.01) {
+        canvas.drawLine(
+          Offset(rect.left, boundaryY),
+          Offset(rect.right, boundaryY),
+          stroke,
+        );
+      }
+    }
 
     var cursorX = rect.left;
     for (var i = 0; i < columns.length; i++) {
@@ -4472,8 +4569,16 @@ class DocumentCanvasPainter extends CustomPainter {
       cursorX += columnWidth;
     }
 
-    canvas.drawRect(
-      Rect.fromLTRB(rect.left, rect.top, rect.right, contentBottom),
+    canvas.restore();
+    canvas.drawRRect(
+      RRect.fromLTRBXY(
+        rect.left,
+        rect.top,
+        rect.right,
+        contentBottom,
+        shape.borderRadius * scale,
+        shape.borderRadius * scale,
+      ),
       stroke,
     );
   }

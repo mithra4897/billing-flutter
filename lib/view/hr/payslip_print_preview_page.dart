@@ -20,7 +20,7 @@ Future<void> openPayslipPrintPreview(
       context,
       documentType: 'hr_payslip',
       title: 'Payslip',
-      documentData: _payslipPrintData(response.data!),
+      documentData: buildPayslipPrintData(response.data!),
       pdfActionLabel: 'Email PDF',
       onPdfReady: (pdfBytes) async {
         final fileName =
@@ -48,7 +48,116 @@ Future<void> openPayslipPrintPreview(
   }
 }
 
-DocumentPrintDataModel _payslipPrintData(PayslipModel payslip) {
+class DesignedPayslipEmailResult {
+  const DesignedPayslipEmailResult({
+    required this.sent,
+    required this.failed,
+    required this.skipped,
+    required this.errors,
+  });
+
+  final int sent;
+  final int failed;
+  final int skipped;
+  final List<String> errors;
+
+  String get message {
+    final summary =
+        'Designed payslip emails: $sent sent, $failed failed, '
+        '$skipped skipped.';
+    return errors.isEmpty ? summary : '$summary ${errors.join(' ')}';
+  }
+}
+
+Future<DesignedPayslipEmailResult> emailDesignedPayslipsForRun(
+  BuildContext context, {
+  required HrService hr,
+  required int payrollRunId,
+  required int companyId,
+}) async {
+  final listResponse = await hr.payslips(
+    filters: <String, dynamic>{
+      'payroll_run_id': payrollRunId,
+      'company_id': companyId,
+      'per_page': 500,
+    },
+  );
+  if (listResponse.success != true) {
+    throw Exception(listResponse.message);
+  }
+
+  var sent = 0;
+  var failed = 0;
+  var skipped = 0;
+  final errors = <String>[];
+  for (final summary in listResponse.data ?? const <PayslipModel>[]) {
+    final payslipId = summary.id;
+    if (payslipId == null) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      final detailResponse = await hr.payslip(payslipId);
+      final payslip = detailResponse.data;
+      if (detailResponse.success != true || payslip == null) {
+        failed++;
+        errors.add(
+          '${summary.employeeName ?? 'Payslip $payslipId'}: '
+          '${detailResponse.message}',
+        );
+        continue;
+      }
+      if (!context.mounted) {
+        throw Exception('Payslip email operation was cancelled.');
+      }
+
+      final pdfBytes = await generateDocumentPrintPdf(
+        context,
+        documentType: 'hr_payslip',
+        title: 'Payslip',
+        documentData: buildPayslipPrintData(payslip),
+      );
+      if (pdfBytes == null || pdfBytes.isEmpty) {
+        failed++;
+        errors.add(
+          '${payslip.employeeName ?? 'Payslip $payslipId'}: '
+          'PDF generation failed.',
+        );
+        continue;
+      }
+
+      final fileName = '${payslip.payslipNo ?? 'payslip_$payslipId'}.pdf';
+      final emailResponse = await hr.sendPayslipEmailPdf(
+        payslipId,
+        pdfBytes: pdfBytes,
+        fileName: fileName,
+      );
+      if (emailResponse.success == true &&
+          emailResponse.data?.status?.toLowerCase() == 'sent') {
+        sent++;
+      } else {
+        failed++;
+        errors.add(
+          '${payslip.employeeName ?? fileName}: '
+          '${emailResponse.data?.errorMessage ?? emailResponse.message}',
+        );
+      }
+    } catch (error) {
+      failed++;
+      errors.add('${summary.employeeName ?? 'Payslip $payslipId'}: $error');
+    }
+  }
+
+  return DesignedPayslipEmailResult(
+    sent: sent,
+    failed: failed,
+    skipped: skipped,
+    errors: errors,
+  );
+}
+
+DocumentPrintDataModel buildPayslipPrintData(PayslipModel payslip) {
   final company = payslip.company;
   final employee = payslip.employeeProfile;
   final gross = payslip.grossSalary ?? 0;
@@ -97,7 +206,6 @@ DocumentPrintDataModel _payslipPrintData(PayslipModel payslip) {
     'employee_code': employee?.employeeCode ?? payslip.employeeCode ?? '',
     'department_name': employee?.departmentName ?? '',
     'designation_name': employee?.designationName ?? '',
-    'joining_date': employee?.joiningDate ?? '',
     'salary_mode': employee?.salaryMode ?? '',
     'bank_account_no': employee?.bankAccountNo ?? '',
     'ifsc_code': employee?.ifscCode ?? '',
