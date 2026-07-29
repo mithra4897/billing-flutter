@@ -315,7 +315,12 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       if (rawTaxPercent.abs() >= 0.005) {
         gstPercentValues.add(_formatExportNumber(rawTaxPercent));
       }
-      totalQty += qty;
+      // Charges such as shipping are represented as non-inventory items. They
+      // remain part of the financial totals, but must not inflate the product
+      // quantity shown in the invoice export.
+      if (boolValue(item, 'track_inventory')) {
+        totalQty += qty;
+      }
       totalTaxable += taxable;
       totalIgst += igst;
       totalCgst += cgst;
