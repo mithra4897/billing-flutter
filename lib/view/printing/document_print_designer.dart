@@ -863,7 +863,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       changed = true;
     }
-    if (widget.documentType == 'sales_invoice') {
+    const taxPercentDocumentTypes = <String>{
+      'sales_invoice',
+      'purchase_invoice',
+    };
+    if (taxPercentDocumentTypes.contains(widget.documentType)) {
       for (var index = 0; index < updatedColumns.length; index++) {
         final column = updatedColumns[index];
         if (column.key == 'tax_amount') {
@@ -875,6 +879,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           changed = true;
         }
       }
+    }
+    if (widget.documentType == 'sales_invoice') {
       final previousLength = updatedColumns.length;
       updatedColumns.removeWhere(
         (column) =>

@@ -2378,6 +2378,7 @@ class SalesInvoiceManagementController extends GetxController {
             discountPercent: discountPercent == 0 ? null : discountPercent,
             discountAmount: discountAmount == 0 ? null : discountAmount,
             taxableAmount: roundToDouble(breakdown.taxable, 2),
+            taxPercent: roundToDouble(breakdown.taxPercent, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );

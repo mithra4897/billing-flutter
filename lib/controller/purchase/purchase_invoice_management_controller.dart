@@ -577,6 +577,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             qty: qty,
             rate: rate,
             taxableAmount: breakdown.taxable.appRounded(),
+            taxPercent: taxPercent.appRounded(),
             taxAmount: (breakdown.total - breakdown.taxable).appRounded(),
 
             lineTotal: breakdown.total.appRounded(),
