@@ -144,6 +144,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       index,
     ) {
       final line = controller.lines[index];
+      final requiresWarehouse = controller.lineRequiresWarehouse(line);
       final qty =
           Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
       final rate =
@@ -243,6 +244,13 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         descriptionController: line.descriptionController,
         remarksController: line.remarksController,
         amount: amount,
+        cellWidgets: <ErpLineItemTableColumn, Widget>{
+          if (line.itemId != null && !requiresWarehouse)
+            ErpLineItemTableColumn.warehouse: _buildGridHintCell(
+              context,
+              'Not required',
+            ),
+        },
         deleteEnabled: controller.lines.length > 1,
         customCells: <String, Widget>{
           'batch': () {

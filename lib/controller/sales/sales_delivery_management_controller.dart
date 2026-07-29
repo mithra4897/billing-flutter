@@ -654,7 +654,7 @@ class SalesDeliveryManagementController extends GetxController {
         if (line.salesOrderLineId != null)
           'sales_order_line_id': line.salesOrderLineId,
         'item_id': line.itemId,
-        'warehouse_id': line.warehouseId,
+        if (isStockTrackedItem(line.itemId)) 'warehouse_id': line.warehouseId,
         'uom_id': line.uomId,
         if (line.batchId != null) 'batch_id': line.batchId,
         'description': description,
@@ -1449,6 +1449,9 @@ class SalesDeliveryManagementController extends GetxController {
       currentWarehouseId: line.warehouseId,
       warehouses: warehouses,
     );
+    if (!isStockTrackedItem(value)) {
+      line.warehouseId = null;
+    }
     if (isSerialManagedItem(value)) {
       line.deliveredQtyController.text = '';
     }
@@ -1457,7 +1460,7 @@ class SalesDeliveryManagementController extends GetxController {
 
   Future<void> setLineWarehouseId(int index, int? value) async {
     final line = lines[index];
-    line.warehouseId = value;
+    line.warehouseId = lineRequiresWarehouse(line) ? value : null;
     line.batchId = null;
     line.serialNumbers = <String>[];
     line.serialNoController.clear();
