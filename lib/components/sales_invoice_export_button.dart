@@ -239,13 +239,13 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
           _ExcelCell.text(gstin),
           _ExcelCell.text(invoiceNo),
           _ExcelCell.text(''),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
-          _ExcelCell.number(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
+          _numberOrBlank(0),
         ],
       ];
     }
@@ -312,7 +312,9 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       if (hsn.isNotEmpty) {
         hsnValues.add(hsn);
       }
-      gstPercentValues.add(_formatExportNumber(rawTaxPercent));
+      if (rawTaxPercent.abs() >= 0.005) {
+        gstPercentValues.add(_formatExportNumber(rawTaxPercent));
+      }
       totalQty += qty;
       totalTaxable += taxable;
       totalIgst += igst;
@@ -331,12 +333,12 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         _ExcelCell.text(invoiceNo),
         _ExcelCell.text(hsnValues.join(', ')),
         _ExcelCell.text(gstPercentValues.join(', ')),
-        _ExcelCell.number(roundToDouble(totalQty, 2)),
-        _ExcelCell.number(roundToDouble(totalTaxable, 2)),
-        _ExcelCell.number(roundToDouble(totalIgst, 2)),
-        _ExcelCell.number(roundToDouble(totalCgst, 2)),
-        _ExcelCell.number(roundToDouble(totalSgst, 2)),
-        _ExcelCell.number(roundToDouble(totalAmount, 2)),
+        _numberOrBlank(roundToDouble(totalQty, 2)),
+        _numberOrBlank(roundToDouble(totalTaxable, 2)),
+        _numberOrBlank(roundToDouble(totalIgst, 2)),
+        _numberOrBlank(roundToDouble(totalCgst, 2)),
+        _numberOrBlank(roundToDouble(totalSgst, 2)),
+        _numberOrBlank(roundToDouble(totalAmount, 2)),
       ],
     ];
   }
@@ -346,6 +348,10 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     return value == value.roundToDouble()
         ? value.roundToDouble().toStringAsFixed(0)
         : AppFormatSettings.fixedNumber(value, decimals: decimals);
+  }
+
+  _ExcelCell _numberOrBlank(double value) {
+    return value.abs() < 0.005 ? _ExcelCell.text('') : _ExcelCell.number(value);
   }
 
   String _companyLabel(Map<String, dynamic>? invoice) {
