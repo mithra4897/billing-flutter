@@ -89,6 +89,71 @@ class _PdfFontBundle {
   final pw.Font? boldItalic;
 }
 
+class _PrintSummaryLine {
+  const _PrintSummaryLine({required this.label, required this.amount});
+
+  final String label;
+  final String amount;
+}
+
+List<_PrintSummaryLine>? _resolveTwoColumnPrintSummary(
+  String templateText,
+  Map<String, dynamic> data,
+) {
+  final placeholderPattern = RegExp(r'\{\{([^}]+)\}\}');
+  final rows = <_PrintSummaryLine>[];
+  final sourceLines = templateText
+      .split('\n')
+      .where((line) => line.trim().isNotEmpty)
+      .toList(growable: false);
+
+  if (sourceLines.isEmpty) {
+    return null;
+  }
+
+  for (final sourceLine in sourceLines) {
+    final matches = placeholderPattern.allMatches(sourceLine).toList();
+    if (matches.length != 2) {
+      return null;
+    }
+
+    final labelKey = matches.first.group(1)?.trim() ?? '';
+    final amountKey = matches.last.group(1)?.trim() ?? '';
+    if (!labelKey.endsWith('_summary_label') ||
+        !_isPrintAmountLikeKeyForSummary(amountKey)) {
+      return null;
+    }
+
+    final label = resolvePrintTemplateText('{{$labelKey}}', data).trim();
+    final amount = resolvePrintTemplateText('{{$amountKey}}', data).trim();
+    if (label.isEmpty || amount.isEmpty) {
+      continue;
+    }
+
+    final between = sourceLine
+        .substring(matches.first.end, matches.last.start)
+        .trim();
+    rows.add(
+      _PrintSummaryLine(
+        label: label,
+        amount: between.isEmpty ? amount : '$between $amount',
+      ),
+    );
+  }
+
+  return rows.isEmpty ? null : rows;
+}
+
+bool _isPrintAmountLikeKeyForSummary(String key) {
+  return const <String>{
+    'total_cgst_amount',
+    'total_sgst_amount',
+    'total_igst_amount',
+    'discount_amount',
+    'round_off_amount',
+  }.contains(key.trim().toLowerCase());
+}
+
 class DocumentPrintDesignerPage extends StatefulWidget {
   const DocumentPrintDesignerPage({
     super.key,
@@ -799,6 +864,17 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       changed = true;
     }
     if (widget.documentType == 'sales_invoice') {
+      for (var index = 0; index < updatedColumns.length; index++) {
+        final column = updatedColumns[index];
+        if (column.key == 'tax_amount') {
+          updatedColumns[index] = column.copyWith(
+            key: 'tax_percent',
+            label: 'Tax %',
+            totalColumn: false,
+          );
+          changed = true;
+        }
+      }
       final previousLength = updatedColumns.length;
       updatedColumns.removeWhere(
         (column) =>
@@ -1266,6 +1342,13 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   Widget _buildToolbar() {
+    final template = _template;
+    final canAlignSelection =
+        template != null &&
+        template.shapes.any(
+          (shape) =>
+              _selectedShapeIds.contains(shape.id) && shape.type == 'text',
+        );
     return Scrollbar(
       controller: _toolbarScrollController,
       thumbVisibility: true,
@@ -1349,7 +1432,39 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                 OutlinedButton.icon(
                   onPressed: _resetTemplate,
                   icon: const Icon(Icons.refresh_outlined),
-                  label: const Text('Reset'),
+                  label: const Text('Reset All'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: _selectedShapeIds.isEmpty
+                      ? null
+                      : _resetSelectedParts,
+                  icon: const Icon(Icons.settings_backup_restore_outlined),
+                  label: const Text('Reset Selected'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingMd),
+                OutlinedButton.icon(
+                  onPressed: canAlignSelection
+                      ? () => _alignSelectedParts('left')
+                      : null,
+                  icon: const Icon(Icons.format_align_left_outlined),
+                  label: const Text('Left'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: canAlignSelection
+                      ? () => _alignSelectedParts('center')
+                      : null,
+                  icon: const Icon(Icons.format_align_center_outlined),
+                  label: const Text('Center'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: canAlignSelection
+                      ? () => _alignSelectedParts('right')
+                      : null,
+                  icon: const Icon(Icons.format_align_right_outlined),
+                  label: const Text('Right'),
                 ),
                 const SizedBox(width: AppUiConstants.spacingXs),
                 OutlinedButton.icon(
@@ -1595,6 +1710,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   onBringToFront: _bringSelectedToFront,
                   onSendToBack: _sendSelectedToBack,
                   onDuplicate: _duplicateSelectedShapes,
+                  onReset: _resetSelectedParts,
                 )
               : selected == null
               ? DocumentDesignerPageInspector(
@@ -1622,6 +1738,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   onBringToFront: _bringSelectedToFront,
                   onSendToBack: _sendSelectedToBack,
                   onDuplicate: _duplicateSelectedShapes,
+                  onReset: _resetSelectedParts,
                 ),
         ),
       ),
@@ -1641,6 +1758,76 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       _drawStart = null;
       _drawCurrent = null;
       _operation = _DesignerOperation.select;
+    });
+  }
+
+  void _resetSelectedParts() {
+    final template = _template;
+    final selectedIds = Set<String>.from(_selectedShapeIds);
+    if (template == null || selectedIds.isEmpty) {
+      return;
+    }
+
+    final defaults = _prepareTemplate(
+      DocumentPrintTemplate.defaults(widget.documentType, title: widget.title),
+    );
+    final defaultShapes = <String, DocumentPrintShape>{
+      for (final shape in defaults.shapes) shape.id: shape,
+    };
+    final resettableIds = selectedIds.where(defaultShapes.containsKey).toSet();
+    if (resettableIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'The selected custom part has no matching default to restore.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _applyTemplateMutation(() {
+      _template = template.copyWith(
+        shapes: template.shapes
+            .map(
+              (shape) => resettableIds.contains(shape.id)
+                  ? defaultShapes[shape.id]!
+                  : shape,
+            )
+            .toList(growable: false),
+      );
+      _operation = _DesignerOperation.select;
+      _drawStart = null;
+      _drawCurrent = null;
+    });
+
+    final skippedCount = selectedIds.length - resettableIds.length;
+    final message = skippedCount == 0
+        ? '${resettableIds.length} selected part${resettableIds.length == 1 ? '' : 's'} reset.'
+        : '${resettableIds.length} part${resettableIds.length == 1 ? '' : 's'} reset; '
+              '$skippedCount custom part${skippedCount == 1 ? '' : 's'} skipped.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _alignSelectedParts(String alignment) {
+    final template = _template;
+    if (template == null || _selectedShapeIds.isEmpty) {
+      return;
+    }
+
+    _applyTemplateMutation(() {
+      _template = template.copyWith(
+        shapes: template.shapes
+            .map(
+              (shape) =>
+                  _selectedShapeIds.contains(shape.id) && shape.type == 'text'
+                  ? shape.copyWith(align: alignment)
+                  : shape,
+            )
+            .toList(growable: false),
+      );
     });
   }
 
@@ -2506,6 +2693,20 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       default:
         final text = resolvePrintTemplateText(shape.text, data);
         final allowMultiline = shape.multiline || text.contains('\n');
+        final summaryLines = _resolveTwoColumnPrintSummary(shape.text, data);
+        final textStyle = _pdfTextStyleForTemplate(
+          fontBundle,
+          color: _pdfColor(shape.strokeColor),
+          fontSize: math.max(6, shape.fontSize),
+          fontFallback: <pw.Font>[unicodeFallbackFont],
+          bold: shape.bold,
+          italic: shape.italic,
+          letterSpacing: shape.letterSpacing,
+          lineHeight: shape.lineHeight,
+          decoration: shape.underline
+              ? pw.TextDecoration.underline
+              : pw.TextDecoration.none,
+        );
         return pw.Container(
           padding: pw.EdgeInsets.zero,
           decoration: shape.fillAlpha > 0
@@ -2515,24 +2716,35 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                 )
               : null,
           alignment: _pdfAlignment(shape.align),
-          child: pw.Text(
-            text,
-            textAlign: _pdfTextAlign(shape.align),
-            maxLines: allowMultiline ? null : 1,
-            style: _pdfTextStyleForTemplate(
-              fontBundle,
-              color: _pdfColor(shape.strokeColor),
-              fontSize: math.max(6, shape.fontSize),
-              fontFallback: <pw.Font>[unicodeFallbackFont],
-              bold: shape.bold,
-              italic: shape.italic,
-              letterSpacing: shape.letterSpacing,
-              lineHeight: shape.lineHeight,
-              decoration: shape.underline
-                  ? pw.TextDecoration.underline
-                  : pw.TextDecoration.none,
-            ),
-          ),
+          child: summaryLines == null
+              ? pw.Text(
+                  text,
+                  textAlign: _pdfTextAlign(shape.align),
+                  maxLines: allowMultiline ? null : 1,
+                  style: textStyle,
+                )
+              : pw.Column(
+                  children: summaryLines
+                      .map(
+                        (line) => pw.Row(
+                          children: [
+                            pw.Expanded(
+                              child: pw.Text(
+                                line.label,
+                                textAlign: pw.TextAlign.left,
+                                style: textStyle,
+                              ),
+                            ),
+                            pw.Text(
+                              line.amount,
+                              textAlign: pw.TextAlign.right,
+                              style: textStyle,
+                            ),
+                          ],
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
         );
     }
   }
@@ -3591,6 +3803,7 @@ class _MultiSelectionInspector extends StatelessWidget {
     required this.onBringToFront,
     required this.onSendToBack,
     required this.onDuplicate,
+    required this.onReset,
   });
 
   final int count;
@@ -3600,6 +3813,7 @@ class _MultiSelectionInspector extends StatelessWidget {
   final VoidCallback onBringToFront;
   final VoidCallback onSendToBack;
   final VoidCallback onDuplicate;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -3641,6 +3855,11 @@ class _MultiSelectionInspector extends StatelessWidget {
               onPressed: onDuplicate,
               icon: const Icon(Icons.copy_outlined),
               label: const Text('Duplicate'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onReset,
+              icon: const Icon(Icons.settings_backup_restore_outlined),
+              label: const Text('Reset Selected'),
             ),
             OutlinedButton.icon(
               onPressed: onDelete,
@@ -3914,6 +4133,15 @@ class DocumentCanvasPainter extends CustomPainter {
   }
 
   void _paintText(Canvas canvas, Rect rect, DocumentPrintShape shape) {
+    final summaryLines = _resolveTwoColumnPrintSummary(
+      shape.text,
+      documentData,
+    );
+    if (summaryLines != null) {
+      _paintTwoColumnSummary(canvas, rect, shape, summaryLines);
+      return;
+    }
+
     final text = resolvePrintTemplateText(shape.text, documentData);
     final allowMultiline = shape.multiline || text.contains('\n');
     final align = switch (shape.align) {
@@ -3954,6 +4182,51 @@ class DocumentCanvasPainter extends CustomPainter {
       _ => rect.left,
     };
     painter.paint(canvas, Offset(dx, rect.top));
+  }
+
+  void _paintTwoColumnSummary(
+    Canvas canvas,
+    Rect rect,
+    DocumentPrintShape shape,
+    List<_PrintSummaryLine> lines,
+  ) {
+    final style = applyDocumentPrintFontStyle(
+      TextStyle(
+        color: !shape.visible
+            ? Color(shape.strokeColor).withValues(alpha: 0.35)
+            : Color(shape.strokeColor),
+        fontSize: shape.fontSize * scale,
+        fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
+        fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
+        decoration: shape.underline
+            ? TextDecoration.underline
+            : TextDecoration.none,
+        letterSpacing: shape.letterSpacing * scale,
+        height: shape.lineHeight,
+      ),
+      effectiveDocumentPrintFontFamily(template.fontFamily, shape.fontFamily),
+    );
+    final rowHeight = shape.fontSize * scale * shape.lineHeight;
+
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      final y = rect.top + (index * rowHeight);
+      final labelPainter = TextPainter(
+        text: TextSpan(text: line.label, style: style),
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout(maxWidth: rect.width);
+      final amountPainter = TextPainter(
+        text: TextSpan(text: line.amount, style: style),
+        textAlign: TextAlign.right,
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout(maxWidth: rect.width);
+
+      labelPainter.paint(canvas, Offset(rect.left, y));
+      amountPainter.paint(canvas, Offset(rect.right - amountPainter.width, y));
+    }
   }
 
   void _paintTable(Canvas canvas, Rect rect, DocumentPrintShape shape) {

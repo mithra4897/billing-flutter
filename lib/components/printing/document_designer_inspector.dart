@@ -189,6 +189,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
     required this.onBringToFront,
     required this.onSendToBack,
     required this.onDuplicate,
+    required this.onReset,
   });
 
   final DocumentPrintShape shape;
@@ -205,6 +206,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
   final VoidCallback onBringToFront;
   final VoidCallback onSendToBack;
   final VoidCallback onDuplicate;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +263,14 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               tooltip: 'Duplicate',
               onPressed: onDuplicate,
               icon: const Icon(Icons.copy_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+            ),
+            IconButton(
+              tooltip: 'Reset selected part',
+              onPressed: onReset,
+              icon: const Icon(Icons.settings_backup_restore_outlined),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 28, height: 28),
