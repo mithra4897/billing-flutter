@@ -2385,6 +2385,16 @@ class SalesInvoiceManagementController extends GetxController {
         .whereType<DocumentPrintLineModel>()
         .toList(growable: false);
     final taxAmount = summary.cgst + summary.sgst + summary.igst + summary.cess;
+    final discountAmount = printLines.fold<double>(
+      0,
+      (total, line) => total + (line.discountAmount ?? 0),
+    );
+    final roundOffAmount = roundToDouble(
+      applyRoundOff
+          ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0)
+          : 0,
+      2,
+    );
     final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
         ? stringValue(customerData, 'party_name')
         : stringValue(selected, 'customer_name');
@@ -2439,12 +2449,26 @@ class SalesInvoiceManagementController extends GetxController {
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
       extraData: <String, dynamic>{
-        'round_off_amount': roundToDouble(
-          applyRoundOff
-              ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0)
-              : 0,
-          2,
-        ),
+        'cgst_summary_label': summary.cgst.abs() < 0.005 ? '' : 'CGST :',
+        'sgst_summary_label': summary.sgst.abs() < 0.005 ? '' : 'SGST :',
+        'igst_summary_label': summary.igst.abs() < 0.005 ? '' : 'IGST :',
+        'cgst_summary_currency': summary.cgst.abs() < 0.005 ? '' : '\u20B9',
+        'sgst_summary_currency': summary.sgst.abs() < 0.005 ? '' : '\u20B9',
+        'igst_summary_currency': summary.igst.abs() < 0.005 ? '' : '\u20B9',
+        'discount_summary_label': discountAmount.abs() < 0.005
+            ? ''
+            : 'DISCOUNT :',
+        'discount_summary_currency': discountAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
+        'round_off_summary_label': roundOffAmount.abs() < 0.005
+            ? ''
+            : 'ROUND OFF :',
+        'round_off_summary_currency': roundOffAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
+        'discount_amount': roundToDouble(discountAmount, 2),
+        'round_off_amount': roundOffAmount,
         'adjustment_amount': roundToDouble(
           Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0,
           2,

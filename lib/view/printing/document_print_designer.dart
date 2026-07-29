@@ -364,8 +364,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   DocumentPrintTemplate _prepareTemplate(DocumentPrintTemplate template) {
-    final normalized = _ensureTermsBlock(
-      template.normalizedFor(widget.documentType),
+    final normalized = _normalizeSalesInvoiceTotals(
+      _ensureTermsBlock(template.normalizedFor(widget.documentType)),
     );
 
     final shapes = normalized.shapes.map((shape) {
@@ -417,6 +417,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final totalAmountValueIndex = template.shapes.indexWhere(
       (shape) => shape.id == 'total-amount-value',
     );
+    final summaryCurrencyIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'invoice-summary-currency',
+    );
     final termsTitleIndex = template.shapes.indexWhere(
       (shape) => shape.id == 'terms-title',
     );
@@ -462,6 +465,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     var totalAmountValue = totalAmountValueIndex >= 0
         ? shapes[totalAmountValueIndex]
         : null;
+    var summaryCurrency = summaryCurrencyIndex >= 0
+        ? shapes[summaryCurrencyIndex]
+        : null;
     var termsTitle = shapes[termsTitleIndex];
     var termsText = shapes[termsTextIndex];
     var bankingLabel = shapes[bankingLabelIndex];
@@ -487,13 +493,17 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         math.max(
           gstBreakup.y + gstBreakup.height,
           math.max(
-                totalAmountLabel?.y ?? gstBreakup.y,
-                totalAmountValue?.y ?? gstBreakup.y,
-              ) +
-              math.max(
-                totalAmountLabel?.height ?? 0,
-                totalAmountValue?.height ?? 0,
-              ),
+            math.max(
+                  totalAmountLabel?.y ?? gstBreakup.y,
+                  totalAmountValue?.y ?? gstBreakup.y,
+                ) +
+                math.max(
+                  totalAmountLabel?.height ?? 0,
+                  totalAmountValue?.height ?? 0,
+                ),
+            (summaryCurrency?.y ?? gstBreakup.y) +
+                (summaryCurrency?.height ?? 0),
+          ),
         );
     final termsTextGap = termsText.y - (termsTitle.y + termsTitle.height);
     final bankingLabelGap = bankingLabel.y - (termsText.y + termsText.height);
@@ -506,6 +516,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         : 0.0;
     final totalAmountValueDelta = totalAmountValue != null
         ? totalAmountValue.y - gstBreakup.y
+        : 0.0;
+    final summaryCurrencyDelta = summaryCurrency != null
+        ? summaryCurrency.y - gstBreakup.y
         : 0.0;
     final footerBottomLimit = template.pageHeight - 28;
 
@@ -529,17 +542,24 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       final nextTotalAmountValue = totalAmountValue?.copyWith(
         y: nextGstBreakup.y + totalAmountValueDelta,
       );
+      final nextSummaryCurrency = summaryCurrency?.copyWith(
+        y: nextGstBreakup.y + summaryCurrencyDelta,
+      );
       final nextTermsTitleY =
           math.max(
             nextGstBreakup.y + nextGstBreakup.height,
             math.max(
-                  nextTotalAmountLabel?.y ?? nextGstBreakup.y,
-                  nextTotalAmountValue?.y ?? nextGstBreakup.y,
-                ) +
-                math.max(
-                  nextTotalAmountLabel?.height ?? 0,
-                  nextTotalAmountValue?.height ?? 0,
-                ),
+              math.max(
+                    nextTotalAmountLabel?.y ?? nextGstBreakup.y,
+                    nextTotalAmountValue?.y ?? nextGstBreakup.y,
+                  ) +
+                  math.max(
+                    nextTotalAmountLabel?.height ?? 0,
+                    nextTotalAmountValue?.height ?? 0,
+                  ),
+              (nextSummaryCurrency?.y ?? nextGstBreakup.y) +
+                  (nextSummaryCurrency?.height ?? 0),
+            ),
           ) +
           termsTitleGap;
       final nextTermsTitle = termsTitle.copyWith(y: nextTermsTitleY);
@@ -567,6 +587,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         gstBreakup = nextGstBreakup;
         totalAmountLabel = nextTotalAmountLabel;
         totalAmountValue = nextTotalAmountValue;
+        summaryCurrency = nextSummaryCurrency;
         termsTitle = nextTermsTitle;
         termsText = nextTermsText;
         bankingLabel = nextBankingLabel;
@@ -608,6 +629,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
     if (totalAmountValueIndex >= 0 && totalAmountValue != null) {
       shapes[totalAmountValueIndex] = totalAmountValue!;
+    }
+    if (summaryCurrencyIndex >= 0 && summaryCurrency != null) {
+      shapes[summaryCurrencyIndex] = summaryCurrency!;
     }
     shapes[termsTitleIndex] = termsTitle;
     shapes[termsTextIndex] = termsText;
@@ -774,26 +798,110 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       changed = true;
     }
-    if (widget.documentType == 'sales_invoice' &&
-        !updatedColumns.any((column) => column.key == 'discount_label')) {
-      final rateIndex = updatedColumns.indexWhere(
-        (column) => column.key == 'rate',
+    if (widget.documentType == 'sales_invoice') {
+      final previousLength = updatedColumns.length;
+      updatedColumns.removeWhere(
+        (column) =>
+            column.key == 'discount_label' ||
+            column.key == 'discount_percent' ||
+            column.key == 'discount_amount',
       );
-      final insertAt = rateIndex >= 0 ? rateIndex + 1 : updatedColumns.length;
-      updatedColumns.insert(
-        insertAt,
-        const DocumentPrintColumn(
-          key: 'discount_label',
-          label: 'Disc',
-          widthFactor: 1.0,
-          align: 'right',
-          titleAlign: 'center',
-        ),
-      );
-      changed = true;
+      if (updatedColumns.length != previousLength) {
+        changed = true;
+      }
     }
 
     return changed ? shape.copyWith(columns: updatedColumns) : shape;
+  }
+
+  DocumentPrintTemplate _normalizeSalesInvoiceTotals(
+    DocumentPrintTemplate template,
+  ) {
+    if (widget.documentType != 'sales_invoice') {
+      return template;
+    }
+
+    final labelIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'total-amount-label',
+    );
+    final valueIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'total-amount-value',
+    );
+    if (labelIndex < 0 || valueIndex < 0) {
+      return template;
+    }
+
+    final shapes = [...template.shapes];
+    final label = shapes[labelIndex];
+    final value = shapes[valueIndex];
+    final summaryLeft = math.min(label.x, value.x);
+    final summaryRight = math.max(label.x + label.width, value.x + value.width);
+    final amountWidth = math.max(62.0, value.width * 0.68);
+    final amountX = summaryRight - amountWidth;
+    const currencyWidth = 12.0;
+    final currencyX = amountX - currencyWidth - 3;
+    final amountWordsY = shapes
+        .firstWhereOrNull((shape) => shape.id == 'amount-words-label')
+        ?.y;
+    final summaryY = amountWordsY ?? math.min(label.y, value.y);
+
+    shapes[labelIndex] = label.copyWith(
+      x: summaryLeft,
+      y: summaryY,
+      width: math.max(55.0, currencyX - summaryLeft - 4),
+      height: 78,
+      text:
+          '{{cgst_summary_label}}\n'
+          '{{sgst_summary_label}}\n'
+          '{{igst_summary_label}}\n'
+          '{{discount_summary_label}}\n'
+          '{{round_off_summary_label}}\n'
+          'Total Amount :',
+      fontSize: 10,
+      bold: true,
+      multiline: true,
+      align: 'left',
+    );
+    shapes[valueIndex] = value.copyWith(
+      x: amountX,
+      y: summaryY,
+      width: amountWidth,
+      height: 78,
+      text:
+          '{{total_cgst_amount}}\n'
+          '{{total_sgst_amount}}\n'
+          '{{total_igst_amount}}\n'
+          '{{discount_amount}}\n'
+          '{{round_off_amount}}\n'
+          '{{total_amount}}',
+      fontSize: 10,
+      bold: true,
+      multiline: true,
+      align: 'right',
+    );
+    shapes.removeWhere((shape) => shape.id == 'invoice-summary-currency');
+    shapes.add(
+      value.copyWith(
+        id: 'invoice-summary-currency',
+        x: currencyX,
+        y: summaryY,
+        width: currencyWidth,
+        height: 78,
+        text:
+            '{{cgst_summary_currency}}\n'
+            '{{sgst_summary_currency}}\n'
+            '{{igst_summary_currency}}\n'
+            '{{discount_summary_currency}}\n'
+            '{{round_off_summary_currency}}\n'
+            '\u20B9',
+        fontSize: 10,
+        bold: true,
+        multiline: true,
+        align: 'center',
+      ),
+    );
+
+    return template.copyWith(shapes: shapes);
   }
 
   bool _isGstBreakupTableShape(DocumentPrintShape shape) {
@@ -1317,8 +1425,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (type == null) {
       return;
     }
-    final shape = DocumentPrintShape.defaults(type, template.shapes.length)
-        .copyWith(id: _nextShapeId(template, type));
+    final shape = DocumentPrintShape.defaults(
+      type,
+      template.shapes.length,
+    ).copyWith(id: _nextShapeId(template, type));
     final placed = shape.copyWith(
       x: math.min(
         math.max(24.0, (template.pageWidth - shape.width) / 2),

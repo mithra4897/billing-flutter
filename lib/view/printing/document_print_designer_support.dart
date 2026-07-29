@@ -452,8 +452,9 @@ double? resolvePrintLinesTableDisplayedTotalAmount(
   final amountColumn = columns.firstWhereOrNull(
     (column) => column.key.trim().toLowerCase() == 'line_total',
   );
-  final preferredKey =
-      amountColumn?.includeGst == false ? 'taxable_total_amount' : 'total_amount';
+  final preferredKey = amountColumn?.includeGst == false
+      ? 'taxable_total_amount'
+      : 'total_amount';
   final preferredValue = resolvePrintPath(data, preferredKey);
   if (preferredValue is num) {
     return preferredValue.toDouble();
@@ -604,6 +605,8 @@ bool _shouldHideZeroPrintValue(String key, double value) {
     'total_igst_amount',
     'cess_amount',
     'total_cess_amount',
+    'discount_amount',
+    'round_off_amount',
   };
   return hideZeroKeys.contains(key.trim().toLowerCase()) && value.abs() < 0.005;
 }
