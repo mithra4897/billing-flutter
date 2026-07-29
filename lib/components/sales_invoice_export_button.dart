@@ -229,24 +229,80 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     );
     final isInterState = _resolveIsInterState(invoice, gstin);
     final lines = _asListOfMaps(invoice['lines']);
+    final rows = <List<_ExcelCell>>[
+      _buildDocumentRow(
+        customerName: customerName,
+        state: state,
+        gstin: gstin,
+        documentDate: invoiceDate,
+        documentNo: invoiceNo,
+        lines: lines,
+        isInterState: isInterState,
+      ),
+    ];
+
+    for (final salesReturn in _asListOfMaps(invoice['sales_returns'])) {
+      final returnStatus = nullableStringValue(
+        salesReturn,
+        'return_status',
+      )?.toLowerCase();
+      if (returnStatus == 'cancelled' ||
+          (salesReturn.containsKey('is_active') &&
+              !boolValue(salesReturn, 'is_active'))) {
+        continue;
+      }
+
+      rows.add(
+        _buildDocumentRow(
+          customerName: customerName,
+          state: state,
+          gstin: gstin,
+          documentDate: displayDate(
+            nullableStringValue(salesReturn, 'return_date'),
+          ),
+          documentNo: _firstNonEmpty(<String?>[
+            nullableStringValue(salesReturn, 'return_no'),
+            if ((intValue(salesReturn, 'id') ?? 0) > 0)
+              'Return #${intValue(salesReturn, 'id') ?? 0}',
+          ]),
+          lines: _asListOfMaps(salesReturn['lines']),
+          isInterState: isInterState,
+          quantityKey: 'return_qty',
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  List<_ExcelCell> _buildDocumentRow({
+    required String customerName,
+    required String state,
+    required String gstin,
+    required String documentDate,
+    required String documentNo,
+    required List<Map<String, dynamic>> lines,
+    required bool? isInterState,
+    String quantityKey = 'invoiced_qty',
+    double multiplier = 1,
+    String documentType = '',
+  }) {
     if (lines.isEmpty) {
-      return <List<_ExcelCell>>[
-        <_ExcelCell>[
-          _ExcelCell.text(''),
-          _ExcelCell.text(invoiceDate),
-          _ExcelCell.text(customerName),
-          _ExcelCell.text(state),
-          _ExcelCell.text(gstin),
-          _ExcelCell.text(invoiceNo),
-          _ExcelCell.text(''),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-          _numberOrBlank(0),
-        ],
+      return <_ExcelCell>[
+        _ExcelCell.text(documentType),
+        _ExcelCell.text(documentDate),
+        _ExcelCell.text(customerName),
+        _ExcelCell.text(state),
+        _ExcelCell.text(gstin),
+        _ExcelCell.text(documentNo),
+        _ExcelCell.text(''),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
+        _numberOrBlank(0),
       ];
     }
 
@@ -266,7 +322,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
           ? null
           : TaxCodeModel.fromJson(taxCode);
       final qty =
-          Validators.parseFlexibleNumber(line['invoiced_qty']?.toString()) ??
+          Validators.parseFlexibleNumber(line[quantityKey]?.toString()) ??
           Validators.parseFlexibleNumber(line['qty']?.toString()) ??
           0;
       final rate =
@@ -319,32 +375,30 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       // remain part of the financial totals, but must not inflate the product
       // quantity shown in the invoice export.
       if (boolValue(item, 'track_inventory')) {
-        totalQty += qty;
+        totalQty += qty * multiplier;
       }
-      totalTaxable += taxable;
-      totalIgst += igst;
-      totalCgst += cgst;
-      totalSgst += sgst;
-      totalAmount += amount;
+      totalTaxable += taxable * multiplier;
+      totalIgst += igst * multiplier;
+      totalCgst += cgst * multiplier;
+      totalSgst += sgst * multiplier;
+      totalAmount += amount * multiplier;
     }
 
-    return <List<_ExcelCell>>[
-      <_ExcelCell>[
-        _ExcelCell.text(''),
-        _ExcelCell.text(invoiceDate),
-        _ExcelCell.text(customerName),
-        _ExcelCell.text(state),
-        _ExcelCell.text(gstin),
-        _ExcelCell.text(invoiceNo),
-        _ExcelCell.text(hsnValues.join(', ')),
-        _ExcelCell.text(gstPercentValues.join(', ')),
-        _numberOrBlank(roundToDouble(totalQty, 2)),
-        _numberOrBlank(roundToDouble(totalTaxable, 2)),
-        _numberOrBlank(roundToDouble(totalIgst, 2)),
-        _numberOrBlank(roundToDouble(totalCgst, 2)),
-        _numberOrBlank(roundToDouble(totalSgst, 2)),
-        _numberOrBlank(roundToDouble(totalAmount, 2)),
-      ],
+    return <_ExcelCell>[
+      _ExcelCell.text(documentType),
+      _ExcelCell.text(documentDate),
+      _ExcelCell.text(customerName),
+      _ExcelCell.text(state),
+      _ExcelCell.text(gstin),
+      _ExcelCell.text(documentNo),
+      _ExcelCell.text(hsnValues.join(', ')),
+      _ExcelCell.text(gstPercentValues.join(', ')),
+      _numberOrBlank(roundToDouble(totalQty, 2)),
+      _numberOrBlank(roundToDouble(totalTaxable, 2)),
+      _numberOrBlank(roundToDouble(totalIgst, 2)),
+      _numberOrBlank(roundToDouble(totalCgst, 2)),
+      _numberOrBlank(roundToDouble(totalSgst, 2)),
+      _numberOrBlank(roundToDouble(totalAmount, 2)),
     ];
   }
 
