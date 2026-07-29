@@ -17,6 +17,7 @@ class PayrollRunModel extends JsonModel {
     this.voucherDate,
     this.linesCount,
     this.lines = const <PayrollLineModel>[],
+    this.payrollPreview,
     this.createdAt,
     this.updatedAt,
   });
@@ -34,6 +35,7 @@ class PayrollRunModel extends JsonModel {
   final String? voucherDate;
   final int? linesCount;
   final List<PayrollLineModel> lines;
+  final PayrollPreviewModel? payrollPreview;
   final String? createdAt;
   final String? updatedAt;
 
@@ -70,6 +72,9 @@ class PayrollRunModel extends JsonModel {
       voucherDate: voucher['voucher_date']?.toString(),
       linesCount: JsonModel.nullableInt(json['lines_count']) ?? lines.length,
       lines: lines,
+      payrollPreview: json['payroll_preview'] is Map
+          ? PayrollPreviewModel.fromJson(_asMap(json['payroll_preview']))
+          : null,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
@@ -106,8 +111,81 @@ class PayrollRunModel extends JsonModel {
     if (linesCount != null) 'lines_count': linesCount,
     if (lines.isNotEmpty)
       'lines': lines.map((item) => item.toJson()).toList(growable: false),
+    if (payrollPreview != null) 'payroll_preview': payrollPreview!.toJson(),
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+  };
+}
+
+class PayrollPreviewModel extends JsonModel {
+  const PayrollPreviewModel({
+    this.eligibleCount = 0,
+    this.excludedCount = 0,
+    this.employees = const <PayrollEmployeePreviewModel>[],
+  });
+
+  final int eligibleCount;
+  final int excludedCount;
+  final List<PayrollEmployeePreviewModel> employees;
+
+  factory PayrollPreviewModel.fromJson(Map<String, dynamic> json) {
+    return PayrollPreviewModel(
+      eligibleCount: JsonModel.nullableInt(json['eligible_count']) ?? 0,
+      excludedCount: JsonModel.nullableInt(json['excluded_count']) ?? 0,
+      employees: _asList(
+        json['employees'],
+      ).map(PayrollEmployeePreviewModel.fromJson).toList(growable: false),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'eligible_count': eligibleCount,
+    'excluded_count': excludedCount,
+    'employees': employees.map((item) => item.toJson()).toList(growable: false),
+  };
+}
+
+class PayrollEmployeePreviewModel extends JsonModel {
+  const PayrollEmployeePreviewModel({
+    this.employeeId,
+    this.employeeCode,
+    this.employeeName,
+    this.eligible = false,
+    this.reason,
+    this.salaryStructureId,
+    this.grossSalary,
+  });
+
+  final int? employeeId;
+  final String? employeeCode;
+  final String? employeeName;
+  final bool eligible;
+  final String? reason;
+  final int? salaryStructureId;
+  final double? grossSalary;
+
+  factory PayrollEmployeePreviewModel.fromJson(Map<String, dynamic> json) {
+    return PayrollEmployeePreviewModel(
+      employeeId: JsonModel.nullableInt(json['employee_id']),
+      employeeCode: json['employee_code']?.toString(),
+      employeeName: json['employee_name']?.toString(),
+      eligible: JsonModel.boolOf(json['eligible']),
+      reason: json['reason']?.toString(),
+      salaryStructureId: JsonModel.nullableInt(json['salary_structure_id']),
+      grossSalary: JsonModel.nullableDouble(json['gross_salary']),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    if (employeeId != null) 'employee_id': employeeId,
+    if (employeeCode != null) 'employee_code': employeeCode,
+    if (employeeName != null) 'employee_name': employeeName,
+    'eligible': eligible,
+    if (reason != null) 'reason': reason,
+    if (salaryStructureId != null) 'salary_structure_id': salaryStructureId,
+    if (grossSalary != null) 'gross_salary': grossSalary,
   };
 }
 

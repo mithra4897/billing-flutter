@@ -1634,6 +1634,7 @@ Future<void> showPayrollRunDetailDialog(
     final run = response.data!;
     final st = run.status ?? '';
     final lineRows = run.lines;
+    final payrollPreview = run.payrollPreview;
     final totalGross = lineRows.fold<double>(
       0,
       (sum, item) => sum + (item.grossSalary ?? 0),
@@ -1718,14 +1719,74 @@ Future<void> showPayrollRunDetailDialog(
                       ),
                       const SizedBox(height: AppUiConstants.spacingMd),
                       Text(
-                        'Employee Lines',
+                        st == 'draft'
+                            ? 'Employees for this run'
+                            : 'Employee Lines',
                         style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: AppUiConstants.spacingSm),
-                      if (lineRows.isEmpty)
-                        const Text('No payroll lines generated yet.')
+                      if (st == 'draft' && payrollPreview != null) ...[
+                        Text(
+                          '${payrollPreview.eligibleCount} ready • '
+                          '${payrollPreview.excludedCount} need attention',
+                          style: Theme.of(ctx).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                        if (payrollPreview.employees.isEmpty)
+                          const Text('No employees found for this company.')
+                        else
+                          ...payrollPreview.employees.map(
+                            (employee) => Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppUiConstants.spacingSm,
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppUiConstants.buttonRadius,
+                                  ),
+                                  side: BorderSide(
+                                    color: Theme.of(
+                                      ctx,
+                                    ).dividerColor.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                leading: Icon(
+                                  employee.eligible
+                                      ? Icons.check_circle_outline
+                                      : Icons.error_outline,
+                                  color: employee.eligible
+                                      ? Colors.green
+                                      : Theme.of(ctx).colorScheme.error,
+                                ),
+                                title: Text(
+                                  <String?>[
+                                        employee.employeeName,
+                                        employee.employeeCode,
+                                      ]
+                                      .whereType<String>()
+                                      .map((value) => value.trim())
+                                      .where((value) => value.isNotEmpty)
+                                      .join(' • '),
+                                ),
+                                subtitle: Text(
+                                  employee.eligible
+                                      ? 'Ready • Gross '
+                                            '${formatAmount(employee.grossSalary ?? 0)}'
+                                      : employee.reason ??
+                                            'Payroll setup is incomplete.',
+                                ),
+                              ),
+                            ),
+                          ),
+                      ] else if (lineRows.isEmpty)
+                        const Text('No payroll lines were generated.')
                       else
                         ...lineRows.map(
                           (line) => Padding(
@@ -1807,8 +1868,9 @@ Future<void> showPayrollRunDetailDialog(
                         if (!await _confirm(
                           ctx,
                           'Process payroll',
-                          'Generate payroll lines and payslips for all active '
-                              'employees? This cannot be undone.',
+                          'Generate payroll lines and payslips for '
+                              '${payrollPreview?.eligibleCount ?? 0} eligible '
+                              'employees? Review any excluded employees first.',
                         )) {
                           return;
                         }
