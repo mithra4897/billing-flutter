@@ -2584,7 +2584,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   Future<pw.Font> _loadPdfRupeeFallbackFont() {
     return _pdfRupeeFallbackFont ??= _loadPdfFontAsset(
-      'assets/fonts/Georgia.ttf',
+      'assets/fonts/Poppins-Regular.ttf',
     );
   }
 
