@@ -44,9 +44,12 @@ Future<Uint8List?> generateDocumentPrintPdf(
   required DocumentPrintDataModel documentData,
 }) {
   return Navigator.of(context, rootNavigator: true).push<Uint8List>(
-    MaterialPageRoute<Uint8List>(
-      fullscreenDialog: true,
-      builder: (_) => DocumentPrintDesignerPage(
+    PageRouteBuilder<Uint8List>(
+      opaque: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, _, _) => DocumentPrintDesignerPage(
         documentType: documentType,
         title: title,
         documentData: documentData,
@@ -1158,29 +1161,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (widget.generateOnly) {
       return GetBuilder<_DocumentPrintDesignerController>(
         tag: _controllerTag,
-        builder: (_) => Scaffold(
-          body: Stack(
-            children: [
+        builder: (_) => Material(
+          type: MaterialType.transparency,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.001,
               // Keep the real designed page mounted and painted so automatic
               // delivery has the same high-resolution capture fallback used
               // by Download PDF and Email PDF in the visible preview.
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Opacity(opacity: 0.01, child: _buildContent()),
-                ),
-              ),
-              const Positioned.fill(child: ColoredBox(color: Colors.white)),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text('Preparing ${widget.title} PDF...'),
-                  ],
-                ),
-              ),
-            ],
+              child: _buildContent(),
+            ),
           ),
         ),
       );
