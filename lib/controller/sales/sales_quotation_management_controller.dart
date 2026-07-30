@@ -867,6 +867,8 @@ class SalesQuotationManagementController extends GetxController {
       taxAmount: roundToDouble(totalTax, 2),
       totalAmount: roundToDouble(summary.total + roundOffAmount, 2),
       currencyCode: 'INR',
+      // Quotations state their amount in words before GST.
+      amountInWordsAmount: roundToDouble(summary.taxable, 2),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
       extraData: <String, dynamic>{

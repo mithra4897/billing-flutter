@@ -185,6 +185,7 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
   required double taxAmount,
   required double totalAmount,
   required String currencyCode,
+  double? amountInWordsAmount,
   required List<DocumentPrintLineModel> lines,
   List<DocumentPrintTaxBreakupRowModel> gstBreakup =
       const <DocumentPrintTaxBreakupRowModel>[],
@@ -226,7 +227,10 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
     subtotal: subtotal,
     taxAmount: taxAmount,
     totalAmount: totalAmount,
-    amountInWords: printTemplateAmountInWords(totalAmount, currencyCode),
+    amountInWords: printTemplateAmountInWords(
+      amountInWordsAmount ?? totalAmount,
+      currencyCode,
+    ),
     lines: lines,
     gstBreakup: gstBreakup,
     extraData: <String, dynamic>{
