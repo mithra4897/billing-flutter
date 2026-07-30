@@ -220,6 +220,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final Map<String, Future<_PdfFontBundle>> _pdfFontBundleCache =
       <String, Future<_PdfFontBundle>>{};
   Future<pw.Font>? _pdfUnicodeFallbackFont;
+  Future<pw.Font>? _pdfRupeeFallbackFont;
   late final String _controllerTag;
   late final _DocumentPrintDesignerController _controller;
   bool _generateOnlyStarted = false;
@@ -2581,6 +2582,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
+  Future<pw.Font> _loadPdfRupeeFallbackFont() {
+    return _pdfRupeeFallbackFont ??= _loadPdfFontAsset(
+      'assets/fonts/Georgia.ttf',
+    );
+  }
+
   pw.Font _pdfFontForTemplate(
     _PdfFontBundle fontBundle, {
     bool bold = false,
@@ -2630,6 +2637,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       _shapeFontFamily(template, shape),
     );
     final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
+    final rupeeFallbackFont = await _loadPdfRupeeFallbackFont();
+    final fallbackFonts = <pw.Font>[unicodeFallbackFont, rupeeFallbackFont];
     switch (shape.type) {
       case 'rectangle':
         return pw.Container(
@@ -2715,6 +2724,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           data,
           template: template,
           fontBundle: fontBundle,
+          fallbackFonts: fallbackFonts,
         );
       case 'image':
         final source = resolvePrintTemplateText(shape.assetPath, data);
@@ -2763,7 +2773,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             fontBundle,
             fontSize: math.max(7, shape.fontSize),
             color: _pdfColor(shape.strokeColor),
-            fontFallback: <pw.Font>[unicodeFallbackFont],
+            fontFallback: fallbackFonts,
             letterSpacing: shape.letterSpacing,
             lineHeight: shape.lineHeight,
           ),
@@ -2777,7 +2787,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           fontBundle,
           color: _pdfColor(shape.strokeColor),
           fontSize: math.max(6, shape.fontSize),
-          fontFallback: <pw.Font>[unicodeFallbackFont],
+          fontFallback: fallbackFonts,
           bold: shape.bold,
           italic: shape.italic,
           letterSpacing: shape.letterSpacing,
@@ -2833,6 +2843,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     Map<String, dynamic> data, {
     required DocumentPrintTemplate template,
     required _PdfFontBundle fontBundle,
+    required List<pw.Font> fallbackFonts,
   }) {
     final rawRows =
         resolvePrintPath(data, shape.dataPath) as List<dynamic>? ??
@@ -2929,6 +2940,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           fontSize: math.max(7, shape.fontSize + 1),
           bold: true,
           padding: math.max(2.0, shape.cellGap),
+          fallbackFonts: fallbackFonts,
           alignments: columns
               .map((column) => column.titleAlign)
               .toList(growable: false),
@@ -2971,6 +2983,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           textColor: _pdfColor(shape.bodyTextColor),
           fontSize: math.max(6, shape.fontSize),
           padding: math.max(2.0, shape.cellGap),
+          fallbackFonts: fallbackFonts,
           alignments: columns
               .map((column) => column.align)
               .toList(growable: false),
@@ -3033,6 +3046,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           fontSize: math.max(6, shape.fontSize),
           bold: true,
           padding: math.max(2.0, shape.cellGap),
+          fallbackFonts: fallbackFonts,
           alignments: [
             'left',
             ...columns.skip(1).map((column) => column.align),
@@ -3104,6 +3118,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     required PdfColor textColor,
     required double fontSize,
     required double padding,
+    required List<pw.Font> fallbackFonts,
     List<String>? alignments,
     bool bold = false,
   }) {
@@ -3133,6 +3148,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     fontBundle,
                     fontSize: fontSize,
                     color: textColor,
+                    fontFallback: fallbackFonts,
                     bold: bold,
                     letterSpacing: shape.letterSpacing,
                     lineHeight: shape.lineHeight,
