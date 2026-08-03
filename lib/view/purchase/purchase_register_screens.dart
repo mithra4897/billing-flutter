@@ -1045,7 +1045,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'To be paid'),
+    AppDropdownItem(value: 'posted', label: 'Payment pending'),
     AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -1076,6 +1076,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             query.isEmpty ||
             [
               row.invoiceNo ?? '',
+              purchaseInvoiceStatusLabel(row.invoiceStatus),
               _nestedName(
                 row.toJson(),
                 'supplier_name',

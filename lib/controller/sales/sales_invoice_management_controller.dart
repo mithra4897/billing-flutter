@@ -10,7 +10,7 @@ class SalesInvoiceManagementController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'To be paid'),
+        AppDropdownItem(value: 'posted', label: 'Payment pending'),
         AppDropdownItem(value: 'overdue', label: 'Overdue'),
         AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
         AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -2184,6 +2184,7 @@ class SalesInvoiceManagementController extends GetxController {
               [
                 item.invoiceNo ?? '',
                 status,
+                salesInvoiceStatusLabel(status),
                 cust,
               ].join(' ').toLowerCase().contains(search);
           return statusOk &&

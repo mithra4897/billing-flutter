@@ -21,7 +21,7 @@ String salesStatusLabel(String? status) {
 String salesInvoiceStatusLabel(String? status) {
   final normalized = status?.trim().toLowerCase();
   if (normalized == 'posted' || normalized == 'submitted') {
-    return 'To be paid';
+    return 'Payment pending';
   }
   return salesStatusLabel(status);
 }

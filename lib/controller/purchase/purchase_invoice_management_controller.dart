@@ -10,7 +10,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'To be paid'),
+        AppDropdownItem(value: 'posted', label: 'Payment pending'),
         AppDropdownItem(value: 'overdue', label: 'Overdue'),
         AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
         AppDropdownItem(value: 'paid', label: 'Paid'),
