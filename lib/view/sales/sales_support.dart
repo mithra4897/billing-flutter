@@ -18,10 +18,19 @@ String salesStatusLabel(String? status) {
   return normalized.replaceAll('_', ' ').titleCase;
 }
 
+String salesInvoiceStatusLabel(String? status) {
+  final normalized = status?.trim().toLowerCase();
+  if (normalized == 'posted' || normalized == 'submitted') {
+    return 'To be paid';
+  }
+  return salesStatusLabel(status);
+}
+
 Widget salesStatusBadge(
   BuildContext context,
   String? status, {
   String? dueDate,
+  String Function(String? status)? labelBuilder,
 }) {
   var normalized = (status ?? '').trim().toLowerCase();
 
@@ -43,7 +52,8 @@ Widget salesStatusBadge(
   }
 
   Color color;
-  String label = salesStatusLabel(normalized);
+  final displayLabel =
+      labelBuilder?.call(normalized) ?? salesStatusLabel(normalized);
 
   switch (normalized) {
     case 'overdue':
@@ -73,11 +83,11 @@ Widget salesStatusBadge(
       break;
   }
 
-  if (label.isEmpty) {
+  if (displayLabel.isEmpty) {
     return const SizedBox.shrink();
   }
 
-  return AppStatusBadge(label: label, color: color);
+  return AppStatusBadge(label: displayLabel, color: color);
 }
 
 String salesListDetailWithCancelReason(

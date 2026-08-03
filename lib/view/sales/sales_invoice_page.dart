@@ -656,7 +656,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                salesStatusBadge(context, st, dueDate: item.dueDate),
+                salesStatusBadge(
+                  context,
+                  st,
+                  dueDate: item.dueDate,
+                  labelBuilder: salesInvoiceStatusLabel,
+                ),
                 const SizedBox(height: AppUiConstants.spacingXxs),
                 Text(
                   'Total ${formatAmount(total)}',
@@ -734,6 +739,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       context,
                       controller.status,
                       dueDate: controller.dueDateController.text.trim(),
+                      labelBuilder: salesInvoiceStatusLabel,
                     ),
                   ],
                 ),

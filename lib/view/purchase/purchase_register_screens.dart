@@ -1045,7 +1045,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All Status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Submitted'),
+    AppDropdownItem(value: 'posted', label: 'To be paid'),
     AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -1174,11 +1174,12 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => purchaseStatusLabel(row.invoiceStatus),
+          valueBuilder: (row) => purchaseInvoiceStatusLabel(row.invoiceStatus),
           widgetBuilder: (context, row) => purchaseStatusBadge(
             context,
             row.invoiceStatus,
             dueDate: row.dueDate,
+            labelBuilder: purchaseInvoiceStatusLabel,
           ),
           detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
             row.toJson(),

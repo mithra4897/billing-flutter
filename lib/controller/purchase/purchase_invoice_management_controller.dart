@@ -10,7 +10,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'Finished'),
+        AppDropdownItem(value: 'posted', label: 'To be paid'),
         AppDropdownItem(value: 'overdue', label: 'Overdue'),
         AppDropdownItem(value: 'partially_paid', label: 'Partially Paid'),
         AppDropdownItem(value: 'paid', label: 'Paid'),
@@ -396,7 +396,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       searchFieldsOf: (item) => <String>[
         item.invoiceNo ?? '',
         item.toJson()['supplier_name']?.toString() ?? '',
-        purchaseStatusLabel(item.invoiceStatus),
+        purchaseInvoiceStatusLabel(item.invoiceStatus),
       ],
     );
 

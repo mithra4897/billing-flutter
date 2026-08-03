@@ -18,15 +18,25 @@ String purchaseStatusLabel(String? status) {
   return normalized.replaceAll('_', ' ').titleCase;
 }
 
+String purchaseInvoiceStatusLabel(String? status) {
+  final normalized = status?.trim().toLowerCase();
+  if (normalized == 'posted' || normalized == 'submitted') {
+    return 'To be paid';
+  }
+  return purchaseStatusLabel(status);
+}
+
 Widget purchaseStatusBadge(
   BuildContext context,
   String? status, {
   String? dueDate,
+  String Function(String? status)? labelBuilder,
 }) {
   final normalized = (status ?? '').trim().toLowerCase();
 
   Color color;
-  String label = purchaseStatusLabel(normalized);
+  final displayLabel =
+      labelBuilder?.call(normalized) ?? purchaseStatusLabel(normalized);
 
   switch (normalized) {
     case 'overdue':
@@ -56,11 +66,11 @@ Widget purchaseStatusBadge(
       break;
   }
 
-  if (label.isEmpty) {
+  if (displayLabel.isEmpty) {
     return const SizedBox.shrink();
   }
 
-  return AppStatusBadge(label: label, color: color);
+  return AppStatusBadge(label: displayLabel, color: color);
 }
 
 String purchaseListDetailWithCancelReason(

@@ -417,6 +417,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 purchaseStatusBadge(
                   context,
                   nullableStringValue(data, 'invoice_status'),
+                  labelBuilder: purchaseInvoiceStatusLabel,
                 ),
                 const SizedBox(height: AppUiConstants.spacingXxs),
                 Text(
@@ -495,6 +496,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         purchaseStatusBadge(
                           context,
                           controller.selectedItem?.invoiceStatus,
+                          labelBuilder: purchaseInvoiceStatusLabel,
                         ),
                       ],
                     ),
