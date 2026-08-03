@@ -10,6 +10,7 @@ class SalesInvoiceModel extends JsonModel {
     required this.customerPartyId,
     required this.invoiceDate,
     this.documentSeriesId,
+    this.salesProformaInvoiceId,
     this.salesOrderId,
     this.salesDeliveryId,
     this.invoiceNo,
@@ -46,6 +47,7 @@ class SalesInvoiceModel extends JsonModel {
   final int customerPartyId;
   final String invoiceDate;
   final int? documentSeriesId;
+  final int? salesProformaInvoiceId;
   final int? salesOrderId;
   final int? salesDeliveryId;
   final String? invoiceNo;
@@ -85,6 +87,7 @@ class SalesInvoiceModel extends JsonModel {
       customerPartyId: _parseInt(json['customer_party_id']),
       invoiceDate: json['invoice_date']?.toString() ?? '',
       documentSeriesId: _nullableInt(json['document_series_id']),
+      salesProformaInvoiceId: _nullableInt(json['sales_proforma_invoice_id']),
       salesOrderId: _nullableInt(json['sales_order_id']),
       salesDeliveryId: _nullableInt(json['sales_delivery_id']),
       invoiceNo: json['invoice_no']?.toString(),
@@ -130,6 +133,8 @@ class SalesInvoiceModel extends JsonModel {
       'location_id': locationId,
       'financial_year_id': financialYearId,
       if (documentSeriesId != null) 'document_series_id': documentSeriesId,
+      if (salesProformaInvoiceId != null)
+        'sales_proforma_invoice_id': salesProformaInvoiceId,
       if (salesOrderId != null) 'sales_order_id': salesOrderId,
       if (salesDeliveryId != null) 'sales_delivery_id': salesDeliveryId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,

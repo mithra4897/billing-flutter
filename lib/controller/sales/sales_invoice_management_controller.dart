@@ -88,6 +88,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? salesOrderId;
   int? salesDeliveryId;
   int? salesQuotationId;
+  int? salesProformaInvoiceId;
   SalesInvoiceModel? selectedItem;
   SalesInvoiceModel? pendingSelection;
   int? contextCompanyId;
@@ -1615,10 +1616,12 @@ class SalesInvoiceManagementController extends GetxController {
   bool editorOnly = false;
   int? initialId;
   int? initialQuotationId;
+  int? initialProformaId;
   int? initialOrderId;
   int? initialDeliveryId;
   int? _lastRequestedSelectId;
   int? _lastRequestedQuotationId;
+  int? _lastRequestedProformaId;
   int? _lastRequestedOrderId;
   int? _lastRequestedDeliveryId;
   bool _lastRequestedEditorOnly = false;
@@ -1644,12 +1647,14 @@ class SalesInvoiceManagementController extends GetxController {
   Future<void> initialize({
     int? initialId,
     int? initialQuotationId,
+    int? initialProformaId,
     int? initialOrderId,
     int? initialDeliveryId,
     bool editorOnly = false,
   }) async {
     this.initialId = initialId;
     this.initialQuotationId = initialQuotationId;
+    this.initialProformaId = initialProformaId;
     this.initialOrderId = initialOrderId;
     this.initialDeliveryId = initialDeliveryId;
     this.editorOnly = editorOnly;
@@ -1657,6 +1662,7 @@ class SalesInvoiceManagementController extends GetxController {
     await loadPage(
       selectId: initialId,
       initialQuotationId: initialQuotationId,
+      initialProformaId: initialProformaId,
       initialOrderId: initialOrderId,
       initialDeliveryId: initialDeliveryId,
       editorOnly: editorOnly,
@@ -1667,6 +1673,7 @@ class SalesInvoiceManagementController extends GetxController {
     return loadPage(
       selectId: _lastRequestedSelectId,
       initialQuotationId: _lastRequestedQuotationId,
+      initialProformaId: _lastRequestedProformaId,
       initialOrderId: _lastRequestedOrderId,
       initialDeliveryId: _lastRequestedDeliveryId,
       editorOnly: _lastRequestedEditorOnly,
@@ -1744,16 +1751,19 @@ class SalesInvoiceManagementController extends GetxController {
   Future<void> loadPage({
     int? selectId,
     int? initialQuotationId,
+    int? initialProformaId,
     int? initialOrderId,
     int? initialDeliveryId,
     bool? editorOnly,
   }) async {
     final effectiveQuotationId = initialQuotationId ?? this.initialQuotationId;
+    final effectiveProformaId = initialProformaId ?? this.initialProformaId;
     final effectiveOrderId = initialOrderId ?? this.initialOrderId;
     final effectiveDeliveryId = initialDeliveryId ?? this.initialDeliveryId;
     final effectiveEditorOnly = editorOnly ?? this.editorOnly;
     _lastRequestedSelectId = selectId;
     _lastRequestedQuotationId = effectiveQuotationId;
+    _lastRequestedProformaId = effectiveProformaId;
     _lastRequestedOrderId = effectiveOrderId;
     _lastRequestedDeliveryId = effectiveDeliveryId;
     _lastRequestedEditorOnly = effectiveEditorOnly;
@@ -1782,6 +1792,7 @@ class SalesInvoiceManagementController extends GetxController {
         if (!(effectiveEditorOnly &&
             selectId == null &&
             (effectiveQuotationId != null ||
+                effectiveProformaId != null ||
                 effectiveOrderId != null ||
                 effectiveDeliveryId != null))) {
           rethrow;
@@ -1943,8 +1954,10 @@ class SalesInvoiceManagementController extends GetxController {
         await selectDocument(existingInvoiceFromOrder);
       } else {
         resetForm();
-        final deliveryPref = effectiveDeliveryId;
-        if (deliveryPref != null && effectiveEditorOnly) {
+        if (effectiveProformaId != null && effectiveEditorOnly) {
+          await prefillNewInvoiceFromProforma(effectiveProformaId);
+        } else if (effectiveDeliveryId != null && effectiveEditorOnly) {
+          final deliveryPref = effectiveDeliveryId;
           await prefillNewInvoiceFromDelivery(deliveryPref);
         } else {
           final orderPref = effectiveOrderId;
@@ -2011,6 +2024,57 @@ class SalesInvoiceManagementController extends GetxController {
     } catch (e) {
       if (mounted) {
         State(() => formError = e.toString());
+      }
+    }
+  }
+
+  Future<void> prefillNewInvoiceFromProforma(int proformaId) async {
+    try {
+      final response = await salesService.proformaInvoice(proformaId);
+      final proforma = response.data;
+      if (proforma == null || !mounted) {
+        return;
+      }
+      final data = proforma.toJson();
+      final status = (proforma.proformaInvoiceStatus ?? '').toLowerCase();
+      if (status != 'posted' || proforma.convertedSalesInvoiceId != null) {
+        throw StateError(
+          'Only an unconverted posted Proforma Invoice can create a Sales Invoice.',
+        );
+      }
+      final invoiceLines = proforma.lines
+          .map(InvoiceLineDraft.fromQuotationLine)
+          .toList(growable: true);
+
+      State(() {
+        applyInvoiceHeaderFromQuotationJson(data);
+        salesProformaInvoiceId = proformaId;
+        salesQuotationId = proforma.salesQuotationId;
+        salesOrderId = null;
+        salesDeliveryId = null;
+        orderLinesCache = null;
+        deliveryLinesCache = null;
+        isDirectCustomer = proforma.isDirectCustomer;
+        customerPartyId = isDirectCustomer ? null : proforma.customerPartyId;
+        directCustomerDetailsController.text =
+            proforma.directCustomerDetails ?? '';
+        invoiceNoController.clear();
+        invoiceDateController.text = displayTodayDate();
+        dueDateController.text = _defaultDueDateFrom(
+          invoiceDateController.text,
+        );
+        termsController.text = proforma.termsConditions ?? '';
+        isActive = true;
+        _replaceInvoiceLines(invoiceLines, notify: false);
+        formError = null;
+      });
+      syncInventoryOptionsForLines(lines);
+      unawaited(ensureCustomerTaxContext(customerPartyId));
+      await reloadSourceDocumentsForCompany(companyId);
+      await refreshSalesChain(quotationId: salesQuotationId);
+    } catch (error) {
+      if (mounted) {
+        State(() => formError = errorMessage(error));
       }
     }
   }
@@ -2085,6 +2149,7 @@ class SalesInvoiceManagementController extends GetxController {
     State(() {
       selectedItem = full;
       salesQuotationId = null;
+      salesProformaInvoiceId = full.salesProformaInvoiceId;
       companyId = full.companyId;
       branchId = full.branchId;
       locationId = full.locationId;
@@ -2147,6 +2212,7 @@ class SalesInvoiceManagementController extends GetxController {
       billingAddressId = null;
       shippingAddressId = null;
       salesQuotationId = null;
+      salesProformaInvoiceId = null;
       salesOrderId = null;
       salesDeliveryId = null;
       orderLinesCache = null;
@@ -2755,6 +2821,7 @@ class SalesInvoiceManagementController extends GetxController {
       shippingAddressId: shippingAddressId,
       invoiceDate: invoiceDateController.text.trim(),
       documentSeriesId: documentSeriesId,
+      salesProformaInvoiceId: salesProformaInvoiceId,
       salesOrderId: salesOrderId,
       salesDeliveryId: salesDeliveryId,
       invoiceNo: nullIfEmpty(invoiceNoController.text),

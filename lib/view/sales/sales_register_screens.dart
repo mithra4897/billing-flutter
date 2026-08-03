@@ -950,6 +950,161 @@ class SalesQuotationRegisterPage extends StatelessWidget {
   }
 }
 
+class SalesProformaInvoiceRegisterPage extends StatelessWidget {
+  const SalesProformaInvoiceRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
+
+  final bool embedded;
+  final Map<String, String> queryParameters;
+
+  static const _statusItems = <AppDropdownItem<String>>[
+    AppDropdownItem(value: '', label: 'All status'),
+    AppDropdownItem(value: 'draft', label: 'Draft'),
+    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'converted', label: 'Converted'),
+    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return _SalesRegisterShell<SalesProformaInvoiceModel>(
+      controllerName: 'SalesProformaInvoiceRegisterController',
+      title: 'Proforma Invoices',
+      embedded: embedded,
+      queryParameters: queryParameters,
+      loader: (service) => service.proformaInvoices(
+        filters: const {'per_page': 200, 'sort_by': 'proforma_date'},
+      ),
+      documentValueOf: (row) => row.proformaInvoiceNo ?? '',
+      matches: (row, query, statuses, customFilters) {
+        final data = row.toJson();
+        final status = row.proformaInvoiceStatus ?? '';
+        final quotationNo = stringValue(
+          row.quotation ?? const <String, dynamic>{},
+          'quotation_no',
+        );
+        final searchText = <String>[
+          row.proformaInvoiceNo ?? '',
+          quotationNo,
+          status,
+          salesStatusLabel(status),
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        final customerIds = _selectedSet<int>(customFilters['customer_ids']);
+
+        return _matchesSelectedStatus(status, statuses) &&
+            (query.isEmpty || searchText.contains(query)) &&
+            _matchesSelectedValue(row.customerPartyId, customerIds);
+      },
+      dashboardMatches: (row, dashboardFilter) {
+        final status = (row.proformaInvoiceStatus ?? '').trim().toLowerCase();
+        switch (dashboardFilter.trim()) {
+          case 'submitted':
+          case 'open':
+            return status == 'posted';
+          case 'draft':
+            return status == 'draft';
+          default:
+            return true;
+        }
+      },
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'submitted':
+          case 'open':
+            return 'posted';
+          case 'draft':
+            return 'draft';
+          default:
+            return '';
+        }
+      },
+      dateValueOf: (row) => row.proformaInvoiceDate,
+      emptyMessage:
+          'No proforma invoices yet. Create one from a sales quotation.',
+      newRoute: '/sales/proforma-invoices/new',
+      newLabel: 'New proforma invoice',
+      searchHint: 'Search number, quotation, or customer',
+      statusItems: _statusItems,
+      customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
+        controller: controller,
+        statusItems: _statusItems,
+        title: 'Find Proforma Invoices',
+        searchHint: 'Proforma no, quotation no, or customer',
+        customerItemsBuilder: _mappedCustomerItems,
+      ),
+      footerBuilder: (context, controller) {
+        final totalAmount = controller.filteredRows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        return _SalesRegisterSummaryFooter(
+          cells: <_SalesRegisterFooterCell>[
+            const _SalesRegisterFooterCell(flex: 2, text: 'Total'),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 3),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 2),
+            _SalesRegisterFooterCell(
+              flex: 2,
+              text: formatAmount(totalAmount),
+              alignRight: true,
+            ),
+          ],
+        );
+      },
+      columns: <PurchaseRegisterColumn<SalesProformaInvoiceModel>>[
+        PurchaseRegisterColumn(
+          label: 'No',
+          valueBuilder: (row) => row.proformaInvoiceNo ?? '',
+        ),
+        PurchaseRegisterColumn(
+          label: 'Date',
+          valueBuilder: (row) => displayDate(row.proformaInvoiceDate),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Customer',
+          flex: 3,
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Quotation',
+          valueBuilder: (row) => stringValue(
+            row.quotation ?? const <String, dynamic>{},
+            'quotation_no',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Valid until',
+          valueBuilder: (row) => displayDate(row.validUntil),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Status',
+          valueBuilder: (row) =>
+              salesStatusLabel(row.proformaInvoiceStatus ?? ''),
+          widgetBuilder: (context, row) =>
+              salesStatusBadge(context, row.proformaInvoiceStatus ?? ''),
+          detailBuilder: (row) => salesRegisterCancelReasonDetail(
+            row.toJson(),
+            statusKey: 'proforma_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Total',
+          alignRight: true,
+          showPlaceholderWhenEmpty: false,
+          valueBuilder: (row) => formatAmount(row.totalAmount),
+        ),
+      ],
+      rowRoute: (row) => '/sales/proforma-invoices/${row.id}',
+    );
+  }
+}
+
 class SalesOrderRegisterPage extends StatelessWidget {
   const SalesOrderRegisterPage({
     super.key,

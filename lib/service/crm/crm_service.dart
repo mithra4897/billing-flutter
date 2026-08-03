@@ -217,13 +217,12 @@ class CrmService extends ErpModuleService {
         fromJson: CrmOpportunityModel.fromJson,
       );
 
-  Future<ApiResponse<CrmOpportunityModel>> createOpportunity(
-    dynamic body,
-  ) => createModel<CrmOpportunityModel>(
-    ApiEndpoints.crmOpportunities,
-    body,
-    fromJson: CrmOpportunityModel.fromJson,
-  );
+  Future<ApiResponse<CrmOpportunityModel>> createOpportunity(dynamic body) =>
+      createModel<CrmOpportunityModel>(
+        ApiEndpoints.crmOpportunities,
+        body,
+        fromJson: CrmOpportunityModel.fromJson,
+      );
 
   Future<ApiResponse<CrmOpportunityModel>> updateOpportunity(
     int id,
@@ -255,13 +254,14 @@ class CrmService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteOpportunity(int id) =>
       destroy('${ApiEndpoints.crmOpportunities}/$id');
 
-  /// Resolves lead → enquiry → opportunity → quotations → orders → invoices → receipts.
+  /// Resolves lead → enquiry → opportunity → quotations → proformas → orders → invoices → receipts.
   /// Uses CRM route when permitted; falls back to [ApiEndpoints.salesSalesChain] for sales-only users.
   Future<ApiResponse<Map<String, dynamic>>> salesChain({
     int? leadId,
     int? enquiryId,
     int? opportunityId,
     int? quotationId,
+    int? proformaInvoiceId,
     int? orderId,
     int? invoiceId,
     int? receiptId,
@@ -271,6 +271,7 @@ class CrmService extends ErpModuleService {
       'enquiry_id': ?enquiryId,
       'opportunity_id': ?opportunityId,
       'quotation_id': ?quotationId,
+      'proforma_invoice_id': ?proformaInvoiceId,
       'order_id': ?orderId,
       'invoice_id': ?invoiceId,
       'receipt_id': ?receiptId,

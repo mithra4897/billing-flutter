@@ -512,6 +512,12 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           queryParameters: _currentQueryParameters,
         );
+      case '/sales/proforma-invoices':
+        return SalesProformaInvoiceRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/orders':
         return SalesOrderRegisterPage(
           key: routeKey,
@@ -772,6 +778,17 @@ class _AppShellPageState extends State<AppShellPage> {
           ),
           queryParameters: _currentQueryParameters,
         );
+      case 'proforma-invoices':
+        return SalesProformaInvoicePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialSalesQuotationId: int.tryParse(
+            _currentQueryParameters['quotation_id'] ?? '',
+          ),
+          queryParameters: _currentQueryParameters,
+        );
       case 'orders':
         return SalesOrderPage(
           key: routeKey,
@@ -791,6 +808,9 @@ class _AppShellPageState extends State<AppShellPage> {
           initialId: id,
           initialQuotationId: int.tryParse(
             _currentQueryParameters['quotation_id'] ?? '',
+          ),
+          initialProformaId: int.tryParse(
+            _currentQueryParameters['proforma_id'] ?? '',
           ),
           initialOrderId: int.tryParse(
             _currentQueryParameters['order_id'] ?? '',
@@ -1635,6 +1655,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/sales/quotations/')) {
       return 'Sales Quotation';
+    }
+    if (path.startsWith('/sales/proforma-invoices/')) {
+      return 'Sales Proforma Invoice';
     }
     if (path.startsWith('/sales/orders/')) {
       return 'Sales Order';

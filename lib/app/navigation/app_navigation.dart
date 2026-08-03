@@ -1144,6 +1144,13 @@ class AppNavigation {
           requiredPermissions: ['sales.view'],
         ),
         AppNavigationItem(
+          key: 'sales-proforma-invoices',
+          title: 'Proforma Invoices',
+          icon: Icons.request_page_outlined,
+          path: '/sales/proforma-invoices',
+          requiredPermissions: ['sales.view'],
+        ),
+        AppNavigationItem(
           key: 'sales-deliveries',
           title: 'Deliveries',
           icon: Icons.local_shipping_outlined,

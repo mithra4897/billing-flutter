@@ -3,6 +3,80 @@ import '../../screen.dart';
 class SalesService extends ErpModuleService {
   SalesService({super.apiClient});
 
+  Future<PaginatedResponse<SalesProformaInvoiceModel>> proformaInvoices({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices',
+    filters: filters,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
+  Future<ApiResponse<List<SalesProformaInvoiceModel>>> proformaInvoicesAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices/all',
+    filters: filters,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> proformaInvoice(int id) =>
+      object<SalesProformaInvoiceModel>(
+        '/sales/proforma-invoices/$id',
+        fromJson: SalesProformaInvoiceModel.fromJson,
+      );
+
+  Future<ApiResponse<Map<String, dynamic>>> proformaPrefillFromQuotation(
+    int quotationId,
+  ) => object<Map<String, dynamic>>(
+    '/sales/proforma-invoices/prefill/quotation/$quotationId',
+    fromJson: (json) => json,
+  );
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> createProformaInvoice(
+    SalesProformaInvoiceModel body,
+  ) => createModel<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices',
+    body,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> updateProformaInvoice(
+    int id,
+    SalesProformaInvoiceModel body,
+  ) => updateModel<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices/$id',
+    body,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
+  Future<ApiResponse<dynamic>> deleteProformaInvoice(int id) =>
+      destroy('/sales/proforma-invoices/$id');
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> postProformaInvoice(int id) =>
+      actionModel<SalesProformaInvoiceModel>(
+        '/sales/proforma-invoices/$id/post',
+        body: const <String, dynamic>{},
+        fromJson: SalesProformaInvoiceModel.fromJson,
+      );
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> cancelProformaInvoice(
+    int id,
+    Map<String, dynamic> body,
+  ) => actionModel<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices/$id/cancel',
+    body: body,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
+  Future<ApiResponse<SalesProformaInvoiceModel>> convertProformaInvoice(
+    int id,
+    Map<String, dynamic> body,
+  ) => actionModel<SalesProformaInvoiceModel>(
+    '/sales/proforma-invoices/$id/convert',
+    body: body,
+    fromJson: SalesProformaInvoiceModel.fromJson,
+  );
+
   Future<PaginatedResponse<SalesQuotationModel>> quotations({
     Map<String, dynamic>? filters,
   }) => paginated<SalesQuotationModel>(

@@ -19,6 +19,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
     this.hideEnquiryChip = false,
     this.hideOpportunityChip = false,
     this.hideQuotationChip = false,
+    this.hideProformaInvoiceChip = false,
     this.hideOrderChip = false,
     this.hideDeliveryChip = false,
     this.hideInvoiceChip = false,
@@ -31,6 +32,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
   final bool hideEnquiryChip;
   final bool hideOpportunityChip;
   final bool hideQuotationChip;
+  final bool hideProformaInvoiceChip;
   final bool hideOrderChip;
   final bool hideDeliveryChip;
   final bool hideInvoiceChip;
@@ -112,6 +114,9 @@ class CrmSalesPipelineBar extends StatelessWidget {
     final enquiry = _asMap(data!['enquiry']);
     final opportunity = _asMap(data!['opportunity']);
     final quotations = _uniqueDocsById(_asMapList(data!['quotations']));
+    final proformaInvoices = _uniqueDocsById(
+      _asMapList(data!['proforma_invoices']),
+    );
     final orders = _uniqueDocsById(_asMapList(data!['orders']));
     final deliveries = _uniqueDocsById(_asMapList(data!['deliveries']));
     final invoices = _uniqueDocsById(_asMapList(data!['invoices']));
@@ -177,6 +182,18 @@ class CrmSalesPipelineBar extends StatelessWidget {
             onTap: () => openModuleShellRoute(
               context,
               '/sales/quotations/${intValue(q, 'id')}',
+            ),
+          ),
+      for (final proforma in proformaInvoices)
+        if (!hideProformaInvoiceChip && intValue(proforma, 'id') != null)
+          _PipelineChip(
+            label: _docLabel('Proforma', proforma, 'proforma_no'),
+            subtitle: salesStatusLabel(
+              stringValue(proforma, 'proforma_status'),
+            ),
+            onTap: () => openModuleShellRoute(
+              context,
+              '/sales/proforma-invoices/${intValue(proforma, 'id')}',
             ),
           ),
       for (final o in orders)

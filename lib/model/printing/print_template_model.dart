@@ -2713,6 +2713,8 @@ String _documentTitleForType(String documentType) {
   switch (documentType) {
     case 'sales_quotation':
       return 'Quotation';
+    case 'sales_proforma_invoice':
+      return 'PROFORMA INVOICE';
     case 'sales_order':
       return 'Sales Order';
     case 'sales_invoice':

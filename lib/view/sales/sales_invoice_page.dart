@@ -8,6 +8,7 @@ class SalesInvoicePage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialQuotationId,
+    this.initialProformaId,
     this.initialOrderId,
     this.initialDeliveryId,
     this.queryParameters = const <String, String>{},
@@ -19,6 +20,7 @@ class SalesInvoicePage extends StatefulWidget {
 
   /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
+  final int? initialProformaId;
   final int? initialOrderId;
   final int? initialDeliveryId;
   final Map<String, String> queryParameters;
@@ -50,6 +52,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _controller.initialize(
           initialId: widget.initialId,
           initialQuotationId: widget.initialQuotationId,
+          initialProformaId: widget.initialProformaId,
           initialOrderId: widget.initialOrderId,
           initialDeliveryId: widget.initialDeliveryId,
           editorOnly: widget.editorOnly,

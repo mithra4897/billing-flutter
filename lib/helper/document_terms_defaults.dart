@@ -1,6 +1,7 @@
 String documentTermsDefault(String documentType) {
   switch (documentType) {
     case 'sales_quotation':
+    case 'sales_proforma_invoice':
     case 'sales_order':
       return '''
 1. Prototype works do not carry any warranty.

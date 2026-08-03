@@ -1,41 +1,41 @@
-import '../../controller/sales/sales_quotation_management_controller.dart';
 import '../../screen.dart';
 
-class SalesQuotationPage extends StatefulWidget {
-  const SalesQuotationPage({
+class SalesProformaInvoicePage extends StatefulWidget {
+  const SalesProformaInvoicePage({
     super.key,
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
-    this.initialCrmOpportunityId,
+    this.initialSalesQuotationId,
     this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
-  final int? initialCrmOpportunityId;
+  final int? initialSalesQuotationId;
   final Map<String, String> queryParameters;
 
   @override
-  State<SalesQuotationPage> createState() => _SalesQuotationPageState();
+  State<SalesProformaInvoicePage> createState() =>
+      _SalesProformaInvoicePageState();
 }
 
-class _SalesQuotationPageState extends State<SalesQuotationPage> {
+class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
   late final String _controllerTag;
   bool _filtersVisible = false;
 
-  SalesQuotationManagementController get _controller =>
-      Get.find<SalesQuotationManagementController>(tag: _controllerTag);
+  SalesProformaInvoiceManagementController get _controller =>
+      Get.find<SalesProformaInvoiceManagementController>(tag: _controllerTag);
 
   @override
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag(
-      'SalesQuotationManagementController',
+      'SalesProformaInvoiceManagementController',
       scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    Get.put(SalesQuotationManagementController(), tag: _controllerTag);
+    Get.put(SalesProformaInvoiceManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -43,7 +43,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       unawaited(
         _controller.initialize(
           initialId: widget.initialId,
-          initialCrmOpportunityId: widget.initialCrmOpportunityId,
+          initialSalesQuotationId: widget.initialSalesQuotationId,
           editorOnly: widget.editorOnly,
         ),
       );
@@ -51,19 +51,21 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     });
   }
 
-  void _applyDashboardFilters(SalesQuotationManagementController controller) {
+  void _applyDashboardFilters(
+    SalesProformaInvoiceManagementController controller,
+  ) {
     controller.applyDashboardFilter(
       (widget.queryParameters['dashboard_filter'] ?? '').trim(),
     );
   }
 
   @override
-  void didUpdateWidget(covariant SalesQuotationPage oldWidget) {
+  void didUpdateWidget(covariant SalesProformaInvoicePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted ||
-            !Get.isRegistered<SalesQuotationManagementController>(
+            !Get.isRegistered<SalesProformaInvoiceManagementController>(
               tag: _controllerTag,
             )) {
           return;
@@ -77,10 +79,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   void dispose() {
     super.dispose();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isRegistered<SalesQuotationManagementController>(
+      if (Get.isRegistered<SalesProformaInvoiceManagementController>(
         tag: _controllerTag,
       )) {
-        Get.delete<SalesQuotationManagementController>(
+        Get.delete<SalesProformaInvoiceManagementController>(
           tag: _controllerTag,
           force: true,
         );
@@ -90,7 +92,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<SalesQuotationManagementController>(
+    return GetBuilder<SalesProformaInvoiceManagementController>(
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
@@ -112,7 +114,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               }
             },
             icon: Icons.add_outlined,
-            label: 'New Quote',
+            label: 'New proforma invoice',
           ),
         ];
         final content = _buildContent(context, controller);
@@ -120,7 +122,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           return ShellPageActions(actions: actions, child: content);
         }
         return AppStandaloneShell(
-          title: 'Sales Quotations',
+          title: 'Sales Proforma Invoices',
           scrollController: controller.pageScrollController,
           actions: actions,
           child: content,
@@ -129,7 +131,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     );
   }
 
-  Widget _buildLineItemTable(SalesQuotationManagementController controller) {
+  Widget _buildLineItemTable(
+    SalesProformaInvoiceManagementController controller,
+  ) {
     final itemOptions = controller.itemPickerOptions
         .map(
           (option) => ErpLinkFieldOption<int>(
@@ -255,14 +259,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   Widget _buildContent(
     BuildContext context,
-    SalesQuotationManagementController controller,
+    SalesProformaInvoiceManagementController controller,
   ) {
     if (controller.initialLoading) {
-      return const AppLoadingView(message: 'Loading quotations...');
+      return const AppLoadingView(message: 'Loading proforma invoices...');
     }
     if (controller.pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load quotations',
+        title: 'Unable to load proforma invoices',
         message: controller.pageError!,
         onRetry: controller.loadPage,
       );
@@ -277,41 +281,25 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               .toDouble()
         : 0.0;
     final totalStr = formatAmount(controller.taxSummary().total + roundOff);
-    final chainOrders =
-        ((controller.salesChain?['orders'] as List?) ?? const [])
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList(growable: false);
-    // Only consider the order as "progressed" once it has been posted
-    // (order_status != 'draft'). A draft order can still be deleted and
-    // should not lock out upstream actions.
-    //
-    // NOTE: The salesChain API is already scoped to this quotation, so all
-    // orders returned are linked to it. The API does not return
-    // sales_quotation_id in order summaries, so we simply check status.
-    final hasPostedOrder = chainOrders.any(
-      (o) => stringValue(o, 'order_status') != 'draft',
-    );
-
     return SettingsWorkspace(
       controller: controller.workspaceController,
-      title: 'Sales Quotations',
+      title: 'Sales Proforma Invoices',
       editorTitle: controller.selectedItem == null
-          ? 'New Quotation'
-          : stringValue(selected, 'quotation_no', 'Quotation'),
+          ? 'New Proforma Invoice'
+          : stringValue(selected, 'proforma_no', 'Proforma Invoice'),
       editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
-      list: PurchaseListCard<SalesQuotationModel>(
+      list: PurchaseListCard<SalesProformaInvoiceModel>(
         items: controller.filteredItems,
         selectedItem: controller.selectedItem,
-        emptyMessage: 'No quotations yet.',
+        emptyMessage: 'No proforma invoices yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
         filterFields: [
           AppFormTextField(
             labelText: 'Search',
             controller: controller.searchController,
-            hintText: 'Quotation no or customer name',
+            hintText: 'Proforma invoice no or customer name',
           ),
           AppFormTextField(
             labelText: 'Date From',
@@ -342,22 +330,22 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           ),
         ],
         statusValue: controller.statusFilter,
-        statusItems: SalesQuotationManagementController.listStatusFilter,
+        statusItems: SalesProformaInvoiceManagementController.listStatusFilter,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
         showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
-            title: stringValue(data, 'quotation_no', 'Draft'),
-            subtitle: displayDate(nullableStringValue(data, 'quotation_date')),
+            title: stringValue(data, 'proforma_no', 'Draft'),
+            subtitle: displayDate(nullableStringValue(data, 'proforma_date')),
             detail: salesListDetailWithCancelReason(
               data,
               quotationCustomerLabel(data),
-              statusKey: 'quotation_status',
+              statusKey: 'proforma_status',
             ),
             trailing: salesStatusBadge(
               context,
-              stringValue(data, 'quotation_status'),
+              stringValue(data, 'proforma_status'),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -389,7 +377,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             ],
             CrmSalesPipelineBar(
               data: controller.salesChain,
-              hideQuotationChip: true,
+              hideProformaInvoiceChip: true,
             ),
             if (controller.selectedItem != null)
               Padding(
@@ -413,29 +401,43 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               ),
             SettingsFormWrap(
               children: [
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Source Quotation',
+                  initialValue: controller.salesQuotationId,
+                  mappedItems: controller.quotationDropdownItems,
+                  enabled:
+                      controller.canEdit && controller.selectedItem == null,
+                  onChanged: controller.setSalesQuotationId,
+                  validator: (_) => controller.salesQuotationId == null
+                      ? 'Source Quotation is required'
+                      : null,
+                ),
                 ...buildSalesDocumentContextFields(
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
                 ),
                 GeneratedDocumentNumberField(
-                  labelText: 'Quotation No',
-                  controller: controller.quotationNoController,
+                  labelText: 'Proforma Invoice No',
+                  controller: controller.proformaInvoiceNoController,
                   documentSeries: controller.seriesOptions(),
                   documentSeriesId: controller.documentSeriesId,
                   hintText: 'Leave blank if your series fills this in',
                   enabled: controller.canEdit,
-                  validator: Validators.optionalMaxLength(100, 'Quotation No'),
+                  validator: Validators.optionalMaxLength(
+                    100,
+                    'Proforma Invoice No',
+                  ),
                 ),
                 AppFormTextField(
-                  labelText: 'Quotation Date',
-                  controller: controller.quotationDateController,
+                  labelText: 'Proforma Invoice Date',
+                  controller: controller.proformaInvoiceDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: controller.canEdit,
                   validator: Validators.compose([
-                    Validators.required('Quotation Date'),
-                    Validators.date('Quotation Date'),
+                    Validators.required('Proforma Invoice Date'),
+                    Validators.date('Proforma Invoice Date'),
                   ]),
                 ),
                 AppFormTextField(
@@ -448,8 +450,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     Validators.optionalDate('Valid Until'),
                     Validators.optionalDateOnOrAfter(
                       'Valid Until',
-                      () => controller.quotationDateController.text.trim(),
-                      startFieldName: 'Quotation Date',
+                      () =>
+                          controller.proformaInvoiceDateController.text.trim(),
+                      startFieldName: 'Proforma Invoice Date',
                     ),
                   ]),
                 ),
@@ -564,9 +567,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               onChanged: controller.canEdit ? controller.setIsActive : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
-            GetBuilder<SalesQuotationManagementController>(
+            GetBuilder<SalesProformaInvoiceManagementController>(
               tag: _controllerTag,
-              id: SalesQuotationManagementController.lineItemsSectionId,
+              id: SalesProformaInvoiceManagementController.lineItemsSectionId,
               builder: (controller) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [_buildLineItemTable(controller)],
@@ -575,51 +578,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
-                if (controller.selectedItem != null &&
-                    const {
-                      'posted',
-                      'sent',
-                      'accepted',
-                    }.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.request_page_outlined,
-                    label: 'Create Proforma Invoice',
-                    filled: false,
-                    onPressed: () {
-                      final quotationId = controller.selectedItem?.id;
-                      if (quotationId != null) {
-                        openModuleShellRoute(
-                          context,
-                          '/sales/proforma-invoices/new?quotation_id=$quotationId',
-                        );
-                      }
-                    },
-                  ),
-                if (controller.selectedItem != null &&
-                    !hasPostedOrder &&
-                    const {
-                      'posted',
-                      'sent',
-                      'accepted',
-                    }.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.shopping_cart_checkout_outlined,
-                    label: 'Create order',
-                    filled: false,
-                    onPressed: () {
-                      final quotationId = intValue(
-                        controller.selectedItem?.toJson() ?? const {},
-                        'id',
-                      );
-                      if (quotationId == null) {
-                        return;
-                      }
-                      openModuleShellRoute(
-                        context,
-                        '/sales/orders/new?quotation_id=$quotationId',
-                      );
-                    },
-                  ),
                 if (controller.selectedItem != null &&
                     controller.status != 'cancelled')
                   AppActionButton(
@@ -635,31 +593,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       allowTemplateEditing: controller.status != 'draft',
                     ),
                   ),
-                if (controller.selectedItem != null &&
-                    !hasPostedOrder &&
-                    const {'posted', 'sent'}.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.edit_note_outlined,
-                    label: 'Revise quote',
-                    filled: false,
-                    onPressed: () => controller.reviseSelected(context),
-                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null
-                      ? 'Save quote'
-                      : 'Update quote',
+                      ? 'Save Proforma Invoice'
+                      : 'Update Proforma Invoice',
                   onPressed: controller.canEdit
                       ? () => controller.save(context)
                       : null,
                   busy: controller.saving,
                 ),
                 if (controller.selectedItem != null &&
-                    !const {
-                      'rejected',
-                      'expired',
-                      'cancelled',
-                    }.contains(controller.status)) ...[
+                    controller.status == 'draft') ...[
                   if (controller.status == 'draft')
                     AppActionButton(
                       icon: Icons.publish_outlined,
@@ -676,42 +621,17 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       filled: false,
                       onPressed: () => controller.deleteSelected(context),
                     ),
-                  if (!hasPostedOrder && controller.status == 'posted')
+                  if (controller.status == 'posted')
                     AppActionButton(
-                      icon: Icons.send_outlined,
-                      label: 'Send to customer',
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Convert to Sales Invoice',
                       filled: false,
-                      onPressed: () => controller.sendSelected(context),
+                      onPressed: () => controller.convertSelected(context),
                     ),
-                  if (!hasPostedOrder && controller.status == 'sent') ...[
-                    AppActionButton(
-                      icon: Icons.check_circle_outline,
-                      label: 'Mark accepted',
-                      filled: false,
-                      onPressed: () => controller.acceptSelected(context),
-                    ),
-                    AppActionButton(
-                      icon: Icons.cancel_outlined,
-                      label: 'Reject',
-                      filled: false,
-                      onPressed: () => controller.rejectSelected(context),
-                    ),
-                    AppActionButton(
-                      icon: Icons.timer_off_outlined,
-                      label: 'Expire',
-                      filled: false,
-                      onPressed: () => controller.expireSelected(context),
-                    ),
-                  ],
-                  if (!hasPostedOrder &&
-                      const {
-                        'draft',
-                        'posted',
-                        'sent',
-                      }.contains(controller.status))
+                  if (const {'draft', 'posted'}.contains(controller.status))
                     AppActionButton(
                       icon: Icons.block_outlined,
-                      label: 'Cancel quote',
+                      label: 'Cancel Proforma Invoice',
                       filled: false,
                       onPressed: () => controller.cancelSelected(context),
                     ),
@@ -725,7 +645,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     );
   }
 
-  Widget _buildTaxSummaryCard(SalesQuotationManagementController controller) {
+  Widget _buildTaxSummaryCard(
+    SalesProformaInvoiceManagementController controller,
+  ) {
     final summary = controller.taxSummary();
     final double roundOff = controller.applyRoundOff
         ? (Validators.parseFlexibleNumber(

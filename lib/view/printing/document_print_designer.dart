@@ -847,6 +847,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     const hsnEnabledDocumentTypes = <String>{
       'sales_invoice',
       'sales_quotation',
+      'sales_proforma_invoice',
       'sales_order',
       'sales_delivery',
       'sales_returnable_delivery',
