@@ -2586,7 +2586,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   Future<pw.Font> _loadPdfUnicodeFallbackFont() {
     return _pdfUnicodeFallbackFont ??= _loadPdfFontAsset(
-      'assets/fonts/ArialUnicode.ttf',
+      'assets/fonts/Arial.ttf',
     );
   }
 
