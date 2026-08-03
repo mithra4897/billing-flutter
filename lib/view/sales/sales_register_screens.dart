@@ -3,7 +3,12 @@ import '../../controller/sales/sales_module_refresh_controller.dart';
 
 typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
 typedef SalesRegisterMatcher<T> =
-    bool Function(T row, String query, Set<String> statuses);
+    bool Function(
+      T row,
+      String query,
+      Set<String> statuses,
+      Map<String, dynamic> customFilters,
+    );
 typedef SalesRegisterDashboardMatcher<T> =
     bool Function(T row, String dashboardFilter);
 typedef SalesRegisterDateValue<T> = String? Function(T row);
@@ -128,7 +133,7 @@ class SalesRegisterController<T> extends GetxController {
     final filtered = rows
         .where(
           (row) =>
-              matches(row, query, selectedStatuses) &&
+              matches(row, query, selectedStatuses, customFilters) &&
               matchesDateValueRange(
                 dateValueOf(row),
                 fromValue: dateFromController.text,
@@ -810,7 +815,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'quotation_status');
         final searchText = [
@@ -818,12 +823,8 @@ class SalesQuotationRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        final controller =
-            Get.find<SalesRegisterController<SalesQuotationModel>>(
-              tag: persistentControllerTag('SalesQuotationRegisterController'),
-            );
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
@@ -982,7 +983,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'order_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'order_status');
         final searchText = [
@@ -990,11 +991,8 @@ class SalesOrderRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        final controller = Get.find<SalesRegisterController<SalesOrderModel>>(
-          tag: persistentControllerTag('SalesOrderRegisterController'),
-        );
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
@@ -1203,7 +1201,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       initialSort: 'balance_desc',
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = row.invoiceStatus ?? '';
         final searchText = [
@@ -1216,12 +1214,8 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         final statusOk = _matchesSelectedStatus(rowStatus, statuses);
         final searchOk = query.isEmpty || searchText.contains(query);
 
-        final controller = Get.find<SalesRegisterController<SalesInvoiceModel>>(
-          tag: persistentControllerTag('SalesInvoiceRegisterController'),
-        );
-
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
@@ -1399,7 +1393,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'delivery_status');
         final searchText = [
@@ -1407,12 +1401,8 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        final controller =
-            Get.find<SalesRegisterController<SalesDeliveryModel>>(
-              tag: persistentControllerTag('SalesDeliveryRegisterController'),
-            );
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
@@ -1495,7 +1485,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'receipt_status');
         final searchText = [
@@ -1503,11 +1493,8 @@ class SalesReceiptRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        final controller = Get.find<SalesRegisterController<SalesReceiptModel>>(
-          tag: persistentControllerTag('SalesReceiptRegisterController'),
-        );
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
@@ -1640,7 +1627,7 @@ class SalesReturnRegisterPage extends StatelessWidget {
         filters: const {'per_page': 200, 'sort_by': 'return_date'},
       ),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'return_status');
         final searchText = [
@@ -1648,11 +1635,8 @@ class SalesReturnRegisterPage extends StatelessWidget {
           rowStatus,
           _salesCustomerName(data),
         ].join(' ').toLowerCase();
-        final controller = Get.find<SalesRegisterController<SalesReturnModel>>(
-          tag: persistentControllerTag('SalesReturnRegisterController'),
-        );
         final filterCustomerIds = _selectedSet<int>(
-          controller.customFilters['customer_ids'],
+          customFilters['customer_ids'],
         );
         final customerOk = _matchesSelectedValue(
           row.customerPartyId,
