@@ -83,20 +83,11 @@ DocumentPrintDataModel _payslipTemplateSampleData(CompanyModel? company) {
       : (company?.tradeName?.trim().isNotEmpty == true
             ? company!.tradeName!.trim()
             : 'Your Company Name');
-  final companyAddress =
-      <String?>[
-            company?.addressLine1,
-            company?.addressLine2,
-            company?.area,
-            company?.city,
-            company?.district,
-            company?.stateName,
-            company?.postalCode,
-          ]
-          .whereType<String>()
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .join(', ');
+  final companyAddress = <String?>[company?.addressLine1, company?.addressLine2]
+      .whereType<String>()
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .join(', ');
 
   return DocumentPrintDataModel(
     companyName: companyName,

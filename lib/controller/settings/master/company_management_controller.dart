@@ -32,8 +32,13 @@ class CompanyManagementController extends GetxController {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController websiteController = TextEditingController();
+  final TextEditingController addressLine1Controller = TextEditingController();
+  final TextEditingController addressLine2Controller = TextEditingController();
+  final TextEditingController areaController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
+  final TextEditingController districtController = TextEditingController();
   final TextEditingController stateController = TextEditingController();
+  final TextEditingController postalCodeController = TextEditingController();
   final TextEditingController currencyController = TextEditingController();
   final TextEditingController logoPathController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -78,8 +83,13 @@ class CompanyManagementController extends GetxController {
     phoneController.dispose();
     emailController.dispose();
     websiteController.dispose();
+    addressLine1Controller.dispose();
+    addressLine2Controller.dispose();
+    areaController.dispose();
     cityController.dispose();
+    districtController.dispose();
     stateController.dispose();
+    postalCodeController.dispose();
     currencyController.dispose();
     logoPathController.dispose();
     remarksController.dispose();
@@ -152,8 +162,13 @@ class CompanyManagementController extends GetxController {
     phoneController.text = company.phone ?? '';
     emailController.text = company.email ?? '';
     websiteController.text = company.website ?? '';
+    addressLine1Controller.text = company.addressLine1 ?? '';
+    addressLine2Controller.text = company.addressLine2 ?? '';
+    areaController.text = company.area ?? '';
     cityController.text = company.city ?? '';
+    districtController.text = company.district ?? '';
     stateController.text = company.stateName ?? company.stateCode ?? '';
+    postalCodeController.text = company.postalCode ?? '';
     currencyController.text = company.baseCurrency ?? 'INR';
     logoPathController.text = company.logoPath ?? '';
     remarksController.text = company.remarks ?? '';
@@ -181,8 +196,13 @@ class CompanyManagementController extends GetxController {
     phoneController.clear();
     emailController.clear();
     websiteController.clear();
+    addressLine1Controller.clear();
+    addressLine2Controller.clear();
+    areaController.clear();
     cityController.clear();
+    districtController.clear();
     stateController.clear();
+    postalCodeController.clear();
     currencyController.text = 'INR';
     logoPathController.clear();
     remarksController.clear();
@@ -244,8 +264,13 @@ class CompanyManagementController extends GetxController {
       phone: nullIfEmpty(phoneController.text),
       email: nullIfEmpty(emailController.text),
       website: nullIfEmpty(websiteController.text),
+      addressLine1: nullIfEmpty(addressLine1Controller.text),
+      addressLine2: nullIfEmpty(addressLine2Controller.text),
+      area: nullIfEmpty(areaController.text),
       city: nullIfEmpty(cityController.text),
+      district: nullIfEmpty(districtController.text),
       stateName: nullIfEmpty(stateController.text),
+      postalCode: nullIfEmpty(postalCodeController.text),
       baseCurrency: nullIfEmpty(currencyController.text) ?? 'INR',
       logoPath: nullIfEmpty(logoPathController.text),
       remarks: nullIfEmpty(remarksController.text),

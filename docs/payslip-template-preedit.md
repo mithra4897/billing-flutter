@@ -12,6 +12,7 @@ been created.
   company-scoped.
 - Employee and salary values are illustrative sample data. Company name,
   address, contact, GSTIN, and logo come from the selected company.
+- The Company Details address displays Address Line 1 and Address Line 2 only.
 - Opening or saving the template does not create or modify an employee,
   payroll run, payslip, voucher, or ledger transaction.
 - Generated payslip previews and emails continue to use the same saved

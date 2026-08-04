@@ -259,12 +259,32 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                 labelText: 'Website',
               ),
               AppFormTextField(
+                controller: controller.addressLine1Controller,
+                labelText: 'Address Line 1',
+              ),
+              AppFormTextField(
+                controller: controller.addressLine2Controller,
+                labelText: 'Address Line 2',
+              ),
+              AppFormTextField(
+                controller: controller.areaController,
+                labelText: 'Area',
+              ),
+              AppFormTextField(
                 controller: controller.cityController,
                 labelText: 'City',
               ),
               AppFormTextField(
+                controller: controller.districtController,
+                labelText: 'District',
+              ),
+              AppFormTextField(
                 controller: controller.stateController,
                 labelText: 'State Name',
+              ),
+              AppFormTextField(
+                controller: controller.postalCodeController,
+                labelText: 'Postal Code',
               ),
               AppFormTextField(
                 controller: controller.currencyController,
