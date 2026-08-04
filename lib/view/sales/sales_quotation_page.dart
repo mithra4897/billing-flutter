@@ -282,6 +282,20 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
             .toList(growable: false);
+    final chainProformas =
+        ((controller.salesChain?['proforma_invoices'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(growable: false);
+    final hasActiveProforma = chainProformas.any(
+      (item) =>
+          stringValue(item, 'proforma_status').trim().toLowerCase() !=
+          'cancelled',
+    );
+    final hasActiveOrder = chainOrders.any(
+      (item) =>
+          stringValue(item, 'order_status').trim().toLowerCase() != 'cancelled',
+    );
     // Only consider the order as "progressed" once it has been posted
     // (order_status != 'draft'). A draft order can still be deleted and
     // should not lock out upstream actions.
@@ -292,6 +306,13 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     final hasPostedOrder = chainOrders.any(
       (o) => stringValue(o, 'order_status') != 'draft',
     );
+    final hasPostedProforma = chainProformas.any(
+      (item) => const <String>{
+        'posted',
+        'converted',
+      }.contains(stringValue(item, 'proforma_status').trim().toLowerCase()),
+    );
+    final hasProgressedNextDocument = hasPostedOrder || hasPostedProforma;
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -576,6 +597,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
+                    !hasActiveProforma &&
+                    !hasActiveOrder &&
                     const {
                       'posted',
                       'sent',
@@ -596,7 +619,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     },
                   ),
                 if (controller.selectedItem != null &&
-                    !hasPostedOrder &&
+                    !hasActiveOrder &&
+                    !hasActiveProforma &&
                     const {
                       'posted',
                       'sent',
@@ -636,7 +660,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     ),
                   ),
                 if (controller.selectedItem != null &&
-                    !hasPostedOrder &&
+                    !hasProgressedNextDocument &&
                     const {'posted', 'sent'}.contains(controller.status))
                   AppActionButton(
                     icon: Icons.edit_note_outlined,
@@ -676,14 +700,16 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       filled: false,
                       onPressed: () => controller.deleteSelected(context),
                     ),
-                  if (!hasPostedOrder && controller.status == 'posted')
+                  if (!hasProgressedNextDocument &&
+                      controller.status == 'posted')
                     AppActionButton(
                       icon: Icons.send_outlined,
                       label: 'Send to customer',
                       filled: false,
                       onPressed: () => controller.sendSelected(context),
                     ),
-                  if (!hasPostedOrder && controller.status == 'sent') ...[
+                  if (!hasProgressedNextDocument &&
+                      controller.status == 'sent') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,
                       label: 'Mark accepted',
@@ -703,7 +729,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => controller.expireSelected(context),
                     ),
                   ],
-                  if (!hasPostedOrder &&
+                  if (!hasProgressedNextDocument &&
                       const {
                         'draft',
                         'posted',

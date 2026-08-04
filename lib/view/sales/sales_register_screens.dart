@@ -963,7 +963,7 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Submitted'),
     AppDropdownItem(value: 'converted', label: 'Converted'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];

@@ -91,7 +91,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'posted', label: 'Submitted'),
         AppDropdownItem(value: 'converted', label: 'Converted'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
@@ -125,6 +125,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool prefillingQuotation = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -257,7 +258,34 @@ class SalesProformaInvoiceManagementController extends GetxController {
       .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
       .toList(growable: false);
 
-  List<AppDropdownItem<int>> get quotationDropdownItems => quotations
+  List<SalesQuotationModel> get quotationChoices {
+    final currentCompanyId = companyId;
+    final currentCustomerId = customerPartyId;
+    return quotations
+        .where((quotation) {
+          if (currentCompanyId != null &&
+              quotation.companyId != currentCompanyId) {
+            return false;
+          }
+          if (currentCustomerId != null &&
+              quotation.customerPartyId != currentCustomerId) {
+            return false;
+          }
+          if (!const <String>{
+            'posted',
+            'sent',
+            'accepted',
+          }.contains((quotation.quotationStatus ?? '').trim().toLowerCase())) {
+            return false;
+          }
+          final isCurrentSource = quotation.id == salesQuotationId;
+          return isCurrentSource ||
+              (!quotation.hasActiveOrder && !quotation.hasActiveProforma);
+        })
+        .toList(growable: false);
+  }
+
+  List<AppDropdownItem<int>> get quotationDropdownItems => quotationChoices
       .where((item) => item.id != null)
       .map(
         (item) => AppDropdownItem(
@@ -988,6 +1016,17 @@ class SalesProformaInvoiceManagementController extends GetxController {
           .text
           .trim();
     }
+    if (salesQuotationId != null) {
+      final sourceStillMatches = quotationChoices.any(
+        (quotation) => quotation.id == salesQuotationId,
+      );
+      if (!sourceStillMatches) {
+        salesQuotationId = null;
+        for (final line in lines) {
+          line.salesQuotationLineId = null;
+        }
+      }
+    }
     unawaited(ensureCustomerPrintContext(value));
     update();
   }
@@ -999,7 +1038,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
       update();
       return;
     }
-    saving = true;
+    prefillingQuotation = true;
     formError = null;
     update();
     try {
@@ -1043,7 +1082,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
     } catch (error) {
       formError = errorMessage(error);
     } finally {
-      saving = false;
+      prefillingQuotation = false;
       update();
     }
   }
@@ -1128,6 +1167,11 @@ class SalesProformaInvoiceManagementController extends GetxController {
   }
 
   Future<void> save(BuildContext context) async {
+    if (prefillingQuotation) {
+      formError = 'Wait for the quotation fields to finish loading.';
+      update();
+      return;
+    }
     if (!canEdit) {
       formError = 'Only draft proforma invoices can be updated.';
       update();

@@ -402,7 +402,12 @@ class SalesOrderManagementController extends GetxController {
             return false;
           }
           final quotationStatus = stringValue(json, 'quotation_status');
-          return const {'posted', 'sent', 'accepted'}.contains(quotationStatus);
+          if (!const {'posted', 'sent', 'accepted'}.contains(quotationStatus)) {
+            return false;
+          }
+          final isCurrentSource = quotation.id == salesQuotationId;
+          return isCurrentSource ||
+              (!quotation.hasActiveOrder && !quotation.hasActiveProforma);
         })
         .toList(growable: false);
   }

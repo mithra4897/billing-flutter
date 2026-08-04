@@ -17,6 +17,8 @@ class SalesQuotationModel extends JsonModel {
     this.directCustomerDetails,
     this.customerName,
     this.customer,
+    this.hasActiveOrder = false,
+    this.hasActiveProforma = false,
     this.billingAddressId,
     this.shippingAddressId,
     this.contactId,
@@ -60,6 +62,8 @@ class SalesQuotationModel extends JsonModel {
   final String? directCustomerDetails;
   final String? customerName;
   final Map<String, dynamic>? customer;
+  final bool hasActiveOrder;
+  final bool hasActiveProforma;
   final int? billingAddressId;
   final int? shippingAddressId;
   final int? contactId;
@@ -110,6 +114,8 @@ class SalesQuotationModel extends JsonModel {
       directCustomerDetails: json['direct_customer_details']?.toString(),
       customerName: json['customer_name']?.toString(),
       customer: JsonModel.mapOf(json['customer']),
+      hasActiveOrder: JsonModel.boolOf(json['has_active_order']),
+      hasActiveProforma: JsonModel.boolOf(json['has_active_proforma']),
       billingAddressId: JsonModel.nullableInt(json['billing_address_id']),
       shippingAddressId: JsonModel.nullableInt(json['shipping_address_id']),
       contactId: JsonModel.nullableInt(json['contact_id']),
@@ -167,6 +173,8 @@ class SalesQuotationModel extends JsonModel {
       'direct_customer_details': directCustomerDetails,
     if (customerName != null) 'customer_name': customerName,
     if (customer != null) 'customer': customer,
+    'has_active_order': hasActiveOrder,
+    'has_active_proforma': hasActiveProforma,
     if (billingAddressId != null) 'billing_address_id': billingAddressId,
     if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
     if (contactId != null) 'contact_id': contactId,

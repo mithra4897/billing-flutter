@@ -281,6 +281,15 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
               .toDouble()
         : 0.0;
     final totalStr = formatAmount(controller.taxSummary().total + roundOff);
+    final hasActiveSalesInvoice =
+        ((controller.salesChain?['invoices'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .any(
+              (item) =>
+                  stringValue(item, 'invoice_status').trim().toLowerCase() !=
+                  'cancelled',
+            );
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Sales Proforma Invoices',
@@ -598,7 +607,8 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                   label: controller.selectedItem == null
                       ? 'Save Proforma Invoice'
                       : 'Update Proforma Invoice',
-                  onPressed: controller.canEdit
+                  onPressed:
+                      controller.canEdit && !controller.prefillingQuotation
                       ? () => controller.save(context)
                       : null,
                   busy: controller.saving,
@@ -621,17 +631,23 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                       filled: false,
                       onPressed: () => controller.deleteSelected(context),
                     ),
-                  if (controller.status == 'posted')
+                  if (controller.status == 'posted' &&
+                      controller.selectedItem?.convertedSalesInvoiceId ==
+                          null &&
+                      !hasActiveSalesInvoice)
                     AppActionButton(
                       icon: Icons.receipt_long_outlined,
-                      label: 'Convert to Sales Invoice',
+                      label: 'Create Invoice',
                       filled: false,
                       onPressed: () => controller.convertSelected(context),
                     ),
-                  if (const {'draft', 'posted'}.contains(controller.status))
+                  if (controller.status == 'posted' &&
+                      controller.selectedItem?.convertedSalesInvoiceId ==
+                          null &&
+                      !hasActiveSalesInvoice)
                     AppActionButton(
                       icon: Icons.block_outlined,
-                      label: 'Cancel Proforma Invoice',
+                      label: 'Cancel',
                       filled: false,
                       onPressed: () => controller.cancelSelected(context),
                     ),

@@ -16,6 +16,7 @@ class MasterDataCache extends GetxController {
 
   Future<void>? _loadFuture;
   int _generation = 0;
+  int _documentSeriesLoadRevision = 0;
   Future<void>? _settingsFuture;
 
   bool isLoaded = false;
@@ -97,8 +98,10 @@ class MasterDataCache extends GetxController {
       return;
     }
     if (forceRefresh) {
-      _loadFuture = null;
-      isLoaded = false;
+      // Retire every older in-flight load before starting a forced refresh.
+      // Without advancing the generation, a slower stale response can finish
+      // later and overwrite the freshly loaded master-data snapshot.
+      invalidate(notify: false);
     }
     if (!isEnabled) {
       _loadFuture = null;
@@ -139,6 +142,7 @@ class MasterDataCache extends GetxController {
 
   Future<void> _loadImpl() async {
     final generation = _generation;
+    final documentSeriesLoadRevision = ++_documentSeriesLoadRevision;
     lastError = null;
     update();
 
@@ -168,7 +172,9 @@ class MasterDataCache extends GetxController {
       branches = responses[1] as List<BranchModel>;
       locations = responses[2] as List<BusinessLocationModel>;
       financialYears = responses[3] as List<FinancialYearModel>;
-      documentSeries = responses[4] as List<DocumentSeriesModel>;
+      if (documentSeriesLoadRevision == _documentSeriesLoadRevision) {
+        documentSeries = responses[4] as List<DocumentSeriesModel>;
+      }
       warehouses = responses[5] as List<WarehouseModel>;
       parties = responses[6] as List<PartyModel>;
       partyTypes = responses[7] as List<PartyTypeModel>;
@@ -219,7 +225,13 @@ class MasterDataCache extends GetxController {
   }
 
   Future<void> refreshDocumentSeries() async {
-    documentSeries = await _loadDocumentSeries();
+    final generation = _generation;
+    final revision = ++_documentSeriesLoadRevision;
+    final refreshed = await _loadDocumentSeries();
+    if (generation != _generation || revision != _documentSeriesLoadRevision) {
+      return;
+    }
+    documentSeries = refreshed;
     _markRefreshed();
   }
 
