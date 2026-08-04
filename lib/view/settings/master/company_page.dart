@@ -24,12 +24,11 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('CompanyManagementController');
+    _controllerTag = persistentControllerTag('CompanyManagementController');
     _controller = Get.put(
       CompanyManagementController(initialTabIndex: widget.initialTabIndex),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
@@ -51,15 +50,8 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
       tag: _controllerTag,
       builder: (controller) {
         final content = _buildContent(context, controller);
-        final actions = [
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewCompany(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.add_business_outlined,
-            label: 'New Company',
-          ),
-        ];
+        final action = _createAction(context, controller);
+        final actions = action == null ? <Widget>[] : <Widget>[action];
 
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
@@ -73,6 +65,31 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
         );
       },
     );
+  }
+
+  Widget? _createAction(
+    BuildContext context,
+    CompanyManagementController controller,
+  ) {
+    if (controller.activeTabIndex == 0) {
+      return AdaptiveShellActionButton(
+        onPressed: () => controller.startNewCompany(
+          isDesktop: Responsive.isDesktop(context),
+        ),
+        icon: Icons.add_business_outlined,
+        label: 'New Company',
+      );
+    }
+    if (controller.activeTabIndex == 1 &&
+        controller.selectedCompany?.id != null &&
+        controller.canStartNewFinancialYear) {
+      return AdaptiveShellActionButton(
+        onPressed: controller.startNewFinancialYear,
+        icon: Icons.add_outlined,
+        label: 'New Financial Year',
+      );
+    }
+    return null;
   }
 
   Widget _buildContent(
@@ -96,64 +113,92 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
     }
 
     return SettingsWorkspace(
-        controller: controller.workspaceController,
-        title: 'Companies',
-        editorTitle: controller.selectedCompany?.toString(),
-        scrollController: controller.pageScrollController,
-        list: SettingsListCard<CompanyModel>(
-          searchController: controller.searchController,
-          searchHint: 'Search companies',
-          items: controller.filteredCompanies,
-          selectedItem: controller.selectedCompany,
-          emptyMessage: 'No companies found.',
-          itemBuilder: (company, selected) => SettingsListTile(
-            title: company.legalName ?? '',
-            subtitle: [
-              company.code ?? '',
-              company.city ?? '',
-              company.stateName ?? '',
-            ].where((item) => item.isNotEmpty).join(' • '),
-            selected: selected,
-            trailing: SettingsStatusPill(
-              label: company.isActive ? 'Active' : 'Inactive',
-              active: company.isActive,
+      controller: controller.workspaceController,
+      title: 'Companies',
+      editorTitle: controller.selectedCompany?.toString(),
+      scrollController: controller.pageScrollController,
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_createAction(context, controller) != null) ...[
+            AppActionButton(
+              onPressed: () {
+                if (controller.activeTabIndex == 0) {
+                  controller.startNewCompany(
+                    isDesktop: Responsive.isDesktop(context),
+                  );
+                } else {
+                  controller.startNewFinancialYear();
+                }
+              },
+              icon: controller.activeTabIndex == 0
+                  ? Icons.add_business_outlined
+                  : Icons.add_outlined,
+              label: controller.activeTabIndex == 0
+                  ? 'Create Company'
+                  : 'New Financial Year',
             ),
-            onTap: () => controller.selectCompany(company),
-          ),
-        ),
-        editorBuilder: (_) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TabBar(
-              controller: _tabController,
-              onTap: controller.setActiveTabIndex,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Primary'),
-                Tab(text: 'Financial Years'),
-                Tab(text: 'Formats'),
-              ],
-            ),
-            const SizedBox(height: 20),
-            IndexedStack(
-              index: controller.activeTabIndex,
-              children: [
-                _buildPrimaryTab(context, controller),
-                controller.selectedCompany?.id == null
-                    ? _buildDependentTabPlaceholder(
-                        title: 'Financial Years',
-                        message:
-                            'Select an existing company or save this company first to manage financial years.',
-                      )
-                    : FinancialYearManagementPage(
-                        embedded: true,
-                        fixedCompanyId: controller.selectedCompany!.id,
-                      ),
-                _buildFormatsTab(context, controller),
-              ],
-            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
           ],
-        ),
+          SettingsListCard<CompanyModel>(
+            searchController: controller.searchController,
+            searchHint: 'Search companies',
+            items: controller.filteredCompanies,
+            selectedItem: controller.selectedCompany,
+            emptyMessage: 'No companies found.',
+            itemBuilder: (company, selected) => SettingsListTile(
+              title: company.legalName ?? '',
+              subtitle: [
+                company.code ?? '',
+                company.city ?? '',
+                company.stateName ?? '',
+              ].where((item) => item.isNotEmpty).join(' • '),
+              selected: selected,
+              trailing: SettingsStatusPill(
+                label: company.isActive ? 'Active' : 'Inactive',
+                active: company.isActive,
+              ),
+              onTap: () => controller.selectCompany(company),
+            ),
+          ),
+        ],
+      ),
+      editorBuilder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TabBar(
+            controller: _tabController,
+            onTap: controller.setActiveTabIndex,
+            isScrollable: true,
+            tabs: const [
+              Tab(text: 'Primary'),
+              Tab(text: 'Financial Years'),
+              Tab(text: 'Formats'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          IndexedStack(
+            index: controller.activeTabIndex,
+            children: [
+              _buildPrimaryTab(context, controller),
+              controller.selectedCompany?.id == null
+                  ? _buildDependentTabPlaceholder(
+                      title: 'Financial Years',
+                      message:
+                          'Select an existing company or save this company first to manage financial years.',
+                    )
+                  : FinancialYearManagementPage(
+                      embedded: true,
+                      fixedCompanyId: controller.selectedCompany!.id,
+                      showShellAction: false,
+                      onNewFinancialYearActionChanged:
+                          controller.setNewFinancialYearAction,
+                    ),
+              _buildFormatsTab(context, controller),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -172,8 +217,9 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                 controller: controller.codeController,
                 labelText: 'Code',
                 readOnly: true,
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty) ? 'Code is required' : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Code is required'
+                    : null,
               ),
               AppFormTextField(
                 controller: controller.legalNameController,
@@ -225,6 +271,17 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                 labelText: 'Base Currency',
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          UploadPathField(
+            controller: controller.logoPathController,
+            labelText: 'Company Logo',
+            isUploading: controller.uploadingLogo,
+            onUpload: () => controller.uploadCompanyLogo(context),
+            previewUrl: AppConfig.resolvePublicFileUrl(
+              controller.logoPathController.text,
+            ),
+            previewIcon: Icons.business_outlined,
           ),
           const SizedBox(height: 16),
           AppSwitchTile(
@@ -296,9 +353,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
         Text(
           'These format settings apply globally across the entire application whenever this company is active.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context)
-                .extension<AppThemeExtension>()
-                ?.mutedText,
+            color: Theme.of(context).extension<AppThemeExtension>()?.mutedText,
           ),
         ),
         const SizedBox(height: 20),
@@ -330,9 +385,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
         if ((controller.formError ?? '').isNotEmpty) ...[
           Text(
             controller.formError!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           const SizedBox(height: 12),
         ],
@@ -385,24 +438,18 @@ class _FormatPreviewCard extends StatelessWidget {
         children: [
           Text(
             'Preview',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _PreviewItem(
-                  label: 'Date',
-                  value: previewDate,
-                ),
+                child: _PreviewItem(label: 'Date', value: previewDate),
               ),
               Expanded(
-                child: _PreviewItem(
-                  label: 'Amount',
-                  value: previewAmount,
-                ),
+                child: _PreviewItem(label: 'Amount', value: previewAmount),
               ),
             ],
           ),
@@ -439,9 +486,7 @@ class _PreviewItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(
-              context,
-            ).extension<AppThemeExtension>()?.mutedText,
+            color: Theme.of(context).extension<AppThemeExtension>()?.mutedText,
           ),
         ),
         const SizedBox(height: 4),

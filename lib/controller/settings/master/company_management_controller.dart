@@ -16,6 +16,7 @@ class CompanyManagementController extends GetxController {
   CompanyManagementController({required this.initialTabIndex});
 
   final MasterService _masterService = MasterService();
+  final MediaService _mediaService = MediaService();
   final int initialTabIndex;
 
   final ScrollController pageScrollController = ScrollController();
@@ -34,15 +35,18 @@ class CompanyManagementController extends GetxController {
   final TextEditingController cityController = TextEditingController();
   final TextEditingController stateController = TextEditingController();
   final TextEditingController currencyController = TextEditingController();
+  final TextEditingController logoPathController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
 
   bool initialLoading = true;
   bool saving = false;
+  bool uploadingLogo = false;
   String? pageError;
   String? formError;
   List<CompanyModel> companies = const <CompanyModel>[];
   List<CompanyModel> filteredCompanies = const <CompanyModel>[];
   CompanyModel? selectedCompany;
+  VoidCallback? _newFinancialYearAction;
   bool isActive = true;
   String companyType = 'private_limited';
   int activeTabIndex = 0;
@@ -77,6 +81,7 @@ class CompanyManagementController extends GetxController {
     cityController.dispose();
     stateController.dispose();
     currencyController.dispose();
+    logoPathController.dispose();
     remarksController.dispose();
     super.onClose();
   }
@@ -150,6 +155,7 @@ class CompanyManagementController extends GetxController {
     cityController.text = company.city ?? '';
     stateController.text = company.stateName ?? company.stateCode ?? '';
     currencyController.text = company.baseCurrency ?? 'INR';
+    logoPathController.text = company.logoPath ?? '';
     remarksController.text = company.remarks ?? '';
     companyType = company.companyType ?? 'private_limited';
     isActive = company.isActive;
@@ -178,6 +184,7 @@ class CompanyManagementController extends GetxController {
     cityController.clear();
     stateController.clear();
     currencyController.text = 'INR';
+    logoPathController.clear();
     remarksController.clear();
     companyType = 'private_limited';
     isActive = true;
@@ -240,6 +247,7 @@ class CompanyManagementController extends GetxController {
       city: nullIfEmpty(cityController.text),
       stateName: nullIfEmpty(stateController.text),
       baseCurrency: nullIfEmpty(currencyController.text) ?? 'INR',
+      logoPath: nullIfEmpty(logoPathController.text),
       remarks: nullIfEmpty(remarksController.text),
       isActive: isActive,
       dateFormat: formatDate,
@@ -285,6 +293,32 @@ class CompanyManagementController extends GetxController {
     update();
   }
 
+  Future<void> uploadCompanyLogo(BuildContext context) async {
+    await MediaUploadHelper.uploadImage(
+      context: context,
+      mediaService: _mediaService,
+      onLoading: (isLoading) {
+        uploadingLogo = isLoading;
+        update();
+      },
+      onSuccess: (filePath) {
+        logoPathController.text = filePath;
+        formError = null;
+        update();
+      },
+      onError: (error) {
+        formError = error;
+        update();
+      },
+      module: 'masters',
+      documentType: 'companies',
+      documentId: selectedCompany?.id,
+      purpose: 'company_logo',
+      folder: 'masters/companies',
+      isPublic: true,
+    );
+  }
+
   void setIsActive(bool value) {
     isActive = value;
     update();
@@ -293,6 +327,17 @@ class CompanyManagementController extends GetxController {
   void setActiveTabIndex(int index) {
     activeTabIndex = index;
     update();
+  }
+
+  bool get canStartNewFinancialYear => _newFinancialYearAction != null;
+
+  void setNewFinancialYearAction(VoidCallback? action) {
+    _newFinancialYearAction = action;
+    update();
+  }
+
+  void startNewFinancialYear() {
+    _newFinancialYearAction?.call();
   }
 
   void setFormatDate(String? value) {

@@ -10,7 +10,8 @@ been created.
 
 - The editor requires a selected session company, because templates are
   company-scoped.
-- Preview fields use illustrative sample data only.
+- Employee and salary values are illustrative sample data. Company name,
+  address, contact, GSTIN, and logo come from the selected company.
 - Opening or saving the template does not create or modify an employee,
   payroll run, payslip, voucher, or ledger transaction.
 - Generated payslip previews and emails continue to use the same saved
@@ -19,4 +20,3 @@ been created.
 ## Verification
 
 - Focused Flutter analysis of the changed files.
-

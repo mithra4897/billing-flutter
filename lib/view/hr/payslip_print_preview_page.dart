@@ -48,29 +48,66 @@ Future<void> openPayslipPrintPreview(
   }
 }
 
-Future<void> openPayslipTemplateDesigner(BuildContext context) {
-  return openDocumentPrintDesigner(
+Future<void> openPayslipTemplateDesigner(BuildContext context) async {
+  CompanyModel? company;
+  try {
+    final snapshot = await WorkingContextService.instance.loadSnapshot();
+    final companyId = snapshot.selection.companyId;
+    company = snapshot.companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+  } catch (_) {
+    // The designer remains usable with fallback company details if the active
+    // company cannot be loaded at this moment.
+  }
+
+  if (!context.mounted) {
+    return;
+  }
+  await openDocumentPrintDesigner(
     context,
     documentType: 'hr_payslip',
     title: 'Payslip',
-    documentData: _payslipTemplateSampleData(),
+    documentData: _payslipTemplateSampleData(company),
   );
 }
 
-DocumentPrintDataModel _payslipTemplateSampleData() {
+DocumentPrintDataModel _payslipTemplateSampleData(CompanyModel? company) {
   const grossSalary = 30000.0;
   const totalDeductions = 1800.0;
   const netSalary = grossSalary - totalDeductions;
 
+  final companyName = company?.legalName?.trim().isNotEmpty == true
+      ? company!.legalName!.trim()
+      : (company?.tradeName?.trim().isNotEmpty == true
+            ? company!.tradeName!.trim()
+            : 'Your Company Name');
+  final companyAddress =
+      <String?>[
+            company?.addressLine1,
+            company?.addressLine2,
+            company?.area,
+            company?.city,
+            company?.district,
+            company?.stateName,
+            company?.postalCode,
+          ]
+          .whereType<String>()
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .join(', ');
+
   return DocumentPrintDataModel(
-    companyName: 'Your Company Name',
-    companyGstin: 'GSTIN / Registration No.',
+    companyName: companyName,
+    companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+    companyGstin: company?.gstin ?? 'GSTIN / Registration No.',
     documentNumber: 'PAYSLIP-SAMPLE',
     documentDate: '2026-08-31',
     referenceNumber: 'August 2026',
     partyName: 'Sample Employee',
-    partyAddress: 'Company address',
-    partyContact: 'Company contact number',
+    partyAddress: companyAddress.isEmpty ? 'Company address' : companyAddress,
+    partyContact: company?.phone ?? company?.email ?? 'Company contact number',
     partyGstin: 'EMP-001',
     termsConditions: 'This is a system generated payslip.',
     subtotal: grossSalary,

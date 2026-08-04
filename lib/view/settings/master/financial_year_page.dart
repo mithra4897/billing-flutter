@@ -6,10 +6,14 @@ class FinancialYearManagementPage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.fixedCompanyId,
+    this.showShellAction = true,
+    this.onNewFinancialYearActionChanged,
   });
 
   final bool embedded;
   final int? fixedCompanyId;
+  final bool showShellAction;
+  final ValueChanged<VoidCallback?>? onNewFinancialYearActionChanged;
 
   @override
   State<FinancialYearManagementPage> createState() =>
@@ -23,16 +27,22 @@ class _FinancialYearManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('FinancialYearManagementController');
+    _controllerTag = persistentControllerTag(
+      'FinancialYearManagementController',
+    );
     Get.put(
       FinancialYearManagementController(
         embedded: widget.embedded,
         fixedCompanyId: widget.fixedCompanyId,
       ),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _publishNewFinancialYearAction();
+      }
+    });
   }
 
   @override
@@ -47,7 +57,21 @@ class _FinancialYearManagementPageState
 
   @override
   void dispose() {
+    widget.onNewFinancialYearActionChanged?.call(null);
     super.dispose();
+  }
+
+  void _publishNewFinancialYearAction() {
+    widget.onNewFinancialYearActionChanged?.call(() {
+      if (!Get.isRegistered<FinancialYearManagementController>(
+        tag: _controllerTag,
+      )) {
+        return;
+      }
+      Get.find<FinancialYearManagementController>(
+        tag: _controllerTag,
+      ).startNewFinancialYear(isDesktop: Responsive.isDesktop(context));
+    });
   }
 
   @override
@@ -76,6 +100,9 @@ class _FinancialYearManagementPageState
         }
 
         if (widget.embedded) {
+          if (!widget.showShellAction) {
+            return _buildEmbeddedContent(context, controller);
+          }
           return ShellPageActions(
             actions: actions,
             child: _buildEmbeddedContent(context, controller),
@@ -121,7 +148,9 @@ class _FinancialYearManagementPageState
         ].where((value) => value.trim().isNotEmpty).join(' • '),
         selected: selected,
         trailing: SettingsStatusPill(
-          label: item.isCurrent ? 'Current' : (item.isActive ? 'Active' : 'Inactive'),
+          label: item.isCurrent
+              ? 'Current'
+              : (item.isActive ? 'Active' : 'Inactive'),
           active: item.isCurrent || item.isActive,
         ),
         onTap: () => controller.selectFinancialYear(item),
@@ -253,7 +282,9 @@ class _FinancialYearManagementPageState
                 AppActionButton(
                   icon: Icons.check_circle_outline,
                   label: 'Set Current',
-                  onPressed: controller.activating ? null : controller.setAsCurrent,
+                  onPressed: controller.activating
+                      ? null
+                      : controller.setAsCurrent,
                   busy: controller.activating,
                   filled: false,
                 ),
@@ -302,7 +333,10 @@ class _FinancialYearManagementPageState
                     const SizedBox(height: AppUiConstants.spacingSm),
                 ],
                 ...controller.filteredFinancialYears.map((item) {
-                  final expanded = identical(item, controller.selectedFinancialYear);
+                  final expanded = identical(
+                    item,
+                    controller.selectedFinancialYear,
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(
                       bottom: AppUiConstants.spacingSm,
