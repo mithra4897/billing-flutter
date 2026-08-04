@@ -4,9 +4,16 @@ import 'package:xml/xml.dart';
 import '../screen.dart';
 
 class SalesInvoiceExportButton extends StatefulWidget {
-  const SalesInvoiceExportButton({super.key, required this.invoices});
+  const SalesInvoiceExportButton({
+    super.key,
+    required this.invoices,
+    this.returnDateFrom,
+    this.returnDateTo,
+  });
 
   final List<SalesInvoiceModel> invoices;
+  final String? returnDateFrom;
+  final String? returnDateTo;
 
   @override
   State<SalesInvoiceExportButton> createState() =>
@@ -20,7 +27,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
   );
 
   static const List<String> _headers = <String>[
-    '',
+    'Document Type',
     'Date',
     'Customer',
     'State',
@@ -51,24 +58,23 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
   }
 
   Future<void> _exportInvoices() async {
-    if (widget.invoices.isEmpty) {
-      _showMessage('No sales invoices to export.');
-      return;
-    }
-
     setState(() {
       _exporting = true;
     });
 
     try {
       final exportData = await _loadInvoiceDetails(widget.invoices);
-      if (exportData.invoiceDetails.isEmpty) {
+      if (exportData.invoiceDetails.isEmpty &&
+          exportData.salesReturns.isEmpty) {
         final reason = exportData.failures.isNotEmpty
             ? exportData.failures.first.error
-            : 'No invoice details were available.';
+            : 'No sales invoices or sales returns were available.';
         throw reason;
       }
-      final workbook = _buildWorkbook(exportData.invoiceDetails);
+      final workbook = _buildWorkbook(
+        exportData.invoiceDetails,
+        exportData.salesReturns,
+      );
       final saved = await saveBytesFile(
         suggestedName: _suggestedFileName(),
         bytes: workbook,
@@ -111,15 +117,14 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         .map((invoice) => invoice.id ?? 0)
         .where((id) => id > 0)
         .toList(growable: false);
-    if (invoiceIds.isEmpty) {
-      return const _InvoiceExportLoadResult(
-        invoiceDetails: <Map<String, dynamic>>[],
-        failures: <_InvoiceExportFailure>[],
-      );
-    }
-
-    final response = await _salesService.invoiceExportData(invoiceIds);
-    final details = response.data ?? const <Map<String, dynamic>>[];
+    final response = await _salesService.invoiceExportData(
+      invoiceIds,
+      returnDateFrom: widget.returnDateFrom,
+      returnDateTo: widget.returnDateTo,
+    );
+    final exportPayload = response.data ?? const <String, dynamic>{};
+    final details = _asListOfMaps(exportPayload['invoices']);
+    final salesReturns = _asListOfMaps(exportPayload['sales_returns']);
     final returnedIds = details
         .map((item) => intValue(item, 'id') ?? 0)
         .where((id) => id > 0)
@@ -137,6 +142,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
 
     return _InvoiceExportLoadResult(
       invoiceDetails: details,
+      salesReturns: salesReturns,
       failures: failures,
     );
   }
@@ -166,7 +172,10 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     return id > 0 ? 'Invoice #$id' : 'Invoice';
   }
 
-  Uint8List _buildWorkbook(List<Map<String, dynamic>> invoiceDetails) {
+  Uint8List _buildWorkbook(
+    List<Map<String, dynamic>> invoiceDetails,
+    List<Map<String, dynamic>> salesReturns,
+  ) {
     final rows = <List<_ExcelCell>>[
       List<_ExcelCell>.filled(_headers.length, _ExcelCell.text('')),
       <_ExcelCell>[
@@ -185,6 +194,21 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
 
     for (final invoice in invoiceDetails) {
       rows.addAll(_buildInvoiceRows(invoice));
+    }
+
+    if (salesReturns.isNotEmpty) {
+      rows.add(List<_ExcelCell>.filled(_headers.length, _ExcelCell.text('')));
+      rows.add(<_ExcelCell>[
+        _ExcelCell.text('SALES RETURNS'),
+        ...List<_ExcelCell>.filled(_headers.length - 1, _ExcelCell.text('')),
+      ]);
+      rows.add(_headers.map(_ExcelCell.header).toList(growable: false));
+      for (final salesReturn in salesReturns) {
+        final row = _buildSalesReturnRow(salesReturn);
+        if (row != null) {
+          rows.add(row);
+        }
+      }
     }
 
     final archive = Archive()
@@ -238,41 +262,49 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         documentNo: invoiceNo,
         lines: lines,
         isInterState: isInterState,
+        documentType: 'SALES INVOICE',
       ),
     ];
 
-    for (final salesReturn in _asListOfMaps(invoice['sales_returns'])) {
-      final returnStatus = nullableStringValue(
-        salesReturn,
-        'return_status',
-      )?.toLowerCase();
-      if (returnStatus == 'cancelled' ||
-          (salesReturn.containsKey('is_active') &&
-              !boolValue(salesReturn, 'is_active'))) {
-        continue;
-      }
+    return rows;
+  }
 
-      rows.add(
-        _buildDocumentRow(
-          customerName: customerName,
-          state: state,
-          gstin: gstin,
-          documentDate: displayDate(
-            nullableStringValue(salesReturn, 'return_date'),
-          ),
-          documentNo: _firstNonEmpty(<String?>[
-            nullableStringValue(salesReturn, 'return_no'),
-            if ((intValue(salesReturn, 'id') ?? 0) > 0)
-              'Return #${intValue(salesReturn, 'id') ?? 0}',
-          ]),
-          lines: _asListOfMaps(salesReturn['lines']),
-          isInterState: isInterState,
-          quantityKey: 'return_qty',
-        ),
-      );
+  List<_ExcelCell>? _buildSalesReturnRow(Map<String, dynamic> salesReturn) {
+    final returnStatus = nullableStringValue(
+      salesReturn,
+      'return_status',
+    )?.toLowerCase();
+    if (returnStatus == 'cancelled' ||
+        (salesReturn.containsKey('is_active') &&
+            !boolValue(salesReturn, 'is_active'))) {
+      return null;
     }
 
-    return rows;
+    final customer = _asMap(salesReturn['customer']);
+    final customerName = _firstNonEmpty(<String?>[
+      stringValue(customer, 'party_name'),
+      nullableStringValue(salesReturn, 'customer_name'),
+    ]);
+    final gstin = _resolveCustomerGstin(salesReturn, customer);
+    final state = _resolveCustomerState(salesReturn, customer, gstin);
+
+    return _buildDocumentRow(
+      customerName: customerName,
+      state: state,
+      gstin: gstin,
+      documentDate: displayDate(
+        nullableStringValue(salesReturn, 'return_date'),
+      ),
+      documentNo: _firstNonEmpty(<String?>[
+        nullableStringValue(salesReturn, 'return_no'),
+        if ((intValue(salesReturn, 'id') ?? 0) > 0)
+          'Return #${intValue(salesReturn, 'id') ?? 0}',
+      ]),
+      lines: _asListOfMaps(salesReturn['lines']),
+      isInterState: _resolveIsInterState(salesReturn, gstin),
+      quantityKey: 'return_qty',
+      documentType: 'SALES RETURN',
+    );
   }
 
   List<_ExcelCell> _buildDocumentRow({
@@ -921,10 +953,12 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
 class _InvoiceExportLoadResult {
   const _InvoiceExportLoadResult({
     required this.invoiceDetails,
+    required this.salesReturns,
     required this.failures,
   });
 
   final List<Map<String, dynamic>> invoiceDetails;
+  final List<Map<String, dynamic>> salesReturns;
   final List<_InvoiceExportFailure> failures;
 }
 

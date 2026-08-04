@@ -1428,7 +1428,11 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       searchHint: 'Search number or customer',
       statusItems: _statusItems,
       extraActionsBuilder: (context, controller) => <Widget>[
-        SalesInvoiceExportButton(invoices: controller.filteredRows),
+        SalesInvoiceExportButton(
+          invoices: controller.filteredRows,
+          returnDateFrom: controller.dateFromController.text,
+          returnDateTo: controller.dateToController.text,
+        ),
       ],
       customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
         controller: controller,

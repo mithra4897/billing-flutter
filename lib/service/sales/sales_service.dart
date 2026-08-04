@@ -327,16 +327,23 @@ class SalesService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<List<Map<String, dynamic>>>> invoiceExportData(
-    List<int> invoiceIds,
-  ) {
-    return client.post<List<Map<String, dynamic>>>(
+  Future<ApiResponse<Map<String, dynamic>>> invoiceExportData(
+    List<int> invoiceIds, {
+    String? returnDateFrom,
+    String? returnDateTo,
+  }) {
+    return client.post<Map<String, dynamic>>(
       '${ApiEndpoints.salesInvoices}/export-data',
-      body: <String, dynamic>{'invoice_ids': invoiceIds},
-      fromData: (json) => (json as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList(growable: false),
+      body: <String, dynamic>{
+        'invoice_ids': invoiceIds,
+        if (returnDateFrom != null && returnDateFrom.isNotEmpty)
+          'return_date_from': returnDateFrom,
+        if (returnDateTo != null && returnDateTo.isNotEmpty)
+          'return_date_to': returnDateTo,
+      },
+      fromData: (json) => json is Map<String, dynamic>
+          ? Map<String, dynamic>.from(json)
+          : <String, dynamic>{},
     );
   }
 
