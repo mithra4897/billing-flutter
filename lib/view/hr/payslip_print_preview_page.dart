@@ -48,6 +48,74 @@ Future<void> openPayslipPrintPreview(
   }
 }
 
+Future<void> openPayslipTemplateDesigner(BuildContext context) {
+  return openDocumentPrintDesigner(
+    context,
+    documentType: 'hr_payslip',
+    title: 'Payslip',
+    documentData: _payslipTemplateSampleData(),
+  );
+}
+
+DocumentPrintDataModel _payslipTemplateSampleData() {
+  const grossSalary = 30000.0;
+  const totalDeductions = 1800.0;
+  const netSalary = grossSalary - totalDeductions;
+
+  return DocumentPrintDataModel(
+    companyName: 'Your Company Name',
+    companyGstin: 'GSTIN / Registration No.',
+    documentNumber: 'PAYSLIP-SAMPLE',
+    documentDate: '2026-08-31',
+    referenceNumber: 'August 2026',
+    partyName: 'Sample Employee',
+    partyAddress: 'Company address',
+    partyContact: 'Company contact number',
+    partyGstin: 'EMP-001',
+    termsConditions: 'This is a system generated payslip.',
+    subtotal: grossSalary,
+    totalAmount: netSalary,
+    amountInWords: printTemplateAmountInWords(netSalary, 'INR'),
+    extraData: const <String, dynamic>{
+      'employee_profile': <String, dynamic>{
+        'employee_name': 'Sample Employee',
+        'employee_code': 'EMP-001',
+        'department_name': 'Operations',
+        'designation_name': 'Executive',
+        'salary_mode': 'Monthly',
+        'bank_account_no': 'XXXX1234',
+        'ifsc_code': 'BANK0000123',
+        'pf_uan_no': '100000000001',
+        'esi_no': '1000000001',
+        'mobile': '9000000000',
+        'email': 'employee@example.com',
+      },
+      'attendance': <String, dynamic>{
+        'working_days': 31,
+        'present_days': 30,
+        'leave_days': 1,
+        'paid_days': 30,
+        'lop_days': 0,
+      },
+      'salary_summary': <String, dynamic>{
+        'basic_salary': 15000,
+        'gross_salary': 30000,
+        'total_deductions': 1800,
+        'ctc_monthly': 36000,
+        'net_salary': 28200,
+      },
+      'earnings': <Map<String, dynamic>>[
+        <String, dynamic>{'label': 'Basic Salary', 'amount': 15000},
+        <String, dynamic>{'label': 'House Rent Allowance', 'amount': 7500},
+        <String, dynamic>{'label': 'Special Allowance', 'amount': 7500},
+      ],
+      'deductions': <Map<String, dynamic>>[
+        <String, dynamic>{'label': 'Provident Fund', 'amount': 1800},
+      ],
+    },
+  );
+}
+
 class DesignedPayslipEmailResult {
   const DesignedPayslipEmailResult({
     required this.sent,

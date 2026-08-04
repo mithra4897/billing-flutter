@@ -570,7 +570,12 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
                 .toList(growable: false),
           ),
         ],
-        if (shape.type == 'rectangle') ...[
+        if (const <String>{
+          'rectangle',
+          'text',
+          'table',
+          'barcode',
+        }.contains(shape.type)) ...[
           const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Border Radius',

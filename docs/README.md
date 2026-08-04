@@ -15,3 +15,5 @@ For a backend and frontend change that belongs to one feature, use the same deci
 ## Feature specifications
 
 - [Activity Watch local database structure](ACTIVITY_WATCH_LOCAL_DATABASE_STRUCTURE.md) — proposed cross-platform 10-table SQLCipher MVP schema, operating-system capabilities, table purposes, encryption, retention, and recovery rules.
+- [Payslip template pre-editing](payslip-template-preedit.md) — edit the company payslip layout using sample data before payroll creation.
+- [Print designer box border radius](print-designer-box-border-radius.md) — adjust rounded corners for boxed print elements.

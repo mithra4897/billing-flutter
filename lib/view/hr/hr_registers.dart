@@ -685,18 +685,16 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
             child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
               mappedItems: controller.employees
-                    .where(
-                      (EmployeeModel e) =>
-                          e.companyId == controller.sessionCompanyId &&
-                          e.id != null,
-                    )
-                    .map(
-                      (EmployeeModel e) => AppDropdownItem<int>(
-                        value: e.id!,
-                        label: e.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
+                  .where(
+                    (EmployeeModel e) =>
+                        e.companyId == controller.sessionCompanyId &&
+                        e.id != null,
+                  )
+                  .map(
+                    (EmployeeModel e) =>
+                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
+                  )
+                  .toList(growable: false),
               multiInitialValues: controller.filterEmployeeIds,
               multiHintText: 'Select employees',
               onMultiChanged: controller.setEmployeeFilters,
@@ -1046,18 +1044,16 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
             child: AppDropdownField<int>.fromMapped(
               labelText: 'Employee filter',
               mappedItems: controller.employees
-                    .where(
-                      (EmployeeModel e) =>
-                          e.companyId == controller.sessionCompanyId &&
-                          e.id != null,
-                    )
-                    .map(
-                      (EmployeeModel e) => AppDropdownItem<int>(
-                        value: e.id!,
-                        label: e.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
+                  .where(
+                    (EmployeeModel e) =>
+                        e.companyId == controller.sessionCompanyId &&
+                        e.id != null,
+                  )
+                  .map(
+                    (EmployeeModel e) =>
+                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
+                  )
+                  .toList(growable: false),
               multiInitialValues: controller.filterEmployeeIds,
               multiHintText: 'Select employees',
               onMultiChanged: controller.setEmployeeFilters,
@@ -1100,6 +1096,14 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No payslips found.',
           actions: [
+            AdaptiveShellActionButton(
+              icon: Icons.design_services_outlined,
+              label: 'Design payslip',
+              filled: false,
+              onPressed: controller.sessionCompanyId == null
+                  ? () => _showNeedCompanySnack(context)
+                  : () => openPayslipTemplateDesigner(context),
+            ),
             AdaptiveShellActionButton(
               icon: Icons.filter_alt_outlined,
               label: 'Filter',
