@@ -486,7 +486,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   DocumentPrintTemplate _prepareTemplate(DocumentPrintTemplate template) {
     final normalized = _normalizeSalesInvoiceTotals(
-      _ensureTermsBlock(template.normalizedFor(widget.documentType)),
+      normalizeSalesQuotationSummaryTemplate(
+        _ensureTermsBlock(template.normalizedFor(widget.documentType)),
+        documentType: widget.documentType,
+      ),
     );
 
     final shapes = normalized.shapes.map((shape) {
@@ -510,7 +513,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           columns: columns,
         );
       } else if (isPrintLinesTableShape(shape)) {
-        return _normalizeLinesTableColumns(shape.copyWith(dataPath: 'lines'));
+        return _normalizeLinesTableColumns(
+          normalizeSalesQuotationTableAmountColumn(
+            shape.copyWith(dataPath: 'lines'),
+            documentType: widget.documentType,
+          ),
+        );
       }
       return shape;
     }).toList();

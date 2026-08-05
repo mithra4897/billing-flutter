@@ -248,6 +248,80 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
   );
 }
 
+DocumentPrintTemplate normalizeSalesQuotationSummaryTemplate(
+  DocumentPrintTemplate template, {
+  required String documentType,
+}) {
+  if (documentType != 'sales_quotation') {
+    return template;
+  }
+
+  var changed = false;
+  final shapes = template.shapes
+      .map((shape) {
+        if (shape.type != 'text') {
+          return shape;
+        }
+
+        var text = shape.text;
+        if (text.contains('{{subtotal}}')) {
+          final isTotalValueShape = shape.id == 'total-amount-value';
+          final hasInlineTotalLabel = text
+              .split('\n')
+              .any((line) => line.toLowerCase().contains('total amount'));
+          if (isTotalValueShape || hasInlineTotalLabel) {
+            text = text.replaceAll('{{subtotal}}', '{{total_amount}}');
+          }
+        }
+        text = text.replaceAllMapped(
+          RegExp(r'[-–—]\s*\{\{discount_amount\}\}'),
+          (_) => '{{discount_amount}}',
+        );
+        if (text == shape.text) {
+          return shape;
+        }
+
+        changed = true;
+        return shape.copyWith(text: text);
+      })
+      .toList(growable: false);
+
+  return changed ? template.copyWith(shapes: shapes) : template;
+}
+
+DocumentPrintShape normalizeSalesQuotationTableAmountColumn(
+  DocumentPrintShape shape, {
+  required String documentType,
+}) {
+  if (documentType != 'sales_quotation' || !isPrintLinesTableShape(shape)) {
+    return shape;
+  }
+
+  var changed = false;
+  final columns = shape.columns
+      .map((column) {
+        final normalizedLabel = column.label.toLowerCase().replaceAll(
+          RegExp(r'[^a-z]'),
+          '',
+        );
+        final isAmountColumn = normalizedLabel == 'amount';
+        final mustUseGrossLineTotal =
+            column.key == 'taxable_amount' ||
+            (column.key == 'line_total' && !column.includeGst);
+        if (isAmountColumn && mustUseGrossLineTotal) {
+          changed = true;
+          return column.copyWith(
+            key: 'line_total',
+            totalColumn: true,
+            includeGst: true,
+          );
+        }
+        return column;
+      })
+      .toList(growable: false);
+  return changed ? shape.copyWith(columns: columns) : shape;
+}
+
 Future<void> openManagedDocumentPrintPreview(
   BuildContext context, {
   Future<void> Function()? prepare,
@@ -456,9 +530,17 @@ double? resolvePrintLinesTableDisplayedTotalAmount(
   final amountColumn = columns.firstWhereOrNull(
     (column) => column.key.trim().toLowerCase() == 'line_total',
   );
-  final preferredKey = amountColumn?.includeGst == false
-      ? 'taxable_total_amount'
-      : 'total_amount';
+  // Sales quotations show gross line amounts in their Amount column.  The
+  // separate discount summary and final Total Amount show the deduction and
+  // net document total, so their table footer must use the gross subtotal too.
+  final isSalesQuotation =
+      data.containsKey('discount_summary_label') &&
+      data.containsKey('discount_amount');
+  final preferredKey = isSalesQuotation
+      ? 'subtotal'
+      : (amountColumn?.includeGst == false
+            ? 'taxable_total_amount'
+            : 'total_amount');
   final preferredValue = resolvePrintPath(data, preferredKey);
   if (preferredValue is num) {
     return preferredValue.toDouble();

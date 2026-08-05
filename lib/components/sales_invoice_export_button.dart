@@ -2,6 +2,7 @@ import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
 
 import '../screen.dart';
+import 'sales_invoice_export_support.dart';
 
 class SalesInvoiceExportButton extends StatefulWidget {
   const SalesInvoiceExportButton({
@@ -260,6 +261,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         gstin: gstin,
         documentDate: invoiceDate,
         documentNo: invoiceNo,
+        document: invoice,
         lines: lines,
         isInterState: isInterState,
         documentType: 'SALES INVOICE',
@@ -300,6 +302,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         if ((intValue(salesReturn, 'id') ?? 0) > 0)
           'Return #${intValue(salesReturn, 'id') ?? 0}',
       ]),
+      document: salesReturn,
       lines: _asListOfMaps(salesReturn['lines']),
       isInterState: _resolveIsInterState(salesReturn, gstin),
       quantityKey: 'return_qty',
@@ -313,6 +316,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     required String gstin,
     required String documentDate,
     required String documentNo,
+    required Map<String, dynamic> document,
     required List<Map<String, dynamic>> lines,
     required bool? isInterState,
     String quantityKey = 'invoiced_qty',
@@ -320,6 +324,13 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     String documentType = '',
   }) {
     if (lines.isEmpty) {
+      final taxTotals = resolveSalesInvoiceExportTaxTotals(
+        document: document,
+        calculatedCgst: 0,
+        calculatedSgst: 0,
+        calculatedIgst: 0,
+        isInterState: isInterState,
+      );
       return <_ExcelCell>[
         _ExcelCell.text(documentType),
         _ExcelCell.text(documentDate),
@@ -331,9 +342,9 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
         _numberOrBlank(0),
         _numberOrBlank(0),
         _numberOrBlank(0),
-        _numberOrBlank(0),
-        _numberOrBlank(0),
-        _numberOrBlank(0),
+        _numberOrBlank(taxTotals.igst),
+        _numberOrBlank(taxTotals.cgst),
+        _numberOrBlank(taxTotals.sgst),
         _numberOrBlank(0),
       ];
     }
@@ -416,6 +427,14 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       totalAmount += amount * multiplier;
     }
 
+    final taxTotals = resolveSalesInvoiceExportTaxTotals(
+      document: document,
+      calculatedCgst: totalCgst,
+      calculatedSgst: totalSgst,
+      calculatedIgst: totalIgst,
+      isInterState: isInterState,
+    );
+
     return <_ExcelCell>[
       _ExcelCell.text(documentType),
       _ExcelCell.text(documentDate),
@@ -427,9 +446,9 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       _ExcelCell.text(gstPercentValues.join(', ')),
       _numberOrBlank(roundToDouble(totalQty, 2)),
       _numberOrBlank(roundToDouble(totalTaxable, 2)),
-      _numberOrBlank(roundToDouble(totalIgst, 2)),
-      _numberOrBlank(roundToDouble(totalCgst, 2)),
-      _numberOrBlank(roundToDouble(totalSgst, 2)),
+      _numberOrBlank(roundToDouble(taxTotals.igst, 2)),
+      _numberOrBlank(roundToDouble(taxTotals.cgst, 2)),
+      _numberOrBlank(roundToDouble(taxTotals.sgst, 2)),
       _numberOrBlank(roundToDouble(totalAmount, 2)),
     ];
   }
@@ -530,16 +549,29 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     final customer = _asMap(invoice['customer']);
     final preferredGstDetail = _preferredGstDetail(invoice, customer);
     final companyCode = _firstNonEmpty(<String?>[
-      nullableStringValue(location, 'state_code'),
-      nullableStringValue(company, 'state_code'),
+      normalizeIndianGstStateCode(nullableStringValue(location, 'state_code')),
+      _gstStateFromGstin(nullableStringValue(location, 'gstin')),
       _gstStateFromGstin(nullableStringValue(company, 'gstin')),
+      normalizeIndianGstStateCode(nullableStringValue(company, 'state_code')),
     ]);
     final customerCode = _firstNonEmpty(<String?>[
-      nullableStringValue(_preferredAddress(invoice, customer), 'state_code'),
-      nullableStringValue(preferredGstDetail, 'state_code'),
-      nullableStringValue(invoice, 'state_code'),
-      nullableStringValue(customer, 'state_code'),
       _gstStateFromGstin(customerGstin),
+      normalizeIndianGstStateCode(
+        nullableStringValue(_preferredAddress(invoice, customer), 'state_code'),
+      ),
+      normalizeIndianGstStateCode(
+        nullableStringValue(_preferredAddress(invoice, customer), 'state_name'),
+      ),
+      normalizeIndianGstStateCode(
+        nullableStringValue(preferredGstDetail, 'state_code'),
+      ),
+      normalizeIndianGstStateCode(
+        nullableStringValue(preferredGstDetail, 'state_name'),
+      ),
+      normalizeIndianGstStateCode(nullableStringValue(invoice, 'state_code')),
+      normalizeIndianGstStateCode(nullableStringValue(invoice, 'state_name')),
+      normalizeIndianGstStateCode(nullableStringValue(customer, 'state_code')),
+      normalizeIndianGstStateCode(nullableStringValue(customer, 'state_name')),
     ]);
     if (companyCode.isEmpty || customerCode.isEmpty) {
       return null;

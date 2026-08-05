@@ -757,6 +757,7 @@ class SalesQuotationManagementController extends GetxController {
   DocumentPrintDataModel quotationPrintData() {
     final documentStatus = status.trim().toLowerCase();
     final summary = taxSummary();
+    final discountAmount = roundToDouble(summary.gross - summary.taxable, 2);
     final roundOffAmount = applyRoundOff
         ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
         : 0.0;
@@ -811,7 +812,9 @@ class SalesQuotationManagementController extends GetxController {
             rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
             taxableAmount: roundToDouble(breakdown.taxable, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
-            lineTotal: roundToDouble(breakdown.total, 2),
+            // Quotation tables present the original amount. Discount and tax
+            // remain separate summary values below the table.
+            lineTotal: roundToDouble(breakdown.gross, 2),
           );
         })
         .toList(growable: false);
@@ -874,6 +877,10 @@ class SalesQuotationManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'is_direct_customer': directCustomerDetails.isNotEmpty,
+        'discount_summary_label': discountAmount.abs() < 0.005
+            ? ''
+            : 'DISCOUNT :',
+        'discount_amount': discountAmount,
         'cgst_amount': roundToDouble(summary.cgst, 2),
         'sgst_amount': roundToDouble(summary.sgst, 2),
         'igst_amount': roundToDouble(summary.igst, 2),
