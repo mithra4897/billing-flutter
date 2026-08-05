@@ -15,6 +15,7 @@ For a backend and frontend change that belongs to one feature, use the same deci
 ## Feature specifications
 
 - [Sales Quotation print discount summary](sales-quotation-print-discount-summary.md) — expose conditional discount label and amount placeholders in quotation print templates.
+- [Sales Quotation tax exclusion](sales-quotation-tax-exclusion.md) — keep quotations tax-free in entry, storage, totals, and print data.
 - [Print PDF rupee font asset](print-pdf-rupee-font-asset.md) — package the Poppins fallback font used by web PDF generation.
 - [Activity Watch local database structure](ACTIVITY_WATCH_LOCAL_DATABASE_STRUCTURE.md) — proposed cross-platform 10-table SQLCipher MVP schema, operating-system capabilities, table purposes, encryption, retention, and recovery rules.
 - [Payslip template pre-editing](payslip-template-preedit.md) — edit the company payslip layout using sample data before payroll creation.

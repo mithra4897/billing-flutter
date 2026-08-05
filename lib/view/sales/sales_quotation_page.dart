@@ -217,11 +217,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             ? (_) => controller.refreshComputedState()
             : null,
         discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
-        taxCodeId: line.taxCodeId,
-        taxOptions: controller.taxCodeDropdownItems,
-        onTaxCodeChanged: controller.canEdit
-            ? (value) => controller.setLineTaxCodeId(index, value)
-            : null,
         descriptionController: line.descriptionController,
         onDescriptionChanged: controller.canEdit ? (_) {} : null,
         remarksController: line.remarksController,
@@ -244,7 +239,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,
-        ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.amount,
         if (controller.canEdit) ErpLineItemTableColumn.action,
       },

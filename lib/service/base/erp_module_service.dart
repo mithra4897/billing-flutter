@@ -1,5 +1,18 @@
 import '../../screen.dart';
 
+Map<String, dynamic> newestFirstListFilters(Map<String, dynamic>? filters) {
+  final resolved = Map<String, dynamic>.from(filters ?? const {});
+  final sortBy = resolved['sort_by']?.toString().trim() ?? '';
+  final sortOrder = resolved['sort_order']?.toString().trim().toLowerCase();
+  final hasExplicitSort =
+      sortBy.isNotEmpty && (sortOrder == 'asc' || sortOrder == 'desc');
+  if (!hasExplicitSort) {
+    resolved['sort_by'] = 'id';
+    resolved['sort_order'] = 'desc';
+  }
+  return resolved;
+}
+
 class ErpModuleService {
   ErpModuleService({ApiClient? apiClient}) : client = apiClient ?? ApiClient();
 
@@ -12,7 +25,7 @@ class ErpModuleService {
   }) {
     return client.getPaginated<T>(
       endpoint,
-      queryParameters: filters,
+      queryParameters: newestFirstListFilters(filters),
       itemFromJson: fromJson,
     );
   }
@@ -25,7 +38,7 @@ class ErpModuleService {
   }) {
     return client.get<List<T>>(
       endpoint,
-      queryParameters: filters,
+      queryParameters: newestFirstListFilters(filters),
       headerOverrides: headerOverrides,
       fromData: (json) {
         if (json is! List) {

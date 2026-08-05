@@ -3,6 +3,11 @@
 **Date:** 2026-08-05  
 **Scope:** Sales Quotation print-template data
 
+## List order
+
+The Sales Quotation register requests `quotation_date` in descending order, so
+the newest quotations appear first when the screen opens.
+
 ## Objective
 
 Make the placeholders `{{discount_summary_label}}` and

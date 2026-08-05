@@ -23,7 +23,8 @@ class QuotationLineDraft {
       id: intValue(json, 'id'),
       itemId: intValue(json, 'item_id'),
       uomId: intValue(json, 'uom_id'),
-      taxCodeId: intValue(json, 'tax_code_id'),
+      // Quotations are tax-free, including quotations saved before this rule.
+      taxCodeId: null,
       description: stringValue(json, 'description'),
       qty: stringValue(json, 'qty'),
       rate: stringValue(json, 'rate'),
@@ -52,7 +53,7 @@ class QuotationLineDraft {
       if (id != null) 'id': id,
       'item_id': itemId,
       'uom_id': uomId,
-      'tax_code_id': taxCodeId,
+      'tax_code_id': null,
       'description': nullIfEmpty(descriptionController.text),
       'qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
       'rate': rate,
@@ -307,7 +308,11 @@ class SalesQuotationManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.quotations(
-          filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'quotation_date',
+            'sort_order': 'desc',
+          },
         ),
         _inventoryService.itemPrices(
           filters: const {
@@ -720,7 +725,8 @@ class SalesQuotationManagementController extends GetxController {
       rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
       discountPercent:
           Validators.parseFlexibleNumber(line.discountController.text) ?? 0,
-      taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+      // Sales quotations do not apply GST or cess.
+      taxCode: null,
       isInterState: isInterStateForSummary(),
     );
   }
@@ -742,6 +748,7 @@ class SalesQuotationManagementController extends GetxController {
     final breakdown = taxBreakdownForLine(line);
     return <String, dynamic>{
       ...payload,
+      'tax_code_id': null,
       'discount_amount': roundToDouble(breakdown.gross - breakdown.taxable, 2),
       'gross_amount': roundToDouble(breakdown.gross, 2),
       'taxable_amount': roundToDouble(breakdown.taxable, 2),
@@ -792,7 +799,7 @@ class SalesQuotationManagementController extends GetxController {
           final breakdown = taxBreakdownForLine(line);
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
-            taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+            taxCode: null,
             taxPercent: breakdown.taxPercent,
             taxable: breakdown.taxable,
             cgst: breakdown.cgst,
@@ -1026,7 +1033,7 @@ class SalesQuotationManagementController extends GetxController {
       rateController: line.rateController,
       setUom: (uomId) => line.uomId = uomId,
       currentUomId: line.uomId,
-      setTaxCodeId: (taxCodeId) => line.taxCodeId = taxCodeId,
+      setTaxCodeId: (_) => line.taxCodeId = null,
     );
     refreshComputedState();
   }
@@ -1043,8 +1050,8 @@ class SalesQuotationManagementController extends GetxController {
     if (!canEdit) {
       return;
     }
-    lines[index].taxCodeId = value;
-    refreshLineItemsSection();
+    lines[index].taxCodeId = null;
+    refreshComputedState();
   }
 
   Future<void> save(BuildContext context) async {

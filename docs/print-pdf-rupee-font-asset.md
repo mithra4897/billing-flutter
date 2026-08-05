@@ -24,3 +24,10 @@ the Flutter web asset manifest.
    `assets/fonts/Poppins-Regular.ttf`.
 2. A web build completes successfully.
 3. Existing focused quotation-print tests and static analysis continue to pass.
+
+## Verification
+
+- `flutter build web` completed on 2026-08-05.
+- The output contains `build/web/assets/assets/fonts/Poppins-Regular.ttf` and
+  its asset manifest entry.
+- The six focused quotation-print tests and focused Flutter analysis passed.
