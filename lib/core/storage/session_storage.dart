@@ -18,6 +18,95 @@ class SessionStorage {
   static const String authContextKey = 'auth_context';
   static const String permissionCodesKey = 'permission_codes';
   static const String masterDataCacheEnabledKey = 'master_data_cache_enabled';
+  static const String lastShellRouteKey = 'last_shell_route';
+
+  static Future<void> saveLastShellRoute(String route) async {
+    final normalizedRoute = _validShellRoute(route);
+    if (normalizedRoute == null) {
+      return;
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(lastShellRouteKey, normalizedRoute);
+  }
+
+  static Future<String?> getLastShellRoute() async {
+    final preferences = await SharedPreferences.getInstance();
+    return _validShellRoute(preferences.getString(lastShellRouteKey) ?? '');
+  }
+
+  static String? _validShellRoute(String route) {
+    final candidate = route.trim();
+    if (candidate.isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(candidate);
+    if (uri == null ||
+        uri.hasScheme ||
+        uri.hasAuthority ||
+        !uri.path.startsWith('/') ||
+        uri.path == '/' ||
+        const <String>{
+          '/login',
+          '/forgot-password',
+          '/reset-password',
+        }.contains(uri.path)) {
+      return null;
+    }
+
+    if (!_isKnownShellPath(uri.path)) {
+      return null;
+    }
+
+    return Uri(
+      path: uri.path,
+      queryParameters: uri.queryParameters.isEmpty ? null : uri.queryParameters,
+    ).toString();
+  }
+
+  static bool _isKnownShellPath(String path) {
+    final normalizedPath = _normalizeEditorPath(path);
+    return path == '/dashboard' ||
+        path == '/crm/dashboard' ||
+        path.startsWith('/purchase/') ||
+        path.startsWith('/sales/') ||
+        path.startsWith('/inventory/') ||
+        AppNavigation.findByPath(path) != null ||
+        AppNavigation.findByPath(normalizedPath) != null ||
+        const <String>{
+          '/communication/send-email',
+          '/parties/addresses',
+          '/parties/contacts',
+          '/parties/gst-details',
+          '/parties/bank-accounts',
+          '/parties/credit-limits',
+          '/parties/payment-terms',
+        }.contains(path);
+  }
+
+  static String _normalizeEditorPath(String path) {
+    final segments = path
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.isEmpty) {
+      return path;
+    }
+
+    if (segments.length == 2 &&
+        segments.first == 'parties' &&
+        (segments[1] == 'new' || int.tryParse(segments[1]) != null)) {
+      return '/parties';
+    }
+
+    if (segments.length == 3 &&
+        (segments[2] == 'new' || int.tryParse(segments[2]) != null)) {
+      return '/${segments[0]}/${segments[1]}';
+    }
+
+    return path;
+  }
 
   static Future<void> saveSession({
     required String token,
@@ -264,6 +353,7 @@ class SessionStorage {
     await preferences.remove(currentFinancialYearIdKey);
     await preferences.remove(authContextKey);
     await preferences.remove(permissionCodesKey);
+    await preferences.remove(lastShellRouteKey);
   }
 
   static Future<void> clear() async {

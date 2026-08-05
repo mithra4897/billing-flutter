@@ -43,9 +43,12 @@ class AppBootstrapController extends GetxController {
         return;
       }
 
+      final startupRoute = redirectTo == '/dashboard'
+          ? await SessionStorage.getLastShellRoute() ?? redirectTo
+          : redirectTo;
       _scheduleNavigation(() {
         if (navigator.mounted) {
-          navigator.pushReplacementNamed(redirectTo);
+          navigator.pushReplacementNamed(startupRoute);
         }
       });
       unawaited(_refreshSessionInBackground());

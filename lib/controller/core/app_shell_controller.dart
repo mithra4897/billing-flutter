@@ -149,6 +149,7 @@ class AppShellController extends GetxController {
     currentPath = uri.path;
     currentQueryParameters = Map<String, String>.from(uri.queryParameters);
     AppRouteState.update(uri.toString());
+    unawaited(SessionStorage.saveLastShellRoute(uri.toString()));
     SystemNavigator.routeInformationUpdated(uri: uri, replace: true);
     update();
   }

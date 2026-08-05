@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -6,6 +8,7 @@ import 'app/constants/app_config.dart';
 import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'core/navigation/app_route_state.dart';
+import 'core/storage/session_storage.dart';
 import 'helper/app_format_settings.dart';
 import 'helper/master_data_cache.dart';
 import 'view/auth/forgot_password_page.dart';
@@ -125,6 +128,7 @@ class BillingApp extends StatelessWidget {
                   '/parties/payment-terms',
                 }.contains(uri.path);
             if (matchedRoute) {
+              unawaited(SessionStorage.saveLastShellRoute(uri.toString()));
               return MaterialPageRoute<void>(
                 settings: settings,
                 builder: (_) => AppShellPage(
