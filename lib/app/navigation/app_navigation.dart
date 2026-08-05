@@ -74,8 +74,8 @@ class AppNavigation {
           children: [
             AppNavigationItem(
               key: 'settings-cache-controls',
-              title: 'Cache Controls',
-              icon: Icons.storage_outlined,
+              title: 'System Tools',
+              icon: Icons.build_outlined,
               path: '/settings/cache-controls',
             ),
           ],

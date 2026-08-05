@@ -14,6 +14,8 @@ For a backend and frontend change that belongs to one feature, use the same deci
 
 ## Feature specifications
 
+- [Simple system tools](simple-system-tools.md) — retain only Clear Cache and
+  Backup Database in the super-admin system page.
 - [Restore last Billing page after refresh](last-page-restore.md) — reopen the
   last authenticated shell route for a remembered session.
 - [Sales Quotation print discount summary](sales-quotation-print-discount-summary.md) — expose conditional discount label and amount placeholders in quotation print templates.

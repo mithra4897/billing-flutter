@@ -72,6 +72,25 @@ class ApiClient {
     );
   }
 
+  Future<Uint8List> downloadBytes(String endpoint) async {
+    final uri = _buildUri(endpoint);
+    final response = await _guardRequest(
+      requestContext: _RequestDebugContext(method: 'GET', uri: uri),
+      () async => _client.get(uri, headers: await _buildHeaders()),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = _decodeBody(response.body);
+      _throwIfHttpError(
+        response.statusCode,
+        json,
+        requestContext: _RequestDebugContext(method: 'GET', uri: uri),
+        responseBody: response.body,
+      );
+    }
+
+    return response.bodyBytes;
+  }
+
   Future<PaginatedResponse<T>> getPaginated<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
