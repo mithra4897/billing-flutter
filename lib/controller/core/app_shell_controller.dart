@@ -115,7 +115,6 @@ class AppShellController extends GetxController {
     }
 
     await loadShellContext();
-    unawaited(MasterDataCache.to.ensureLoaded());
     isCheckingSession = false;
     update();
 
@@ -164,7 +163,6 @@ class AppShellController extends GetxController {
         !await SessionStorage.hasActiveSession()) {
       return;
     }
-    unawaited(MasterDataCache.to.ensureLoaded());
   }
 
   void _handleWorkingContextChanged() {

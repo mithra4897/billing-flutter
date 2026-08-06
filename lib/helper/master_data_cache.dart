@@ -15,6 +15,7 @@ class MasterDataCache extends GetxController {
   final TaxesService _taxesService = TaxesService();
 
   Future<void>? _loadFuture;
+  Future<void>? _salesLookupRefreshFuture;
   int _generation = 0;
   int _documentSeriesLoadRevision = 0;
   Future<void>? _settingsFuture;
@@ -108,6 +109,36 @@ class MasterDataCache extends GetxController {
       isLoaded = false;
     }
     return _loadFuture ??= _loadImpl();
+  }
+
+  Future<void> ensureSalesLookupsFresh() async {
+    final hadCompleteSnapshot = isLoaded;
+    await ensureLoaded();
+    if (!hadCompleteSnapshot || !isEnabled) {
+      return;
+    }
+
+    final inProgress = _salesLookupRefreshFuture;
+    if (inProgress != null) {
+      return inProgress;
+    }
+
+    final refresh = Future.wait<void>([
+      refreshItems(),
+      refreshParties(),
+      refreshPartyTypes(),
+    ]);
+    _salesLookupRefreshFuture = refresh;
+    try {
+      await refresh;
+    } catch (_) {
+      invalidate(notify: false);
+      await ensureLoaded();
+    } finally {
+      if (identical(_salesLookupRefreshFuture, refresh)) {
+        _salesLookupRefreshFuture = null;
+      }
+    }
   }
 
   Future<void> ensureSettingsLoaded() {
@@ -400,6 +431,7 @@ class MasterDataCache extends GetxController {
   void invalidate({bool notify = true}) {
     _generation++;
     _loadFuture = null;
+    _salesLookupRefreshFuture = null;
     isLoaded = false;
     lastError = null;
     lastLoadedAt = null;

@@ -203,6 +203,7 @@ class SalesQuotationManagementController extends GetxController {
     if (!_initialized) {
       _initialized = true;
     }
+    await MasterDataCache.to.ensureSalesLookupsFresh();
     await loadPage(
       selectId: initialId,
       initialCrmOpportunityId: initialCrmOpportunityId,

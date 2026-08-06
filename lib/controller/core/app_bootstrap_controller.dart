@@ -23,10 +23,12 @@ class AppBootstrapController extends GetxController {
     update();
 
     try {
-      await _brandingService.fetchBranding();
-      final restoredSession = await AppSessionService.instance.bootstrap(
+      final brandingFuture = _brandingService.fetchBranding();
+      final sessionFuture = AppSessionService.instance.bootstrap(
         requireRememberMe: true,
       );
+      await brandingFuture;
+      final restoredSession = await sessionFuture;
 
       final navigator = appNavigatorKey.currentState;
       if (navigator == null) {

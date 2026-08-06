@@ -14,6 +14,12 @@ For a backend and frontend change that belongs to one feature, use the same deci
 
 ## Feature specifications
 
+- [Sales master lookup freshness](sales-master-lookup-freshness.md) — refresh
+  Item and customer Party options when Invoice or Quotation opens.
+- [Production verification — 2026-08-05](production-verification-2026-08-05.md)
+  — verified tests, live API connectivity, and the production web artifact.
+- [Lazy master data at startup](lazy-master-data-startup.md) — defer broad
+  master-data loading until a screen needs it, reducing dashboard startup work.
 - [Simple system tools](simple-system-tools.md) — retain only Clear Cache and
   Backup Database in the super-admin system page.
 - [Restore last Billing page after refresh](last-page-restore.md) — reopen the

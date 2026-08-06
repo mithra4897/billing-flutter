@@ -1659,6 +1659,7 @@ class SalesInvoiceManagementController extends GetxController {
     this.initialDeliveryId = initialDeliveryId;
     this.editorOnly = editorOnly;
     hasInitialized = true;
+    await MasterDataCache.to.ensureSalesLookupsFresh();
     await loadPage(
       selectId: initialId,
       initialQuotationId: initialQuotationId,
