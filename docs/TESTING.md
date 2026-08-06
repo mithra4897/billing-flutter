@@ -12,8 +12,10 @@ go build ./cmd/activity-watch-agent
 
 Tests cover configuration validation, service worker lifecycle, logout flush,
 batch limits/order, retry classification/backoff, HTTP success/retry/permanent
-failure, and cancellation. SQLCipher integration requires CGO and is tested
-separately from store-independent unit tests.
+failure, cancellation, and transactional lifecycle-event queueing (including
+the minimum privacy-safe payload and idempotency metadata). SQLCipher
+integration requires CGO and is tested separately from store-independent unit
+tests.
 
 Provisioning tests additionally verify fresh encrypted schema creation,
 protected key permissions, generated-key reopen, control-directory creation,

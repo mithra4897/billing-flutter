@@ -2,10 +2,16 @@ package store
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"sort"
@@ -62,7 +68,8 @@ type Repository interface {
 }
 
 type SQLCipherStore struct {
-	db *sql.DB
+	db         *sql.DB
+	payloadKey []byte
 }
 
 func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStore, error) {
@@ -77,7 +84,10 @@ func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStor
 	if err != nil {
 		return nil, err
 	}
-	store := &SQLCipherStore{db: db}
+	store := &SQLCipherStore{
+		db:         db,
+		payloadKey: append([]byte(nil), key...),
+	}
 	if err := store.verify(ctx); err != nil {
 		db.Close()
 		return nil, err
@@ -173,12 +183,44 @@ func (s *SQLCipherStore) RecordSystemEvent(ctx context.Context, event SystemEven
 		return err
 	}
 	occurredAt := event.OccurredAt.UTC().Format(time.RFC3339Nano)
-	_, err = s.db.ExecContext(ctx, `
+	payload, err := json.Marshal(struct {
+		EventType  string `json:"event_type"`
+		OccurredAt string `json:"occurred_at_utc"`
+	}{
+		EventType:  event.Type,
+		OccurredAt: occurredAt,
+	})
+	if err != nil {
+		return fmt.Errorf("encode system event: %w", err)
+	}
+	ciphertext, nonce, tag, err := encryptPayload(s.payloadKey, payload)
+	if err != nil {
+		return fmt.Errorf("encrypt system event: %w", err)
+	}
+	checksum := sha256.Sum256(ciphertext)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin system event: %w", err)
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `
 INSERT INTO system_events (
     id, boot_id, event_type, event_at_utc, created_at_utc
 ) VALUES (?, NULLIF(?, ''), ?, ?, ?)`, id, event.BootID, event.Type, occurredAt, occurredAt)
 	if err != nil {
 		return fmt.Errorf("record system event: %w", err)
+	}
+	_, err = tx.ExecContext(ctx, `
+INSERT INTO sync_outbox (
+    id, entity_type, entity_id, operation, payload_encrypted, payload_nonce,
+    payload_tag, payload_checksum, idempotency_key, status, created_at_utc
+) VALUES (?, 'system-event', ?, 'upsert', ?, ?, ?, ?, ?, 'pending', ?)`,
+		id, id, ciphertext, nonce, tag, hex.EncodeToString(checksum[:]), "system-event:"+id, occurredAt)
+	if err != nil {
+		return fmt.Errorf("queue system event: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit system event: %w", err)
 	}
 	return nil
 }
@@ -305,7 +347,32 @@ func (s *SQLCipherStore) MarkPermanentFailure(ctx context.Context, ids []string,
 }
 
 func (s *SQLCipherStore) Close() error {
+	clearBytes(s.payloadKey)
 	return s.db.Close()
+}
+
+func encryptPayload(key []byte, plaintext []byte) ([]byte, []byte, []byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("create AES cipher: %w", err)
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("create AES-GCM: %w", err)
+	}
+	nonce := make([]byte, aead.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, nil, nil, fmt.Errorf("read random nonce: %w", err)
+	}
+	sealed := aead.Seal(nil, nonce, plaintext, nil)
+	tagStart := len(sealed) - aead.Overhead()
+	return sealed[:tagStart], nonce, sealed[tagStart:], nil
+}
+
+func clearBytes(value []byte) {
+	for index := range value {
+		value[index] = 0
+	}
 }
 
 func itemIDs(items []OutboxItem) []string {

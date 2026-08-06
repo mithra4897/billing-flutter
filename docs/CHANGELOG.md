@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-06 — Activity Watch lifecycle outbox delivery
+
+- Request: Continue the Activity Watch implementation with a verifiable local
+  queue-to-server delivery path.
+- Implementation: The Go store now AES-GCM encrypts and writes each approved
+  machine lifecycle event's minimal `system-event` outbox record in the same
+  SQLCipher transaction as the local event. A normal service start therefore
+  queues an `agent-start` record for the configured batch uploader without
+  collecting desktop-content data.
+- Privacy/security impact: The queued JSON is limited to event type and UTC
+  occurrence time; it contains no credentials, window titles, URLs, keystrokes,
+  clipboard, screenshots, or command-line data.
+- Tests added or updated: Store integration test now verifies the encrypted
+  outbox row, nonce/tag, decryptable minimal payload, checksum, and idempotency
+  key created by `RecordSystemEvent`.
+- Tests executed and results: `gofmt -d internal/store/store.go
+  internal/store/store_test.go` produced no diff; `go test -count=1 ./...`,
+  `go vet ./...`, and `go build -o /private/tmp/activity-watch-agent-lifecycle
+  ./cmd/activity-watch-agent` passed on macOS arm64.
+- Documentation updated: Specification, architecture, ADR-0008, testing, and
+  changelog.
+- Known limitations: Native foreground/idle collectors and production
+  service-manager packaging remain pending; this delivery step covers only
+  policy-safe machine lifecycle events.
+
 ## 2026-08-06 — Activity Watch consent setup screen
 
 - Added Settings → Activity Watch for explicit privacy-safe consent, device

@@ -54,7 +54,7 @@ ERP receiving idempotent device batches.
 ## Activity Watch Go desktop service
 
 - Date: 2026-08-06
-- Status: Service foundation implemented; native collectors and ERP endpoint
+- Status: Service foundation and server ingestion implemented; native collectors
   pending
 
 ### Problem and objective
@@ -97,7 +97,7 @@ the active user's foreground UI directly.
 - Browser extension/native messaging.
 - Full Windows, macOS, X11, and Wayland foreground/idle adapters in this phase.
 - Installing the service without administrator approval.
-- ERP server persistence tables and production sync endpoint implementation.
+- ERP-side reporting and retention jobs beyond raw idempotent ingestion.
 - Storing user passwords or reusing a logged-in user's ERP access token.
 
 ### Required behavior
@@ -107,7 +107,10 @@ the active user's foreground UI directly.
 2. The machine service starts at operating-system boot and runs independently
    of the Flutter process and interactive login session.
 3. The service records only policy-approved system lifecycle/health events when
-   there is no authorized interactive helper.
+   there is no authorized interactive helper. Each accepted lifecycle event and
+   its AES-GCM-encrypted opaque outbox record must commit in one SQLCipher
+   transaction, so a crash cannot leave an event recorded without a
+   corresponding upload item (or the reverse).
 4. Native Flutter logout requests an immediate outbox flush. When the future
    session helper is implemented, logout must also stop its user activity
    collection.
@@ -144,15 +147,14 @@ before `run` or native service installation. It creates a new independent
 machine database/key pair. It must not be used to replace an existing
 Flutter-managed database because that would create a different key.
 
-The planned endpoint is `POST /api/v1/activity-watch/batches` with:
+The implemented endpoint is `POST /api/v1/activity-watch/batches` with:
 
 - a device-scoped bearer credential;
 - `X-Device-Id` and `Idempotency-Key` headers; and
 - a JSON body containing an ordered batch of opaque encrypted outbox payloads.
 
-The current backend has no Activity Watch endpoint. The service therefore
-supports an explicitly disabled uploader or a configured compatible endpoint;
-it must retain pending records without data loss when no endpoint exists.
+When sync is disabled or the endpoint is unavailable, the service retains
+pending records without data loss for a later retry.
 
 ### Security and privacy
 

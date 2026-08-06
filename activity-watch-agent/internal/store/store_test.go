@@ -2,8 +2,12 @@ package store
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -33,6 +37,37 @@ func TestOpenSQLCipherVerifiesEncryptionAndApprovedSchema(t *testing.T) {
 	}
 	if eventCount != 1 {
 		t.Fatalf("event count = %d, want 1", eventCount)
+	}
+	var ciphertext []byte
+	var nonce []byte
+	var tag []byte
+	var checksum string
+	var idempotencyKey string
+	if err := database.db.QueryRow(
+		"SELECT payload_encrypted, payload_nonce, payload_tag, payload_checksum, idempotency_key FROM sync_outbox",
+	).Scan(&ciphertext, &nonce, &tag, &checksum, &idempotencyKey); err != nil {
+		t.Fatal(err)
+	}
+	if string(ciphertext) == `{"event_type":"agent-start","occurred_at_utc":"2026-08-06T12:00:00Z"}` {
+		t.Fatal("queued payload must not be stored as plaintext")
+	}
+	plaintext, err := decryptPayload(database.payloadKey, ciphertext, nonce, tag)
+	if err != nil {
+		t.Fatalf("decrypt queued payload: %v", err)
+	}
+	var queued struct {
+		EventType  string `json:"event_type"`
+		OccurredAt string `json:"occurred_at_utc"`
+	}
+	if err := json.Unmarshal(plaintext, &queued); err != nil {
+		t.Fatalf("decode queued payload: %v", err)
+	}
+	if queued.EventType != "agent-start" || queued.OccurredAt != "2026-08-06T12:00:00Z" {
+		t.Fatalf("queued payload = %#v", queued)
+	}
+	expectedChecksum := sha256.Sum256(ciphertext)
+	if checksum != hex.EncodeToString(expectedChecksum[:]) || idempotencyKey == "" {
+		t.Fatalf("queued checksum/idempotency key must be present: %q / %q", checksum, idempotencyKey)
 	}
 
 	file, err := os.Open(path)
@@ -205,4 +240,16 @@ func createTestDatabase(t *testing.T) (string, []byte) {
 		t.Fatal(err)
 	}
 	return path, key
+}
+
+func decryptPayload(key, ciphertext, nonce, tag []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	return aead.Open(nil, nonce, append(ciphertext, tag...), nil)
 }

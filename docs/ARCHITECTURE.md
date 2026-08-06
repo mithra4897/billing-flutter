@@ -27,10 +27,10 @@ flowchart LR
 - Service host: install/start/stop integration and bounded lifecycle callbacks.
 - Worker: coordinate collection, immediate flush requests, periodic sync, and
   graceful shutdown.
-- Store: apply the SQLCipher key first, verify cipher/schema, and transact
-  lifecycle events and outbox state. It is the business writer and uses the
-  tested encrypted WAL configuration; helpers must not open the database
-  directly.
+- Store: apply the SQLCipher key first, verify cipher/schema, and transact each
+  approved lifecycle event with its pending outbox record. It is the business
+  writer and uses the tested encrypted WAL configuration; helpers must not
+  open the database directly.
 - Collector: emit only approved machine lifecycle/health observations in the
   initial phase; native interactive collectors remain behind interfaces.
 - Syncer: select bounded indexed batches, upload opaque encrypted payloads,

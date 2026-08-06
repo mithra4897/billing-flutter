@@ -1,5 +1,26 @@
 # Architecture decisions
 
+## ADR-0008: Transactionally queue every persisted machine lifecycle event
+
+- Date: 2026-08-06
+- Status: Accepted
+- Context: Recording a `system_events` row separately from its `sync_outbox`
+  row can permanently desynchronize local audit history from server ingestion
+  after a process or power failure.
+- Decision: `RecordSystemEvent` encrypts the policy-safe JSON payload with
+  AES-GCM using the protected local service key, then creates the local
+  lifecycle row, checksum, and pending outbox row in one SQLCipher transaction.
+- Reason: A single local transaction provides all-or-nothing durability without
+  a second worker or a repair scan. Dispatch stays indexed and bounded by the
+  existing `sync_outbox` query.
+- Alternatives considered: A periodic repair job; inserting the outbox row
+  first; sending lifecycle events directly over HTTP.
+- Consequences: A lifecycle write now has constant extra storage work, one
+  extra insert, and one AES-GCM operation. The encrypted plaintext is limited
+  to event type and UTC timestamp, never desktop-content data.
+- Related files: `activity-watch-agent/internal/store/store.go`,
+  `activity-watch-agent/internal/store/store_test.go`.
+
 ## ADR-0007: Provision new service storage through a no-overwrite command
 
 - Date: 2026-08-06
