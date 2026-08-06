@@ -18,6 +18,14 @@ enum ErpLineItemTableColumn {
 
 enum ErpLineDiscountMode { percent, amount }
 
+ErpLineDiscountMode erpLineDiscountModeFromApi(dynamic value) {
+  return value?.toString().trim().toLowerCase() == 'amount'
+      ? ErpLineDiscountMode.amount
+      : ErpLineDiscountMode.percent;
+}
+
+String erpLineDiscountModeToApi(ErpLineDiscountMode mode) => mode.name;
+
 class ErpLineDiscountValues {
   const ErpLineDiscountValues({required this.percent, required this.amount});
 

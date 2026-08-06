@@ -14,12 +14,17 @@ class PurchaseOrderLineDraft {
     String? qty,
     String? rate,
     String? discountPercent,
+    String? discountAmount,
     this.discountMode = ErpLineDiscountMode.percent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
        qtyController = TextEditingController(text: qty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
-       discountController = TextEditingController(text: discountPercent ?? ''),
+       discountController = TextEditingController(
+         text: discountMode == ErpLineDiscountMode.amount
+             ? discountAmount ?? ''
+             : discountPercent ?? '',
+       ),
        remarksController = TextEditingController(text: remarks ?? '');
 
   factory PurchaseOrderLineDraft.fromRequisitionLine(
@@ -58,6 +63,8 @@ class PurchaseOrderLineDraft {
       qty: stringValue(json, 'ordered_qty'),
       rate: stringValue(json, 'rate'),
       discountPercent: stringValue(json, 'discount_percent'),
+      discountAmount: stringValue(json, 'discount_amount'),
+      discountMode: erpLineDiscountModeFromApi(json['discount_mode']),
       remarks: stringValue(json, 'remarks'),
     );
   }
@@ -94,6 +101,7 @@ class PurchaseOrderLineDraft {
       'ordered_qty': qty,
       'rate': rate,
       'discount_percent': discount.percent,
+      'discount_mode': erpLineDiscountModeToApi(discountMode),
       if (discountMode == ErpLineDiscountMode.amount)
         'discount_amount': discount.amount,
       'remarks': nullIfEmpty(remarksController.text),

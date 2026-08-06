@@ -56,6 +56,9 @@ class PurchaseInvoiceLineModel extends JsonModel {
       description: json['description']?.toString(),
       discountPercent: _nullableDouble(json['discount_percent']),
       discountAmount: _nullableDouble(json['discount_amount']),
+      discountIsAmount:
+          erpLineDiscountModeFromApi(json['discount_mode']) ==
+          ErpLineDiscountMode.amount,
       taxCodeId: _nullableInt(json['tax_code_id']),
       taxPercent: _nullableDouble(json['tax_percent']),
       taxType: json['tax_type']?.toString(),
@@ -130,6 +133,7 @@ class PurchaseInvoiceLineModel extends JsonModel {
       if (discountPercent != null) 'discount_percent': discountPercent,
       if (discountIsAmount && discountAmount != null)
         'discount_amount': discountAmount,
+      'discount_mode': discountIsAmount ? 'amount' : 'percent',
       if (taxCodeId != null) 'tax_code_id': taxCodeId,
       if (taxPercent != null) 'tax_percent': taxPercent,
       if (taxType != null) 'tax_type': taxType,

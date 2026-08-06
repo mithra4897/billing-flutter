@@ -1454,8 +1454,11 @@ class SalesInvoiceManagementController extends GetxController {
       line.taxCodeId = InvoiceLineDraft.nullableIntKey(ol, 'tax_code_id');
       line.descriptionController.text = stringValue(ol, 'description');
       line.rateController.text = stringValue(ol, 'rate');
-      line.discountMode = ErpLineDiscountMode.percent;
-      line.discountController.text = stringValue(ol, 'discount_percent');
+      line.discountMode = erpLineDiscountModeFromApi(ol['discount_mode']);
+      line.discountController.text =
+          line.discountMode == ErpLineDiscountMode.amount
+          ? stringValue(ol, 'discount_amount')
+          : stringValue(ol, 'discount_percent');
       line.remarksController.text = stringValue(ol, 'remarks');
       final ordered =
           Validators.parseFlexibleNumber(ol['ordered_qty']?.toString()) ?? 0;
@@ -1502,8 +1505,11 @@ class SalesInvoiceManagementController extends GetxController {
       line.taxCodeId = InvoiceLineDraft.nullableIntKey(dl, 'tax_code_id');
       line.descriptionController.text = stringValue(dl, 'description');
       line.rateController.text = stringValue(dl, 'rate');
-      line.discountMode = ErpLineDiscountMode.percent;
-      line.discountController.text = stringValue(dl, 'discount_percent');
+      line.discountMode = erpLineDiscountModeFromApi(dl['discount_mode']);
+      line.discountController.text =
+          line.discountMode == ErpLineDiscountMode.amount
+          ? stringValue(dl, 'discount_amount')
+          : stringValue(dl, 'discount_percent');
       line.remarksController.text = stringValue(dl, 'remarks');
       final pend =
           Validators.parseFlexibleNumber(
@@ -2658,6 +2664,7 @@ class SalesInvoiceManagementController extends GetxController {
                   line.discountMode == ErpLineDiscountMode.amount && qty > 0
                   ? discount.amount / qty
                   : null,
+              discountMode: line.discountMode,
               remarks: remarks,
             ),
           );
@@ -2683,6 +2690,7 @@ class SalesInvoiceManagementController extends GetxController {
           discountAmount: line.discountMode == ErpLineDiscountMode.amount
               ? discount.amount
               : null,
+          discountMode: line.discountMode,
           remarks: remarks,
         ),
       );
@@ -3004,13 +3012,18 @@ class InvoiceLineDraft {
     String? qty,
     String? rate,
     String? discountPercent,
+    String? discountAmount,
     this.discountMode = ErpLineDiscountMode.percent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
        serialNoController = TextEditingController(text: serialNo ?? ''),
        qtyController = TextEditingController(text: qty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
-       discountController = TextEditingController(text: discountPercent ?? ''),
+       discountController = TextEditingController(
+         text: discountMode == ErpLineDiscountMode.amount
+             ? discountAmount ?? ''
+             : discountPercent ?? '',
+       ),
        remarksController = TextEditingController(text: remarks ?? ''),
        serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
@@ -3035,6 +3048,10 @@ class InvoiceLineDraft {
       discountPercent: line.discountPercent == null || line.discountPercent == 0
           ? ''
           : line.discountPercent.toString(),
+      discountAmount: line.discountAmount == null || line.discountAmount == 0
+          ? ''
+          : line.discountAmount.toString(),
+      discountMode: line.discountMode,
       remarks: line.remarks,
     );
   }
@@ -3050,6 +3067,8 @@ class InvoiceLineDraft {
       qty: q?.toString() ?? '',
       rate: stringValue(json, 'rate'),
       discountPercent: stringValue(json, 'discount_percent'),
+      discountAmount: stringValue(json, 'discount_amount'),
+      discountMode: erpLineDiscountModeFromApi(json['discount_mode']),
       remarks: stringValue(json, 'remarks'),
     );
   }
@@ -3077,6 +3096,8 @@ class InvoiceLineDraft {
       qty: rem > 0 ? rem.toString() : '',
       rate: stringValue(ol, 'rate'),
       discountPercent: stringValue(ol, 'discount_percent'),
+      discountAmount: stringValue(ol, 'discount_amount'),
+      discountMode: erpLineDiscountModeFromApi(ol['discount_mode']),
       remarks: stringValue(ol, 'remarks'),
     );
   }
