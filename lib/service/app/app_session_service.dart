@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import '../../controller/project/project_module_refresh_controller.dart';
+import '../../core/activity_watch/service/activity_watch_service_control.dart';
 
 class AppSessionService {
   AppSessionService._();
@@ -74,6 +75,11 @@ class AppSessionService {
       await _authService.logout();
     } catch (_) {
     } finally {
+      try {
+        await ActivityWatchServiceControl.signalLogoutIfConfigured();
+      } catch (_) {
+        // ERP logout must complete even if the optional machine agent is absent.
+      }
       await clearSession();
     }
   }

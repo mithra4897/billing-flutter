@@ -1,0 +1,314 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"net/url"
+	"os"
+	"sort"
+	"strings"
+	"time"
+
+	_ "github.com/mutecomm/go-sqlcipher/v4"
+
+	"billing/activity-watch-agent/internal/identifier"
+)
+
+const SupportedSchemaVersion = 1
+
+var expectedTables = []string{
+	"activity_segments",
+	"agent_state",
+	"application_segments",
+	"browser_activity_segments",
+	"daily_summaries",
+	"device_sessions",
+	"inventory_snapshots",
+	"local_users",
+	"sync_outbox",
+	"system_events",
+}
+
+type SystemEvent struct {
+	Type       string
+	OccurredAt time.Time
+	BootID     string
+}
+
+type OutboxItem struct {
+	ID             string `json:"id"`
+	EntityType     string `json:"entity_type"`
+	EntityID       string `json:"entity_id"`
+	Operation      string `json:"operation"`
+	Payload        []byte `json:"payload_encrypted"`
+	Nonce          []byte `json:"payload_nonce"`
+	Tag            []byte `json:"payload_tag"`
+	Checksum       string `json:"payload_checksum"`
+	IdempotencyKey string `json:"idempotency_key"`
+	AttemptCount   int    `json:"attempt_count"`
+}
+
+type Repository interface {
+	RecordSystemEvent(context.Context, SystemEvent) error
+	RecoverProcessing(context.Context, time.Time) error
+	ClaimReadyBatch(context.Context, time.Time, int) ([]OutboxItem, error)
+	MarkSynced(context.Context, []string, time.Time) error
+	MarkRetry(context.Context, []string, time.Time, string) error
+	MarkPermanentFailure(context.Context, []string, string) error
+	Close() error
+}
+
+type SQLCipherStore struct {
+	db *sql.DB
+}
+
+func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStore, error) {
+	if len(key) != 32 {
+		return nil, errors.New("SQLCipher key must contain exactly 32 bytes")
+	}
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("inspect provisioned database: %w", err)
+	}
+
+	query := url.Values{}
+	query.Set("_pragma_key", fmt.Sprintf("x'%s'", hex.EncodeToString(key)))
+	query.Set("_pragma_cipher_page_size", "4096")
+	query.Set("_busy_timeout", "5000")
+	query.Set("_foreign_keys", "on")
+	db, err := sql.Open("sqlite3", path+"?"+query.Encode())
+	if err != nil {
+		return nil, errors.New("open encrypted database")
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
+	store := &SQLCipherStore{db: db}
+	if err := store.verify(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return store, nil
+}
+
+func (s *SQLCipherStore) verify(ctx context.Context) error {
+	var cipherVersion string
+	if err := s.db.QueryRowContext(ctx, "PRAGMA cipher_version").Scan(&cipherVersion); err != nil || strings.TrimSpace(cipherVersion) == "" {
+		return errors.New("SQLCipher runtime verification failed")
+	}
+	if _, err := s.db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+		return errors.New("enable foreign keys")
+	}
+	if _, err := s.db.ExecContext(ctx, "PRAGMA secure_delete = ON"); err != nil {
+		return errors.New("enable secure deletion")
+	}
+	if _, err := s.db.ExecContext(ctx, "PRAGMA synchronous = FULL"); err != nil {
+		return errors.New("configure synchronous writes")
+	}
+	var journalMode string
+	if err := s.db.QueryRowContext(ctx, "PRAGMA journal_mode = WAL").Scan(&journalMode); err != nil {
+		return fmt.Errorf("configure WAL: %w", err)
+	}
+	if strings.ToLower(journalMode) != "wal" {
+		return fmt.Errorf("configure WAL: database selected %q mode", journalMode)
+	}
+
+	var schemaVersion int
+	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); err != nil {
+		return errors.New("read schema version")
+	}
+	if schemaVersion != SupportedSchemaVersion {
+		return fmt.Errorf("unsupported Activity Watch schema version %d", schemaVersion)
+	}
+
+	rows, err := s.db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+	if err != nil {
+		return errors.New("read schema tables")
+	}
+	defer rows.Close()
+	var actual []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return errors.New("scan schema table")
+		}
+		actual = append(actual, name)
+	}
+	if err := rows.Err(); err != nil {
+		return errors.New("iterate schema tables")
+	}
+	sort.Strings(actual)
+	if strings.Join(actual, "\n") != strings.Join(expectedTables, "\n") {
+		return errors.New("database does not contain the approved 10-table Activity Watch schema")
+	}
+	return nil
+}
+
+func (s *SQLCipherStore) RecordSystemEvent(ctx context.Context, event SystemEvent) error {
+	id, err := identifier.New()
+	if err != nil {
+		return err
+	}
+	occurredAt := event.OccurredAt.UTC().Format(time.RFC3339Nano)
+	_, err = s.db.ExecContext(ctx, `
+INSERT INTO system_events (
+    id, boot_id, event_type, event_at_utc, created_at_utc
+) VALUES (?, NULLIF(?, ''), ?, ?, ?)`, id, event.BootID, event.Type, occurredAt, occurredAt)
+	if err != nil {
+		return fmt.Errorf("record system event: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLCipherStore) RecoverProcessing(ctx context.Context, now time.Time) error {
+	_, err := s.db.ExecContext(ctx, `
+UPDATE sync_outbox
+SET status = 'retry', next_attempt_at_utc = ?, last_error_code = 'service-restart'
+WHERE status = 'processing'`, now.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return fmt.Errorf("recover processing outbox records: %w", err)
+	}
+	return nil
+}
+
+func (s *SQLCipherStore) ClaimReadyBatch(ctx context.Context, now time.Time, limit int) ([]OutboxItem, error) {
+	if limit < 1 || limit > 500 {
+		return nil, errors.New("batch limit must be between 1 and 500")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin outbox claim: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(ctx, `
+SELECT id, entity_type, entity_id, operation, payload_encrypted,
+       payload_nonce, payload_tag, payload_checksum, idempotency_key,
+       attempt_count
+FROM sync_outbox
+WHERE status IN ('pending', 'retry')
+  AND (next_attempt_at_utc IS NULL OR next_attempt_at_utc <= ?)
+ORDER BY next_attempt_at_utc IS NOT NULL, next_attempt_at_utc, created_at_utc
+LIMIT ?`, now.UTC().Format(time.RFC3339Nano), limit)
+	if err != nil {
+		return nil, fmt.Errorf("select ready outbox batch: %w", err)
+	}
+	var items []OutboxItem
+	for rows.Next() {
+		var item OutboxItem
+		if err := rows.Scan(
+			&item.ID,
+			&item.EntityType,
+			&item.EntityID,
+			&item.Operation,
+			&item.Payload,
+			&item.Nonce,
+			&item.Tag,
+			&item.Checksum,
+			&item.IdempotencyKey,
+			&item.AttemptCount,
+		); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("scan outbox item: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close outbox rows: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate outbox batch: %w", err)
+	}
+	if len(items) == 0 {
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("commit empty outbox claim: %w", err)
+		}
+		return nil, nil
+	}
+
+	ids := itemIDs(items)
+	query, arguments := inQuery(
+		"UPDATE sync_outbox SET status = 'processing', last_attempt_at_utc = ? WHERE id IN (%s)",
+		ids,
+		now.UTC().Format(time.RFC3339Nano),
+	)
+	if _, err := tx.ExecContext(ctx, query, arguments...); err != nil {
+		return nil, fmt.Errorf("claim outbox batch: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit outbox claim: %w", err)
+	}
+	return items, nil
+}
+
+func (s *SQLCipherStore) MarkSynced(ctx context.Context, ids []string, now time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	query, arguments := inQuery(
+		"UPDATE sync_outbox SET status = 'synced', synced_at_utc = ?, last_error_code = NULL WHERE id IN (%s)",
+		ids,
+		now.UTC().Format(time.RFC3339Nano),
+	)
+	_, err := s.db.ExecContext(ctx, query, arguments...)
+	return wrapUpdateError("mark outbox batch synced", err)
+}
+
+func (s *SQLCipherStore) MarkRetry(ctx context.Context, ids []string, next time.Time, code string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	query, arguments := inQuery(
+		"UPDATE sync_outbox SET status = 'retry', attempt_count = attempt_count + 1, next_attempt_at_utc = ?, last_error_code = ? WHERE id IN (%s)",
+		ids,
+		next.UTC().Format(time.RFC3339Nano),
+		code,
+	)
+	_, err := s.db.ExecContext(ctx, query, arguments...)
+	return wrapUpdateError("schedule outbox retry", err)
+}
+
+func (s *SQLCipherStore) MarkPermanentFailure(ctx context.Context, ids []string, code string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	query, arguments := inQuery(
+		"UPDATE sync_outbox SET status = 'permanently-failed', attempt_count = attempt_count + 1, last_error_code = ? WHERE id IN (%s)",
+		ids,
+		code,
+	)
+	_, err := s.db.ExecContext(ctx, query, arguments...)
+	return wrapUpdateError("mark outbox batch permanently failed", err)
+}
+
+func (s *SQLCipherStore) Close() error {
+	return s.db.Close()
+}
+
+func itemIDs(items []OutboxItem) []string {
+	ids := make([]string, len(items))
+	for index, item := range items {
+		ids[index] = item.ID
+	}
+	return ids
+}
+
+func inQuery(template string, ids []string, leading ...any) (string, []any) {
+	placeholders := make([]string, len(ids))
+	arguments := make([]any, 0, len(leading)+len(ids))
+	arguments = append(arguments, leading...)
+	for index, id := range ids {
+		placeholders[index] = "?"
+		arguments = append(arguments, id)
+	}
+	return fmt.Sprintf(template, strings.Join(placeholders, ",")), arguments
+}
+
+func wrapUpdateError(operation string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", operation, err)
+}

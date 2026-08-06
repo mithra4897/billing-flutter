@@ -1,5 +1,56 @@
 # Architecture
 
+## Activity Watch desktop runtime
+
+The implemented desktop runtime is a Go machine-service executable under
+`activity-watch-agent`. Its architecture reserves a future interactive
+session-helper role in the same executable, but that role and its native
+collectors are not implemented yet. The machine role is managed by Windows
+Services, launchd, or the Linux service manager and is independent of the
+Flutter application's lifecycle.
+
+```mermaid
+flowchart LR
+    OS["OS boot/service manager"] --> Service["Go machine service"]
+    Flutter["Authorized Flutter enrollment"] -. future .-> Helper["Per-user session helper"]
+    Helper -->|"authenticated local events + logout"| Service
+    Service --> DB["SQLCipher 10-table database"]
+    Service --> Outbox["Indexed sync_outbox batches"]
+    Outbox -->|"device credential + idempotency"| ERP["ERP Activity Watch API"]
+    Logout["ERP or OS logout"] --> Helper
+    Logout -->|"flush; service stays alive"| Service
+    Shutdown["OS shutdown"] -->|"bounded final flush"| Service
+```
+
+### Runtime responsibilities
+
+- Service host: install/start/stop integration and bounded lifecycle callbacks.
+- Worker: coordinate collection, immediate flush requests, periodic sync, and
+  graceful shutdown.
+- Store: apply the SQLCipher key first, verify cipher/schema, and transact
+  lifecycle events and outbox state. It is the business writer and uses the
+  tested encrypted WAL configuration; helpers must not open the database
+  directly.
+- Collector: emit only approved machine lifecycle/health observations in the
+  initial phase; native interactive collectors remain behind interfaces.
+- Syncer: select bounded indexed batches, upload opaque encrypted payloads,
+  acknowledge successes, and schedule retries.
+- Secret provider: supply database and device credentials without placing them
+  in configuration or logs.
+- Flutter service control: retain only installed executable/configuration paths
+  in secure storage and issue a bounded `signal-logout` command during native
+  ERP logout. Failure never blocks normal ERP session clearing.
+
+### Recovery and intervention
+
+- An unexpected worker failure exits non-zero so the configured service-manager
+  restart policy can recover pending outbox records from SQLCipher.
+- Retryable failures retain data and use capped backoff.
+- Revoked/invalid device credentials require administrator re-enrollment.
+- Missing consent, key, or compatible schema prevents collection.
+- Because the ERP ingestion endpoint is not implemented, production upload
+  remains disabled until backend enrollment and ingestion are available.
+
 ## Existing Flutter application
 
 `billing-flutter` is a route-first Flutter ERP client for web, mobile, and
@@ -7,6 +58,18 @@ desktop. Screens live under `lib/view`, controllers under `lib/controller`,
 typed data under `lib/model`, API services under `lib/service`, and shared
 infrastructure under `lib/core`. It communicates with the sibling Lumen API
 under `/api/v1` and stores normal ERP session state separately.
+
+### Party-code editing flow
+
+The Parties page owns the remote lookup required to find codes already used by
+a selected party type. Pure prefix, next-number, original-type restoration,
+and async-refresh validation rules live in `helper/party_code_helper.dart` so
+they can be tested without constructing the full page. A monotonically
+increasing request token on the page prevents an older type lookup from
+overwriting the code for a newer selection. The backend remains responsible
+for final global uniqueness validation when the party is saved. Selecting an
+existing party also compares its generated-code prefix with its saved type and
+prepares a corrected value when legacy data is inconsistent.
 
 ## Activity Watch local persistence
 
@@ -55,4 +118,3 @@ flowchart LR
   intentionally unrecoverable.
 - Platform permission denial is handled by later capability adapters and must
   be shown to the employee/administrator.
-

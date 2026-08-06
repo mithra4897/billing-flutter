@@ -1,0 +1,26 @@
+{
+  "service_name": "BillingActivityWatch",
+  "database": {
+    "path": "/absolute/machine/path/activity_watch.db",
+    "key_file": "/absolute/machine/secret/activity_watch_database.key"
+  },
+  "control": {
+    "logout_request_path": "/absolute/machine/path/control/logout.request",
+    "poll_interval": "1s"
+  },
+  "collection": {
+    "heartbeat_interval": "5m"
+  },
+  "sync": {
+    "enabled": false,
+    "url": "https://erp.example.com/api/v1/activity-watch/batches",
+    "device_id": "server-issued-device-id",
+    "credential_file": "/absolute/machine/secret/activity_watch_device.credential",
+    "interval": "30s",
+    "batch_size": 100,
+    "request_timeout": "15s",
+    "base_retry_delay": "30s",
+    "max_retry_delay": "30m"
+  },
+  "shutdown_flush_timeout": "8s"
+}

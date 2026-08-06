@@ -2,3 +2,6 @@ interface:
   display_name: "Optimize and Reuse Code"
   short_description: "Optimize code and reuse existing components"
   default_prompt: "Use $optimize-and-reuse-code to implement this change with suitable data structures, efficient algorithms, and existing component reuse."
+
+policy:
+  allow_implicit_invocation: true

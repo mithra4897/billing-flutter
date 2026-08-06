@@ -1,13 +1,82 @@
 # Changelog
 
+## 2026-08-06 — Synchronize party code with party type
+
+- Request: Fix an existing Supplier changed to Customer retaining `SUP/0106`,
+  which then causes a duplicate-code error when creating the next Supplier.
+- Specification: `docs/party-code-type-sync.md`.
+- Implementation: Party-type changes now regenerate the read-only party code
+  for existing and new parties. Opening an existing party with a prefix that
+  does not match its type also prepares a corrected code for save. Returning an
+  unsaved edit to its original type restores its saved code, and a request
+  token prevents stale async lookups from applying a code for a previously
+  selected type. Save also waits for any required prefix correction. Existing
+  prefix and next-number logic was extracted into a reusable, testable helper.
+- Files changed: Parties page, helper export, party-code helper and tests, and
+  engineering documentation.
+- Database/API impact: None. The existing required `party_code` request field,
+  backend uniqueness validation, and global database unique key are unchanged.
+- Security impact: None.
+- Tests added or updated: Seven party-code helper regression tests.
+- Tests executed and results: Focused test passed all 7 tests; complete
+  `flutter test` passed all 46 tests; `flutter analyze` reported only the
+  pre-existing unrelated `_buildGapList` unused-element warning.
+- Documentation updated: README index, specification, architecture, testing,
+  and changelog.
+- Known limitations: Final code allocation is still optimistic in the client;
+  a simultaneous create by another user can still be rejected by backend
+  uniqueness validation and retried.
+- Follow-up work: Consider server-side atomic party-code allocation if
+  concurrent party creation becomes frequent.
+
+## 2026-08-06 — Activity Watch Go desktop background service
+
+- Request: Start monitoring storage with the PC, keep a background service
+  alive after user logout, upload pending local data, and stop at shutdown.
+- Specification: Activity Watch Go desktop service in
+  `docs/SPECIFICATIONS.md`.
+- Implementation: Added one Go executable with Windows/macOS/Linux native
+  service commands, SQLCipher schema verification, lifecycle/heartbeat events,
+  indexed bounded outbox batches, idempotent HTTP upload, capped retry,
+  logout-triggered flush, graceful shutdown, protected-file secret provider,
+  and a native Flutter logout bridge.
+- Files changed: `activity-watch-agent/`, Activity Watch service control,
+  application logout flow, architecture decisions, specifications, testing,
+  operations guide, documentation index, and changelog.
+- Database/API impact: Reuses local Activity Watch schema version 1 and its
+  `idx_sync_outbox_dispatch` index. Documents the future
+  `POST /api/v1/activity-watch/batches` contract; no backend endpoint or server
+  table was added.
+- Security impact: Uses SQLCipher v4, raw 256-bit database key validation,
+  protected machine secret files, HTTPS enforcement, device-scoped credentials,
+  bounded logs, and no employee ERP-token retention.
+- Tests added or updated: Go configuration, secret permissions, logout marker,
+  worker lifecycle/logout behavior, HTTP outcomes, retry/backoff, encrypted
+  database/header, wrong-key rejection, schema verification, and outbox
+  transaction tests.
+- Tests executed and results: `go test -count=1 ./...`, `go vet ./...`, and
+  `go build ./cmd/activity-watch-agent` passed on macOS arm64 with Go 1.26.5.
+  Scoped Flutter analysis passed, and all 39 Flutter tests passed.
+- Documentation updated: Specifications, architecture, ADR-0004 through
+  ADR-0006, testing, operations guide, README index, and changelog.
+- Known limitations: Full foreground/idle/browser collectors, authenticated
+  local helper IPC, machine credential installers/ACLs, actual native service
+  installation tests, Flutter-to-Go database interoperability on every desktop
+  OS, and the ERP ingestion endpoint remain pending. The pinned self-contained
+  Go SQLCipher v4.4.2 driver requires dependency/security review before release.
+- Follow-up work: Implement enrollment/device credentials and server ingestion,
+  then add signed Windows, macOS, and Linux installers and native collectors.
+
 ## 2026-08-06 — Global code optimization and reuse skill
 
 - Request: Apply suitable data structures and algorithms to every code change
   and reuse existing widgets when available, across projects.
 - Specification: Engineering optimization and reuse policy in
   `docs/SPECIFICATIONS.md`.
-- Implementation: Added the `optimize-and-reuse-code` skill and made its reuse
-  and complexity review mandatory in repository instructions.
+- Implementation: Added the personal global `optimize-and-reuse-code` skill,
+  enabled implicit invocation across codebases, and made its reuse and
+  complexity review mandatory in this repository's instructions. The policy
+  is not limited to Activity Watch or Flutter.
 - Files changed: Project skill, `AGENTS.md`, specification, and changelog.
 - Database/API impact: None.
 - Security impact: None.

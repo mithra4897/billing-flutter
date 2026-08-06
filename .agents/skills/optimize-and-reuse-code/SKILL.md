@@ -1,12 +1,13 @@
 ---
 name: optimize-and-reuse-code
-description: Improve implementations through repository-first component reuse and appropriate algorithms and data structures. Use whenever Codex implements, fixes, reviews, or refactors code in any project, especially UI/widget work, collection processing, searches, aggregation, caching, persistence, or performance-sensitive paths.
+description: Improve all project code through repository-first component reuse and appropriate algorithms and data structures. Use whenever Codex implements, fixes, reviews, or refactors code in any codebase—not only Activity Watch or Flutter—especially UI/widget work, collection processing, searches, aggregation, caching, persistence, or performance-sensitive paths.
 ---
 
 # Optimize and Reuse Code
 
-Apply this workflow to every code change. Optimize for correctness,
-maintainability, reuse, and relevant runtime behavior—not cleverness.
+Apply this workflow to every code change in every project. It is not specific to
+Activity Watch, ERP, or Flutter. Optimize for correctness, maintainability,
+reuse, and relevant runtime behavior—not cleverness.
 
 ## Workflow
 

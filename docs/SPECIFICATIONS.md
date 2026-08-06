@@ -1,5 +1,120 @@
 # Specifications
 
+## Activity Watch Go desktop service
+
+- Date: 2026-08-06
+- Status: Service foundation implemented; native collectors and ERP endpoint
+  pending
+
+### Problem and objective
+
+Activity Watch must start with a desktop computer, store authorized monitoring
+events locally while offline, and continue uploading queued records after the
+ERP user logs out until the operating system shuts the service down.
+
+Implement the boot-time machine-service role now and reserve the same Go
+executable for a later interactive session-helper role:
+
+- a machine service that starts at boot, owns encrypted persistence, and keeps
+  synchronization running; and
+- a future per-user session helper that will start only after enrollment and
+  consent and supply user-session activity to the machine service.
+
+The two roles are necessary because Windows Session 0, macOS launch daemons,
+and Linux graphical sessions do not allow a machine daemon to reliably inspect
+the active user's foreground UI directly.
+
+### In scope
+
+- Windows, macOS, and Linux desktop service lifecycle.
+- Install, uninstall, start, stop, restart, status, and foreground-run commands.
+- Boot-time machine service execution until OS shutdown.
+- SQLCipher database opening and approved schema verification.
+- Machine lifecycle and bounded health events in `system_events`.
+- Bounded `sync_outbox` batch selection with idempotent HTTP upload.
+- Exponential retry with a maximum delay and server `Retry-After` support.
+- Logout-triggered sync flush while the machine service remains alive.
+- Graceful shutdown with a bounded final flush.
+- Interfaces for later native session collectors and secure secret providers.
+- Unit tests with in-memory fakes and HTTP test servers.
+
+### Out of scope
+
+- Mobile background execution on Android or iOS.
+- Browser extension/native messaging.
+- Full Windows, macOS, X11, and Wayland foreground/idle adapters in this phase.
+- Installing the service without administrator approval.
+- ERP server persistence tables and production sync endpoint implementation.
+- Storing user passwords or reusing a logged-in user's ERP access token.
+
+### Required behavior
+
+1. Installation must not begin collection. Enrollment, device authorization,
+   active consent, and machine credentials are prerequisites.
+2. The machine service starts at operating-system boot and runs independently
+   of the Flutter process and interactive login session.
+3. The service records only policy-approved system lifecycle/health events when
+   there is no authorized interactive helper.
+4. Native Flutter logout requests an immediate outbox flush. When the future
+   session helper is implemented, logout must also stop its user activity
+   collection.
+5. Logout must not stop the machine service. Pending sync continues until
+   success, shutdown, permanent rejection, or policy/device revocation.
+6. Shutdown cancels collection, closes open work, attempts a bounded final
+   upload, and closes SQLCipher.
+7. Upload batches are ordered by next-attempt time and creation time and are
+   limited by configured batch size. Selection uses the approved dispatch
+   index, making each batch `O(B)` after indexed lookup where `B` is batch size.
+8. HTTP 2xx acknowledges the batch. Authentication/authorization rejection is
+   permanent until re-enrollment. Timeouts, network errors, 408, 429, and 5xx
+   use bounded exponential retry.
+9. Logs must never contain database keys, device credentials, decrypted
+   payloads, window titles, URLs, or personal activity content.
+10. A plaintext SQLite runtime, missing key, wrong key, unsupported schema,
+    absent consent, or invalid configuration fails closed.
+
+### Configuration and API contract
+
+Non-secret configuration defines database path, sync URL, device identifier,
+intervals, batch size, and shutdown timeout. Database and device credentials
+come from a machine secret provider, not the JSON configuration file.
+
+The planned endpoint is `POST /api/v1/activity-watch/batches` with:
+
+- a device-scoped bearer credential;
+- `X-Device-Id` and `Idempotency-Key` headers; and
+- a JSON body containing an ordered batch of opaque encrypted outbox payloads.
+
+The current backend has no Activity Watch endpoint. The service therefore
+supports an explicitly disabled uploader or a configured compatible endpoint;
+it must retain pending records without data loss when no endpoint exists.
+
+### Security and privacy
+
+- The machine service owns the database/key lifecycle required after logout.
+- SQLCipher compatibility 4 and a raw 256-bit key are required.
+- Secrets are injected through a provider interface. Production packaging must
+  use a machine-scoped credential/ACL implementation for each OS.
+- The service never captures keystrokes, clipboard data, screenshots, pointer
+  coordinates, full URLs, form/page content, or command-line arguments.
+- All collectors remain consent- and capability-gated.
+
+### Acceptance criteria and tests
+
+- Service commands are wired through the native service manager abstraction.
+- Native Flutter logout notifies a configured service, while web and
+  non-enrolled installations remain safe no-ops.
+- The worker starts collector/sync loops and stops them with bounded cleanup.
+- Logout stops session collection but triggers synchronization without stopping
+  the machine worker.
+- Outbox upload handles success, retryable failure, permanent rejection, batch
+  limits, and cancellation.
+- Retry delay is capped and deterministic under injected randomness.
+- Configuration rejects unsafe or missing required values.
+- SQLCipher runtime and approved schema are verified before writes.
+- `go test ./...`, `go vet ./...`, and `go build ./cmd/activity-watch-agent`
+  pass where a Go/CGO toolchain is available.
+
 ## Engineering optimization and reuse policy
 
 - Date: 2026-08-06
@@ -130,3 +245,9 @@ encryption, schema versioning, foreign keys, transactions, and automated tests.
 - Key generation and secure-storage persistence through a fake provider.
 - AES-GCM round trip and tamper rejection.
 - HMAC stability and key separation.
+
+## Party code synchronization when party type changes
+
+The approved requirements, edge cases, compatibility constraints, acceptance
+criteria, and verification plan are maintained in
+[`party-code-type-sync.md`](party-code-type-sync.md).

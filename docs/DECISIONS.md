@@ -1,5 +1,64 @@
 # Architecture decisions
 
+## ADR-0004: One Go binary with machine-service and session-helper roles
+
+- Date: 2026-08-06
+- Status: Accepted
+- Context: Synchronization must survive user logout, but desktop operating
+  systems isolate machine daemons from interactive foreground and idle APIs.
+- Decision: Build one Go executable with a boot-time machine service for
+  persistence/sync and a consent-gated per-user helper role for later native
+  activity adapters.
+- Reason: A single machine daemon cannot reliably collect interactive activity
+  across Windows Session 0, macOS launchd, X11, and Wayland. One executable
+  limits packaging complexity while retaining the two required security
+  contexts.
+- Alternatives considered: Flutter-only background execution; a user service
+  that exits at logout; one privileged process that attempts UI inspection.
+- Consequences: Packaging must register the machine role at boot and the helper
+  at authorized login. Local authenticated IPC is required before interactive
+  collectors are enabled.
+- Related files: `activity-watch-agent/`, `docs/ARCHITECTURE.md`.
+
+## ADR-0005: Keep synchronization independent from ERP user login
+
+- Date: 2026-08-06
+- Status: Accepted
+- Context: A normal ERP access token is cleared at logout, while pending
+  activity must continue uploading until shutdown.
+- Decision: Use a revocable, device-scoped machine credential and idempotent
+  outbox batches. Never copy or retain the employee's ERP login token.
+- Reason: This preserves logout semantics and limits the background service to
+  the Activity Watch ingestion contract.
+- Alternatives considered: Retaining the user's bearer token; stopping sync at
+  logout; anonymous uploads.
+- Consequences: The backend must add device enrollment, revocation, and batch
+  ingestion before production upload can be enabled. Until then the outbox is
+  retained locally.
+- Related files: `activity-watch-agent/internal/syncer/`,
+  `docs/SPECIFICATIONS.md`.
+
+## ADR-0006: Apply the raw key once through the SQLCipher v4 driver
+
+- Date: 2026-08-06
+- Status: Accepted
+- Context: The pinned Go module is a SQLCipher v4 driver. Integration testing
+  showed that applying its raw key through the DSN works with encrypted WAL,
+  while issuing `cipher_compatibility` again after keying invalidates later
+  writes in this binding.
+- Decision: Apply the raw 256-bit key once in the connection DSN, verify a
+  non-empty `cipher_version`, verify schema version/tables, and then configure
+  WAL. Do not re-key or reapply compatibility pragmas on that connection.
+- Reason: This ordering passes encrypted write/reopen, wrong-key, WAL, and
+  outbox transaction tests without placing key material in SQL logs.
+- Alternatives considered: Reapplying compatibility after keying; plaintext
+  SQLite; an unverified dynamically linked driver.
+- Consequences: SQLCipher dependency upgrades require interoperability tests
+  against a Flutter-created database before release. Interactive helpers still
+  submit through the service so one process owns business writes.
+- Related files: `activity-watch-agent/internal/store/store.go`,
+  `docs/ARCHITECTURE.md`.
+
 ## ADR-0001: Use a compact cross-platform SQLCipher schema
 
 - Date: 2026-08-06
@@ -48,4 +107,3 @@
 - Consequences: Schema code is implemented and tested but remains dormant until
   the approved Activity Watch runtime is added.
 - Related files: `lib/main.dart`, `lib/core/activity_watch/`.
-
