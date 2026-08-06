@@ -11,7 +11,7 @@ of the row gross amount or as a fixed currency amount.
 
 - The Discount cell provides a `%` / `Amount` mode selector and one numeric
   input.
-- Existing rows default to percentage mode unless migration backfill detects a
+- Existing rows default to percentage mode unless the manual SQL backfill detects a
   stored amount/derived-percentage rounding mismatch; newly added rows default
   to percentage mode.
 - Percentage must be between 0 and 100.
@@ -20,8 +20,8 @@ of the row gross amount or as a fixed currency amount.
   changes. The effective percentage is derived for persistence and reporting.
 - The API treats `discount_amount` as authoritative in amount mode; percentage
   mode retains the existing percentage calculation.
-- Existing percentage and amount columns are reused. One additive
-  `discount_mode` line-column migration records the selected input type.
+- Existing percentage and amount columns are reused. A manual additive
+  `discount_mode` column change records the selected input type.
 - The selected mode is persisted as `discount_mode` (`percent` or `amount`) so
   reopening an amount-based line does not convert it back to a rounded percent.
 
@@ -50,7 +50,7 @@ of the row gross amount or as a fixed currency amount.
 - Full API suite: 23 tests passed and 5 existing access-scope tests errored
   because the SQLite test schema does not contain `user_roles`; the errors do
   not execute the discount code.
-- Additive migration `2026_08_06_000001_add_discount_mode_to_document_lines.php`
-  is required before the updated API is served. It adds `discount_mode` and
-  recovers older amount entries affected by percentage-rounding drift.
+- The documented manual `ALTER TABLE` and backfill queries are required before
+  the updated API is served. They add `discount_mode` and recover older amount
+  entries affected by percentage-rounding drift.
 - API compatibility remains additive: percentage-only requests behave as before.

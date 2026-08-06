@@ -1569,6 +1569,44 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     await _persistSalaryData('Employee salary component removed successfully.');
   }
 
+  Future<void> _reorderComponents(
+    EmployeeSalaryStructureDraft parent,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    final parentIndex = _salaryStructures.indexWhere(
+      (item) => item.key == parent.key,
+    );
+    if (parentIndex < 0) {
+      return;
+    }
+
+    final currentComponents = _salaryStructures[parentIndex].components;
+    if (oldIndex < 0 ||
+        oldIndex >= currentComponents.length ||
+        newIndex < 0 ||
+        newIndex > currentComponents.length) {
+      return;
+    }
+    final targetIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    if (targetIndex == oldIndex) {
+      return;
+    }
+
+    final nextStructures = List<EmployeeSalaryStructureDraft>.from(
+      _salaryStructures,
+    );
+    nextStructures[parentIndex] = nextStructures[parentIndex].copyWith(
+      components: reorderEmployeeSalaryComponents(
+        currentComponents,
+        fromIndex: oldIndex,
+        toIndex: targetIndex,
+      ),
+    );
+    _updateController(() => _salaryStructures = nextStructures);
+    await _persistSalaryData('Salary component order updated successfully.');
+  }
+
   Future<void> _openCreateDepartmentDialog() async {
     final nameController = TextEditingController();
     var isActive = true;
@@ -2901,43 +2939,93 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 if (componentItems.isNotEmpty)
                   const SizedBox(height: AppUiConstants.spacingSm),
               ],
-              ...componentItems.map((item) {
-                final expanded = item.component.key == _selectedComponentKey;
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: SettingsExpandableTile(
-                    key: ValueKey(
-                      'employee-component-${item.component.key}-$expanded',
-                    ),
-                    title: item.component.componentName,
-                    subtitle: [
-                      item.structure.effectiveFrom,
-                      item.component.componentType,
-                      item.component.contributionRole == 'employer'
-                          ? 'Employer'
-                          : 'Employee',
-                    ].where((value) => value.isNotEmpty).join(' • '),
-                    detail: item.component.listDetailLine,
-                    expanded: expanded,
-                    highlighted: expanded,
-                    onToggle: () {
-                      if (expanded) {
-                        _resetComponentEditor();
-                      } else {
-                        _selectComponent(item.structure, item.component);
-                      }
-                    },
-                    child: _buildComponentEditor(
-                      currentParent: item.structure,
-                      current: item.component,
+              ..._salaryStructures
+                  .where((structure) => structure.components.isNotEmpty)
+                  .map(
+                    (structure) => Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
+                      ),
+                      child: _buildReorderableComponentList(structure),
                     ),
                   ),
-                );
-              }),
             ],
           ),
+      ],
+    );
+  }
+
+  Widget _buildReorderableComponentList(
+    EmployeeSalaryStructureDraft structure,
+  ) {
+    final showStructureLabel = _salaryStructures.length > 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showStructureLabel) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingXs),
+            child: Text(
+              'Salary structure: ${structure.effectiveFrom}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+        ],
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: structure.components.length,
+          onReorder: _saving
+              ? (_, _) {}
+              : (oldIndex, newIndex) =>
+                    _reorderComponents(structure, oldIndex, newIndex),
+          itemBuilder: (context, index) {
+            final component = structure.components[index];
+            final expanded = component.key == _selectedComponentKey;
+            return Padding(
+              key: ValueKey('employee-component-${component.key}'),
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: SettingsExpandableTile(
+                title: component.componentName,
+                subtitle: [
+                  structure.effectiveFrom,
+                  component.componentType,
+                  component.contributionRole == 'employer'
+                      ? 'Employer'
+                      : 'Employee',
+                ].where((value) => value.isNotEmpty).join(' • '),
+                detail: component.listDetailLine,
+                trailing: Tooltip(
+                  message: _saving
+                      ? 'Saving salary component order'
+                      : 'Drag to reorder payslip rows',
+                  child: ReorderableDragStartListener(
+                    index: index,
+                    enabled: !_saving,
+                    child: const Padding(
+                      padding: EdgeInsets.all(AppUiConstants.spacingXs),
+                      child: Icon(Icons.drag_indicator),
+                    ),
+                  ),
+                ),
+                expanded: expanded,
+                highlighted: expanded,
+                onToggle: () {
+                  if (expanded) {
+                    _resetComponentEditor();
+                  } else {
+                    _selectComponent(structure, component);
+                  }
+                },
+                child: _buildComponentEditor(
+                  currentParent: structure,
+                  current: component,
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }

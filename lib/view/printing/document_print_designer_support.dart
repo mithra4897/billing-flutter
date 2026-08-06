@@ -810,6 +810,49 @@ double measurePrintTableHeight({
   return headerHeight + bodyHeight + 2;
 }
 
+DocumentPrintTemplate expandPayslipBreakupTablesForData(
+  DocumentPrintTemplate template, {
+  required String documentType,
+  required Map<String, dynamic> documentData,
+}) {
+  if (documentType != 'hr_payslip') {
+    return template;
+  }
+
+  return template.copyWith(
+    shapes: template.shapes
+        .map((shape) {
+          if (shape.type != 'table' ||
+              (shape.dataPath != 'earnings' &&
+                  shape.dataPath != 'deductions')) {
+            return shape;
+          }
+
+          final rows = resolvePrintPath(documentData, shape.dataPath);
+          if (rows is! List<dynamic>) {
+            return shape;
+          }
+          final columns = shape.columns.isEmpty
+              ? DocumentPrintShape.defaultTableColumns()
+              : shape.columns;
+          final requiredHeight = measurePrintTableHeight(
+            shape: shape,
+            rows: rows,
+            columns: columns,
+            fontFamily: effectiveDocumentPrintFontFamily(
+              template.fontFamily,
+              shape.fontFamily,
+            ),
+          );
+
+          return requiredHeight > shape.height
+              ? shape.copyWith(height: requiredHeight)
+              : shape;
+        })
+        .toList(growable: false),
+  );
+}
+
 bool isPrintLinesTableShape(DocumentPrintShape shape) {
   if (shape.type != 'table') {
     return false;

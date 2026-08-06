@@ -577,7 +577,52 @@ class DocumentPrintTemplate {
   }
 
   DocumentPrintTemplate normalizedFor(String documentType) {
-    return this;
+    if (documentType != 'hr_payslip') {
+      return this;
+    }
+
+    return copyWith(
+      shapes: shapes
+          .map((shape) {
+            if (shape.type != 'table') {
+              return shape;
+            }
+
+            final String? payslipDataPath;
+            final String heading;
+            if (shape.id == 'earnings-table' || shape.dataPath == 'earnings') {
+              payslipDataPath = 'earnings';
+              heading = 'Earnings';
+            } else if (shape.id == 'deductions-table' ||
+                shape.dataPath == 'deductions') {
+              payslipDataPath = 'deductions';
+              heading = 'Deductions';
+            } else {
+              return shape;
+            }
+
+            final keys = shape.columns.map((column) => column.key).toSet();
+            final columns = keys.containsAll(const <String>{'label', 'amount'})
+                ? shape.columns
+                : <DocumentPrintColumn>[
+                    DocumentPrintColumn(
+                      key: 'label',
+                      label: heading,
+                      widthFactor: 3.2,
+                    ),
+                    const DocumentPrintColumn(
+                      key: 'amount',
+                      label: 'Amount',
+                      widthFactor: 1.5,
+                      align: 'right',
+                      titleAlign: 'center',
+                    ),
+                  ];
+
+            return shape.copyWith(dataPath: payslipDataPath, columns: columns);
+          })
+          .toList(growable: false),
+    );
   }
 
   DocumentPrintShape? shapeById(String? shapeId) {

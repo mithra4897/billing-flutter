@@ -327,6 +327,25 @@ class EmployeeSalaryComponentDraft {
   }
 }
 
+List<EmployeeSalaryComponentDraft> reorderEmployeeSalaryComponents(
+  List<EmployeeSalaryComponentDraft> components, {
+  required int fromIndex,
+  required int toIndex,
+}) {
+  if (fromIndex < 0 ||
+      fromIndex >= components.length ||
+      toIndex < 0 ||
+      toIndex >= components.length ||
+      fromIndex == toIndex) {
+    return List<EmployeeSalaryComponentDraft>.from(components);
+  }
+
+  final reordered = List<EmployeeSalaryComponentDraft>.from(components);
+  final component = reordered.removeAt(fromIndex);
+  reordered.insert(toIndex, component);
+  return reordered;
+}
+
 class EmployeeAddressDraft {
   EmployeeAddressDraft({
     required this.key,

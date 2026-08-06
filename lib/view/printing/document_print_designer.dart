@@ -485,11 +485,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   DocumentPrintTemplate _prepareTemplate(DocumentPrintTemplate template) {
-    final normalized = _normalizeSalesInvoiceTotals(
-      normalizeSalesQuotationSummaryTemplate(
-        _ensureTermsBlock(template.normalizedFor(widget.documentType)),
-        documentType: widget.documentType,
+    final normalized = expandPayslipBreakupTablesForData(
+      _normalizeSalesInvoiceTotals(
+        normalizeSalesQuotationSummaryTemplate(
+          _ensureTermsBlock(template.normalizedFor(widget.documentType)),
+          documentType: widget.documentType,
+        ),
       ),
+      documentType: widget.documentType,
+      documentData: _documentDataJson,
     );
 
     final shapes = normalized.shapes.map((shape) {
