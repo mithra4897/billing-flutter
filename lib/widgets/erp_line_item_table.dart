@@ -16,6 +16,128 @@ enum ErpLineItemTableColumn {
   action,
 }
 
+enum ErpLineDiscountMode { percent, amount }
+
+class ErpLineDiscountValues {
+  const ErpLineDiscountValues({required this.percent, required this.amount});
+
+  final double percent;
+  final double amount;
+}
+
+ErpLineDiscountValues resolveErpLineDiscount({
+  required ErpLineDiscountMode mode,
+  required double input,
+  required double gross,
+}) {
+  final safeGross = gross < 0 ? 0.0 : gross;
+  if (mode == ErpLineDiscountMode.amount) {
+    final amount = input.clamp(0, safeGross).toDouble();
+    final percent = safeGross == 0 ? 0.0 : (amount * 100) / safeGross;
+    return ErpLineDiscountValues(percent: percent, amount: amount);
+  }
+  final percent = input.clamp(0, 100).toDouble();
+  return ErpLineDiscountValues(
+    percent: percent,
+    amount: (safeGross * percent) / 100,
+  );
+}
+
+String? validateErpLineDiscount(
+  String? value, {
+  required ErpLineDiscountMode mode,
+  required double gross,
+}) {
+  final baseError = Validators.optionalNonNegativeNumber('Discount')(value);
+  if (baseError != null || value == null || value.trim().isEmpty) {
+    return baseError;
+  }
+  final input = Validators.parseFlexibleNumber(value) ?? 0;
+  if (mode == ErpLineDiscountMode.percent && input > 100) {
+    return 'Discount % cannot exceed 100';
+  }
+  if (mode == ErpLineDiscountMode.amount && input > gross) {
+    return 'Discount amount cannot exceed row amount';
+  }
+  return null;
+}
+
+class ErpLineItemDiscountCell extends StatelessWidget {
+  const ErpLineItemDiscountCell({
+    super.key,
+    this.controller,
+    this.initialValue,
+    required this.mode,
+    required this.onModeChanged,
+    this.onChanged,
+    this.validator,
+    this.enabled = true,
+  });
+
+  final TextEditingController? controller;
+  final String? initialValue;
+  final ErpLineDiscountMode mode;
+  final ValueChanged<ErpLineDiscountMode> onModeChanged;
+  final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return ErpLineItemCellFrame(
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: 62,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<ErpLineDiscountMode>(
+                value: mode,
+                isDense: true,
+                isExpanded: true,
+                items: const <DropdownMenuItem<ErpLineDiscountMode>>[
+                  DropdownMenuItem(
+                    value: ErpLineDiscountMode.percent,
+                    child: Text('%'),
+                  ),
+                  DropdownMenuItem(
+                    value: ErpLineDiscountMode.amount,
+                    child: Text('Amt'),
+                  ),
+                ],
+                onChanged: enabled
+                    ? (value) {
+                        if (value != null) {
+                          onModeChanged(value);
+                        }
+                      }
+                    : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          Expanded(
+            child: ErpLineItemTextCell(
+              controller: controller,
+              initialValue: initialValue,
+              hintText: '0',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              numericDisplayKind: mode == ErpLineDiscountMode.percent
+                  ? AppNumericDisplayKind.discountPercent
+                  : AppNumericDisplayKind.amount,
+              onChanged: onChanged,
+              validator: validator,
+              enabled: enabled,
+              height: null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ErpLineItemCustomColumn {
   const ErpLineItemCustomColumn({
     required this.id,
@@ -115,7 +237,9 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
     if (hint.contains('%') || hint.contains('percent')) {
       return AppNumericDisplayKind.percent;
     }
-    if (hint.contains('rate') || hint.contains('price') || hint.contains('cost')) {
+    if (hint.contains('rate') ||
+        hint.contains('price') ||
+        hint.contains('cost')) {
       return AppNumericDisplayKind.rate;
     }
     return AppNumericDisplayKind.generic;
@@ -282,6 +406,8 @@ class ErpLineItemTableRow {
     this.onRateChanged,
     this.rateValidator,
     this.discountController,
+    this.discountMode = ErpLineDiscountMode.percent,
+    this.onDiscountModeChanged,
     this.onDiscountChanged,
     this.discountValidator,
     this.descriptionController,
@@ -321,6 +447,8 @@ class ErpLineItemTableRow {
   final ValueChanged<String>? onRateChanged;
   final FormFieldValidator<String>? rateValidator;
   final TextEditingController? discountController;
+  final ErpLineDiscountMode discountMode;
+  final ValueChanged<ErpLineDiscountMode>? onDiscountModeChanged;
   final ValueChanged<String>? onDiscountChanged;
   final FormFieldValidator<String>? discountValidator;
   final TextEditingController? descriptionController;
@@ -392,7 +520,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     'warehouse': 168,
     'qty': 104,
     'rate': 118,
-    'discount': 110,
+    'discount': 168,
     'tax': 132,
     'description': 240,
     'remarks': 220,
@@ -570,7 +698,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       case ErpLineItemTableColumn.rate:
         return 'Rate';
       case ErpLineItemTableColumn.discount:
-        return 'Discount %';
+        return 'Discount';
       case ErpLineItemTableColumn.taxCode:
         return 'Tax code';
       case ErpLineItemTableColumn.description:
@@ -1076,18 +1204,19 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           showRightBorder: showRightBorder,
           child: row.discountController == null
               ? const SizedBox.shrink()
-              : _compactTextField(
+              : ErpLineItemDiscountCell(
                   controller: row.discountController!,
-                  hintText: '0',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  mode: row.discountMode,
+                  enabled: widget.enabled,
+                  onModeChanged: (value) {
+                    row.onDiscountModeChanged?.call(value);
+                    _notifyChanged();
+                  },
                   validator: row.discountValidator,
                   onChanged: (value) {
                     row.onDiscountChanged?.call(value);
                     _notifyChanged();
                   },
-                  numericDisplayKind: AppNumericDisplayKind.discountPercent,
                 ),
         );
       case ErpLineItemTableColumn.taxCode:

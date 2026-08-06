@@ -286,6 +286,7 @@ class SalesInvoiceManagementController extends GetxController {
             qty: '1',
             rate: line.rateController.text,
             discountPercent: line.discountController.text,
+            discountMode: line.discountMode,
             remarks: line.remarksController.text,
           );
         })
@@ -1453,6 +1454,7 @@ class SalesInvoiceManagementController extends GetxController {
       line.taxCodeId = InvoiceLineDraft.nullableIntKey(ol, 'tax_code_id');
       line.descriptionController.text = stringValue(ol, 'description');
       line.rateController.text = stringValue(ol, 'rate');
+      line.discountMode = ErpLineDiscountMode.percent;
       line.discountController.text = stringValue(ol, 'discount_percent');
       line.remarksController.text = stringValue(ol, 'remarks');
       final ordered =
@@ -1500,6 +1502,7 @@ class SalesInvoiceManagementController extends GetxController {
       line.taxCodeId = InvoiceLineDraft.nullableIntKey(dl, 'tax_code_id');
       line.descriptionController.text = stringValue(dl, 'description');
       line.rateController.text = stringValue(dl, 'rate');
+      line.discountMode = ErpLineDiscountMode.percent;
       line.discountController.text = stringValue(dl, 'discount_percent');
       line.remarksController.text = stringValue(dl, 'remarks');
       final pend =
@@ -2315,7 +2318,12 @@ class SalesInvoiceManagementController extends GetxController {
     return computeSalesLineTaxBreakdown(
       qty: qty,
       rate: rate,
-      discountPercent: discount,
+      discountPercent: line.discountMode == ErpLineDiscountMode.percent
+          ? discount
+          : 0,
+      discountAmount: line.discountMode == ErpLineDiscountMode.amount
+          ? discount
+          : null,
       taxCode: taxCodeById(line.taxCodeId),
       isInterState: isInterStateForSummary(),
     );
@@ -2405,16 +2413,19 @@ class SalesInvoiceManagementController extends GetxController {
               Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
           final rate =
               Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
-          final discountPercent =
-              Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
           final grossAmount = roundToDouble(
             qty > 0 && rate >= 0 ? qty * rate : 0,
             2,
           );
-          final discountAmount = roundToDouble(
-            (grossAmount * discountPercent.clamp(0, 100)) / 100,
-            2,
+          final discount = resolveErpLineDiscount(
+            mode: line.discountMode,
+            input:
+                Validators.parseFlexibleNumber(line.discountController.text) ??
+                0,
+            gross: grossAmount,
           );
+          final discountPercent = discount.percent;
+          final discountAmount = roundToDouble(discount.amount, 2);
           final taxCode = taxCodeById(line.taxCodeId);
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
@@ -2615,6 +2626,11 @@ class SalesInvoiceManagementController extends GetxController {
           Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final disc =
           Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
+      final discount = resolveErpLineDiscount(
+        mode: line.discountMode,
+        input: disc,
+        gross: qty * rate,
+      );
       final description = nullIfEmpty(line.descriptionController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
 
@@ -2637,7 +2653,11 @@ class SalesInvoiceManagementController extends GetxController {
               serialNo: serialNo,
               taxCodeId: line.taxCodeId,
               description: description,
-              discountPercent: disc == 0 ? null : disc,
+              discountPercent: discount.percent == 0 ? null : discount.percent,
+              discountAmount:
+                  line.discountMode == ErpLineDiscountMode.amount && qty > 0
+                  ? discount.amount / qty
+                  : null,
               remarks: remarks,
             ),
           );
@@ -2659,7 +2679,10 @@ class SalesInvoiceManagementController extends GetxController {
           serialNo: serialNumberForLine(line),
           taxCodeId: line.taxCodeId,
           description: description,
-          discountPercent: disc == 0 ? null : disc,
+          discountPercent: discount.percent == 0 ? null : discount.percent,
+          discountAmount: line.discountMode == ErpLineDiscountMode.amount
+              ? discount.amount
+              : null,
           remarks: remarks,
         ),
       );
@@ -2981,6 +3004,7 @@ class InvoiceLineDraft {
     String? qty,
     String? rate,
     String? discountPercent,
+    this.discountMode = ErpLineDiscountMode.percent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
        serialNoController = TextEditingController(text: serialNo ?? ''),
@@ -3113,6 +3137,7 @@ class InvoiceLineDraft {
   final TextEditingController qtyController;
   final TextEditingController rateController;
   final TextEditingController discountController;
+  ErpLineDiscountMode discountMode;
   final TextEditingController remarksController;
 
   void dispose() {

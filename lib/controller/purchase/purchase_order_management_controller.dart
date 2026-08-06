@@ -14,6 +14,7 @@ class PurchaseOrderLineDraft {
     String? qty,
     String? rate,
     String? discountPercent,
+    this.discountMode = ErpLineDiscountMode.percent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
        qtyController = TextEditingController(text: qty ?? ''),
@@ -70,13 +71,18 @@ class PurchaseOrderLineDraft {
   final TextEditingController qtyController;
   final TextEditingController rateController;
   final TextEditingController discountController;
+  ErpLineDiscountMode discountMode;
   final TextEditingController remarksController;
   bool _disposed = false;
 
   Map<String, dynamic> toJson() {
     final rate = Validators.parseFlexibleNumber(rateController.text);
-    final discountPercent = Validators.parseFlexibleNumber(
-      discountController.text,
+    final qty = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
+    final parsedRate = rate ?? 0;
+    final discount = resolveErpLineDiscount(
+      mode: discountMode,
+      input: Validators.parseFlexibleNumber(discountController.text) ?? 0,
+      gross: qty * parsedRate,
     );
     return <String, dynamic>{
       'purchase_requisition_line_id': purchaseRequisitionLineId,
@@ -85,9 +91,11 @@ class PurchaseOrderLineDraft {
       'uom_id': uomId,
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),
-      'ordered_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+      'ordered_qty': qty,
       'rate': rate,
-      'discount_percent': discountPercent,
+      'discount_percent': discount.percent,
+      if (discountMode == ErpLineDiscountMode.amount)
+        'discount_amount': discount.amount,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -609,7 +617,12 @@ class PurchaseOrderManagementController extends GetxController {
     return computePurchaseLineTaxBreakdown(
       qty: qty,
       rate: rate,
-      discountPercent: discount,
+      discountPercent: line.discountMode == ErpLineDiscountMode.percent
+          ? discount
+          : 0,
+      discountAmount: line.discountMode == ErpLineDiscountMode.amount
+          ? discount
+          : null,
       taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
       isInterState: isInterStateForSummary(),
     );

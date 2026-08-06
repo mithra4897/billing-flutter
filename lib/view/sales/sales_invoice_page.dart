@@ -357,10 +357,20 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           Validators.optionalNonNegativeNumber('Rate'),
         ]),
         discountController: line.discountController,
+        discountMode: line.discountMode,
+        onDiscountModeChanged: controller.canEdit
+            ? (value) => controller.State(() => line.discountMode = value)
+            : null,
         onDiscountChanged: controller.canEdit
             ? (_) => controller.State(() {})
             : null,
-        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        discountValidator: (value) => validateErpLineDiscount(
+          value,
+          mode: line.discountMode,
+          gross:
+              (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) *
+              (Validators.parseFlexibleNumber(line.rateController.text) ?? 0),
+        ),
         taxCodeId: line.taxCodeId,
         taxOptions: taxOptions,
         onTaxCodeChanged: controller.canEdit

@@ -11,6 +11,7 @@ class QuotationLineDraft {
     String? qty,
     String? rate,
     String? discountPercent,
+    this.discountMode = ErpLineDiscountMode.percent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
        qtyController = TextEditingController(text: qty ?? ''),
@@ -41,13 +42,18 @@ class QuotationLineDraft {
   final TextEditingController qtyController;
   final TextEditingController rateController;
   final TextEditingController discountController;
+  ErpLineDiscountMode discountMode;
   final TextEditingController remarksController;
   bool _disposed = false;
 
   Map<String, dynamic> toJson() {
     final rate = Validators.parseFlexibleNumber(rateController.text);
-    final discountPercent = Validators.parseFlexibleNumber(
-      discountController.text,
+    final qty = Validators.parseFlexibleNumber(qtyController.text) ?? 0;
+    final parsedRate = rate ?? 0;
+    final discount = resolveErpLineDiscount(
+      mode: discountMode,
+      input: Validators.parseFlexibleNumber(discountController.text) ?? 0,
+      gross: qty * parsedRate,
     );
     return <String, dynamic>{
       if (id != null) 'id': id,
@@ -55,9 +61,11 @@ class QuotationLineDraft {
       'uom_id': uomId,
       'tax_code_id': null,
       'description': nullIfEmpty(descriptionController.text),
-      'qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+      'qty': qty,
       'rate': rate,
-      'discount_percent': discountPercent,
+      'discount_percent': discount.percent,
+      if (discountMode == ErpLineDiscountMode.amount)
+        'discount_amount': discount.amount,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -721,11 +729,19 @@ class SalesQuotationManagementController extends GetxController {
   }
 
   SalesLineTaxBreakdown taxBreakdownForLine(QuotationLineDraft line) {
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+    final input =
+        Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
     return computeSalesLineTaxBreakdown(
-      qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
-      rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
-      discountPercent:
-          Validators.parseFlexibleNumber(line.discountController.text) ?? 0,
+      qty: qty,
+      rate: rate,
+      discountPercent: line.discountMode == ErpLineDiscountMode.percent
+          ? input
+          : 0,
+      discountAmount: line.discountMode == ErpLineDiscountMode.amount
+          ? input
+          : null,
       // Sales quotations do not apply GST or cess.
       taxCode: null,
       isInterState: isInterStateForSummary(),

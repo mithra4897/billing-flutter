@@ -213,10 +213,23 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           Validators.optionalNonNegativeNumber('Rate'),
         ]),
         discountController: line.discountController,
+        discountMode: line.discountMode,
+        onDiscountModeChanged: controller.canEdit
+            ? (value) {
+                line.discountMode = value;
+                controller.refreshComputedState();
+              }
+            : null,
         onDiscountChanged: controller.canEdit
             ? (_) => controller.refreshComputedState()
             : null,
-        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        discountValidator: (value) => validateErpLineDiscount(
+          value,
+          mode: line.discountMode,
+          gross:
+              (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) *
+              (Validators.parseFlexibleNumber(line.rateController.text) ?? 0),
+        ),
         descriptionController: line.descriptionController,
         onDescriptionChanged: controller.canEdit ? (_) {} : null,
         remarksController: line.remarksController,

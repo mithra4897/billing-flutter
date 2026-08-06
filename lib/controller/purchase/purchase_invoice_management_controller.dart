@@ -690,6 +690,9 @@ class PurchaseInvoiceManagementController extends GetxController {
       qty: normalizedLine.invoicedQty,
       rate: normalizedLine.rate,
       discountPercent: normalizedLine.discountPercent ?? 0,
+      discountAmount: normalizedLine.discountIsAmount
+          ? normalizedLine.discountAmount
+          : null,
       taxCode: purchaseTaxCodeById(taxCodes, normalizedLine.taxCodeId),
       isInterState: isInterStateForSummary(),
       taxPercent: normalizedLine.taxPercent,

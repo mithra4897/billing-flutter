@@ -337,10 +337,23 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           Validators.optionalNonNegativeNumber('Rate'),
         ]),
         discountController: line.discountController,
+        discountMode: line.discountMode,
+        onDiscountModeChanged: controller.canEdit
+            ? (value) {
+                line.discountMode = value;
+                controller.refreshComputedState();
+              }
+            : null,
         onDiscountChanged: controller.canEdit
             ? (_) => controller.refreshComputedState()
             : null,
-        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        discountValidator: (value) => validateErpLineDiscount(
+          value,
+          mode: line.discountMode,
+          gross:
+              (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) *
+              (Validators.parseFlexibleNumber(line.rateController.text) ?? 0),
+        ),
         taxCodeId: line.taxCodeId,
         taxOptions: controller.taxCodeDropdownItems,
         onTaxCodeChanged: controller.canEdit

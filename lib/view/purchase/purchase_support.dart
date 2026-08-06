@@ -263,6 +263,7 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
   required double qty,
   required double rate,
   required double discountPercent,
+  double? discountAmount,
   required TaxCodeModel? taxCode,
   bool? isInterState,
   double? taxPercent,
@@ -270,8 +271,13 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
 }) {
   final gross = roundToDouble(qty > 0 && rate >= 0 ? qty * rate : 0.0, 2);
   final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
-  final discountAmount = roundToDouble((gross * clampedDiscount) / 100, 2);
-  final taxable = roundToDouble(gross - discountAmount, 2);
+  final effectiveDiscountAmount = roundToDouble(
+    discountAmount == null
+        ? (gross * clampedDiscount) / 100
+        : discountAmount.clamp(0, gross).toDouble(),
+    2,
+  );
+  final taxable = roundToDouble(gross - effectiveDiscountAmount, 2);
   var resolvedTaxPercent =
       (taxPercent != null && taxPercent > 0
               ? taxPercent

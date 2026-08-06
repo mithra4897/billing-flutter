@@ -12,6 +12,7 @@ class SalesInvoiceLineModel extends JsonModel {
     this.batchNo,
     this.description,
     this.discountPercent,
+    this.discountAmount,
     this.taxCodeId,
     this.taxPercent,
     this.taxType,
@@ -37,6 +38,7 @@ class SalesInvoiceLineModel extends JsonModel {
   final double rate;
   final String? description;
   final double? discountPercent;
+  final double? discountAmount;
   final int? taxCodeId;
   final double? taxPercent;
   final String? taxType;
@@ -86,6 +88,7 @@ class SalesInvoiceLineModel extends JsonModel {
       rate: _parseDouble(json['rate']),
       description: json['description']?.toString(),
       discountPercent: _nullableDouble(json['discount_percent']),
+      discountAmount: _nullableDouble(json['discount_amount']),
       taxCodeId:
           _nullableInt(json['tax_code_id']) ?? _nullableInt(taxCodeJson?['id']),
       taxPercent: _nullableDouble(json['tax_percent']),
@@ -116,6 +119,7 @@ class SalesInvoiceLineModel extends JsonModel {
       'rate': rate,
       if (description != null) 'description': description,
       if (discountPercent != null) 'discount_percent': discountPercent,
+      if (discountAmount != null) 'discount_amount': discountAmount,
       if (taxCodeId != null) 'tax_code_id': taxCodeId,
       if (taxPercent != null) 'tax_percent': taxPercent,
       if (taxType != null) 'tax_type': taxType,

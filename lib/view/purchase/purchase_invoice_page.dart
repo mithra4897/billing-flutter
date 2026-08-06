@@ -279,19 +279,50 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               Validators.optionalNonNegativeNumber('Rate'),
             ]),
           ),
-          ErpLineItemTableColumn.discount: ErpLineItemTextCell(
-            key: ValueKey('purchase-invoice-discount-$index'),
-            initialValue: (line.discountPercent ?? 0).toString(),
-            hintText: '0',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            numericDisplayKind: AppNumericDisplayKind.discountPercent,
-            onChanged: (value) => controller.updateLine(
+          ErpLineItemTableColumn.discount: ErpLineItemDiscountCell(
+            key: ValueKey(
+              'purchase-invoice-discount-$index-${line.discountIsAmount}',
+            ),
+            mode: line.discountIsAmount
+                ? ErpLineDiscountMode.amount
+                : ErpLineDiscountMode.percent,
+            initialValue: line.discountIsAmount
+                ? (line.discountAmount ?? 0).toString()
+                : (line.discountPercent ?? 0).toString(),
+            onModeChanged: (mode) => controller.updateLine(
               index,
               line.copyWith(
-                discountPercent: nullIfEmpty(value) == null
-                    ? null
-                    : Validators.parseFlexibleNumber(value),
+                discountIsAmount: mode == ErpLineDiscountMode.amount,
               ),
+            ),
+            onChanged: (value) {
+              final parsed = nullIfEmpty(value) == null
+                  ? null
+                  : Validators.parseFlexibleNumber(value);
+              final gross = line.invoicedQty * line.rate;
+              final resolved = resolveErpLineDiscount(
+                mode: line.discountIsAmount
+                    ? ErpLineDiscountMode.amount
+                    : ErpLineDiscountMode.percent,
+                input: parsed ?? 0,
+                gross: gross,
+              );
+              controller.updateLine(
+                index,
+                line.copyWith(
+                  discountPercent: parsed == null ? null : resolved.percent,
+                  discountAmount: line.discountIsAmount
+                      ? resolved.amount
+                      : null,
+                ),
+              );
+            },
+            validator: (value) => validateErpLineDiscount(
+              value,
+              mode: line.discountIsAmount
+                  ? ErpLineDiscountMode.amount
+                  : ErpLineDiscountMode.percent,
+              gross: line.invoicedQty * line.rate,
             ),
           ),
         },
