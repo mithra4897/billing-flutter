@@ -14,6 +14,12 @@ For a backend and frontend change that belongs to one feature, use the same deci
 
 ## Feature specifications
 
+- [Specifications](SPECIFICATIONS.md) — approved feature requirements and acceptance criteria.
+- [Architecture](ARCHITECTURE.md) — implemented and explicitly approved components and data flow.
+- [Architecture decisions](DECISIONS.md) — append-only records of durable technical decisions.
+- [Testing](TESTING.md) — verification strategy, commands, and known untested environments.
+- [Changelog](CHANGELOG.md) — meaningful implementation and operational changes.
+
 - [ERP line discount by percentage or amount](erp-line-discount-input.md) —
   choose `%` or fixed `Amt` in editable sales and purchase line tables.
 - [Sales master lookup freshness](sales-master-lookup-freshness.md) — refresh

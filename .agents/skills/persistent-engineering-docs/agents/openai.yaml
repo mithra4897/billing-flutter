@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persistent Engineering Docs"
+  short_description: "Keep specifications, decisions, tests, and changelog current"
+  default_prompt: "Use $persistent-engineering-docs to implement this change with durable specifications, decisions, tests, and changelog updates."

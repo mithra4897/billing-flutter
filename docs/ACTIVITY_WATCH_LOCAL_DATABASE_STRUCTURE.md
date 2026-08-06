@@ -2,7 +2,7 @@
 
 ## 1. Status and scope
 
-**Status:** Proposed MVP design; not implemented.
+**Status:** Approved MVP schema; persistence foundation implemented.
 
 This document defines the operating-system-neutral local database for the
 Activity Watch agent. It deliberately uses a compact **10-table schema**
@@ -97,8 +97,8 @@ local application, browser, process, and service details is intentionally
 limited. The agent produces validated daily summaries before synchronization,
 and the ERP server stores the reportable normalized data.
 
-No database migration is currently required because Activity Watch has not
-been implemented. This document supersedes the earlier draft schema.
+Schema version 1 is now created transactionally by the opt-in Activity Watch
+persistence layer. This document supersedes the earlier draft schema.
 
 ## 4. Database overview
 
@@ -269,7 +269,7 @@ Examples:
 - last heartbeat, collection, and successful sync times;
 - database size and pending outbox count;
 - agent version and last sanitized error code; and
-- schema version; and
+- schema-related state; and
 - reported platform capabilities and permission status.
 
 Values are encrypted. SQLCipher keys, column-encryption keys, access tokens,
