@@ -62,14 +62,16 @@ under `/api/v1` and stores normal ERP session state separately.
 ### Party-code editing flow
 
 The Parties page owns the remote lookup required to find codes already used by
-a selected party type. Pure prefix, next-number, original-type restoration,
-and async-refresh validation rules live in `helper/party_code_helper.dart` so
-they can be tested without constructing the full page. A monotonically
-increasing request token on the page prevents an older type lookup from
-overwriting the code for a newer selection. The backend remains responsible
-for final global uniqueness validation when the party is saved. Selecting an
-existing party also compares its generated-code prefix with its saved type and
-prepares a corrected value when legacy data is inconsistent.
+the target prefix across all party types, matching the database's global
+`party_code` unique key. Pure lookup-filter, prefix, next-number, original-type
+restoration, and async-refresh validation rules live in
+`helper/party_code_helper.dart` so they can be tested without constructing the
+full page. A monotonically increasing request token on the page prevents an
+older type lookup from overwriting the code for a newer selection. The backend
+remains responsible for final global uniqueness validation when the party is
+saved. Selecting an existing party also compares its generated-code prefix
+with its saved type and prepares a corrected value when legacy data is
+inconsistent.
 
 ## Activity Watch local persistence
 

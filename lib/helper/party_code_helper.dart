@@ -22,6 +22,16 @@ bool partyCodeUsesPrefix(String? partyCode, String typeCode) {
   return normalizedCode.startsWith('$normalizedType/');
 }
 
+Map<String, dynamic> partyCodeLookupFilters(String typeCode) {
+  return <String, dynamic>{
+    'page': 1,
+    'per_page': 200,
+    'search': '${typeCode.trim().toUpperCase()}/',
+    'sort_by': 'party_code',
+    'sort_order': 'desc',
+  };
+}
+
 String generatePartyCode({
   required String typeCode,
   required DocumentSeriesModel? series,

@@ -12,14 +12,17 @@
   token prevents stale async lookups from applying a code for a previously
   selected type. Save also waits for any required prefix correction. Existing
   prefix and next-number logic was extracted into a reusable, testable helper.
+  Used-code lookup now searches the target prefix globally rather than
+  filtering by party type, so a stale `SUP/...` code on a Customer is included.
 - Files changed: Parties page, helper export, party-code helper and tests, and
   engineering documentation.
 - Database/API impact: None. The existing required `party_code` request field,
   backend uniqueness validation, and global database unique key are unchanged.
 - Security impact: None.
-- Tests added or updated: Seven party-code helper regression tests.
-- Tests executed and results: Focused test passed all 7 tests; complete
-  `flutter test` passed all 46 tests; `flutter analyze` reported only the
+- Tests added or updated: Nine party-code helper regression tests, including
+  the reported cross-type `SUP/0106` collision.
+- Tests executed and results: Focused test passed all 9 tests; complete
+  `flutter test` passed all 48 tests; `flutter analyze` reported only the
   pre-existing unrelated `_buildGapList` unused-element warning.
 - Documentation updated: README index, specification, architecture, testing,
   and changelog.

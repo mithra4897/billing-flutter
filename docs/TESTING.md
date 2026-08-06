@@ -37,13 +37,13 @@ Focused command:
 flutter test test/helper/party_code_helper_test.dart
 ```
 
-Coverage includes Supplier and Customer prefix derivation, next-number
-selection scoped to the target type, mismatched saved-prefix detection,
-restoration of a selected party's saved code when an edit returns to its
-original type, and rejection of stale async refresh results. On 2026-08-06 the
-focused 7-test suite and the complete 46-test Flutter suite passed. `flutter
-analyze` completed with only the pre-existing unrelated unused `_buildGapList`
-warning in
+Coverage includes global prefix lookup across party types, cross-type occupied
+codes, Supplier and Customer prefix derivation, next-number selection,
+mismatched saved-prefix detection, restoration of a selected party's saved
+code when an edit returns to its original type, and rejection of stale async
+refresh results. On 2026-08-06 the focused 9-test suite and the complete
+48-test Flutter suite passed. `flutter analyze` completed with only the
+pre-existing unrelated unused `_buildGapList` warning in
 `lib/view/crm/crm_followups_page.dart`.
 
 ## Activity Watch persistence

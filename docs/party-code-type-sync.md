@@ -21,8 +21,11 @@ party type during both create and edit flows.
 - Opening a party whose generated-code prefix does not match its saved type
   prepares a corrected code so the existing bad record can be repaired by
   saving it.
-- The generator continues to use the existing PARTY document-series settings
-  and existing-party lookup.
+- The generator continues to use the existing PARTY document-series settings.
+- Used-code lookup is global because `parties.party_code` is globally unique.
+  It searches by the target code prefix across every party type; it must not
+  filter by `party_type_id`, because an inconsistent Customer may still own a
+  `SUP/...` code.
 - If an editor changes a saved party away from its original type and then
   changes it back before saving, restore the saved party code instead of
   consuming a new-looking number.
@@ -61,10 +64,13 @@ updated when the party record is saved.
 5. New-party code generation continues to work as before.
 6. Opening an existing Customer with a `SUP/...` code prepares a `CUS/...`
    replacement for save.
+7. If a Customer still owns `SUP/0106`, creating a Supplier proposes at least
+   `SUP/0107` instead of retrying the globally occupied `SUP/0106`.
 
 ## Required verification
 
-- Unit tests for the type-change code-selection rules and stale-request guard.
+- Unit tests for global prefix lookup, cross-type collisions, type-change code
+  selection rules, and the stale-request guard.
 - `dart format` on changed Dart files.
 - Focused `flutter test` for the new regression tests.
 - `flutter analyze` for static validation.

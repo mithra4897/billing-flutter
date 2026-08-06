@@ -593,16 +593,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Future<String> _generatePartyCodeForType(int? partyTypeId) async {
-    final sortConfig = const <String, dynamic>{
-      'page': 1,
-      'per_page': 200,
-      'sort_by': 'party_code',
-      'sort_order': 'desc',
-    };
+    final filters = partyCodeLookupFilters(_partyTypeCode(partyTypeId));
     try {
-      final response = await _partiesService.parties(
-        filters: <String, dynamic>{...sortConfig, 'party_type_id': partyTypeId},
-      );
+      final response = await _partiesService.parties(filters: filters);
       final remoteParties = response.data ?? const <PartyModel>[];
       if (remoteParties.isNotEmpty) {
         return _generatePartyCodeForTypeFromParties(partyTypeId, remoteParties);
