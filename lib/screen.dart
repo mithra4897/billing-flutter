@@ -469,6 +469,7 @@ export 'view/settings/tax/gst_registration_page.dart';
 export 'view/settings/tax/gst_tax_rule_page.dart';
 export 'view/settings/tax/state_page.dart';
 export 'view/settings/system/cache_controls_page.dart';
+export 'view/settings/activity_watch/activity_watch_setup_page.dart';
 export 'view/settings/user/login_history_page.dart';
 export 'view/settings/user/module_preferences_page.dart';
 export 'view/settings/user/profile_page.dart';

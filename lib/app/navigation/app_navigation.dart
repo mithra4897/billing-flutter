@@ -67,6 +67,12 @@ class AppNavigation {
           path: '/settings/profile',
         ),
         AppNavigationItem(
+          key: 'settings-activity-watch',
+          title: 'Activity Watch',
+          icon: Icons.visibility_outlined,
+          path: '/settings/activity-watch',
+        ),
+        AppNavigationItem(
           key: 'settings-system',
           title: 'System',
           icon: Icons.settings_suggest_outlined,

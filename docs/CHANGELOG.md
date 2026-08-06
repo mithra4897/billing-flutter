@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-06 — Activity Watch consent setup screen
+
+- Added Settings → Activity Watch for explicit privacy-safe consent, device
+  label entry, authenticated enrollment, and one-time device credential display.
+- The screen excludes prohibited collection categories and does not start the
+  native agent itself; Go credential/configuration handoff remains pending.
+
 ## 2026-08-06 — Activity Watch foreground shutdown fix
 
 - Request: Diagnose the `service shutdown exceeded its deadline` message after
