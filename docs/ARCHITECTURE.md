@@ -37,6 +37,9 @@ flowchart LR
   acknowledge successes, and schedule retries.
 - Secret provider: supply database and device credentials without placing them
   in configuration or logs.
+- Provisioner: generate and publish a new encrypted database/key pair only
+  when both configured targets are absent. It builds files under protected
+  temporary names and uses no-replace publication to avoid overwriting data.
 - Flutter service control: retain only installed executable/configuration paths
   in secure storage and issue a bounded `signal-logout` command during native
   ERP logout. Failure never blocks normal ERP session clearing.

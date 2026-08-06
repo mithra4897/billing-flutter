@@ -1,5 +1,29 @@
 # Architecture decisions
 
+## ADR-0007: Provision new service storage through a no-overwrite command
+
+- Date: 2026-08-06
+- Status: Accepted
+- Context: The Go service previously required a pre-created encrypted database
+  and protected key, leaving a fresh authorized installation without a usable
+  operator command.
+- Decision: Add `activity-watch-agent provision --config <absolute-path>`.
+  It creates a new version-1 SQLCipher database, a cryptographically random
+  raw 256-bit key encoded in a mode-`0600` file, and the logout-control parent.
+  It rejects any pre-existing database or key and publishes temporary files
+  with no-replace hard links.
+- Reason: A paired database/key must be created together without exposing or
+  logging key material. Refusing replacement avoids irreversible loss of an
+  existing encrypted database.
+- Alternatives considered: Manual SQLCipher CLI setup; generating a new key
+  beside an existing database; storing the key in JSON configuration.
+- Consequences: Provisioning is intended only for a fresh authorized service
+  installation. It is not a migration mechanism for an existing Flutter
+  secure-storage database; cross-runtime key sharing remains a separate
+  enrollment feature.
+- Related files: `activity-watch-agent/internal/provision/`,
+  `activity-watch-agent/internal/store/`, `docs/activity-watch-go-service.md`.
+
 ## ADR-0004: One Go binary with machine-service and session-helper roles
 
 - Date: 2026-08-06

@@ -1,5 +1,52 @@
 # Changelog
 
+## 2026-08-06 — Activity Watch foreground shutdown fix
+
+- Request: Diagnose the `service shutdown exceeded its deadline` message after
+  stopping a foreground Go agent with Ctrl+C.
+- Implementation: Captured the per-run completion channel in the worker
+  goroutine before shutdown clears the program field. The worker can now report
+  completion after cancellation instead of blocking on a nil channel.
+- Files changed: Go service lifecycle implementation/test and changelog.
+- Database/API/security impact: None.
+- Tests added or updated: Added an integration-style start/stop test using a
+  provisioned encrypted database and disabled sync.
+- Tests executed and results: `go test -count=1 ./...`, `go vet ./...`, and
+  `go build -o /private/tmp/activity-watch-agent-fixed
+  ./cmd/activity-watch-agent` passed on macOS arm64. `git diff --check` passed.
+- Known limitations: Native service-manager lifecycle testing remains required
+  on Windows, macOS, and Linux.
+
+## 2026-08-06 — Activity Watch service provisioning command
+
+- Request: Provide a complete command to create the local Activity Watch
+  database needed to run the Go service.
+- Specification: Updated Activity Watch service requirements in
+  `docs/SPECIFICATIONS.md`.
+- Implementation: Added `activity-watch-agent provision --config <absolute-path>`.
+  It generates a raw 256-bit key, creates the encrypted version-1 schema and
+  logout-control parent, and publishes the database/key only when both target
+  paths are absent.
+- Files changed: Go command, provisioner, SQLCipher schema initializer, store
+  reuse helpers/tests, and service architecture/operations documentation.
+- Database/API impact: Adds a fresh local version-1 SQLCipher provisioning
+  path; does not alter the ERP API or server database.
+- Security impact: Key contents are never logged; key files are mode `0600` on
+  Unix; existing database/key targets are rejected rather than overwritten.
+- Tests added or updated: Encrypted provisioning/reopen/schema-index test,
+  key permission test, control-directory test, and existing-target preservation
+  test.
+- Tests executed and results: `go test -count=1 ./...`, `go vet ./...`, and
+  `go build -o /private/tmp/activity-watch-agent-provision
+  ./cmd/activity-watch-agent` passed on macOS arm64. `git diff --check` passed.
+- Documentation updated: Specifications, architecture, ADR-0007, testing,
+  operations guide, and changelog.
+- Known limitations: Provisioning creates a new Go-managed database/key pair;
+  it does not import an existing Flutter secure-storage key or enable user
+  activity collectors, enrollment, ERP ingestion, or native installers.
+- Follow-up work: Add consent/enrollment and machine-key storage integration
+  before production rollout.
+
 ## 2026-08-06 — Synchronize party code with party type
 
 - Request: Fix an existing Supplier changed to Customer retaining `SUP/0106`,

@@ -25,6 +25,7 @@ nothing.
 
 ```text
 activity-watch-agent install --config /absolute/path/config.json
+activity-watch-agent provision --config /absolute/path/config.json
 activity-watch-agent start --config /absolute/path/config.json
 activity-watch-agent status --config /absolute/path/config.json
 activity-watch-agent stop --config /absolute/path/config.json
@@ -40,6 +41,18 @@ the worker in the foreground for development.
 Copy `activity-watch-agent/config.example.json` to an administrator-controlled
 absolute path. The file contains no secrets. Secret providers supply the raw
 32-byte SQLCipher key and device credential at runtime.
+
+For a fresh, authorized machine installation, configure three new absolute
+paths: `database.path`, `database.key_file`, and
+`control.logout_request_path`. Then run `provision` once. It creates the parent
+directories, an encrypted version-1 database, and a mode-`0600` hex-encoded
+256-bit key file. It does not print the key and refuses to overwrite an
+existing database or key. Provisioning does not start the service or enable
+synchronization.
+
+Do not use `provision` for an existing Flutter-managed database: it creates a
+new independent database/key pair. Use it only after Activity Watch enrollment
+and consent have been approved for that installation.
 
 Keep `sync.enabled` false until the ERP server implements the documented
 device enrollment and `POST /api/v1/activity-watch/batches` contract.

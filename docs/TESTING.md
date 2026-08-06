@@ -15,6 +15,13 @@ batch limits/order, retry classification/backoff, HTTP success/retry/permanent
 failure, and cancellation. SQLCipher integration requires CGO and is tested
 separately from store-independent unit tests.
 
+Provisioning tests additionally verify fresh encrypted schema creation,
+protected key permissions, generated-key reopen, control-directory creation,
+and rejection of an existing database without modifying it.
+
+The Go command tests also start and stop a provisioned foreground worker to
+ensure cancellation completes within its configured shutdown deadline.
+
 Manual verification remains required for Windows Services, macOS launchd,
 Linux service managers, machine credential storage/ACLs, actual OS logout and
 shutdown deadlines, and the future ERP ingestion endpoint.

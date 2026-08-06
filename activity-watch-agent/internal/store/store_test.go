@@ -57,6 +57,30 @@ func TestOpenSQLCipherRejectsWrongKey(t *testing.T) {
 	}
 }
 
+func TestProvisionSQLCipherCreatesApprovedEncryptedSchema(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "activity_watch.db")
+	key := make([]byte, 32)
+	for index := range key {
+		key[index] = byte(index + 1)
+	}
+	if err := ProvisionSQLCipher(context.Background(), path, key); err != nil {
+		t.Fatalf("ProvisionSQLCipher() error = %v", err)
+	}
+	database, err := OpenSQLCipher(context.Background(), path, key)
+	if err != nil {
+		t.Fatalf("OpenSQLCipher() error = %v", err)
+	}
+	defer database.Close()
+
+	var indexCount int
+	if err := database.db.QueryRow("SELECT count(*) FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_autoindex%'").Scan(&indexCount); err != nil {
+		t.Fatal(err)
+	}
+	if indexCount != 11 {
+		t.Fatalf("index count = %d, want 11", indexCount)
+	}
+}
+
 func TestClaimReadyBatchUsesLimitAndTransitionsState(t *testing.T) {
 	path, key := createTestDatabase(t)
 	database, err := OpenSQLCipher(context.Background(), path, key)

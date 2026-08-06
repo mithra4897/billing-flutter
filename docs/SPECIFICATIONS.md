@@ -1,5 +1,56 @@
 # Specifications
 
+## Activity Watch privacy-safe enrollment and ingestion MVP
+
+- Date: 2026-08-06
+- Status: Approved for implementation
+
+### Objective
+
+Complete the consent-gated Activity Watch path from an ERP user enrolling a
+desktop device through the local Go service retaining an offline queue and the
+ERP receiving idempotent device batches.
+
+### Data and access rules
+
+- Collect only active/idle/locked durations, timestamped lifecycle state, and
+  application executable name/category. Browser collection, when enabled by a
+  later native adapter, is domain/category only.
+- Never collect keystrokes, clipboard contents, screenshots, pointer
+  coordinates, window or tab titles, full URLs, page/form content, or process
+  command-line arguments.
+- Enrollment requires an authenticated ERP user, explicit consent, a device
+  label/platform, and a consent policy version.
+- Device credentials are random, device-scoped, stored server-side only as a
+  hash, returned once at enrollment, and invalid after revocation.
+- The service uses the credential only for `POST /api/v1/activity-watch/batches`.
+  It never retains the employee's ERP JWT after logout.
+- HR managers (the existing `hr.approve` scope) and super administrators may
+  view organization records; regular employees may view only their own device
+  status. Server data is retained for 90 days, then deleted.
+
+### API and persistence requirements
+
+- `POST /api/v1/activity-watch/enroll` creates/replaces an active device
+  credential for the authenticated user after explicit consent.
+- `POST /api/v1/activity-watch/batches` authenticates a device credential and
+  accepts at most 500 ordered outbox records. Device/idempotency keys make a
+  retried batch safe.
+- Server ingestion stores opaque encrypted payload fields and metadata only;
+  it does not attempt to decrypt a device-local SQLCipher/AES payload.
+- Revocation disables future batches immediately. Retention cleanup removes
+  records and batch receipts older than 90 days.
+
+### Acceptance criteria
+
+- Missing consent, invalid device credential, mismatched device header, an
+  oversized batch, or malformed item is rejected without partial writes.
+- Retried batch/idempotency keys do not create duplicate stored events.
+- Credentials, encrypted payload contents, and database keys never appear in
+  API responses or logs.
+- Flutter exposes an explicit consent/status path before configuring a native
+  service.
+
 ## Activity Watch Go desktop service
 
 - Date: 2026-08-06
@@ -27,6 +78,8 @@ the active user's foreground UI directly.
 ### In scope
 
 - Windows, macOS, and Linux desktop service lifecycle.
+- Non-destructive `provision` command that creates a new encrypted local
+  database/key pair and its control directory from a valid configuration.
 - Install, uninstall, start, stop, restart, status, and foreground-run commands.
 - Boot-time machine service execution until OS shutdown.
 - SQLCipher database opening and approved schema verification.
@@ -72,12 +125,24 @@ the active user's foreground UI directly.
    payloads, window titles, URLs, or personal activity content.
 10. A plaintext SQLite runtime, missing key, wrong key, unsupported schema,
     absent consent, or invalid configuration fails closed.
+11. `provision` must create the exact approved schema version, a cryptographically
+    random raw 256-bit key encoded in a mode-`0600` file, and the configured
+    control-directory parent. It must refuse to overwrite either an existing
+    database or an existing key file.
+12. If provisioning cannot finish, it must remove only temporary artifacts and
+    artifacts it created during that same invocation; it must never modify an
+    existing configured path.
 
 ### Configuration and API contract
 
 Non-secret configuration defines database path, sync URL, device identifier,
 intervals, batch size, and shutdown timeout. Database and device credentials
 come from a machine secret provider, not the JSON configuration file.
+
+For an authorized fresh installation, run `activity-watch-agent provision`
+before `run` or native service installation. It creates a new independent
+machine database/key pair. It must not be used to replace an existing
+Flutter-managed database because that would create a different key.
 
 The planned endpoint is `POST /api/v1/activity-watch/batches` with:
 
@@ -111,6 +176,8 @@ it must retain pending records without data loss when no endpoint exists.
   limits, and cancellation.
 - Retry delay is capped and deterministic under injected randomness.
 - Configuration rejects unsafe or missing required values.
+- Provisioning creates an encrypted database that passes the store's schema
+  verification and rejects existing database/key paths without modifying them.
 - SQLCipher runtime and approved schema are verified before writes.
 - `go test ./...`, `go vet ./...`, and `go build ./cmd/activity-watch-agent`
   pass where a Go/CGO toolchain is available.

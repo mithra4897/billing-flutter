@@ -73,6 +73,19 @@ func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStor
 		return nil, fmt.Errorf("inspect provisioned database: %w", err)
 	}
 
+	db, err := openDatabase(path, key)
+	if err != nil {
+		return nil, err
+	}
+	store := &SQLCipherStore{db: db}
+	if err := store.verify(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return store, nil
+}
+
+func openDatabase(path string, key []byte) (*sql.DB, error) {
 	query := url.Values{}
 	query.Set("_pragma_key", fmt.Sprintf("x'%s'", hex.EncodeToString(key)))
 	query.Set("_pragma_cipher_page_size", "4096")
@@ -84,35 +97,15 @@ func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStor
 	}
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-
-	store := &SQLCipherStore{db: db}
-	if err := store.verify(ctx); err != nil {
-		db.Close()
-		return nil, err
-	}
-	return store, nil
+	return db, nil
 }
 
 func (s *SQLCipherStore) verify(ctx context.Context) error {
-	var cipherVersion string
-	if err := s.db.QueryRowContext(ctx, "PRAGMA cipher_version").Scan(&cipherVersion); err != nil || strings.TrimSpace(cipherVersion) == "" {
-		return errors.New("SQLCipher runtime verification failed")
+	if err := verifyCipherRuntime(ctx, s.db); err != nil {
+		return err
 	}
-	if _, err := s.db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
-		return errors.New("enable foreign keys")
-	}
-	if _, err := s.db.ExecContext(ctx, "PRAGMA secure_delete = ON"); err != nil {
-		return errors.New("enable secure deletion")
-	}
-	if _, err := s.db.ExecContext(ctx, "PRAGMA synchronous = FULL"); err != nil {
-		return errors.New("configure synchronous writes")
-	}
-	var journalMode string
-	if err := s.db.QueryRowContext(ctx, "PRAGMA journal_mode = WAL").Scan(&journalMode); err != nil {
-		return fmt.Errorf("configure WAL: %w", err)
-	}
-	if strings.ToLower(journalMode) != "wal" {
-		return fmt.Errorf("configure WAL: database selected %q mode", journalMode)
+	if err := configureConnection(ctx, s.db); err != nil {
+		return err
 	}
 
 	var schemaVersion int
@@ -142,6 +135,34 @@ func (s *SQLCipherStore) verify(ctx context.Context) error {
 	sort.Strings(actual)
 	if strings.Join(actual, "\n") != strings.Join(expectedTables, "\n") {
 		return errors.New("database does not contain the approved 10-table Activity Watch schema")
+	}
+	return nil
+}
+
+func verifyCipherRuntime(ctx context.Context, db *sql.DB) error {
+	var cipherVersion string
+	if err := db.QueryRowContext(ctx, "PRAGMA cipher_version").Scan(&cipherVersion); err != nil || strings.TrimSpace(cipherVersion) == "" {
+		return errors.New("SQLCipher runtime verification failed")
+	}
+	return nil
+}
+
+func configureConnection(ctx context.Context, db *sql.DB) error {
+	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+		return errors.New("enable foreign keys")
+	}
+	if _, err := db.ExecContext(ctx, "PRAGMA secure_delete = ON"); err != nil {
+		return errors.New("enable secure deletion")
+	}
+	if _, err := db.ExecContext(ctx, "PRAGMA synchronous = FULL"); err != nil {
+		return errors.New("configure synchronous writes")
+	}
+	var journalMode string
+	if err := db.QueryRowContext(ctx, "PRAGMA journal_mode = WAL").Scan(&journalMode); err != nil {
+		return fmt.Errorf("configure WAL: %w", err)
+	}
+	if strings.ToLower(journalMode) != "wal" {
+		return fmt.Errorf("configure WAL: database selected %q mode", journalMode)
 	}
 	return nil
 }

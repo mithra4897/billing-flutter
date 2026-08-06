@@ -17,6 +17,7 @@ import (
 	"billing/activity-watch-agent/internal/agent"
 	"billing/activity-watch-agent/internal/config"
 	"billing/activity-watch-agent/internal/control"
+	"billing/activity-watch-agent/internal/provision"
 	"billing/activity-watch-agent/internal/secret"
 	"billing/activity-watch-agent/internal/store"
 	"billing/activity-watch-agent/internal/syncer"
@@ -51,6 +52,14 @@ func run(arguments []string) error {
 
 	if command == "signal-logout" {
 		return control.NewLogoutMarker(cfg.Control.LogoutRequestPath).Signal()
+	}
+	if command == "provision" {
+		result, err := provision.Create(context.Background(), cfg)
+		if err != nil {
+			return fmt.Errorf("provision Activity Watch storage: %w", err)
+		}
+		fmt.Printf("Provisioned encrypted Activity Watch database: %s\n", result.DatabasePath)
+		return nil
 	}
 
 	program := &serviceProgram{config: cfg}
@@ -152,16 +161,17 @@ func (p *serviceProgram) Start(service.Service) error {
 	})
 
 	p.cancel = cancel
-	p.done = make(chan error, 1)
+	done := make(chan error, 1)
+	p.done = done
 	p.store = database
-	go func() {
+	go func(completed chan<- error) {
 		runError := runner.Run(ctx)
-		p.done <- runError
+		completed <- runError
 		if runError != nil && ctx.Err() == nil {
 			log.Printf("activity-watch service terminated unexpectedly: %v", runError)
 			os.Exit(1)
 		}
-	}()
+	}(done)
 	return nil
 }
 
@@ -187,6 +197,9 @@ func (p *serviceProgram) Stop(service.Service) error {
 	case <-time.After(wait):
 		runError = errors.New("service shutdown exceeded its deadline")
 	}
+	if errors.Is(runError, context.Canceled) {
+		runError = nil
+	}
 	closeError := database.Close()
 	return errors.Join(runError, closeError)
 }
@@ -203,7 +216,7 @@ func statusText(status service.Status) string {
 }
 
 func usageError() error {
-	return errors.New("usage: activity-watch-agent <install|uninstall|start|stop|restart|status|run|signal-logout> --config /absolute/path/config.json")
+	return errors.New("usage: activity-watch-agent <provision|install|uninstall|start|stop|restart|status|run|signal-logout> --config /absolute/path/config.json")
 }
 
 func clearBytes(value []byte) {
