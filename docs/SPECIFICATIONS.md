@@ -1,5 +1,77 @@
 # Specifications
 
+## Activity Watch self-service employee onboarding
+
+- Date: 2026-08-07
+- Status: Approved for implementation
+
+### Objective
+
+Replace developer-only device-ID, credential-file, JSON, and Terminal setup
+with a one-time employee workflow suitable for Flutter Web and all supported
+desktop operating systems.
+
+### User workflow
+
+1. An employee installs the organization-provided signed Activity Watch agent
+   once on a Windows, macOS, or Linux computer.
+2. In ERP Settings → Activity Watch, the employee enters a device label,
+   accepts consent, and selects **Connect this computer**.
+3. ERP creates a ten-minute, single-use pairing token and downloads a small
+   `.billingawpair` file. The file contains only the API URL, platform, token,
+   and format version; it never contains the permanent device credential.
+4. Opening the pairing file invokes the installed agent. The agent exchanges
+   the token once, provisions encrypted local storage when absent, writes the
+   credential/configuration atomically with user-only permissions, and starts
+   the user service.
+5. The ERP page shows pending, connected, last-seen, revoked, or expired state.
+   Normal ERP logins and computer restarts require no reconfiguration.
+
+### API, storage, and security requirements
+
+- Use the existing `activity_watch_devices` table; do not introduce a migration
+  framework table or an additional Activity Watch pairing table.
+- Store only a SHA-256 pairing-token hash, expiry, and paired timestamp. The raw
+  token is returned once and expires after ten minutes.
+- Pairing exchange is transactional and single-use. Concurrent or repeated
+  exchanges fail without returning another credential.
+- The device credential is generated locally by the agent during exchange,
+  stored server-side only as a hash, and never included in the pairing file,
+  Flutter state, server response, logs, or documentation. Retrying the same
+  token with the same credential is idempotent until token expiry.
+- Production pairing URLs require HTTPS. Loopback HTTP remains allowed only for
+  local development.
+- Pairing bundles are bounded, versioned, strict-decoded, and removed by the
+  handler after a successful setup.
+- Existing direct enrollment remains available for native/developer
+  compatibility but Flutter Web uses token pairing by default.
+
+### Failure and recovery
+
+- Missing agent/file association: keep the pending device visible and provide
+  installer/open-file guidance; no activity collection begins.
+- Expired or already-used token: ERP creates a new pairing session; old pending
+  devices may be revoked by the owner.
+- Provision/configuration failure: do not partially publish a credential file
+  or configuration; rerunning the same bundle is allowed only until the server
+  has consumed the token.
+- Service installation/start failure: preserve the paired configuration and
+  show an actionable local error so install/start can be retried without
+  exposing the credential.
+
+### Acceptance criteria
+
+- A web employee never copies a device ID or permanent credential and never
+  edits JSON.
+- Backend tests cover expiry, one-time exchange, ownership/company scope, and
+  token hashing; PHP syntax checks pass.
+- Go tests cover strict bundle parsing, URL policy, exchange response handling,
+  atomic protected writes, provisioning reuse, and failure preservation.
+- Flutter model/service tests cover pairing responses and the web page downloads
+  the versioned bundle using the existing shared file-download utility.
+- Existing Activity Watch collection, reports, direct enrollment, and logout
+  synchronization remain compatible.
+
 ## Activity Watch cross-platform completion
 
 - Date: 2026-08-07
@@ -393,3 +465,32 @@ encryption, schema versioning, foreign keys, transactions, and automated tests.
 The approved requirements, edge cases, compatibility constraints, acceptance
 criteria, and verification plan are maintained in
 [`party-code-type-sync.md`](party-code-type-sync.md).
+# Privacy-safe input and browser-category duration
+
+Status: Implementing (2026-08-07)
+
+Objective: Report useful keyboard/mouse interaction and browser-use duration
+without capturing employee content.
+
+Requirements:
+
+- The desktop agent records whether any keyboard or pointer input occurred
+  between bounded activity samples. Keyboard keys, click targets, button values,
+  and pointer coordinates are never stored.
+- Daily summaries expose `input_seconds`, an approximation consisting of sample
+  intervals in which input was detected, and `browser_seconds`, the duration for
+  which a recognized browser was the foreground application.
+- Browser reporting is category-only. Raw tab/window titles, domains, URLs,
+  private/incognito activity, page content, and form content remain excluded.
+- Existing version-1 encrypted local databases are upgraded in place by adding
+  the non-content `input_detected` flag; no migration-history table is created.
+- Older agents remain API-compatible; omitted new summary fields default to zero.
+
+Acceptance criteria:
+
+- Input state changes split local activity segments and aggregate without
+  double counting.
+- Browser time is calculated from existing foreground application segments.
+- API validation accepts bounded new counters and old summaries.
+- ERP daily summaries display input and browser durations.
+- Tests confirm aggregation and backward-compatible parsing.

@@ -1,5 +1,30 @@
 # Architecture
 
+## Activity Watch self-service pairing
+
+```mermaid
+sequenceDiagram
+    participant Employee as "Employee in ERP Web"
+    participant API as "ERP pairing API"
+    participant File as ".billingawpair file"
+    participant Agent as "Installed Go agent"
+    Employee->>API: Create pairing session (auth + consent)
+    API-->>Employee: 10-minute token + pairing URL
+    Employee->>File: Download versioned bundle
+    Employee->>Agent: Open bundle through OS file association
+    Agent->>Agent: Provision encrypted storage if absent
+    Agent->>API: Token + locally generated credential
+    API->>API: Lock device row; hash credential
+    API-->>Agent: Device ID + batch URL
+    Agent->>Agent: Protected writes; enable and restart service
+```
+
+Pairing state reuses `activity_watch_devices`; no fourth Activity Watch table is
+introduced. Token lookup uses a unique hash and transactional row lock. The
+browser handles only the short-lived token. Per-platform signed installers
+register the pairing file and bootstrap a disabled service that cannot collect
+until pairing succeeds.
+
 ## Activity Watch desktop runtime
 
 The implemented desktop runtime is a Go user-service executable under
@@ -28,11 +53,13 @@ flowchart LR
   writer and uses the tested encrypted WAL configuration; helpers must not
   open the database directly.
 - Collector: use bounded OS commands/APIs to return idle duration, lock state,
-  foreground executable identity, and process/service names only. Missing
-  capabilities return unknown observations.
-- Store/aggregator: consolidate unchanged state/application samples, deduplicate
-  inventory hashes, generate revisioned daily summaries, and purge synchronized
-  local data after 90 days.
+  foreground executable identity, category, process/service names, and a
+  content-free indication that keyboard or pointer input occurred since the
+  prior sample. Missing capabilities return unknown observations. No input
+  value, click, coordinate, title, URL, or page content crosses this boundary.
+- Store/aggregator: consolidate unchanged state/application/input samples,
+  deduplicate inventory hashes, derive category-only browser duration, generate
+  revisioned daily summaries, and purge synchronized local data after 90 days.
 - Syncer: select bounded indexed batches, upload encrypted payloads plus their
   approved reporting projection, acknowledge successes, and schedule retries.
 - Secret provider: supply database and device credentials without placing them

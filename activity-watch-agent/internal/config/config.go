@@ -16,6 +16,10 @@ type Duration struct {
 	time.Duration
 }
 
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.Duration.String())
+}
+
 func (d *Duration) UnmarshalJSON(data []byte) error {
 	var value string
 	if err := json.Unmarshal(data, &value); err != nil {
@@ -90,6 +94,62 @@ func Load(path string) (Config, error) {
 		return cfg, err
 	}
 	return cfg, nil
+}
+
+func NewUnpaired(root string) Config {
+	return Config{
+		ServiceName: "BillingActivityWatch",
+		Database: DatabaseConfig{
+			Path:    filepath.Join(root, "data", "activity_watch.db"),
+			KeyFile: filepath.Join(root, "secrets", "activity_watch_database.key"),
+		},
+		Control: ControlConfig{
+			LogoutRequestPath: filepath.Join(root, "control", "logout.request"),
+			PollInterval:      Duration{Duration: time.Second},
+		},
+		Collection: CollectionConfig{
+			Disabled: true, HeartbeatInterval: Duration{Duration: 5 * time.Minute},
+			SampleInterval: Duration{Duration: 15 * time.Second}, IdleThreshold: Duration{Duration: 5 * time.Minute},
+			ProcessInventoryInterval: Duration{Duration: 5 * time.Minute}, ServiceInventoryInterval: Duration{Duration: 15 * time.Minute},
+			SummaryInterval: Duration{Duration: 15 * time.Minute}, RetentionDays: 90,
+		},
+		Sync: SyncConfig{
+			Enabled: false, URL: "https://pairing.invalid/api/v1/activity-watch/batches",
+			CredentialFile: filepath.Join(root, "secrets", "activity_watch_device.credential"),
+			Interval:       Duration{Duration: 30 * time.Second}, BatchSize: 100,
+			RequestTimeout: Duration{Duration: 15 * time.Second}, BaseRetryDelay: Duration{Duration: 30 * time.Second},
+			MaxRetryDelay: Duration{Duration: 30 * time.Minute},
+		},
+		ShutdownFlushTimeout: Duration{Duration: 8 * time.Second},
+	}
+}
+
+func WriteNew(path string, cfg Config) error {
+	if !filepath.IsAbs(path) {
+		return errors.New("configuration path must be absolute")
+	}
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create configuration directory: %w", err)
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create configuration: %w", err)
+	}
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(cfg); err != nil {
+		file.Close()
+		_ = os.Remove(path)
+		return fmt.Errorf("write configuration: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(path)
+		return fmt.Errorf("close configuration: %w", err)
+	}
+	return nil
 }
 
 func (c *Config) applyDefaults() {

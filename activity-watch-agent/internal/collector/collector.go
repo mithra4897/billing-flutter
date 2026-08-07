@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type Snapshot struct {
 	ApplicationName string
 	ExecutableName  string
 	Classification  string
+	InputDetected   bool
 	NetworkState    string
 	ObservedAt      time.Time
 }
@@ -50,8 +52,11 @@ func (execRunner) Output(ctx context.Context, name string, arguments ...string) 
 }
 
 type OSObserver struct {
-	goos   string
-	runner commandRunner
+	goos             string
+	runner           commandRunner
+	inputMu          sync.Mutex
+	lastInputAt      time.Time
+	hasInputBaseline bool
 }
 
 func NewOSObserver() *OSObserver {
@@ -78,10 +83,23 @@ func (o *OSObserver) Sample(ctx context.Context, at time.Time, idleThreshold tim
 		ApplicationName: executable,
 		ExecutableName:  executable,
 		Classification:  ClassifyApplication(executable),
+		InputDetected:   state == "active" && o.detectInput(at.UTC(), idle),
 		NetworkState:    networkState(),
 		ObservedAt:      at.UTC(),
 	}
 	return result, errors.Join(idleErr, lockErr, appErr)
+}
+
+// detectInput reports only that input occurred between samples. It never
+// observes or stores a key, click, button, or pointer coordinate.
+func (o *OSObserver) detectInput(at time.Time, idleFor time.Duration) bool {
+	o.inputMu.Lock()
+	defer o.inputMu.Unlock()
+	lastInputAt := at.Add(-idleFor)
+	detected := o.hasInputBaseline && lastInputAt.After(o.lastInputAt.Add(time.Millisecond))
+	o.lastInputAt = lastInputAt
+	o.hasInputBaseline = true
+	return detected
 }
 
 func networkState() string {

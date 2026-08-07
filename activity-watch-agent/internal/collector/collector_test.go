@@ -1,6 +1,23 @@
 package collector
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestDetectInputReportsOnlyNewInputTimestamp(t *testing.T) {
+	observer := &OSObserver{}
+	at := time.Date(2026, 8, 7, 12, 0, 0, 0, time.UTC)
+	if observer.detectInput(at, 2*time.Second) {
+		t.Fatal("first sample must establish a baseline")
+	}
+	if observer.detectInput(at.Add(15*time.Second), 17*time.Second) {
+		t.Fatal("unchanged last-input timestamp must not report input")
+	}
+	if !observer.detectInput(at.Add(30*time.Second), time.Second) {
+		t.Fatal("new last-input timestamp must report input")
+	}
+}
 
 func TestClassifyApplicationUsesExecutableNameOnly(t *testing.T) {
 	tests := map[string]string{

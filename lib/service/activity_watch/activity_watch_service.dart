@@ -34,6 +34,33 @@ final class ActivityWatchService {
     return enrollment;
   }
 
+  Future<ActivityWatchPairingSession> createPairingSession({
+    required String deviceLabel,
+    required String platform,
+    required int consentVersion,
+  }) async {
+    final response = await _client.post<ActivityWatchPairingSession>(
+      '/activity-watch/pairing-sessions',
+      body: <String, dynamic>{
+        'consent_accepted': true,
+        'consent_version': consentVersion,
+        'device_label': deviceLabel.trim(),
+        'platform': platform,
+      },
+      fromData: (json) => ActivityWatchPairingSession.fromJson(
+        Map<String, dynamic>.from(json as Map),
+      ),
+    );
+    final pairing = response.data;
+    if (pairing == null ||
+        pairing.deviceId.isEmpty ||
+        pairing.pairingToken.length != 64 ||
+        pairing.pairingUrl.isEmpty) {
+      throw StateError('Activity Watch returned an invalid pairing session.');
+    }
+    return pairing;
+  }
+
   Future<List<ActivityWatchDevice>> devices() async {
     final response = await _client.get<List<ActivityWatchDevice>>(
       '/activity-watch/devices',

@@ -2,6 +2,7 @@ import '../../../screen.dart';
 import '../../../model/activity_watch_enrollment.dart';
 import '../../../service/activity_watch/activity_watch_service.dart';
 import '../../../core/activity_watch/service/activity_watch_service_control.dart';
+import '../../../core/files/external_url.dart';
 
 class ActivityWatchSetupPage extends StatefulWidget {
   const ActivityWatchSetupPage({super.key, this.embedded = false});
@@ -23,6 +24,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   String? _deviceId;
   String? _loadError;
   bool _configuredAutomatically = false;
+  DateTime? _pairingExpiresAt;
+  String? _installerUrl;
   List<ActivityWatchDevice> _devices = const <ActivityWatchDevice>[];
   List<ActivityWatchSummary> _summaries = const <ActivityWatchSummary>[];
   late DateTime _fromDate;
@@ -86,6 +89,35 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     }
     setState(() => _submitting = true);
     try {
+      if (kIsWeb) {
+        final pairing = await _service.createPairingSession(
+          deviceLabel: _deviceLabel.text,
+          platform: _platform,
+          consentVersion: 1,
+        );
+        final downloaded = await saveTextFile(
+          suggestedName:
+              'billing-activity-watch-${pairing.deviceId}.billingawpair',
+          text: const JsonEncoder.withIndent(
+            '  ',
+          ).convert(pairing.toBundleJson(platform: _platform)),
+          mimeType: 'application/vnd.billing.activity-watch-pairing+json',
+        );
+        if (!downloaded) {
+          throw StateError(
+            'The Activity Watch pairing file was not downloaded.',
+          );
+        }
+        if (!mounted) return;
+        setState(() {
+          _deviceId = pairing.deviceId;
+          _credential = null;
+          _pairingExpiresAt = pairing.expiresAt;
+          _installerUrl = pairing.installerUrl;
+        });
+        await _loadStatus();
+        return;
+      }
       final enrollment = await _service.enroll(
         deviceLabel: _deviceLabel.text,
         platform: _platform,
@@ -200,6 +232,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingXl),
               _buildEnrollmentCard(),
+              if (_pairingExpiresAt != null) ...<Widget>[
+                const SizedBox(height: AppUiConstants.spacingXl),
+                _buildPairingCard(),
+              ],
               if (_credential != null) ...<Widget>[
                 const SizedBox(height: AppUiConstants.spacingXl),
                 _buildCredentialCard(),
@@ -265,8 +301,47 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.shield_outlined),
-              label: Text(_submitting ? 'Enrolling…' : 'Enroll this device'),
+              label: Text(
+                _submitting
+                    ? 'Preparing…'
+                    : kIsWeb
+                    ? 'Connect this computer'
+                    : 'Enroll this device',
+              ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPairingCard() {
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            'Finish connecting the agent',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          const Text(
+            'Install the Activity Watch agent once, then open the downloaded .billingawpair file. The agent will configure and start itself—no credential copying or JSON editing is required.',
+          ),
+          if (_installerUrl != null && _installerUrl!.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => openExternalUrl(_installerUrl!),
+                icon: const Icon(Icons.download_outlined),
+                label: Text('Download ${_platformLabel(_platform)} agent'),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Text(
+            'This pairing expires ${_dateTime(_pairingExpiresAt)}. If it expires, click Connect this computer again.',
           ),
         ],
       ),
@@ -336,12 +411,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
                   device.isActive
-                      ? Icons.desktop_windows_outlined
+                      ? device.isPaired
+                            ? Icons.desktop_windows_outlined
+                            : Icons.pending_outlined
                       : Icons.desktop_access_disabled_outlined,
                 ),
                 title: Text(device.label),
                 subtitle: Text(
-                  '${device.platform} · ${device.isActive ? 'Active' : 'Revoked'} · Last seen ${_dateTime(device.lastSeenAt)}',
+                  '${device.platform} · ${device.connectionStatus} · Last seen ${_dateTime(device.lastSeenAt)}',
                 ),
                 trailing: device.isActive
                     ? TextButton(
@@ -406,6 +483,12 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                       'Tracked ${_duration(summary.trackedSeconds)} · Offline ${_duration(summary.offlineSeconds)} · Unknown ${_duration(summary.unknownSeconds)}',
                     ),
                   ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Keyboard/mouse activity ${_duration(summary.inputSeconds)} · Browser ${_duration(summary.browserSeconds)}',
+                    ),
+                  ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   if (summary.applications.isEmpty)
                     const Align(
@@ -446,4 +529,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final minutes = (seconds % 3600) ~/ 60;
     return '${hours}h ${minutes}m';
   }
+
+  static String _platformLabel(String platform) => switch (platform) {
+    'macos' => 'macOS',
+    'windows' => 'Windows',
+    'linux' => 'Linux',
+    _ => 'desktop',
+  };
 }

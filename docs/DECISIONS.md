@@ -1,5 +1,28 @@
 # Architecture decisions
 
+## ADR-0011: Pair web employees through a single-use file handled by the agent
+
+- Date: 2026-08-07
+- Status: Accepted
+- Context: Browsers cannot securely write desktop service configuration or
+  credential files. Asking every employee to copy secrets and edit JSON is not
+  an acceptable production workflow.
+- Decision: Authenticated ERP users create a ten-minute pairing session in the
+  existing device table. Flutter Web downloads a versioned `.billingawpair`
+  file containing a one-time token but no permanent credential. A signed agent
+  installer associates that extension with the Go agent, which exchanges the
+  token, provisions encrypted storage, and writes protected configuration.
+- Reason: File association works across Windows, macOS, and Linux, avoids an
+  HTTPS-page-to-loopback-HTTP dependency, and keeps the permanent credential
+  out of browser storage and downloaded files.
+- Alternatives: Manual credential copying was rejected as error-prone. A local
+  HTTP pairing server was rejected because browser mixed-content/private-network
+  policies vary. A fourth pairing table was rejected to preserve the approved
+  three-table server design.
+- Consequences: Release engineering must build, sign, and publish per-platform
+  installers that register the file association. Pairing tokens remain short
+  lived and single-use; the local handler must be invoked to finish setup.
+
 ## ADR-0009: Collect in the enrolled user's service context with safe OS adapters
 
 - Date: 2026-08-07
@@ -196,3 +219,23 @@
 - Consequences: Schema code is implemented and tested but remains dormant until
   the approved Activity Watch runtime is added.
 - Related files: `lib/main.dart`, `lib/core/activity_watch/`.
+# ADR-0012: Aggregate input and category-only browser duration
+
+- Date: 2026-08-07
+- Status: Accepted
+- Context: Activity Watch needs keyboard/mouse usage and browser duration, but
+  raw input and browser titles can expose credentials, customer data, and other
+  private content.
+- Decision: Detect only whether any input occurred between samples, store a
+  boolean on an encrypted local activity segment, and upload daily aggregate
+  seconds. Derive browser seconds from foreground executable classification.
+  Never collect keys, clicks, coordinates, titles, domains, URLs, or page data.
+- Reason: This supplies auditable duration metrics while preserving the
+  content-exclusion boundary and reusing the existing segment aggregation.
+- Alternatives: Global keyboard hooks and browser extensions were rejected
+  because they add invasive permissions and content-exposure risk.
+- Consequences: `input_seconds` is a sampling approximation and does not split
+  keyboard time from mouse time. Browser time is category-only.
+- Related files: `activity-watch-agent/internal/collector/`,
+  `activity-watch-agent/internal/store/`, Activity Watch API validation, and the
+  Flutter Activity Watch summary model/page.

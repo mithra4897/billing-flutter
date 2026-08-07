@@ -75,6 +75,22 @@ The agent consolidates unchanged samples rather than inserting one event per
 tick. Process and service inventories are canonically sorted, capped, hashed,
 and stored only when their contents change.
 
+## Employee installation and pairing
+
+Production employees do not run service commands. Build and sign the assets
+under `activity-watch-agent/packaging`, publish their documented filenames, and
+set these backend environment values:
+
+```text
+ACTIVITY_WATCH_AGENT_API_BASE_URL=https://erp.example.com/api/v1
+ACTIVITY_WATCH_INSTALLER_BASE_URL=https://erp.example.com/downloads/activity-watch
+```
+
+The installer runs `bootstrap` once with collection disabled and registers
+`.billingawpair`. ERP Web downloads the short-lived bundle; opening it invokes
+`pair`, which configures and restarts the service. Reinstallation is required
+only for a new computer or OS installation, not for normal ERP login or reboot.
+
 ## Build prerequisites
 
 - Go toolchain;

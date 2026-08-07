@@ -23,6 +23,28 @@ daily duration/application aggregation (including offline overlap and local
 midnight clipping), encrypted metadata projection, authentication-failure
 recovery, and retention that preserves unsynchronized outbox records.
 
+Privacy-safe input/browser coverage verifies that an unchanged last-input
+timestamp is not counted, a newer timestamp is counted without capturing its
+source or value, input-state segments aggregate once, browser duration derives
+from foreground executable classification, and older API/model payloads default
+the additive counters to zero.
+
+On 2026-08-07, the complete Go test suite, vet, and build passed; PHP Activity
+Watch controller lint passed; all 52 Flutter tests passed. Flutter analysis
+reported only the two pre-existing unrelated warnings in `app_config.dart` and
+`crm_followups_page.dart`.
+
+Self-service onboarding coverage verifies strict and bounded pairing bundles,
+platform/HTTPS policy, locally generated credentials, protected atomic
+configuration, fresh encrypted provisioning, consumed-bundle removal, pairing
+model parsing, credential-free bundle serialization, and pending/connected
+device states. Native installer signing and file-association behavior remain
+target-OS release checks.
+
+The macOS launcher was type-checked with Swift/AppKit and the package builder
+produced an unsigned 7.5 MB test package. Signing, notarization, and installation
+on a clean macOS account remain release checks.
+
 Provisioning tests additionally verify fresh encrypted schema creation,
 protected key permissions, generated-key reopen, control-directory creation,
 and rejection of an existing database without modifying it.

@@ -23,7 +23,7 @@ import (
 	"billing/activity-watch-agent/internal/identifier"
 )
 
-const SupportedSchemaVersion = 1
+const SupportedSchemaVersion = 2
 
 var expectedTables = []string{
 	"activity_segments",
@@ -69,18 +69,19 @@ type Repository interface {
 }
 
 type SQLCipherStore struct {
-	db                   *sql.DB
-	payloadKey           []byte
-	deviceID             string
-	localUserID          string
-	sessionID            string
-	activitySegmentID    string
-	activityState        string
-	activityNetworkState string
-	activityStartedAt    time.Time
-	applicationSegmentID string
-	applicationName      string
-	applicationStartedAt time.Time
+	db                    *sql.DB
+	payloadKey            []byte
+	deviceID              string
+	localUserID           string
+	sessionID             string
+	activitySegmentID     string
+	activityState         string
+	activityNetworkState  string
+	activityInputDetected bool
+	activityStartedAt     time.Time
+	applicationSegmentID  string
+	applicationName       string
+	applicationStartedAt  time.Time
 }
 
 func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStore, error) {
@@ -133,6 +134,12 @@ func (s *SQLCipherStore) verify(ctx context.Context) error {
 	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); err != nil {
 		return errors.New("read schema version")
 	}
+	if schemaVersion == 1 {
+		if err := s.upgradeVersionOne(ctx); err != nil {
+			return err
+		}
+		schemaVersion = 2
+	}
 	if schemaVersion != SupportedSchemaVersion {
 		return fmt.Errorf("unsupported Activity Watch schema version %d", schemaVersion)
 	}
@@ -158,6 +165,28 @@ func (s *SQLCipherStore) verify(ctx context.Context) error {
 		return errors.New("database does not contain the approved 10-table Activity Watch schema")
 	}
 	return nil
+}
+
+func (s *SQLCipherStore) upgradeVersionOne(ctx context.Context) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin Activity Watch schema upgrade: %w", err)
+	}
+	defer tx.Rollback()
+	statements := []string{
+		`ALTER TABLE activity_segments ADD COLUMN input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1))`,
+		`ALTER TABLE daily_summaries ADD COLUMN input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0)`,
+		`ALTER TABLE daily_summaries ADD COLUMN browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0)`,
+	}
+	for _, statement := range statements {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return fmt.Errorf("upgrade Activity Watch schema: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `PRAGMA user_version = 2`); err != nil {
+		return fmt.Errorf("record Activity Watch schema upgrade: %w", err)
+	}
+	return tx.Commit()
 }
 
 func verifyCipherRuntime(ctx context.Context, db *sql.DB) error {

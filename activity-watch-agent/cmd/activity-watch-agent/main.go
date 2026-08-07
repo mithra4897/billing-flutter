@@ -18,6 +18,7 @@ import (
 	"billing/activity-watch-agent/internal/collector"
 	"billing/activity-watch-agent/internal/config"
 	"billing/activity-watch-agent/internal/control"
+	"billing/activity-watch-agent/internal/pairing"
 	"billing/activity-watch-agent/internal/provision"
 	"billing/activity-watch-agent/internal/secret"
 	"billing/activity-watch-agent/internal/store"
@@ -40,11 +41,15 @@ func run(arguments []string) error {
 	command := arguments[1]
 	flags := flag.NewFlagSet(command, flag.ContinueOnError)
 	configPath := flags.String("config", "", "absolute path to the service configuration")
+	bundlePath := flags.String("bundle", "", "absolute path to a .billingawpair file")
 	if err := flags.Parse(arguments[2:]); err != nil {
 		return err
 	}
 	if *configPath == "" || !filepath.IsAbs(*configPath) {
 		return errors.New("--config must be an absolute path")
+	}
+	if command == "bootstrap" {
+		return bootstrap(*configPath)
 	}
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -62,19 +67,27 @@ func run(arguments []string) error {
 		fmt.Printf("Provisioned encrypted Activity Watch database: %s\n", result.DatabasePath)
 		return nil
 	}
+	if command == "pair" {
+		if *bundlePath == "" || !filepath.IsAbs(*bundlePath) {
+			return errors.New("--bundle must be an absolute path")
+		}
+		result, err := pairing.Apply(context.Background(), *bundlePath, *configPath, nil)
+		if err != nil {
+			return fmt.Errorf("pair Activity Watch agent: %w", err)
+		}
+		cfg, err = config.Load(*configPath)
+		if err != nil {
+			return err
+		}
+		if err := activateService(cfg, *configPath); err != nil {
+			return fmt.Errorf("activate paired service: %w", err)
+		}
+		fmt.Printf("Activity Watch connected: %s\n", result.DeviceID)
+		return nil
+	}
 
 	program := &serviceProgram{config: cfg}
-	serviceConfig := &service.Config{
-		Name:        cfg.ServiceName,
-		DisplayName: "Billing Activity Watch",
-		Description: serviceDescription,
-		Arguments:   []string{"run", "--config", *configPath},
-		Option: service.KeyValue{
-			"Restart":     "on-failure",
-			"UserService": true,
-		},
-	}
-	nativeService, err := service.New(program, serviceConfig)
+	nativeService, err := newNativeService(program, cfg, *configPath)
 	if err != nil {
 		return fmt.Errorf("create native service: %w", err)
 	}
@@ -229,7 +242,71 @@ func statusText(status service.Status) string {
 }
 
 func usageError() error {
-	return errors.New("usage: activity-watch-agent <provision|install|uninstall|start|stop|restart|status|run|signal-logout> --config /absolute/path/config.json")
+	return errors.New("usage: activity-watch-agent <bootstrap|pair|provision|install|uninstall|start|stop|restart|status|run|signal-logout> --config /absolute/path/config.json [--bundle /absolute/path/device.billingawpair]")
+}
+
+func bootstrap(configPath string) error {
+	cfg, err := config.Load(configPath)
+	if errors.Is(err, os.ErrNotExist) {
+		cfg = config.NewUnpaired(filepath.Dir(configPath))
+		if err := config.WriteNew(configPath, cfg); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	databaseExists := pathExists(cfg.Database.Path)
+	keyExists := pathExists(cfg.Database.KeyFile)
+	if databaseExists != keyExists {
+		return errors.New("database and key must either both exist or both be absent")
+	}
+	if !databaseExists {
+		if _, err := provision.Create(context.Background(), cfg); err != nil {
+			return err
+		}
+	}
+	if err := activateService(cfg, configPath); err != nil {
+		return err
+	}
+	fmt.Println("Activity Watch agent installed and ready for ERP pairing.")
+	return nil
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func activateService(cfg config.Config, configPath string) error {
+	program := &serviceProgram{config: cfg}
+	nativeService, err := newNativeService(program, cfg, configPath)
+	if err != nil {
+		return err
+	}
+	status, statusErr := nativeService.Status()
+	if statusErr != nil {
+		if err := service.Control(nativeService, "install"); err != nil {
+			return err
+		}
+		return service.Control(nativeService, "start")
+	}
+	if status == service.StatusRunning {
+		return service.Control(nativeService, "restart")
+	}
+	return service.Control(nativeService, "start")
+}
+
+func newNativeService(program *serviceProgram, cfg config.Config, configPath string) (service.Service, error) {
+	return service.New(program, &service.Config{
+		Name:        cfg.ServiceName,
+		DisplayName: "Billing Activity Watch",
+		Description: serviceDescription,
+		Arguments:   []string{"run", "--config", configPath},
+		Option: service.KeyValue{
+			"Restart":     "on-failure",
+			"UserService": true,
+		},
+	})
 }
 
 func clearBytes(value []byte) {

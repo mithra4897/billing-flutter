@@ -21,7 +21,7 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	if err := database.StartSession(ctx, "device-1", start); err != nil {
 		t.Fatal(err)
 	}
-	active := collector.Snapshot{State: "active", ExecutableName: "Code", Classification: "development", ObservedAt: start}
+	active := collector.Snapshot{State: "active", ExecutableName: "Chrome", Classification: "browser", InputDetected: true, ObservedAt: start}
 	if err := database.RecordObservation(ctx, active, 5*time.Minute); err != nil {
 		t.Fatal(err)
 	}
@@ -62,10 +62,10 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if !found || summary.ActiveSeconds != 30 || summary.TrackedSeconds != 30 {
+	if !found || summary.ActiveSeconds != 30 || summary.InputSeconds != 30 || summary.BrowserSeconds != 30 || summary.TrackedSeconds != 30 {
 		t.Fatalf("summary = %#v", summary)
 	}
-	if len(summary.Applications) != 1 || summary.Applications[0].Name != "Code" || summary.Applications[0].Seconds != 30 {
+	if len(summary.Applications) != 1 || summary.Applications[0].Name != "Chrome" || summary.Applications[0].Seconds != 30 {
 		t.Fatalf("application summary = %#v", summary.Applications)
 	}
 }

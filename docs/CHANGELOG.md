@@ -1,5 +1,55 @@
 # Changelog
 
+## 2026-08-07 — Privacy-safe input and browser duration
+
+- Request: Add keyboard/mouse usage, idle time, and browser activity reporting.
+- Implementation: Added sampled `input_seconds` and foreground-browser
+  `browser_seconds` daily totals. Input sampling records only whether any input
+  occurred between samples; browser reporting remains category-only.
+- Database/API impact: Upgrades the encrypted local schema from version 1 to 2
+  in place with one boolean segment flag and two aggregate columns. The server
+  keeps the existing three tables and stores the additive fields in validated
+  summary metadata; old summaries default them to zero.
+- Security impact: Raw keys, clicks, coordinates, tab/window titles, domains,
+  URLs, private/incognito data, page/form content, clipboard, and screenshots
+  remain prohibited.
+- Reuse/optimization: Reused existing idle timestamps, consolidated activity
+  segments, application classification, bounded summary aggregation, model, and
+  summary UI. Aggregation is linear in the bounded daily category result set.
+- Validation: Complete Go tests, vet, and build passed; PHP controller lint
+  passed; all 52 Flutter tests passed. Flutter analysis retained only two
+  unrelated pre-existing warnings, and both repository diff checks passed.
+- Limitation: `input_seconds` is a sampling approximation and intentionally
+  combines keyboard and mouse activity; it cannot reconstruct user input.
+
+
+## 2026-08-07 — Activity Watch self-service employee pairing
+
+- Request: Replace manual device-ID, credential-file, JSON, and Terminal setup
+  with a workflow usable by non-technical employees.
+- Implementation: Added authenticated ten-minute pairing sessions, a public
+  single-use/idempotent exchange, locally generated device credentials, strict
+  `.billingawpair` bundles, automatic SQLCipher provisioning and protected
+  configuration, service activation, Flutter Web download/connection states,
+  and Windows/macOS/Linux installer/file-association assets.
+- Database/API impact: Reuses the existing three Activity Watch tables. Adds
+  pairing hash/expiry/paired fields to `activity_watch_devices` and two pairing
+  endpoints through guarded additive SQL; no migration or fourth table.
+- Security impact: Pairing files contain no permanent credential. Tokens are
+  hash-only server-side, expire after ten minutes, and accept only the same
+  locally generated credential on an idempotent retry. Production URLs require
+  HTTPS.
+- Reuse/optimization: Reused the typed API client, shared file downloader,
+  Activity Watch cards, provisioner, config model, service host, and device
+  table. Indexed token lookup and row locking avoid polling and table scans.
+- Tests: Go full tests/vet/build passed; PHP policy tests passed with 3 tests and
+  7 assertions; PHP syntax/diff checks passed; all 52 Flutter tests passed.
+  Flutter analysis reports only two unrelated existing warnings. The macOS
+  launcher type-check, shell syntax checks, and an unsigned 7.5 MB `.pkg` test
+  build also passed.
+- Remaining release validation: Build, sign/notarize, publish, and open the
+  native packages on each target OS; configure installer/API base URLs.
+
 ## 2026-08-07 — Activity Watch cross-platform completion
 
 - Request: Complete the remaining Activity Watch implementation before manual

@@ -1,7 +1,7 @@
 final class ActivityWatchSchema {
   const ActivityWatchSchema._();
 
-  static const int version = 1;
+  static const int version = 2;
 
   static const Set<String> tableNames = <String>{
     'local_users',
@@ -29,6 +29,12 @@ final class ActivityWatchSchema {
     'idx_sync_outbox_dispatch',
     'idx_agent_state_group',
   };
+
+  static const List<String> upgradeVersionOneToTwo = <String>[
+    '''ALTER TABLE activity_segments ADD COLUMN input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1))''',
+    '''ALTER TABLE daily_summaries ADD COLUMN input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0)''',
+    '''ALTER TABLE daily_summaries ADD COLUMN browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0)''',
+  ];
 
   static const List<String> createStatements = <String>[
     '''
@@ -109,6 +115,7 @@ CREATE TABLE activity_segments (
     ),
     last_input_at_utc TEXT,
     idle_threshold_seconds INTEGER NOT NULL,
+    input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1)),
     confidence TEXT NOT NULL DEFAULT 'confirmed' CHECK (
         confidence IN ('confirmed', 'inferred', 'uncertain')
     ),
@@ -229,6 +236,8 @@ CREATE TABLE daily_summaries (
     sleep_seconds INTEGER NOT NULL DEFAULT 0 CHECK (sleep_seconds >= 0),
     offline_seconds INTEGER NOT NULL DEFAULT 0 CHECK (offline_seconds >= 0),
     unknown_seconds INTEGER NOT NULL DEFAULT 0 CHECK (unknown_seconds >= 0),
+    input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0),
+    browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0),
     tracked_seconds INTEGER NOT NULL DEFAULT 0 CHECK (tracked_seconds >= 0),
     application_summary_encrypted BLOB,
     application_summary_nonce BLOB,

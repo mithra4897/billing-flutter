@@ -10,9 +10,50 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestOpenSQLCipherUpgradesVersionOneInputMetrics(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "activity_watch_v1.db")
+	key := make([]byte, 32)
+	for index := range key {
+		key[index] = byte(index + 1)
+	}
+	query := url.Values{}
+	query.Set("_pragma_key", fmt.Sprintf("x'%s'", hex.EncodeToString(key)))
+	database, err := sql.Open("sqlite3", path+"?"+query.Encode())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, current := range schemaStatements {
+		legacy := strings.ReplaceAll(current, "\n    input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1)),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0),", "")
+		if _, err := database.Exec(legacy); err != nil {
+			database.Close()
+			t.Fatal(err)
+		}
+	}
+	if _, err := database.Exec(`PRAGMA user_version = 1`); err != nil {
+		database.Close()
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	upgraded, err := OpenSQLCipher(context.Background(), path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer upgraded.Close()
+	var version int
+	if err := upgraded.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil || version != 2 {
+		t.Fatalf("schema version = %d, error = %v", version, err)
+	}
+}
 
 func TestOpenSQLCipherVerifiesEncryptionAndApprovedSchema(t *testing.T) {
 	path, key := createTestDatabase(t)
@@ -189,7 +230,7 @@ func createTestDatabase(t *testing.T) (string, []byte) {
 		t.Fatal(err)
 	}
 	statements := append([]string(nil), schemaStatements...)
-	statements = append(statements, `PRAGMA user_version = 1`)
+	statements = append(statements, fmt.Sprintf(`PRAGMA user_version = %d`, SupportedSchemaVersion))
 	for _, statement := range statements {
 		if _, err := database.Exec(statement); err != nil {
 			database.Close()

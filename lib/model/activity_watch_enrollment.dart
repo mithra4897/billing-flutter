@@ -18,6 +18,42 @@ final class ActivityWatchEnrollment {
   }
 }
 
+final class ActivityWatchPairingSession {
+  const ActivityWatchPairingSession({
+    required this.deviceId,
+    required this.pairingToken,
+    required this.pairingUrl,
+    required this.expiresAt,
+    this.installerUrl,
+  });
+
+  final String deviceId;
+  final String pairingToken;
+  final String pairingUrl;
+  final DateTime expiresAt;
+  final String? installerUrl;
+
+  factory ActivityWatchPairingSession.fromJson(Map<String, dynamic> json) {
+    return ActivityWatchPairingSession(
+      deviceId: json['device_id']?.toString() ?? '',
+      pairingToken: json['pairing_token']?.toString() ?? '',
+      pairingUrl: json['pairing_url']?.toString() ?? '',
+      expiresAt:
+          DateTime.tryParse(json['expires_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      installerUrl: json['installer_url']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toBundleJson({required String platform}) =>
+      <String, dynamic>{
+        'version': 1,
+        'pairing_url': pairingUrl,
+        'pairing_token': pairingToken,
+        'platform': platform,
+      };
+}
+
 final class ActivityWatchDevice {
   const ActivityWatchDevice({
     required this.id,
@@ -26,6 +62,8 @@ final class ActivityWatchDevice {
     required this.consentedAt,
     this.lastSeenAt,
     this.revokedAt,
+    this.pairingExpiresAt,
+    this.pairedAt,
   });
 
   final String id;
@@ -34,8 +72,22 @@ final class ActivityWatchDevice {
   final DateTime consentedAt;
   final DateTime? lastSeenAt;
   final DateTime? revokedAt;
+  final DateTime? pairingExpiresAt;
+  final DateTime? pairedAt;
 
   bool get isActive => revokedAt == null;
+  bool get isPaired => pairedAt != null || lastSeenAt != null;
+  bool get isPairingExpired =>
+      !isPaired &&
+      pairingExpiresAt != null &&
+      pairingExpiresAt!.isBefore(DateTime.now());
+
+  String get connectionStatus {
+    if (!isActive) return 'Revoked';
+    if (isPaired) return 'Connected';
+    if (isPairingExpired) return 'Pairing expired';
+    return 'Waiting for agent';
+  }
 
   factory ActivityWatchDevice.fromJson(Map<String, dynamic> json) {
     return ActivityWatchDevice(
@@ -47,6 +99,10 @@ final class ActivityWatchDevice {
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       lastSeenAt: DateTime.tryParse(json['last_seen_at']?.toString() ?? ''),
       revokedAt: DateTime.tryParse(json['revoked_at']?.toString() ?? ''),
+      pairingExpiresAt: DateTime.tryParse(
+        json['pairing_expires_at']?.toString() ?? '',
+      ),
+      pairedAt: DateTime.tryParse(json['paired_at']?.toString() ?? ''),
     );
   }
 
@@ -84,6 +140,8 @@ final class ActivityWatchSummary {
     required this.lockedSeconds,
     required this.offlineSeconds,
     required this.unknownSeconds,
+    required this.inputSeconds,
+    required this.browserSeconds,
     required this.trackedSeconds,
     required this.applications,
   });
@@ -96,6 +154,8 @@ final class ActivityWatchSummary {
   final int lockedSeconds;
   final int offlineSeconds;
   final int unknownSeconds;
+  final int inputSeconds;
+  final int browserSeconds;
   final int trackedSeconds;
   final List<ActivityWatchApplicationTotal> applications;
 
@@ -112,6 +172,8 @@ final class ActivityWatchSummary {
       lockedSeconds: (json['locked_seconds'] as num?)?.toInt() ?? 0,
       offlineSeconds: (json['offline_seconds'] as num?)?.toInt() ?? 0,
       unknownSeconds: (json['unknown_seconds'] as num?)?.toInt() ?? 0,
+      inputSeconds: (json['input_seconds'] as num?)?.toInt() ?? 0,
+      browserSeconds: (json['browser_seconds'] as num?)?.toInt() ?? 0,
       trackedSeconds: (json['tracked_seconds'] as num?)?.toInt() ?? 0,
       applications: applications is List
           ? applications

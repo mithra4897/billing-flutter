@@ -34,6 +34,8 @@ type DailySummaryPayload struct {
 	LockedSeconds  int64              `json:"locked_seconds"`
 	OfflineSeconds int64              `json:"offline_seconds"`
 	UnknownSeconds int64              `json:"unknown_seconds"`
+	InputSeconds   int64              `json:"input_seconds"`
+	BrowserSeconds int64              `json:"browser_seconds"`
 	TrackedSeconds int64              `json:"tracked_seconds"`
 	Applications   []ApplicationTotal `json:"applications"`
 	Revision       int                `json:"revision"`
@@ -127,7 +129,7 @@ func (s *SQLCipherStore) RecordObservation(ctx context.Context, observation coll
 		return fmt.Errorf("begin activity observation: %w", err)
 	}
 	defer tx.Rollback()
-	if err := s.writeActivitySegment(ctx, tx, state, networkState, at, observation.IdleFor, idleThreshold); err != nil {
+	if err := s.writeActivitySegment(ctx, tx, state, networkState, observation.InputDetected, at, observation.IdleFor, idleThreshold); err != nil {
 		return err
 	}
 	application := strings.TrimSpace(observation.ExecutableName)
@@ -146,10 +148,10 @@ func (s *SQLCipherStore) RecordObservation(ctx context.Context, observation coll
 	return nil
 }
 
-func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, state, networkState string, at time.Time, idleFor, idleThreshold time.Duration) error {
+func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, state, networkState string, inputDetected bool, at time.Time, idleFor, idleThreshold time.Duration) error {
 	formatted := at.Format(time.RFC3339Nano)
 	lastInput := at.Add(-idleFor).Format(time.RFC3339Nano)
-	if s.activitySegmentID != "" && s.activityState == state && s.activityNetworkState == networkState {
+	if s.activitySegmentID != "" && s.activityState == state && s.activityNetworkState == networkState && s.activityInputDetected == inputDetected {
 		duration := nonNegativeSeconds(at.Sub(s.activityStartedAt))
 		_, err := tx.ExecContext(ctx, `UPDATE activity_segments SET ended_at_utc = ?, duration_seconds = ?, last_input_at_utc = ? WHERE id = ?`, formatted, duration, lastInput, s.activitySegmentID)
 		return wrapUpdateError("extend activity segment", err)
@@ -167,13 +169,14 @@ func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, s
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO activity_segments (
     id, session_id, activity_state, network_state, started_at_utc, ended_at_utc,
-    duration_seconds, last_input_at_utc, idle_threshold_seconds, created_at_utc
-) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`, id, s.sessionID, state, networkState, formatted, formatted, lastInput, int64(idleThreshold/time.Second), formatted)
+    duration_seconds, last_input_at_utc, idle_threshold_seconds, input_detected, created_at_utc
+) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`, id, s.sessionID, state, networkState, formatted, formatted, lastInput, int64(idleThreshold/time.Second), inputDetected, formatted)
 	if err != nil {
 		return fmt.Errorf("create activity segment: %w", err)
 	}
 	s.activitySegmentID, s.activityState, s.activityStartedAt = id, state, at
 	s.activityNetworkState = networkState
+	s.activityInputDetected = inputDetected
 	return nil
 }
 
@@ -306,20 +309,23 @@ func (s *SQLCipherStore) PrepareDailySummary(ctx context.Context, at time.Time) 
 INSERT INTO daily_summaries (
     id, local_user_id, device_id, work_date_local, timezone, policy_version,
     first_active_at_utc, last_active_at_utc, active_seconds, idle_seconds,
-    locked_seconds, offline_seconds, unknown_seconds, tracked_seconds, summary_checksum,
+    locked_seconds, offline_seconds, unknown_seconds, input_seconds, browser_seconds,
+    tracked_seconds, summary_checksum,
     revision, is_finalized, created_at_utc, updated_at_utc
-) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
 ON CONFLICT(local_user_id, device_id, work_date_local) DO UPDATE SET
     first_active_at_utc = excluded.first_active_at_utc,
     last_active_at_utc = excluded.last_active_at_utc,
     active_seconds = excluded.active_seconds, idle_seconds = excluded.idle_seconds,
     locked_seconds = excluded.locked_seconds, offline_seconds = excluded.offline_seconds,
-    unknown_seconds = excluded.unknown_seconds,
+    unknown_seconds = excluded.unknown_seconds, input_seconds = excluded.input_seconds,
+    browser_seconds = excluded.browser_seconds,
     tracked_seconds = excluded.tracked_seconds, summary_checksum = excluded.summary_checksum,
     revision = excluded.revision, updated_at_utc = excluded.updated_at_utc`,
 		summaryID, s.localUserID, s.deviceID, payload.WorkDateLocal, payload.Timezone,
 		payload.FirstActiveAt, payload.LastActiveAt, payload.ActiveSeconds, payload.IdleSeconds,
-		payload.LockedSeconds, payload.OfflineSeconds, payload.UnknownSeconds, payload.TrackedSeconds,
+		payload.LockedSeconds, payload.OfflineSeconds, payload.UnknownSeconds, payload.InputSeconds,
+		payload.BrowserSeconds, payload.TrackedSeconds,
 		hex.EncodeToString(checksum[:]), revision, now, now)
 	if err != nil {
 		return fmt.Errorf("upsert daily summary: %w", err)
@@ -414,6 +420,18 @@ WHERE d.local_user_id = ? AND a.network_state = 'offline'
 		return payload, "", 0, fmt.Errorf("aggregate offline summary: %w", err)
 	}
 	payload.TrackedSeconds = payload.ActiveSeconds + payload.IdleSeconds + payload.LockedSeconds + payload.UnknownSeconds
+	if err := s.db.QueryRowContext(ctx, `
+SELECT COALESCE(SUM(CAST(MAX(0, ROUND(
+           (MIN(julianday(a.ended_at_utc), julianday(?)) -
+            MAX(julianday(a.started_at_utc), julianday(?))) * 86400
+       )) AS INTEGER)), 0)
+FROM activity_segments a JOIN device_sessions d ON d.id = a.session_id
+WHERE d.local_user_id = ? AND a.input_detected = 1
+  AND julianday(a.started_at_utc) < julianday(?)
+  AND julianday(a.ended_at_utc) > julianday(?)`, endText, startText, s.localUserID,
+		endText, startText).Scan(&payload.InputSeconds); err != nil {
+		return payload, "", 0, fmt.Errorf("aggregate input summary: %w", err)
+	}
 	appRows, err := s.db.QueryContext(ctx, `
 SELECT a.executable_name, a.classification,
        COALESCE(SUM(CAST(MAX(0, ROUND(
@@ -436,6 +454,9 @@ GROUP BY executable_name, classification ORDER BY 3 DESC LIMIT 50`, endText, sta
 			return payload, "", 0, err
 		}
 		payload.Applications = append(payload.Applications, total)
+		if total.Classification == "browser" {
+			payload.BrowserSeconds += total.Seconds
+		}
 	}
 	appRows.Close()
 	var summaryID string
