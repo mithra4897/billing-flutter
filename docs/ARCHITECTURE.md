@@ -2,23 +2,19 @@
 
 ## Activity Watch desktop runtime
 
-The implemented desktop runtime is a Go machine-service executable under
-`activity-watch-agent`. Its architecture reserves a future interactive
-session-helper role in the same executable, but that role and its native
-collectors are not implemented yet. The machine role is managed by Windows
-Services, launchd, or the Linux service manager and is independent of the
-Flutter application's lifecycle.
+The implemented desktop runtime is a Go user-service executable under
+`activity-watch-agent`. It is managed in the enrolled user's login context by
+Windows, launchd, or the Linux service manager and remains independent of the
+Flutter application's lifecycle while that OS session exists.
 
 ```mermaid
 flowchart LR
-    OS["OS boot/service manager"] --> Service["Go machine service"]
-    Flutter["Authorized Flutter enrollment"] -. future .-> Helper["Per-user session helper"]
-    Helper -->|"authenticated local events + logout"| Service
+    OS["User login/service manager"] --> Service["Go Activity Watch service"]
+    Flutter["Authorized Flutter enrollment"] -->|"protected config + credential"| Service
     Service --> DB["SQLCipher 10-table database"]
     Service --> Outbox["Indexed sync_outbox batches"]
     Outbox -->|"device credential + idempotency"| ERP["ERP Activity Watch API"]
-    Logout["ERP or OS logout"] --> Helper
-    Logout -->|"flush; service stays alive"| Service
+    Logout["ERP or OS logout"] -->|"finalize summary + flush"| Service
     Shutdown["OS shutdown"] -->|"bounded final flush"| Service
 ```
 
@@ -31,10 +27,14 @@ flowchart LR
   approved lifecycle event with its pending outbox record. It is the business
   writer and uses the tested encrypted WAL configuration; helpers must not
   open the database directly.
-- Collector: emit only approved machine lifecycle/health observations in the
-  initial phase; native interactive collectors remain behind interfaces.
-- Syncer: select bounded indexed batches, upload opaque encrypted payloads,
-  acknowledge successes, and schedule retries.
+- Collector: use bounded OS commands/APIs to return idle duration, lock state,
+  foreground executable identity, and process/service names only. Missing
+  capabilities return unknown observations.
+- Store/aggregator: consolidate unchanged state/application samples, deduplicate
+  inventory hashes, generate revisioned daily summaries, and purge synchronized
+  local data after 90 days.
+- Syncer: select bounded indexed batches, upload encrypted payloads plus their
+  approved reporting projection, acknowledge successes, and schedule retries.
 - Secret provider: supply database and device credentials without placing them
   in configuration or logs.
 - Provisioner: generate and publish a new encrypted database/key pair only
@@ -49,10 +49,12 @@ flowchart LR
 - An unexpected worker failure exits non-zero so the configured service-manager
   restart policy can recover pending outbox records from SQLCipher.
 - Retryable failures retain data and use capped backoff.
-- Revoked/invalid device credentials require administrator re-enrollment.
+- Revoked/invalid device credentials require re-enrollment. Authentication-only
+  permanent failures are requeued when the service restarts with a new device
+  credential.
 - Missing consent, key, or compatible schema prevents collection.
-- Because the ERP ingestion endpoint is not implemented, production upload
-  remains disabled until backend enrollment and ingestion are available.
+- Server ingestion validates ciphertext/checksums and stores only approved
+  summary metadata for authenticated, user/company-scoped reports.
 
 ## Existing Flutter application
 

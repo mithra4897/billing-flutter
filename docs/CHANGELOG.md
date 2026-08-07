@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-08-07 — Activity Watch cross-platform completion
+
+- Request: Complete the remaining Activity Watch implementation before manual
+  testing.
+- Specification: Added the consent-gated cross-platform collection, summary,
+  retention, reporting, and credential-handoff contract.
+- Implementation: Added bounded Windows/macOS/Linux idle and foreground-app
+  adapters, lifecycle inference, consolidated local state/application segments,
+  deduplicated process/service inventories, revisioned encrypted daily
+  summaries with offline and local-midnight apportionment, 90-day cleanup,
+  authentication-failure recovery, strict backend ingestion,
+  device/revocation/report APIs, automatic native credential/config handoff,
+  and Flutter device/summary views.
+- Compatibility: Generic Go `Local` timezone values now use an explicit UTC
+  offset (for example `+05:30`) so backend daily-summary timestamps validate
+  consistently across operating systems.
+- Database/API impact: Keeps the approved 10-table local schema. Adds
+  `last_seen_at`, `metadata_json`, `event_at_utc`, indexed summary local date
+  and `revision`, and report indexes to the existing three-table server design through
+  `install.sql` and the additive patch; no framework migration table is
+  introduced. Adds authenticated device, summary, and revoke endpoints.
+- Security impact: Collection remains limited to idle duration, lock state,
+  executable/application name/category, and bounded process/service names.
+  Payloads remain SQLCipher/AES-GCM protected; server projections are validated
+  and exclude prohibited desktop content.
+- Tests added or updated: Go collector/store/config tests and Flutter Activity
+  Watch model tests.
+- Tests executed and results: Complete Go tests, vet, and macOS arm64 build
+  passed; PHP Activity Watch lint passed; all 50 Flutter tests passed; Flutter
+  analysis reported only two unrelated existing warnings; both repository diff
+  checks passed.
+- Documentation updated: Specification, architecture, ADR-0009/0010, testing,
+  operations guide, and changelog.
+- Known limitations: Browser tab content is intentionally excluded. Native
+  packaging and permission behavior still require manual verification on each
+  supported operating system.
+
 ## 2026-08-06 — Activity Watch lifecycle outbox delivery
 
 - Request: Continue the Activity Watch implementation with a verifiable local

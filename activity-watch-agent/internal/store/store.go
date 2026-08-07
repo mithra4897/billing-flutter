@@ -45,16 +45,17 @@ type SystemEvent struct {
 }
 
 type OutboxItem struct {
-	ID             string `json:"id"`
-	EntityType     string `json:"entity_type"`
-	EntityID       string `json:"entity_id"`
-	Operation      string `json:"operation"`
-	Payload        []byte `json:"payload_encrypted"`
-	Nonce          []byte `json:"payload_nonce"`
-	Tag            []byte `json:"payload_tag"`
-	Checksum       string `json:"payload_checksum"`
-	IdempotencyKey string `json:"idempotency_key"`
-	AttemptCount   int    `json:"attempt_count"`
+	ID             string          `json:"id"`
+	EntityType     string          `json:"entity_type"`
+	EntityID       string          `json:"entity_id"`
+	Operation      string          `json:"operation"`
+	Payload        []byte          `json:"payload_encrypted"`
+	Nonce          []byte          `json:"payload_nonce"`
+	Tag            []byte          `json:"payload_tag"`
+	Checksum       string          `json:"payload_checksum"`
+	IdempotencyKey string          `json:"idempotency_key"`
+	AttemptCount   int             `json:"attempt_count"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 type Repository interface {
@@ -68,8 +69,18 @@ type Repository interface {
 }
 
 type SQLCipherStore struct {
-	db         *sql.DB
-	payloadKey []byte
+	db                   *sql.DB
+	payloadKey           []byte
+	deviceID             string
+	localUserID          string
+	sessionID            string
+	activitySegmentID    string
+	activityState        string
+	activityNetworkState string
+	activityStartedAt    time.Time
+	applicationSegmentID string
+	applicationName      string
+	applicationStartedAt time.Time
 }
 
 func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStore, error) {
@@ -276,6 +287,14 @@ LIMIT ?`, now.UTC().Format(time.RFC3339Nano), limit)
 			rows.Close()
 			return nil, fmt.Errorf("scan outbox item: %w", err)
 		}
+		if metadataAllowed(item.EntityType) {
+			plaintext, decryptErr := decryptPayload(s.payloadKey, item.Payload, item.Nonce, item.Tag)
+			if decryptErr != nil || !json.Valid(plaintext) {
+				rows.Close()
+				return nil, fmt.Errorf("decode outbox metadata for %s", item.ID)
+			}
+			item.Metadata = append(json.RawMessage(nil), plaintext...)
+		}
 		items = append(items, item)
 	}
 	if err := rows.Close(); err != nil {
@@ -367,6 +386,33 @@ func encryptPayload(key []byte, plaintext []byte) ([]byte, []byte, []byte, error
 	sealed := aead.Seal(nil, nonce, plaintext, nil)
 	tagStart := len(sealed) - aead.Overhead()
 	return sealed[:tagStart], nonce, sealed[tagStart:], nil
+}
+
+func decryptPayload(key, ciphertext, nonce, tag []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("create AES cipher: %w", err)
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("create AES-GCM: %w", err)
+	}
+	if len(nonce) != aead.NonceSize() || len(tag) != aead.Overhead() {
+		return nil, errors.New("invalid AES-GCM nonce or tag length")
+	}
+	sealed := make([]byte, 0, len(ciphertext)+len(tag))
+	sealed = append(sealed, ciphertext...)
+	sealed = append(sealed, tag...)
+	return aead.Open(nil, nonce, sealed, nil)
+}
+
+func metadataAllowed(entityType string) bool {
+	switch entityType {
+	case "system-event", "daily-summary", "inventory-snapshot":
+		return true
+	default:
+		return false
+	}
 }
 
 func clearBytes(value []byte) {

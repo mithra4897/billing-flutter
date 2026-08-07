@@ -9,7 +9,14 @@
     "poll_interval": "1s"
   },
   "collection": {
-    "heartbeat_interval": "5m"
+    "disabled": true,
+    "heartbeat_interval": "5m",
+    "sample_interval": "15s",
+    "idle_threshold": "5m",
+    "process_inventory_interval": "5m",
+    "service_inventory_interval": "15m",
+    "summary_interval": "15m",
+    "retention_days": 90
   },
   "sync": {
     "enabled": false,

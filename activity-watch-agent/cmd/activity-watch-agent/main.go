@@ -15,6 +15,7 @@ import (
 	"github.com/kardianos/service"
 
 	"billing/activity-watch-agent/internal/agent"
+	"billing/activity-watch-agent/internal/collector"
 	"billing/activity-watch-agent/internal/config"
 	"billing/activity-watch-agent/internal/control"
 	"billing/activity-watch-agent/internal/provision"
@@ -69,7 +70,8 @@ func run(arguments []string) error {
 		Description: serviceDescription,
 		Arguments:   []string{"run", "--config", *configPath},
 		Option: service.KeyValue{
-			"Restart": "on-failure",
+			"Restart":     "on-failure",
+			"UserService": true,
 		},
 	}
 	nativeService, err := service.New(program, serviceConfig)
@@ -159,6 +161,17 @@ func (p *serviceProgram) Start(service.Service) error {
 	runner.SetErrorLogger(func(operation string, err error) {
 		log.Printf("activity-watch service: %s failed: %v", operation, err)
 	})
+	if !p.config.Collection.Disabled && p.config.Sync.Enabled {
+		runner.ConfigureCollection(collector.NewOSObserver(), database, agent.CollectionConfig{
+			DeviceID:                 p.config.Sync.DeviceID,
+			SampleInterval:           p.config.Collection.SampleInterval.Duration,
+			IdleThreshold:            p.config.Collection.IdleThreshold.Duration,
+			ProcessInventoryInterval: p.config.Collection.ProcessInventoryInterval.Duration,
+			ServiceInventoryInterval: p.config.Collection.ServiceInventoryInterval.Duration,
+			SummaryInterval:          p.config.Collection.SummaryInterval.Duration,
+			RetentionDays:            p.config.Collection.RetentionDays,
+		})
+	}
 
 	p.cancel = cancel
 	done := make(chan error, 1)

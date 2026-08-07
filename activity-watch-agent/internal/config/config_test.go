@@ -19,7 +19,14 @@ func validConfig(t *testing.T) Config {
 			LogoutRequestPath: filepath.Join(root, "logout.request"),
 			PollInterval:      Duration{time.Second},
 		},
-		Collection: CollectionConfig{HeartbeatInterval: Duration{time.Minute}},
+		Collection: CollectionConfig{
+			HeartbeatInterval:        Duration{time.Minute},
+			SampleInterval:           Duration{15 * time.Second},
+			IdleThreshold:            Duration{5 * time.Minute},
+			ProcessInventoryInterval: Duration{5 * time.Minute},
+			ServiceInventoryInterval: Duration{15 * time.Minute},
+			RetentionDays:            90,
+		},
 		Sync: SyncConfig{
 			Enabled:        true,
 			URL:            "https://erp.example.com/api/v1/activity-watch/batches",
@@ -47,6 +54,7 @@ func TestValidateAllowsDisabledUploaderWithoutEndpoint(t *testing.T) {
 	cfg.Sync.URL = ""
 	cfg.Sync.DeviceID = ""
 	cfg.Sync.CredentialFile = ""
+	cfg.Collection.Disabled = true
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("Validate() error = %v", err)
 	}

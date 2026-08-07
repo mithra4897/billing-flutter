@@ -2,8 +2,6 @@ package store
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -126,16 +124,20 @@ func TestClaimReadyBatchUsesLimitAndTransitionsState(t *testing.T) {
 	now := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
 	for index := 0; index < 3; index++ {
 		created := now.Add(time.Duration(index) * time.Second).Format(time.RFC3339Nano)
-		_, err := database.db.Exec(`
+		payload, nonce, tag, err := encryptPayload(database.payloadKey, []byte(`{"work_date_local":"2026-08-06"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = database.db.Exec(`
 INSERT INTO sync_outbox (
     id, entity_type, entity_id, operation, payload_encrypted, payload_nonce,
     payload_tag, payload_checksum, idempotency_key, status, created_at_utc
 ) VALUES (?, 'daily-summary', ?, 'upsert', ?, ?, ?, ?, ?, 'pending', ?)`,
 			fmt.Sprintf("item-%d", index),
 			fmt.Sprintf("entity-%d", index),
-			[]byte{byte(index)},
-			[]byte{1},
-			[]byte{2},
+			payload,
+			nonce,
+			tag,
 			fmt.Sprintf("checksum-%d", index),
 			fmt.Sprintf("idempotency-%d", index),
 			created,
@@ -186,50 +188,8 @@ func createTestDatabase(t *testing.T) (string, []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	statements := []string{
-		`CREATE TABLE local_users (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE device_sessions (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE activity_segments (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE application_segments (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE browser_activity_segments (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE inventory_snapshots (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE system_events (
-            id TEXT PRIMARY KEY,
-            session_id TEXT,
-            boot_id TEXT,
-            event_type TEXT NOT NULL,
-            event_at_utc TEXT NOT NULL,
-            monotonic_ms INTEGER,
-            metadata_encrypted BLOB,
-            metadata_nonce BLOB,
-            metadata_tag BLOB,
-            created_at_utc TEXT NOT NULL
-        )`,
-		`CREATE TABLE daily_summaries (id TEXT PRIMARY KEY)`,
-		`CREATE TABLE sync_outbox (
-            id TEXT PRIMARY KEY,
-            entity_type TEXT NOT NULL,
-            entity_id TEXT NOT NULL,
-            operation TEXT NOT NULL,
-            payload_encrypted BLOB NOT NULL,
-            payload_nonce BLOB NOT NULL,
-            payload_tag BLOB NOT NULL,
-            payload_checksum TEXT NOT NULL,
-            idempotency_key TEXT NOT NULL UNIQUE,
-            status TEXT NOT NULL DEFAULT 'pending',
-            attempt_count INTEGER NOT NULL DEFAULT 0,
-            next_attempt_at_utc TEXT,
-            last_attempt_at_utc TEXT,
-            last_http_status INTEGER,
-            last_error_code TEXT,
-            response_checksum TEXT,
-            created_at_utc TEXT NOT NULL,
-            synced_at_utc TEXT
-        )`,
-		`CREATE TABLE agent_state (key TEXT PRIMARY KEY)`,
-		`CREATE INDEX idx_sync_outbox_dispatch ON sync_outbox(status, next_attempt_at_utc)`,
-		`PRAGMA user_version = 1`,
-	}
+	statements := append([]string(nil), schemaStatements...)
+	statements = append(statements, `PRAGMA user_version = 1`)
 	for _, statement := range statements {
 		if _, err := database.Exec(statement); err != nil {
 			database.Close()
@@ -240,16 +200,4 @@ func createTestDatabase(t *testing.T) (string, []byte) {
 		t.Fatal(err)
 	}
 	return path, key
-}
-
-func decryptPayload(key, ciphertext, nonce, tag []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-	return aead.Open(nil, nonce, append(ciphertext, tag...), nil)
 }

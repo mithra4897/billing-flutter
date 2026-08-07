@@ -17,6 +17,12 @@ the minimum privacy-safe payload and idempotency metadata). SQLCipher
 integration requires CGO and is tested separately from store-independent unit
 tests.
 
+Completion coverage additionally verifies application classification,
+inventory canonicalization/deduplication, activity-segment consolidation,
+daily duration/application aggregation (including offline overlap and local
+midnight clipping), encrypted metadata projection, authentication-failure
+recovery, and retention that preserves unsynchronized outbox records.
+
 Provisioning tests additionally verify fresh encrypted schema creation,
 protected key permissions, generated-key reopen, control-directory creation,
 and rejection of an existing database without modifying it.
@@ -24,9 +30,9 @@ and rejection of an existing database without modifying it.
 The Go command tests also start and stop a provisioned foreground worker to
 ensure cancellation completes within its configured shutdown deadline.
 
-Manual verification remains required for Windows Services, macOS launchd,
-Linux service managers, machine credential storage/ACLs, actual OS logout and
-shutdown deadlines, and the future ERP ingestion endpoint.
+Manual verification remains required for Windows service/login packaging,
+macOS launchd, Linux user services, native OS permission prompts, actual OS
+sleep/logout/shutdown, and production HTTPS deployment.
 
 ## Standard commands
 
@@ -85,3 +91,19 @@ Coverage includes:
 
 Do not interpret a macOS unit-test pass as proof that every native platform has
 been packaged successfully.
+
+## Activity Watch completion verification — 2026-08-07
+
+- `go test -count=1 ./...`: passed.
+- `go vet ./...`: passed.
+- `go build -o /private/tmp/activity-watch-agent-complete
+  ./cmd/activity-watch-agent`: passed on macOS arm64.
+- PHP lint for the Activity Watch controller, device middleware, and routes:
+  passed.
+- `flutter test`: all 50 tests passed.
+- `flutter analyze`: completed with two unrelated existing warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; no Activity Watch issue was reported.
+- `git diff --check` passed in both Flutter and backend repositories.
+- The additive MySQL patch was deliberately not applied automatically; live
+  ingestion/report verification requires the operator's local test database.

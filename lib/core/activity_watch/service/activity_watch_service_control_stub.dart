@@ -12,5 +12,10 @@ final class ActivityWatchServiceControl {
 
   static Future<void> clearConfiguration() async {}
 
+  static Future<bool> applyEnrollment({
+    required String deviceId,
+    required String credential,
+  }) async => false;
+
   static Future<void> signalLogoutIfConfigured() async {}
 }

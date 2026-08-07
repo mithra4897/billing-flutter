@@ -1,5 +1,49 @@
 # Architecture decisions
 
+## ADR-0009: Collect in the enrolled user's service context with safe OS adapters
+
+- Date: 2026-08-07
+- Status: Accepted
+- Context: Windows Session 0 and system-level launch daemons cannot reliably
+  access the active user's idle and foreground application state, while the
+  feature must behave consistently on Windows, macOS, and Linux.
+- Decision: Install Activity Watch as a current-user service and use one
+  best-effort OS adapter selected at runtime. The adapter returns only idle
+  duration, lock state, foreground executable/application name, and bounded
+  process/service inventory. Missing tools or permissions return unknown data.
+- Reason: User-service execution supplies the correct interactive security
+  context without privileged UI inspection or a second IPC process.
+- Alternatives considered: A system daemon plus authenticated session helper;
+  Flutter-only timers; keyboard/mouse hooks; platform-specific binaries.
+- Consequences: Monitoring begins at enrolled user login rather than before any
+  user session exists. Linux foreground accuracy depends on the desktop session
+  exposing standard X11/systemd tools; Wayland denial is reported as unknown.
+- Related files: `activity-watch-agent/internal/collector/`,
+  `activity-watch-agent/cmd/activity-watch-agent/main.go`.
+
+## ADR-0010: Publish bounded summary metadata beside encrypted payloads
+
+- Date: 2026-08-07
+- Status: Accepted
+- Context: The ERP cannot build useful reports from device-encrypted opaque
+  payloads, but sending detailed desktop content would violate the privacy
+  policy.
+- Decision: Keep the authoritative local payload AES-GCM encrypted and send a
+  separately validated metadata projection only for approved entity types.
+  Daily-summary metadata contains durations and application executable/category
+  totals; lifecycle metadata contains event type/time. The server stores this
+  projection as JSON and never receives prohibited content.
+- Reason: This supports operational reporting while retaining encrypted local
+  detail and a narrow server data contract.
+- Alternatives considered: Uploading plaintext detailed segments; sharing the
+  device database key with the server; storing only opaque records with no
+  report UI.
+- Consequences: The server schema gains `metadata_json` and event-date indexes;
+  older installations use the additive patch, not a framework migration.
+- Related files: `activity-watch-agent/internal/store/`,
+  `billing-api/app/Http/Controllers/ActivityWatchController.php`,
+  `billing-api/install.sql`.
+
 ## ADR-0008: Transactionally queue every persisted machine lifecycle event
 
 - Date: 2026-08-06

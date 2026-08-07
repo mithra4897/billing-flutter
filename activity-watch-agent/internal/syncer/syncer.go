@@ -83,7 +83,11 @@ func (s *Synchronizer) Flush(ctx context.Context) (int, error) {
 		return 0, s.markRetry(ctx, items, ids, "network-error", 0, err)
 	}
 	defer response.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64*1024))
+	responseBody, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	responseDetail := strings.TrimSpace(string(responseBody))
+	if len(responseDetail) > 1000 {
+		responseDetail = responseDetail[:1000]
+	}
 
 	switch {
 	case response.StatusCode >= 200 && response.StatusCode < 300:
@@ -106,6 +110,9 @@ func (s *Synchronizer) Flush(ctx context.Context) (int, error) {
 		code := "http-" + strconv.Itoa(response.StatusCode)
 		if err := s.repository.MarkPermanentFailure(ctx, ids, code); err != nil {
 			return 0, err
+		}
+		if responseDetail != "" {
+			return 0, fmt.Errorf("permanent upload response %d: %s", response.StatusCode, responseDetail)
 		}
 		return 0, fmt.Errorf("permanent upload response %d", response.StatusCode)
 	}

@@ -1,5 +1,83 @@
 # Specifications
 
+## Activity Watch cross-platform completion
+
+- Date: 2026-08-07
+- Status: Approved for implementation
+
+### Objective
+
+Complete the consent-gated Windows, macOS, and Linux Activity Watch workflow so
+an enrolled desktop can sample privacy-safe user presence and foreground
+application identity, retain consolidated encrypted local records, publish
+daily summaries through the durable outbox, and expose device/report status in
+the ERP.
+
+### Functional requirements
+
+1. Collection starts only when synchronization has an enrolled device
+   credential and `collection.disabled` is not set.
+2. The collector samples at a configurable interval (default 15 seconds), uses
+   only OS idle duration and foreground executable/application identity, and
+   classifies active, idle, locked, or unknown state. Unsupported or denied OS
+   APIs produce `unknown`; they must not crash the service.
+3. State and application samples are consolidated into local segments. An
+   unchanged state/application updates the current segment in constant time;
+   a change closes the current segment and opens one new segment.
+4. Process inventory is sampled every 5 minutes and service inventory every 15
+   minutes by default. Canonically sorted names are hashed, and an unchanged
+   snapshot is not stored again.
+5. Daily summaries contain active/idle/locked/unknown totals, overlapping
+   offline duration, and application duration grouped by executable
+   name/category. Segments spanning local midnight are clipped to each local
+   date. Summaries are regenerated on a separate bounded interval (default 15
+   minutes) and immediately before logout and shutdown synchronization; network
+   retry frequency cannot create extra summary revisions.
+6. Local synchronized detail older than 90 days is deleted in bounded indexed
+   operations. Pending/retry/permanently-failed records are retained for human
+   resolution and are never silently discarded.
+7. Server ingestion validates all base64 fields, checks SHA-256 ciphertext
+   checksums, accepts only approved entity/operation values, stores a bounded
+   privacy-safe metadata projection for reports, and is idempotent.
+8. A new credential for an existing device identity may recover locally queued
+   authentication failures; unrelated permanent validation failures remain
+   failed.
+9. Authenticated ERP users can list their own enrolled devices, summaries, and
+   revoke a device. Users with `hr.view` may view devices/summaries within their
+   authorized company context. Reporting is date-bounded and paginated.
+10. The Flutter Activity Watch page reuses the existing API client, section
+    cards, form controls, and shell. It shows enrollment, device state,
+    revocation, filters, and daily totals without exposing credentials after
+    the one-time enrollment response.
+
+### Security and privacy
+
+- Never collect keystrokes, clipboard contents, screenshots, pointer
+  coordinates, command-line arguments, window/tab titles, URLs, or page/form
+  content.
+- Foreground collection is limited to process/executable name and a local
+  category. Inventory is limited to process/service names and states.
+- Detailed local payloads remain AES-GCM encrypted and the database remains
+  SQLCipher encrypted. Only an explicit, bounded summary metadata projection is
+  sent for server reporting over HTTPS (loopback HTTP is development-only).
+- Collection errors log operation names only, never observed content or secret
+  material.
+
+### Acceptance criteria
+
+- Go unit/integration tests cover sample consolidation, idle thresholds,
+  inventory deduplication, local-midnight summary aggregation, retention,
+  credential recovery, and existing synchronization behavior.
+- Go formatting, tests, vet, and build pass on the available host; OS adapters
+  fail safely when permissions/tools are unavailable.
+- PHP syntax checks pass and Activity Watch routes are authenticated and
+  company/user scoped.
+- Flutter formatting, analysis, and focused tests pass where the SDK is
+  available.
+- `install.sql` remains the fresh-install source of truth; the existing
+  additive Activity Watch patch is updated for already-created test/server
+  tables. No framework migration table is introduced.
+
 ## Activity Watch privacy-safe enrollment and ingestion MVP
 
 - Date: 2026-08-06
@@ -54,8 +132,8 @@ ERP receiving idempotent device batches.
 ## Activity Watch Go desktop service
 
 - Date: 2026-08-06
-- Status: Service foundation and server ingestion implemented; native collectors
-  pending
+- Status: Implemented; collection/reporting details are governed by the
+  cross-platform completion specification above
 
 ### Problem and objective
 
@@ -63,17 +141,11 @@ Activity Watch must start with a desktop computer, store authorized monitoring
 events locally while offline, and continue uploading queued records after the
 ERP user logs out until the operating system shuts the service down.
 
-Implement the boot-time machine-service role now and reserve the same Go
-executable for a later interactive session-helper role:
-
-- a machine service that starts at boot, owns encrypted persistence, and keeps
-  synchronization running; and
-- a future per-user session helper that will start only after enrollment and
-  consent and supply user-session activity to the machine service.
-
-The two roles are necessary because Windows Session 0, macOS launch daemons,
-and Linux graphical sessions do not allow a machine daemon to reliably inspect
-the active user's foreground UI directly.
+Run the Go executable in the enrolled user's service/login context. This keeps
+encrypted persistence and synchronization independent from Flutter while also
+giving privacy-safe OS adapters access to that user's idle and foreground
+application state. System-service contexts such as Windows Session 0 are not
+used for interactive collection.
 
 ### In scope
 
@@ -81,9 +153,10 @@ the active user's foreground UI directly.
 - Non-destructive `provision` command that creates a new encrypted local
   database/key pair and its control directory from a valid configuration.
 - Install, uninstall, start, stop, restart, status, and foreground-run commands.
-- Boot-time machine service execution until OS shutdown.
+- Enrolled-user service execution from OS login until logout/shutdown.
 - SQLCipher database opening and approved schema verification.
-- Machine lifecycle and bounded health events in `system_events`.
+- Machine/session lifecycle, idle/application sampling, and bounded health
+  events.
 - Bounded `sync_outbox` batch selection with idempotent HTTP upload.
 - Exponential retry with a maximum delay and server `Retry-After` support.
 - Logout-triggered sync flush while the machine service remains alive.
@@ -95,7 +168,7 @@ the active user's foreground UI directly.
 
 - Mobile background execution on Android or iOS.
 - Browser extension/native messaging.
-- Full Windows, macOS, X11, and Wayland foreground/idle adapters in this phase.
+- Raw browser tab capture, window-title capture, or Wayland permission bypasses.
 - Installing the service without administrator approval.
 - ERP-side reporting and retention jobs beyond raw idempotent ingestion.
 - Storing user passwords or reusing a logged-in user's ERP access token.
@@ -104,18 +177,17 @@ the active user's foreground UI directly.
 
 1. Installation must not begin collection. Enrollment, device authorization,
    active consent, and machine credentials are prerequisites.
-2. The machine service starts at operating-system boot and runs independently
-   of the Flutter process and interactive login session.
+2. The user service starts at operating-system login and runs independently of
+   the Flutter process for the remainder of that interactive session.
 3. The service records only policy-approved system lifecycle/health events when
    there is no authorized interactive helper. Each accepted lifecycle event and
    its AES-GCM-encrypted opaque outbox record must commit in one SQLCipher
    transaction, so a crash cannot leave an event recorded without a
    corresponding upload item (or the reverse).
-4. Native Flutter logout requests an immediate outbox flush. When the future
-   session helper is implemented, logout must also stop its user activity
-   collection.
-5. Logout must not stop the machine service. Pending sync continues until
-   success, shutdown, permanent rejection, or policy/device revocation.
+4. Native Flutter logout finalizes user activity collection, regenerates the
+   daily summary, and requests an immediate outbox flush.
+5. Pending sync continues until success, service shutdown, permanent rejection,
+   or policy/device revocation.
 6. Shutdown cancels collection, closes open work, attempts a bounded final
    upload, and closes SQLCipher.
 7. Upload batches are ordered by next-attempt time and creation time and are
@@ -158,13 +230,14 @@ pending records without data loss for a later retry.
 
 ### Security and privacy
 
-- The machine service owns the database/key lifecycle required after logout.
+- The enrolled user service owns the database/key lifecycle for its session.
 - SQLCipher compatibility 4 and a raw 256-bit key are required.
 - Secrets are injected through a provider interface. Production packaging must
   use a machine-scoped credential/ACL implementation for each OS.
 - The service never captures keystrokes, clipboard data, screenshots, pointer
   coordinates, full URLs, form/page content, or command-line arguments.
-- All collectors remain consent- and capability-gated.
+- All collectors are consent- and capability-gated and return unknown when a
+  platform API or permission is unavailable.
 
 ### Acceptance criteria and tests
 
