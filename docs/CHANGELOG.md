@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-07 — Activity Watch summary table
+
+- Replaced the stacked Activity Watch daily-summary cards with a compact,
+  horizontally scrollable metrics table. Its application breakdown now opens
+  below the selected daily row instead of widening every table row. No API,
+  collection, or privacy behaviour changed. See
+  [the specification](activity-watch-summary-table.md).
+
+## 2026-08-07 — Activity Watch concise UI
+
+- Simplified the setup, pairing, device, and activity-summary labels using the
+  existing Activity Watch cards and expandable summary rows.
+- Preserved explicit consent, pairing expiry, device state, disconnect action,
+  date filters, and detailed metrics while moving secondary duration data into
+  the expanded summary area.
+
+## 2026-08-07 — macOS pairing launcher package permissions
+
+- Fixed the packaged application executables being installed as root-owned
+  mode `0700`, which prevented normal employees from opening the pairing app.
+- Application-bundle executables now use mode `0755`; after first launch, the
+  copied per-user agent remains protected with mode `0700` in the employee's
+  application-support directory.
+
 ## 2026-08-07 — Privacy-safe input and browser duration
 
 - Request: Add keyboard/mouse usage, idle time, and browser activity reporting.

@@ -494,3 +494,40 @@ Acceptance criteria:
 - API validation accepts bounded new counters and old summaries.
 - ERP daily summaries display input and browser durations.
 - Tests confirm aggregation and backward-compatible parsing.
+
+# Activity Watch concise screen
+
+Status: Implementing (2026-08-07)
+
+Objective: Make the Activity Watch setup and report page understandable at a
+glance without removing consent, pairing, device state, or activity metrics.
+
+Requirements:
+
+- Use the existing Activity Watch cards, fields, and summary data.
+- Replace explanatory paragraphs and low-value labels with concise titles and
+  grouped primary metrics.
+- Keep consent wording explicit and retain the actionable pairing expiry,
+  device connection state, refresh, revoke, date filters, and application
+  totals.
+- Keep every reported duration and application total available in the daily
+  summary table.
+
+Acceptance criteria:
+
+- The first view has one clear connect action and concise privacy wording.
+- Device rows show label and connection state without duplicated platform and
+  timestamp labels.
+- Summary rows show active, idle, and browser duration first; expanded details
+  retain keyboard/mouse, lock, offline, unknown, and application information.
+
+## Activity Watch summary table
+
+Status: Implementing (2026-08-07)
+
+The Activity report presents each returned daily device summary in a compact,
+horizontally scrollable table. Its row exposes date, device, active, idle,
+input, browser, locked, offline, unknown, and tracked durations. An
+Applications action reveals a separate compact application-total table for the
+selected row. Date filtering, loading/error/empty behaviour, the API contract,
+and privacy restrictions are unchanged.

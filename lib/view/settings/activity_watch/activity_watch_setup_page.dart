@@ -30,6 +30,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   List<ActivityWatchSummary> _summaries = const <ActivityWatchSummary>[];
   late DateTime _fromDate;
   late DateTime _toDate;
+  String? _expandedSummaryKey;
 
   @override
   void initState() {
@@ -74,6 +75,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       setState(() {
         _devices = results[0] as List<ActivityWatchDevice>;
         _summaries = summaryPage.items;
+        _expandedSummaryKey = null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -225,11 +227,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 'Activity Watch',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              Text(
-                'Consent-based desktop activity summaries with encrypted offline storage and automatic retry.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
               const SizedBox(height: AppUiConstants.spacingXl),
               _buildEnrollmentCard(),
               if (_pairingExpiresAt != null) ...<Widget>[
@@ -265,16 +262,12 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const Text(
-            'Privacy and enrollment',
+            'Connect a computer',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
           const Text(
-            'Collected: active, idle, locked, and unknown durations; foreground executable name/category; deduplicated process and service inventories.',
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          const Text(
-            'Never collected: keystrokes, clipboard content, screenshots, pointer coordinates, window/tab titles, full URLs, page content, or command-line arguments.',
+            'Tracks activity time and app categories. No keys, screen content, URLs, or screenshots are collected.',
           ),
           const SizedBox(height: AppUiConstants.spacingLg),
           AppFormTextField(controller: _deviceLabel, labelText: 'Device label'),
@@ -284,9 +277,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             onChanged: _submitting
                 ? null
                 : (value) => setState(() => _consented = value ?? false),
-            title: const Text(
-              'I consent to this privacy-safe Activity Watch collection.',
-            ),
+            title: const Text('I consent to activity-time collection.'),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -321,12 +312,12 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const Text(
-            'Finish connecting the agent',
+            'Complete setup',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
           const Text(
-            'Install the Activity Watch agent once, then open the downloaded .billingawpair file. The agent will configure and start itself—no credential copying or JSON editing is required.',
+            'Install the agent once, then open the downloaded pairing file.',
           ),
           if (_installerUrl != null && _installerUrl!.isNotEmpty) ...<Widget>[
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -340,9 +331,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             ),
           ],
           const SizedBox(height: AppUiConstants.spacingSm),
-          Text(
-            'This pairing expires ${_dateTime(_pairingExpiresAt)}. If it expires, click Connect this computer again.',
-          ),
+          Text('Expires ${_dateTime(_pairingExpiresAt)}.'),
         ],
       ),
     );
@@ -383,7 +372,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             children: <Widget>[
               const Expanded(
                 child: Text(
-                  'Enrolled devices',
+                  'Devices',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -398,12 +387,12 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           if (_loadError != null)
             Padding(
               padding: const EdgeInsets.only(top: AppUiConstants.spacingSm),
-              child: Text('Status unavailable: $_loadError'),
+              child: Text('Could not load devices: $_loadError'),
             )
           else if (!_loading && _devices.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: AppUiConstants.spacingSm),
-              child: Text('No Activity Watch device is enrolled.'),
+              child: Text('No connected computers.'),
             )
           else
             ..._devices.map(
@@ -417,13 +406,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                       : Icons.desktop_access_disabled_outlined,
                 ),
                 title: Text(device.label),
-                subtitle: Text(
-                  '${device.platform} · ${device.connectionStatus} · Last seen ${_dateTime(device.lastSeenAt)}',
-                ),
+                subtitle: Text(device.connectionStatus),
                 trailing: device.isActive
                     ? TextButton(
                         onPressed: () => _revoke(device),
-                        child: const Text('Revoke'),
+                        child: const Text('Disconnect'),
                       )
                     : null,
               ),
@@ -438,10 +425,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Text(
-            'Daily summaries',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          const Text('Activity', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: AppUiConstants.spacingSm),
           Wrap(
             spacing: AppUiConstants.spacingSm,
@@ -463,55 +447,171 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           if (_loading)
             const LinearProgressIndicator()
           else if (_summaries.isEmpty)
-            const Text(
-              'No synchronized summaries are available for this date range.',
-            )
-          else
-            ..._summaries.map(
-              (summary) => ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: Text(
-                  '${_date(summary.workDate)} · ${summary.deviceLabel}',
-                ),
-                subtitle: Text(
-                  'Active ${_duration(summary.activeSeconds)} · Idle ${_duration(summary.idleSeconds)} · Locked ${_duration(summary.lockedSeconds)}',
-                ),
-                children: <Widget>[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Tracked ${_duration(summary.trackedSeconds)} · Offline ${_duration(summary.offlineSeconds)} · Unknown ${_duration(summary.unknownSeconds)}',
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Keyboard/mouse activity ${_duration(summary.inputSeconds)} · Browser ${_duration(summary.browserSeconds)}',
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  if (summary.applications.isEmpty)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('No foreground application totals.'),
-                    )
-                  else
-                    ...summary.applications.map(
-                      (application) => ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(application.name),
-                        subtitle: Text(application.classification),
-                        trailing: Text(_duration(application.seconds)),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            const Text('No activity for this period.')
+          else ...<Widget>[
+            _buildSummaryTable(),
+            if (_selectedSummary != null) ...<Widget>[
+              const SizedBox(height: AppUiConstants.spacingMd),
+              _buildApplicationTable(_selectedSummary!),
+            ],
+          ],
         ],
       ),
     );
   }
+
+  Widget _buildSummaryTable() {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: _buildActivityTableTheme(
+            DataTable(
+              headingRowHeight: 48,
+              dataRowMinHeight: 56,
+              dataRowMaxHeight: 180,
+              horizontalMargin: AppUiConstants.spacingMd,
+              columnSpacing: AppUiConstants.spacingLg,
+              columns: const <DataColumn>[
+                DataColumn(label: Text('Date')),
+                DataColumn(label: Text('Device')),
+                DataColumn(label: Text('Active'), numeric: true),
+                DataColumn(label: Text('Idle'), numeric: true),
+                DataColumn(label: Text('Input'), numeric: true),
+                DataColumn(label: Text('Browser'), numeric: true),
+                DataColumn(label: Text('Locked'), numeric: true),
+                DataColumn(label: Text('Offline'), numeric: true),
+                DataColumn(label: Text('Unknown'), numeric: true),
+                DataColumn(label: Text('Tracked'), numeric: true),
+                DataColumn(label: Text('Applications')),
+              ],
+              rows: _summaries
+                  .map(
+                    (summary) => DataRow(
+                      selected: _summaryKey(summary) == _expandedSummaryKey,
+                      onSelectChanged: (_) => _toggleApplicationTable(summary),
+                      cells: <DataCell>[
+                        DataCell(Text(_date(summary.workDate))),
+                        DataCell(Text(summary.deviceLabel)),
+                        DataCell(Text(_duration(summary.activeSeconds))),
+                        DataCell(Text(_duration(summary.idleSeconds))),
+                        DataCell(Text(_duration(summary.inputSeconds))),
+                        DataCell(Text(_duration(summary.browserSeconds))),
+                        DataCell(Text(_duration(summary.lockedSeconds))),
+                        DataCell(Text(_duration(summary.offlineSeconds))),
+                        DataCell(Text(_duration(summary.unknownSeconds))),
+                        DataCell(Text(_duration(summary.trackedSeconds))),
+                        DataCell(
+                          IconButton(
+                            tooltip: _summaryKey(summary) == _expandedSummaryKey
+                                ? 'Hide applications'
+                                : 'Show applications',
+                            onPressed: () => _toggleApplicationTable(summary),
+                            icon: Icon(
+                              _summaryKey(summary) == _expandedSummaryKey
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityTableTheme(Widget child) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return Theme(
+      data: theme.copyWith(
+        dividerColor: appTheme.tableBorder,
+        dataTableTheme: DataTableThemeData(
+          headingRowColor: WidgetStatePropertyAll(
+            appTheme.tableHeaderBackground,
+          ),
+          headingTextStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: appTheme.tableTitleText,
+          ),
+          dataTextStyle: theme.textTheme.bodySmall?.copyWith(
+            color: appTheme.tableCellText,
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildApplicationTable(ActivityWatchSummary summary) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Applications · ${_date(summary.workDate)} · ${summary.deviceLabel}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        if (summary.applications.isEmpty)
+          const Text('No foreground application totals.')
+        else
+          _buildActivityTableTheme(
+            DataTable(
+              headingRowHeight: 40,
+              dataRowMinHeight: 40,
+              dataRowMaxHeight: 48,
+              horizontalMargin: AppUiConstants.spacingMd,
+              columnSpacing: AppUiConstants.spacingLg,
+              columns: const <DataColumn>[
+                DataColumn(label: Text('Application')),
+                DataColumn(label: Text('Category')),
+                DataColumn(label: Text('Duration'), numeric: true),
+              ],
+              rows: summary.applications
+                  .map(
+                    (application) => DataRow(
+                      cells: <DataCell>[
+                        DataCell(Text(application.name)),
+                        DataCell(Text(application.classification)),
+                        DataCell(Text(_duration(application.seconds))),
+                      ],
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+      ],
+    );
+  }
+
+  ActivityWatchSummary? get _selectedSummary {
+    final selectedKey = _expandedSummaryKey;
+    if (selectedKey == null) return null;
+
+    for (final summary in _summaries) {
+      if (_summaryKey(summary) == selectedKey) return summary;
+    }
+    return null;
+  }
+
+  void _toggleApplicationTable(ActivityWatchSummary summary) {
+    final summaryKey = _summaryKey(summary);
+    setState(
+      () => _expandedSummaryKey = _expandedSummaryKey == summaryKey
+          ? null
+          : summaryKey,
+    );
+  }
+
+  static String _summaryKey(ActivityWatchSummary summary) =>
+      '${summary.deviceId}:${_date(summary.workDate)}';
 
   static String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'

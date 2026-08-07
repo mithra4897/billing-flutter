@@ -129,3 +129,15 @@ been packaged successfully.
 - `git diff --check` passed in both Flutter and backend repositories.
 - The additive MySQL patch was deliberately not applied automatically; live
   ingestion/report verification requires the operator's local test database.
+
+## Activity Watch summary table verification — 2026-08-07
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed.
+- `flutter test test/model/activity_watch_model_test.dart`: passed (4 tests).
+- The compact application-table action is presentation-only; it reuses the
+  tested parsed application totals and does not issue an additional request.
+- `flutter analyze`: completed with the two existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; no Activity Watch issue was reported.
+- Desktop and narrow-width browser visual verification remains manual work.
