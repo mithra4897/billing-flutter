@@ -153,3 +153,59 @@ been packaged successfully.
   `lib/app/constants/app_config.dart` and
   `lib/view/crm/crm_followups_page.dart`; no Activity Watch issue was reported.
 - Desktop and narrow-width browser visual verification remains manual work.
+
+## Activity Watch professional full-width report verification — 2026-08-10
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  completed with no further changes.
+- `flutter test test/model/activity_watch_model_test.dart`: passed (4 tests).
+- `flutter test`: passed all 52 tests.
+- `flutter build web`: passed. The compiler also completed its WebAssembly dry
+  run; it emitted the existing Cupertino-icons asset notice.
+- `git diff --check` for the changed Activity Watch source and documentation:
+  passed.
+- `flutter analyze`: reports only the two pre-existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; no Activity Watch issue was reported.
+- The supplied desktop screenshot confirmed the former checkbox column and
+  oversized selected row. Manual verification of the finished responsive
+  layout should confirm compact 56px daily rows, no selection checkbox column,
+  full-width report alignment, and horizontal scrolling at narrow widths.
+
+## Activity Watch ERP dashboard reuse verification — 2026-08-10
+
+- Added `activity_watch_dashboard_metrics_test.dart` with two tests covering
+  multi-device totals, same-day aggregation, chronological trend ordering,
+  case-insensitive unique application names, unique devices, and the empty
+  report boundary.
+- Focused dashboard/model test run: passed all 6 tests.
+- `flutter test`: passed all 54 tests.
+- `flutter build web`: passed, with the existing Cupertino-icons asset notice.
+- `flutter analyze`: reports only the two pre-existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; no Activity Watch issue was reported.
+- Dashboard aggregation is `O(n + a + d log d)` time and `O(u + d)` space,
+  where `n` is summaries, `a` is application totals, `d` is distinct dates,
+  and `u` is unique devices/applications. It performs no additional API call.
+- Final visual confirmation of dashboard wrapping, chart labels, and the
+  detailed table remains manual in the authenticated browser session.
+- Manual detail verification should also confirm the overview has no
+  distribution or recent-activity list card, the Full details action scrolls to
+  the report, and a selected row shows aggregate keyboard/mouse input alongside
+  active, idle, state, and application totals.
+
+## Activity Watch setup cards and device pagination verification — 2026-08-10
+
+- The setup layout uses a `LayoutBuilder` breakpoint: Connect a computer and
+  Devices share an equal row below the dashboard on wide cards and stack on
+  narrow cards.
+- The Devices card renders five newest records per page through the shared
+  `LocalPageNavigation`; successful refresh/enrollment/revoke loads reset to
+  page one.
+- `flutter test`: passed all 54 tests.
+- `flutter build web`: passed, with the existing Cupertino-icons asset notice.
+- `flutter analyze`: reports only the two pre-existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`.
+- Manual browser verification remains for confirming the exact breakpoint and
+  pagination interaction in the authenticated desktop and narrow layouts.

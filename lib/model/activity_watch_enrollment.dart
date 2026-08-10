@@ -144,10 +144,16 @@ final class ActivityWatchSummary {
     required this.browserSeconds,
     required this.trackedSeconds,
     required this.applications,
+    this.employeeId,
+    this.employeeName,
+    this.employeeCode,
   });
 
   final String deviceId;
   final String deviceLabel;
+  final int? employeeId;
+  final String? employeeName;
+  final String? employeeCode;
   final DateTime workDate;
   final int activeSeconds;
   final int idleSeconds;
@@ -164,6 +170,9 @@ final class ActivityWatchSummary {
     return ActivityWatchSummary(
       deviceId: json['device_id']?.toString() ?? '',
       deviceLabel: json['device_label']?.toString() ?? '',
+      employeeId: (json['employee_id'] as num?)?.toInt(),
+      employeeName: json['employee_name']?.toString(),
+      employeeCode: json['employee_code']?.toString(),
       workDate:
           DateTime.tryParse(json['work_date_local']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),

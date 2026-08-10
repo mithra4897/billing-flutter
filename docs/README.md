@@ -40,8 +40,8 @@ For a backend and frontend change that belongs to one feature, use the same deci
   configure, install, and operate the boot-time Windows/macOS/Linux agent.
 - [Activity Watch `bill.local` HTTP development exception](activity-watch-bill-local-http-development.md)
   — narrowly scoped pre-TLS Windows pairing and upload validation.
-- [Activity Watch summary table](activity-watch-summary-table.md) — show daily
-  device metrics in a compact, expandable report table.
+- [Activity Watch dashboard and summary table](activity-watch-summary-table.md)
+  — show KPI trends, daily device metrics, and paginated device setup state.
 - [Payslip template pre-editing](payslip-template-preedit.md) — edit the company payslip layout using sample data before payroll creation.
 - [Print designer box border radius](print-designer-box-border-radius.md) — adjust rounded corners for boxed print elements.
 - [Company creation access and logo](company-create-access-and-logo.md) — upload a company logo during creation and ensure the creator can access the result.

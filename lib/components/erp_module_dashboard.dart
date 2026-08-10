@@ -130,6 +130,7 @@ class ErpDashboardListItem {
     this.statusLabel,
     this.statusColor,
     this.route,
+    this.onPressed,
     this.filterTags = const <String>[],
     this.secondaryFilterTags = const <String>[],
   });
@@ -140,6 +141,7 @@ class ErpDashboardListItem {
   final String? statusLabel;
   final Color? statusColor;
   final String? route;
+  final VoidCallback? onPressed;
   final List<String> filterTags;
   final List<String> secondaryFilterTags;
 }
@@ -256,6 +258,9 @@ class ErpModuleDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final showTwoColumn = width >= AppUiConstants.dashboardSplitBreakpoint;
+    final hasPrimarySections = snapshot.primarySections.any(
+      (section) => section.items.isNotEmpty,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,6 +273,14 @@ class ErpModuleDashboard extends StatelessWidget {
           _DashboardEmptyState(
             title: snapshot.emptyTitle,
             message: snapshot.emptyMessage,
+          )
+        else if (!hasPrimarySections)
+          _DashboardInsightsColumn(
+            snapshot: snapshot,
+            trendControlValue: trendControlValue,
+            onTrendControlChanged: onTrendControlChanged,
+            showTrendControls: showTrendControls,
+            trendLoading: trendLoading,
           )
         else if (showTwoColumn)
           Row(
@@ -782,9 +795,12 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                         borderRadius: BorderRadius.circular(
                           AppUiConstants.buttonRadius,
                         ),
-                        onTap: item.route == null
-                            ? null
-                            : () {
+                        onTap: item.onPressed != null || item.route != null
+                            ? () {
+                                if (item.onPressed != null) {
+                                  item.onPressed!();
+                                  return;
+                                }
                                 final navigate = ShellRouteScope.maybeOf(
                                   context,
                                 );
@@ -793,7 +809,8 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                                   return;
                                 }
                                 Navigator.of(context).pushNamed(item.route!);
-                              },
+                              }
+                            : null,
                         child: Container(
                           padding: const EdgeInsets.all(
                             AppUiConstants.tilePadding,

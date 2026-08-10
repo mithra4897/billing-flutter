@@ -3,6 +3,7 @@ import '../../../model/activity_watch_enrollment.dart';
 import '../../../service/activity_watch/activity_watch_service.dart';
 import '../../../core/activity_watch/service/activity_watch_service_control.dart';
 import '../../../core/files/external_url.dart';
+import 'activity_watch_dashboard_metrics.dart';
 
 class ActivityWatchSetupPage extends StatefulWidget {
   const ActivityWatchSetupPage({super.key, this.embedded = false});
@@ -14,6 +15,8 @@ class ActivityWatchSetupPage extends StatefulWidget {
 }
 
 class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
+  static const int _devicePageSize = 5;
+
   final _deviceLabel = TextEditingController();
   final _scrollController = ScrollController();
   final _service = ActivityWatchService();
@@ -24,13 +27,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   String? _deviceId;
   String? _loadError;
   bool _configuredAutomatically = false;
+  bool _isSuperAdmin = false;
   DateTime? _pairingExpiresAt;
   String? _installerUrl;
   List<ActivityWatchDevice> _devices = const <ActivityWatchDevice>[];
+  int _devicePage = 1;
   List<ActivityWatchSummary> _summaries = const <ActivityWatchSummary>[];
   late DateTime _fromDate;
   late DateTime _toDate;
-  String? _expandedSummaryKey;
 
   @override
   void initState() {
@@ -71,11 +75,15 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _service.summaries(from: _fromDate, to: _toDate),
       ]);
       if (!mounted) return;
+      final currentUser = await SessionStorage.getCurrentUser();
       final summaryPage = results[1] as ActivityWatchSummaryPage;
       setState(() {
+        _isSuperAdmin =
+            currentUser?['is_super_admin'] == true ||
+            currentUser?['is_super_admin'] == 1;
         _devices = results[0] as List<ActivityWatchDevice>;
+        _devicePage = 1;
         _summaries = summaryPage.items;
-        _expandedSummaryKey = null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -216,34 +224,43 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   Widget build(BuildContext context) {
     final content = SingleChildScrollView(
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Text(
                 'Activity Watch',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: AppUiConstants.spacingXl),
-              _buildEnrollmentCard(),
-              if (_pairingExpiresAt != null) ...<Widget>[
-                const SizedBox(height: AppUiConstants.spacingXl),
-                _buildPairingCard(),
-              ],
-              if (_credential != null) ...<Widget>[
-                const SizedBox(height: AppUiConstants.spacingXl),
-                _buildCredentialCard(),
-              ],
-              const SizedBox(height: AppUiConstants.spacingXl),
-              _buildDevicesCard(),
-              const SizedBox(height: AppUiConstants.spacingXl),
-              _buildSummaryCard(),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: AppUiConstants.spacingXl),
+          _buildSummaryCard(),
+          const SizedBox(height: AppUiConstants.spacingXl),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _buildEnrollmentAndDevicesRow(),
+                  if (_pairingExpiresAt != null) ...<Widget>[
+                    const SizedBox(height: AppUiConstants.spacingXl),
+                    _buildPairingCard(),
+                  ],
+                  if (_credential != null) ...<Widget>[
+                    const SizedBox(height: AppUiConstants.spacingXl),
+                    _buildCredentialCard(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
     return widget.embedded
@@ -254,6 +271,32 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             actions: const <Widget>[],
             child: content,
           );
+  }
+
+  Widget _buildEnrollmentAndDevicesRow() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _buildEnrollmentCard(),
+              const SizedBox(height: AppUiConstants.spacingXl),
+              _buildDevicesCard(),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: _buildEnrollmentCard()),
+            const SizedBox(width: AppUiConstants.spacingXl),
+            Expanded(child: _buildDevicesCard()),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildEnrollmentCard() {
@@ -364,6 +407,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Widget _buildDevicesCard() {
+    final visibleDevices = _pagedDevices;
+
     return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -395,7 +440,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               child: Text('No connected computers.'),
             )
           else
-            ..._devices.map(
+            ...visibleDevices.map(
               (device) => ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
@@ -415,110 +460,279 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                     : null,
               ),
             ),
+          LocalPageNavigation(
+            totalItems: _devices.length,
+            currentPage: _devicePage,
+            pageSize: _devicePageSize,
+            onPageChanged: (page) => setState(() => _devicePage = page),
+          ),
         ],
       ),
     );
+  }
+
+  List<ActivityWatchDevice> get _pagedDevices {
+    final start = (_devicePage - 1) * _devicePageSize;
+    if (start >= _devices.length) return const <ActivityWatchDevice>[];
+    final end = (start + _devicePageSize).clamp(0, _devices.length).toInt();
+    return _devices.sublist(start, end);
   }
 
   Widget _buildSummaryCard() {
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const Text('Activity', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: <Widget>[
-              OutlinedButton.icon(
-                onPressed: () => _pickDate(from: true),
-                icon: const Icon(Icons.calendar_today_outlined),
-                label: Text('From ${_date(_fromDate)}'),
+    if (_loading) {
+      return const AppSectionCard(
+        child: AppLoadingView(message: 'Loading activity dashboard...'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        ErpModuleDashboard(snapshot: _buildActivityDashboardSnapshot()),
+      ],
+    );
+  }
+
+  ErpDashboardSnapshot _buildActivityDashboardSnapshot() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final metrics = ActivityWatchDashboardMetrics.fromSummaries(_summaries);
+    final dailyTrend = metrics.dailyActive.length <= 12
+        ? metrics.dailyActive
+        : metrics.dailyActive.sublist(metrics.dailyActive.length - 12);
+    final employeeOptions = _employeeFilterOptions();
+
+    return ErpDashboardSnapshot(
+      title: 'Activity dashboard',
+      subtitle:
+          'Privacy-safe device activity from ${_date(_fromDate)} to ${_date(_toDate)}.',
+      actions: <ErpDashboardAction>[
+        ErpDashboardAction(
+          label: 'From ${_date(_fromDate)}',
+          icon: Icons.calendar_today_outlined,
+          onPressed: () => _pickDate(from: true),
+        ),
+        ErpDashboardAction(
+          label: 'To ${_date(_toDate)}',
+          icon: Icons.event_outlined,
+          onPressed: () => _pickDate(from: false),
+        ),
+      ],
+      stats: _summaries.isEmpty
+          ? const <ErpDashboardStat>[]
+          : <ErpDashboardStat>[
+              ErpDashboardStat(
+                label: 'Active time',
+                value: _duration(metrics.activeSeconds),
+                helper: 'Focused foreground activity',
+                icon: Icons.bolt_outlined,
+                color: colors.primary,
               ),
-              OutlinedButton.icon(
-                onPressed: () => _pickDate(from: false),
-                icon: const Icon(Icons.event_outlined),
-                label: Text('To ${_date(_toDate)}'),
+              ErpDashboardStat(
+                label: 'Idle time',
+                value: _duration(metrics.idleSeconds),
+                helper: 'No recent input activity',
+                icon: Icons.hourglass_empty_outlined,
+                color: colors.tertiary,
+              ),
+              ErpDashboardStat(
+                label: 'Browser time',
+                value: _duration(metrics.browserSeconds),
+                helper: 'Category-only browser usage',
+                icon: Icons.language_outlined,
+                color: colors.secondary,
+              ),
+              ErpDashboardStat(
+                label: 'Tracked time',
+                value: _duration(metrics.trackedSeconds),
+                helper: 'Total reported device duration',
+                icon: Icons.schedule_outlined,
+                color: appTheme.tableLinkText,
               ),
             ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          if (_loading)
-            const LinearProgressIndicator()
-          else if (_summaries.isEmpty)
-            const Text('No activity for this period.')
-          else ...<Widget>[
-            _buildSummaryTable(),
-            if (_selectedSummary != null) ...<Widget>[
-              const SizedBox(height: AppUiConstants.spacingMd),
-              _buildApplicationTable(_selectedSummary!),
+      primarySections: _summaries.isEmpty
+          ? const <ErpDashboardListSection>[]
+          : <ErpDashboardListSection>[
+              ErpDashboardListSection(
+                title: 'Recent daily activity',
+                subtitle: 'Select a record to open complete activity details',
+                icon: Icons.history_outlined,
+                maxVisibleItems: 6,
+                secondaryFilterOptions: _isSuperAdmin
+                    ? employeeOptions
+                    : const <ErpDashboardListFilterOption>[],
+                items: _summaries
+                    .map(
+                      (summary) => ErpDashboardListItem(
+                        title: summary.deviceLabel,
+                        subtitle: _date(summary.workDate),
+                        detail:
+                            'Active ${_duration(summary.activeSeconds)} · Idle ${_duration(summary.idleSeconds)} · Browser ${_duration(summary.browserSeconds)}',
+                        statusLabel:
+                            '${_duration(summary.trackedSeconds)} tracked',
+                        statusColor: colors.primary,
+                        secondaryFilterTags: summary.employeeId == null
+                            ? const <String>['unassigned']
+                            : <String>['employee:${summary.employeeId}'],
+                        onPressed: () => _showSummaryDetails(summary),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
             ],
+      trend: _summaries.isEmpty
+          ? null
+          : ErpDashboardTrendCardData(
+              title: 'Active time trend',
+              subtitle: metrics.dailyActive.length > 12
+                  ? 'Active minutes for the latest 12 reporting days'
+                  : 'Active minutes by day',
+              color: colors.primary,
+              points: dailyTrend
+                  .map(
+                    (point) => ErpDashboardTrendPoint(
+                      label: _shortDate(point.date),
+                      value: point.activeSeconds / 60,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+      distribution: null,
+      highlights: _summaries.isEmpty
+          ? null
+          : ErpDashboardHighlightsCardData(
+              title: 'Highlights',
+              subtitle: 'Additional privacy-safe report totals',
+              entries: <ErpDashboardHighlightEntry>[
+                ErpDashboardHighlightEntry(
+                  label: 'Input activity',
+                  value: _duration(metrics.inputSeconds),
+                  helper: 'Aggregate sampled input time',
+                  color: colors.primary,
+                ),
+                ErpDashboardHighlightEntry(
+                  label: 'Devices',
+                  value: '${metrics.deviceCount}',
+                  helper: 'Devices represented in this report',
+                  color: colors.secondary,
+                ),
+                ErpDashboardHighlightEntry(
+                  label: 'Applications',
+                  value: '${metrics.applicationCount}',
+                  helper: 'Unique foreground application names',
+                  color: colors.tertiary,
+                ),
+                ErpDashboardHighlightEntry(
+                  label: 'Offline time',
+                  value: _duration(metrics.offlineSeconds),
+                  helper: 'Reported disconnected duration',
+                  color: colors.error,
+                ),
+              ],
+            ),
+      emptyTitle: 'No activity found',
+      emptyMessage:
+          'Try a different date range or confirm that a connected device is reporting.',
+    );
+  }
+
+  List<ErpDashboardListFilterOption> _employeeFilterOptions() {
+    final employees = <String, String>{};
+    for (final summary in _summaries) {
+      final id = summary.employeeId;
+      final label = summary.employeeName?.trim().isNotEmpty == true
+          ? summary.employeeName!.trim()
+          : summary.employeeCode?.trim().isNotEmpty == true
+          ? summary.employeeCode!.trim()
+          : 'Unassigned employee';
+      employees[id == null ? 'unassigned' : 'employee:$id'] = label;
+    }
+    final options = employees.entries.toList()
+      ..sort((left, right) => left.value.compareTo(right.value));
+    return <ErpDashboardListFilterOption>[
+      const ErpDashboardListFilterOption(value: '', label: 'All employees'),
+      ...options.map(
+        (entry) =>
+            ErpDashboardListFilterOption(value: entry.key, label: entry.value),
+      ),
+    ];
+  }
+
+  Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final entries = <(String, String)>[
+      ('Active', _duration(summary.activeSeconds)),
+      ('Idle', _duration(summary.idleSeconds)),
+      ('Keyboard / mouse', _duration(summary.inputSeconds)),
+      ('Browser', _duration(summary.browserSeconds)),
+      ('Locked', _duration(summary.lockedSeconds)),
+      ('Offline', _duration(summary.offlineSeconds)),
+      ('Unknown', _duration(summary.unknownSeconds)),
+      ('Tracked', _duration(summary.trackedSeconds)),
+    ];
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        border: Border.all(color: appTheme.tableBorder),
+        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Daily activity metrics',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingXxs),
+            Text(
+              'Keyboard and mouse are reported as one aggregate input duration; no raw keystrokes or clicks are collected.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: appTheme.mutedText,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: entries
+                  .map(
+                    (entry) => Chip(
+                      label: Text('${entry.$1}: ${entry.$2}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryTable() {
+  Widget _buildActivityTableSurface(Widget table) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: _buildActivityTableTheme(
-            DataTable(
-              headingRowHeight: 48,
-              dataRowMinHeight: 56,
-              dataRowMaxHeight: 180,
-              horizontalMargin: AppUiConstants.spacingMd,
-              columnSpacing: AppUiConstants.spacingLg,
-              columns: const <DataColumn>[
-                DataColumn(label: Text('Date')),
-                DataColumn(label: Text('Device')),
-                DataColumn(label: Text('Active'), numeric: true),
-                DataColumn(label: Text('Idle'), numeric: true),
-                DataColumn(label: Text('Input'), numeric: true),
-                DataColumn(label: Text('Browser'), numeric: true),
-                DataColumn(label: Text('Locked'), numeric: true),
-                DataColumn(label: Text('Offline'), numeric: true),
-                DataColumn(label: Text('Unknown'), numeric: true),
-                DataColumn(label: Text('Tracked'), numeric: true),
-                DataColumn(label: Text('Applications')),
-              ],
-              rows: _summaries
-                  .map(
-                    (summary) => DataRow(
-                      selected: _summaryKey(summary) == _expandedSummaryKey,
-                      onSelectChanged: (_) => _toggleApplicationTable(summary),
-                      cells: <DataCell>[
-                        DataCell(Text(_date(summary.workDate))),
-                        DataCell(Text(summary.deviceLabel)),
-                        DataCell(Text(_duration(summary.activeSeconds))),
-                        DataCell(Text(_duration(summary.idleSeconds))),
-                        DataCell(Text(_duration(summary.inputSeconds))),
-                        DataCell(Text(_duration(summary.browserSeconds))),
-                        DataCell(Text(_duration(summary.lockedSeconds))),
-                        DataCell(Text(_duration(summary.offlineSeconds))),
-                        DataCell(Text(_duration(summary.unknownSeconds))),
-                        DataCell(Text(_duration(summary.trackedSeconds))),
-                        DataCell(
-                          IconButton(
-                            tooltip: _summaryKey(summary) == _expandedSummaryKey
-                                ? 'Hide applications'
-                                : 'Show applications',
-                            onPressed: () => _toggleApplicationTable(summary),
-                            icon: Icon(
-                              _summaryKey(summary) == _expandedSummaryKey
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(growable: false),
+      builder: (context, constraints) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: appTheme.cardBackground,
+          border: Border.all(color: appTheme.tableBorder),
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: _buildActivityTableTheme(table),
             ),
           ),
         ),
@@ -537,6 +751,15 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           headingRowColor: WidgetStatePropertyAll(
             appTheme.tableHeaderBackground,
           ),
+          dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return appTheme.tableRowSelected;
+            }
+            if (states.contains(WidgetState.hovered)) {
+              return appTheme.tableRowHover;
+            }
+            return appTheme.cardBackground;
+          }),
           headingTextStyle: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w700,
             color: appTheme.tableTitleText,
@@ -551,72 +774,124 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Widget _buildApplicationTable(ActivityWatchSummary summary) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          'Applications · ${_date(summary.workDate)} · ${summary.deviceLabel}',
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: AppUiConstants.spacingXs),
-        if (summary.applications.isEmpty)
-          const Text('No foreground application totals.')
-        else
-          _buildActivityTableTheme(
-            DataTable(
-              headingRowHeight: 40,
-              dataRowMinHeight: 40,
-              dataRowMaxHeight: 48,
-              horizontalMargin: AppUiConstants.spacingMd,
-              columnSpacing: AppUiConstants.spacingLg,
-              columns: const <DataColumn>[
-                DataColumn(label: Text('Application')),
-                DataColumn(label: Text('Category')),
-                DataColumn(label: Text('Duration'), numeric: true),
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        border: Border.all(color: appTheme.tableBorder),
+        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(
+                  Icons.apps_outlined,
+                  size: 20,
+                  color: appTheme.tableLinkText,
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Application activity',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingXxs),
+                      Text(
+                        '${_date(summary.workDate)} · ${summary.deviceLabel}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
-              rows: summary.applications
-                  .map(
-                    (application) => DataRow(
-                      cells: <DataCell>[
-                        DataCell(Text(application.name)),
-                        DataCell(Text(application.classification)),
-                        DataCell(Text(_duration(application.seconds))),
-                      ],
-                    ),
-                  )
-                  .toList(growable: false),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            if (summary.applications.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: AppUiConstants.spacingMd,
+                ),
+                child: Text('No application totals for this day.'),
+              )
+            else
+              _buildActivityTableSurface(
+                DataTable(
+                  headingRowHeight: 44,
+                  dataRowMinHeight: 48,
+                  dataRowMaxHeight: 48,
+                  horizontalMargin: AppUiConstants.spacingMd,
+                  columnSpacing: AppUiConstants.spacingLg,
+                  columns: const <DataColumn>[
+                    DataColumn(label: Text('Application')),
+                    DataColumn(label: Text('Category')),
+                    DataColumn(label: Text('Duration'), numeric: true),
+                  ],
+                  rows: summary.applications
+                      .map(
+                        (application) => DataRow(
+                          cells: <DataCell>[
+                            DataCell(Text(application.name)),
+                            DataCell(Text(application.classification)),
+                            DataCell(Text(_duration(application.seconds))),
+                          ],
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSummaryDetails(ActivityWatchSummary summary) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${summary.deviceLabel} · ${_date(summary.workDate)}'),
+        content: SizedBox(
+          width: 760,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _buildSelectedMetrics(summary),
+                const SizedBox(height: AppUiConstants.spacingMd),
+                _buildApplicationTable(summary),
+              ],
             ),
           ),
-      ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
-
-  ActivityWatchSummary? get _selectedSummary {
-    final selectedKey = _expandedSummaryKey;
-    if (selectedKey == null) return null;
-
-    for (final summary in _summaries) {
-      if (_summaryKey(summary) == selectedKey) return summary;
-    }
-    return null;
-  }
-
-  void _toggleApplicationTable(ActivityWatchSummary summary) {
-    final summaryKey = _summaryKey(summary);
-    setState(
-      () => _expandedSummaryKey = _expandedSummaryKey == summaryKey
-          ? null
-          : summaryKey,
-    );
-  }
-
-  static String _summaryKey(ActivityWatchSummary summary) =>
-      '${summary.deviceId}:${_date(summary.workDate)}';
 
   static String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
+
+  static String _shortDate(DateTime value) => '${value.month}/${value.day}';
 
   static String _dateTime(DateTime? value) {
     if (value == null) return 'never';

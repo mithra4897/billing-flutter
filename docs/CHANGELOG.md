@@ -1,5 +1,106 @@
 # Changelog
 
+## 2026-08-10 — Activity Watch employee filter
+
+- Added a super-admin-only employee filter to Recent daily activity.
+- Summary responses now include employee identity so each selected record opens
+  the correct full-details dialog; API viewer scoping remains unchanged.
+
+## 2026-08-10 — Activity Watch focused full details
+
+- Request: Remove the Activity distribution and recent daily activity cards and
+  expose the complete activity report from the dashboard.
+- Implementation: The overview now keeps KPI, trend, and highlight content;
+  its Full details action scrolls to the full-width daily report. Selecting a
+  row shows active, idle, aggregate keyboard/mouse input, browser, lock,
+  offline, unknown, tracked, and classified application totals.
+- Database/API impact: None; no background-process or raw input data is added.
+- Tests: Formatting and the focused Activity Watch dashboard tests passed.
+- Documentation updated: Activity Watch feature record, specification, testing
+  notes, and changelog.
+
+## 2026-08-10 — Activity Watch setup layout and device pagination
+
+- Request: Place Connect a computer and Devices in the same row and show only
+  five device records at a time with pagination for the rest.
+- Specification: Extended the Activity Watch feature record with responsive
+  setup-card and newest-first local-pagination requirements.
+- Implementation: Placed the dashboard first, followed by an equal two-column
+  setup row above the optional pairing and credential cards, with narrow layouts
+  stacking automatically. The Devices card now uses the shared
+  `LocalPageNavigation` at five rows per page and resets to the newest page
+  after status refreshes.
+- Files changed: Activity Watch setup page and feature documentation.
+- Database/API impact: None; the existing newest-first device response is reused.
+- Security impact: None.
+- Tests added or updated: Existing Activity Watch model/dashboard coverage was
+  retained; the pagination is a bounded presentation-only slice over the
+  loaded device list.
+- Tests executed and results: Focused Activity Watch tests and the complete
+  54-test Flutter suite passed. `flutter build web` passed. Analysis reports
+  only two pre-existing unrelated warnings.
+- Documentation updated: Specification, testing notes, and changelog.
+- Known limitations: Final authenticated visual verification remains manual.
+- Follow-up work: None required for this layout change.
+
+## 2026-08-10 — Activity Watch reusable ERP dashboard
+
+- Request: Present Activity Watch in a dashboard layout inspired by the
+  supplied reference and reuse the existing ERP dashboard widget.
+- Specification: Extended
+  [the Activity Watch dashboard specification](activity-watch-summary-table.md)
+  with reusable dashboard, aggregation, trend, distribution, highlights, and
+  detailed-table requirements.
+- Implementation: Reused `ErpModuleDashboard` for a responsive header, date
+  actions, four KPI cards, recent daily activity, active-time trend, activity
+  distribution, and highlights. The complete interactive daily/application
+  table remains below it. A feature-local metrics helper derives all dashboard
+  values from the already-loaded summary collection and limits chart labels to
+  the latest 12 reporting days when necessary.
+- Files changed: Activity Watch page, dashboard metrics helper and tests, plus
+  specification, testing, and changelog documentation.
+- Database/API impact: None; no additional request is made.
+- Security impact: None; only existing privacy-safe aggregate fields are used.
+- Tests added or updated: Added two aggregation tests covering totals,
+  uniqueness, daily grouping/order, and empty input.
+- Tests executed and results: Focused tests passed all 6 tests; the complete
+  Flutter suite passed all 54 tests; `flutter build web` passed. Analysis
+  reports only two pre-existing unrelated warnings.
+- Documentation updated: Specification, feature record, testing notes, and
+  changelog.
+- Known limitations: Final authenticated desktop and narrow-width visual
+  verification remains manual.
+- Follow-up work: None required for the dashboard implementation.
+
+## 2026-08-10 — Activity Watch professional full-width report
+
+- Request: Redesign the full-width Activity table section as a clean,
+  professional desktop report.
+- Specification: Updated
+  [the Activity Watch summary-table specification](activity-watch-summary-table.md)
+  with responsive toolbar, compact-row, table-surface, and application-panel
+  requirements.
+- Implementation: Kept setup and device cards at their readable 900px maximum
+  width while allowing the report to fill the shell content area. Replaced the
+  loose title/filter stack with a responsive report toolbar, removed automatic
+  selection checkboxes, fixed daily rows at 56px, applied shared hover/selected
+  colors, framed both tables, and moved application totals into a distinct
+  details panel with a close action.
+- Files changed: Activity Watch setup page and its specification, testing, and
+  changelog documentation.
+- Database/API impact: None.
+- Security impact: None; consent, collection, and privacy rules are unchanged.
+- Tests added or updated: No new automation was required because the API/model
+  contract is unchanged; existing Activity Watch model coverage was retained.
+- Tests executed and results: Focused Activity Watch tests and the complete
+  52-test Flutter suite passed. `flutter build web` passed. `flutter analyze`
+  reports only two pre-existing unrelated warnings.
+- Documentation updated: Specification, feature record, testing notes, and
+  changelog.
+- Known limitations: Final desktop and narrow-width visual checks remain
+  manual.
+- Follow-up work: None required for this presentation-only change.
+
 ## 2026-08-10 — macOS pairing-file launch race
 
 - Fixed the macOS package launcher exiting during startup before Launch Services

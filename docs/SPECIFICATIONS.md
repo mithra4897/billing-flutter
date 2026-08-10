@@ -531,11 +531,24 @@ Acceptance criteria:
 
 ## Activity Watch summary table
 
-Status: Implementing (2026-08-07)
+Status: Implemented (2026-08-10)
 
-The Activity report presents each returned daily device summary in a compact,
-horizontally scrollable table. Its row exposes date, device, active, idle,
-input, browser, locked, offline, unknown, and tracked durations. An
-Applications action reveals a separate compact application-total table for the
-selected row. Date filtering, loading/error/empty behaviour, the API contract,
-and privacy restrictions are unchanged.
+The Activity report reuses `ErpModuleDashboard` to present KPI cards, an active
+time trend, recent daily activity, and summary highlights from the already-
+loaded report rows. The separate distribution card and duplicate bottom table
+are omitted. Selecting a recent activity record opens a full-details dialog with
+all daily metrics and classified application totals. Input is an aggregate
+keyboard/mouse duration; raw input and background-process data are not part of
+the API contract. No extra API request is introduced; date filtering,
+loading/error/empty behaviour, the API contract, and privacy restrictions are
+unchanged.
+
+Super admins also receive an employee filter on Recent daily activity. The
+filter uses employee identity returned with each summary, while the API remains
+the source of truth for non-super-admin visibility.
+
+The setup area places the Connect a computer and Devices cards side by side on
+wide screens and stacks them on narrow screens below the Activity dashboard.
+Devices are displayed newest first, five per local page, with older records
+available through pagination; refresh, enrollment, and revoke actions reset the
+device page to the newest records.
