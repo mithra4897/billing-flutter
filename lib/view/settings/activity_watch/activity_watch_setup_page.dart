@@ -203,36 +203,22 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     }
   }
 
-  Future<void> _pickDateFilter() async {
-    final selected = await showModalBottomSheet<_ActivityDateFilter>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _ActivityDateFilter.values
-              .map(
-                (filter) => RadioListTile<_ActivityDateFilter>(
-                  value: filter,
-                  groupValue: _dateFilter,
-                  title: Text(_dateFilterLabel(filter)),
-                  onChanged: (value) => Navigator.pop(context, value),
-                ),
-              )
-              .toList(growable: false),
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-
+  Future<void> _applyDateFilter(String value) async {
+    final selected = _ActivityDateFilter.values.byName(value);
     final today = DateUtils.dateOnly(DateTime.now());
     if (selected == _ActivityDateFilter.custom) {
-      final range = await showDateRangePicker(
+      final range = await showDialog<DateTimeRange>(
         context: context,
-        initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
-        firstDate: DateTime(today.year - 5),
-        lastDate: today,
+        builder: (context) => ErpDashboardCustomRangeDialog(
+          initialRange: DateTimeRange(start: _fromDate, end: _toDate),
+          firstDate: DateTime(today.year - 5),
+          lastDate: today,
+        ),
       );
-      if (range == null || !mounted) return;
+      if (range == null || !mounted) {
+        if (mounted) setState(() {});
+        return;
+      }
       setState(() {
         _dateFilter = selected;
         _fromDate = DateUtils.dateOnly(range.start);
@@ -557,15 +543,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       title: 'Activity dashboard',
       subtitle:
           'Privacy-safe device activity from ${_date(_fromDate)} to ${_date(_toDate)}.',
-      actions: <ErpDashboardAction>[
-        ErpDashboardAction(
-          label: _dateFilter == _ActivityDateFilter.custom
-              ? '${_date(_fromDate)} – ${_date(_toDate)}'
-              : _dateFilterLabel(_dateFilter),
-          icon: Icons.date_range_outlined,
-          onPressed: _pickDateFilter,
-        ),
-      ],
+      actions: const <ErpDashboardAction>[],
       stats: const <ErpDashboardStat>[],
       primarySections: _summaries.isEmpty
           ? const <ErpDashboardListSection>[]
@@ -575,6 +553,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 subtitle: 'Select a record to open complete activity details',
                 icon: Icons.history_outlined,
                 maxVisibleItems: 6,
+                filterOptions: _dateFilterOptions(),
+                initialFilterValue: _dateFilter.name,
+                onFilterChanged: _applyDateFilter,
                 secondaryFilterOptions: _isSuperAdmin
                     ? employeeOptions
                     : const <ErpDashboardListFilterOption>[],
@@ -588,6 +569,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                         statusLabel:
                             '${_duration(summary.trackedSeconds)} tracked',
                         statusColor: colors.primary,
+                        filterTags: _ActivityDateFilter.values
+                            .map((filter) => filter.name)
+                            .toList(growable: false),
                         secondaryFilterTags: summary.employeeId == null
                             ? const <String>['unassigned']
                             : <String>['employee:${summary.employeeId}'],
@@ -647,6 +631,16 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       ),
     ];
   }
+
+  List<ErpDashboardListFilterOption> _dateFilterOptions() => _ActivityDateFilter
+      .values
+      .map(
+        (filter) => ErpDashboardListFilterOption(
+          value: filter.name,
+          label: _dateFilterLabel(filter),
+        ),
+      )
+      .toList(growable: false);
 
   Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
     final theme = Theme.of(context);

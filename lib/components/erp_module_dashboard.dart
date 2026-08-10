@@ -94,6 +94,7 @@ class ErpDashboardListSection {
     this.items = const <ErpDashboardListItem>[],
     this.filterOptions = const <ErpDashboardListFilterOption>[],
     this.initialFilterValue = '',
+    this.onFilterChanged,
     this.secondaryFilterOptions = const <ErpDashboardListFilterOption>[],
     this.initialSecondaryFilterValue = '',
     this.maxVisibleItems,
@@ -107,6 +108,7 @@ class ErpDashboardListSection {
   final List<ErpDashboardListItem> items;
   final List<ErpDashboardListFilterOption> filterOptions;
   final String initialFilterValue;
+  final ValueChanged<String>? onFilterChanged;
   final List<ErpDashboardListFilterOption> secondaryFilterOptions;
   final String initialSecondaryFilterValue;
   final int? maxVisibleItems;
@@ -764,6 +766,7 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                             setState(() {
                               _selectedFilter = value;
                             });
+                            section.onFilterChanged?.call(value);
                           },
                         ),
                       if (section.secondaryFilterOptions.isNotEmpty)

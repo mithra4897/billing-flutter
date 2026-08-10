@@ -71,7 +71,7 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
           );
     final selected = await showDialog<DateTimeRange>(
       context: context,
-      builder: (context) => _CustomRangeDialog(
+      builder: (context) => ErpDashboardCustomRangeDialog(
         initialRange: initialRange,
         firstDate: DateTime(now.year - 5, 1, 1),
         lastDate: DateTime(now.year + 1, 12, 31),
@@ -177,8 +177,9 @@ ErpDashboardTrendControlValue _mapTrendControlValue(
   };
 }
 
-class _CustomRangeDialog extends StatefulWidget {
-  const _CustomRangeDialog({
+class ErpDashboardCustomRangeDialog extends StatefulWidget {
+  const ErpDashboardCustomRangeDialog({
+    super.key,
     required this.initialRange,
     required this.firstDate,
     required this.lastDate,
@@ -189,10 +190,11 @@ class _CustomRangeDialog extends StatefulWidget {
   final DateTime lastDate;
 
   @override
-  State<_CustomRangeDialog> createState() => _CustomRangeDialogState();
+  State<ErpDashboardCustomRangeDialog> createState() =>
+      _CustomRangeDialogState();
 }
 
-class _CustomRangeDialogState extends State<_CustomRangeDialog> {
+class _CustomRangeDialogState extends State<ErpDashboardCustomRangeDialog> {
   late final String _controllerTag;
 
   @override
