@@ -71,14 +71,25 @@ class AppSessionService {
     }
     ProjectModuleRefreshController.invalidateRegisteredCache();
 
+    var activityWatchSignaled = false;
     try {
+      // Signal before clearing the authenticated shell so the desktop agent
+      // can finalize and upload the locally saved summary immediately.
+      try {
+        await ActivityWatchServiceControl.signalLogoutIfConfigured();
+        activityWatchSignaled = true;
+      } catch (_) {
+        // Retry once after the API logout below.
+      }
       await _authService.logout();
     } catch (_) {
     } finally {
-      try {
-        await ActivityWatchServiceControl.signalLogoutIfConfigured();
-      } catch (_) {
-        // ERP logout must complete even if the optional machine agent is absent.
+      if (!activityWatchSignaled) {
+        try {
+          await ActivityWatchServiceControl.signalLogoutIfConfigured();
+        } catch (_) {
+          // ERP logout must complete even if the optional machine agent is absent.
+        }
       }
       await clearSession();
     }

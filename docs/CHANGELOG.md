@@ -368,6 +368,14 @@
   indexed bounded outbox batches, idempotent HTTP upload, capped retry,
   logout-triggered flush, graceful shutdown, protected-file secret provider,
   and a native Flutter logout bridge.
+
+## 2026-08-10 — Activity Watch logout persistence
+
+- Logout and service shutdown now drain all pending durable outbox batches,
+  rather than uploading only the first batch.
+- ERP logout finalizes the current session, uploads saved summaries, and
+  immediately starts a new local session so collection continues until the
+  agent/device is shut down.
 - Files changed: `activity-watch-agent/`, Activity Watch service control,
   application logout flow, architecture decisions, specifications, testing,
   operations guide, documentation index, and changelog.

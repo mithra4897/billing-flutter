@@ -304,6 +304,8 @@ func newNativeService(program *serviceProgram, cfg config.Config, configPath str
 		Arguments:   []string{"run", "--config", configPath},
 		Option: service.KeyValue{
 			"Restart":     "on-failure",
+			"KeepAlive":   true,
+			"RunAtLoad":   true,
 			"UserService": true,
 		},
 	})

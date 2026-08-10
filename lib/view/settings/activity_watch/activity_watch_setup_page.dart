@@ -5,6 +5,8 @@ import '../../../core/activity_watch/service/activity_watch_service_control.dart
 import '../../../core/files/external_url.dart';
 import 'activity_watch_dashboard_metrics.dart';
 
+enum _ActivityDateFilter { today, month, year, custom }
+
 class ActivityWatchSetupPage extends StatefulWidget {
   const ActivityWatchSetupPage({super.key, this.embedded = false});
 
@@ -35,6 +37,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   List<ActivityWatchSummary> _summaries = const <ActivityWatchSummary>[];
   late DateTime _fromDate;
   late DateTime _toDate;
+  _ActivityDateFilter _dateFilter = _ActivityDateFilter.month;
   String? _expandedSummaryKey;
 
   @override
@@ -42,7 +45,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     super.initState();
     final today = DateUtils.dateOnly(DateTime.now());
     _toDate = today;
-    _fromDate = today.subtract(const Duration(days: 30));
+    _fromDate = DateTime(today.year, today.month);
     _deviceLabel.text = defaultTargetPlatform == TargetPlatform.macOS
         ? 'Mac desktop'
         : defaultTargetPlatform == TargetPlatform.windows
@@ -82,9 +85,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _isSuperAdmin =
             currentUser?['is_super_admin'] == true ||
             currentUser?['is_super_admin'] == 1;
-        _devices = results[0] as List<ActivityWatchDevice>;
+        _devices = _uniqueDevices(results[0] as List<ActivityWatchDevice>);
         _devicePage = 1;
-        _summaries = summaryPage.items;
+        _summaries = _uniqueSummaries(summaryPage.items);
         _expandedSummaryKey = null;
       });
     } catch (error) {
@@ -200,24 +203,54 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     }
   }
 
-  Future<void> _pickDate({required bool from}) async {
-    final selected = await showDatePicker(
+  Future<void> _pickDateFilter() async {
+    final selected = await showModalBottomSheet<_ActivityDateFilter>(
       context: context,
-      initialDate: from ? _fromDate : _toDate,
-      firstDate: DateUtils.dateOnly(
-        DateTime.now().subtract(const Duration(days: 90)),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _ActivityDateFilter.values
+              .map(
+                (filter) => RadioListTile<_ActivityDateFilter>(
+                  value: filter,
+                  groupValue: _dateFilter,
+                  title: Text(_dateFilterLabel(filter)),
+                  onChanged: (value) => Navigator.pop(context, value),
+                ),
+              )
+              .toList(growable: false),
+        ),
       ),
-      lastDate: DateUtils.dateOnly(DateTime.now()),
     );
     if (selected == null || !mounted) return;
+
+    final today = DateUtils.dateOnly(DateTime.now());
+    if (selected == _ActivityDateFilter.custom) {
+      final range = await showDateRangePicker(
+        context: context,
+        initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+        firstDate: DateTime(today.year - 5),
+        lastDate: today,
+      );
+      if (range == null || !mounted) return;
+      setState(() {
+        _dateFilter = selected;
+        _fromDate = DateUtils.dateOnly(range.start);
+        _toDate = DateUtils.dateOnly(range.end);
+      });
+      await _loadStatus();
+      return;
+    }
+
     setState(() {
-      if (from) {
-        _fromDate = selected;
-        if (_fromDate.isAfter(_toDate)) _toDate = _fromDate;
-      } else {
-        _toDate = selected;
-        if (_toDate.isBefore(_fromDate)) _fromDate = _toDate;
-      }
+      _dateFilter = selected;
+      _toDate = today;
+      _fromDate = switch (selected) {
+        _ActivityDateFilter.today => today,
+        _ActivityDateFilter.month => DateTime(today.year, today.month),
+        _ActivityDateFilter.year => DateTime(today.year),
+        _ActivityDateFilter.custom => _fromDate,
+      };
     });
     await _loadStatus();
   }
@@ -229,31 +262,16 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
-              child: Text(
-                'Activity Watch',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingXl),
           _buildSummaryCard(),
           const SizedBox(height: AppUiConstants.spacingXl),
           Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 900),
+              constraints: const BoxConstraints(maxWidth: 1280),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  _buildEnrollmentAndDevicesRow(),
-                  if (_pairingExpiresAt != null) ...<Widget>[
-                    const SizedBox(height: AppUiConstants.spacingXl),
-                    _buildPairingCard(),
-                  ],
+                  _buildConnectivitySection(),
                   if (_credential != null) ...<Widget>[
                     const SizedBox(height: AppUiConstants.spacingXl),
                     _buildCredentialCard(),
@@ -275,9 +293,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           );
   }
 
-  Widget _buildEnrollmentAndDevicesRow() {
+  Widget _buildConnectivitySection() {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final hasPairing = _pairingExpiresAt != null;
         if (constraints.maxWidth < 760) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,16 +304,46 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               _buildEnrollmentCard(),
               const SizedBox(height: AppUiConstants.spacingXl),
               _buildDevicesCard(),
+              if (hasPairing) ...<Widget>[
+                const SizedBox(height: AppUiConstants.spacingXl),
+                _buildPairingCard(),
+              ],
             ],
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        if (hasPairing && constraints.maxWidth >= 1120) {
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(child: _buildEnrollmentCard()),
+                const SizedBox(width: AppUiConstants.spacingXl),
+                Expanded(child: _buildDevicesCard()),
+                const SizedBox(width: AppUiConstants.spacingXl),
+                Expanded(child: _buildPairingCard()),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Expanded(child: _buildEnrollmentCard()),
-            const SizedBox(width: AppUiConstants.spacingXl),
-            Expanded(child: _buildDevicesCard()),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(child: _buildEnrollmentCard()),
+                  const SizedBox(width: AppUiConstants.spacingXl),
+                  Expanded(child: _buildDevicesCard()),
+                ],
+              ),
+            ),
+            if (hasPairing) ...<Widget>[
+              const SizedBox(height: AppUiConstants.spacingXl),
+              _buildPairingCard(),
+            ],
           ],
         );
       },
@@ -498,7 +547,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   ErpDashboardSnapshot _buildActivityDashboardSnapshot() {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final appTheme = theme.extension<AppThemeExtension>()!;
     final metrics = ActivityWatchDashboardMetrics.fromSummaries(_summaries);
     final dailyTrend = metrics.dailyActive.length <= 12
         ? metrics.dailyActive
@@ -511,48 +559,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           'Privacy-safe device activity from ${_date(_fromDate)} to ${_date(_toDate)}.',
       actions: <ErpDashboardAction>[
         ErpDashboardAction(
-          label: 'From ${_date(_fromDate)}',
-          icon: Icons.calendar_today_outlined,
-          onPressed: () => _pickDate(from: true),
-        ),
-        ErpDashboardAction(
-          label: 'To ${_date(_toDate)}',
-          icon: Icons.event_outlined,
-          onPressed: () => _pickDate(from: false),
+          label: _dateFilter == _ActivityDateFilter.custom
+              ? '${_date(_fromDate)} – ${_date(_toDate)}'
+              : _dateFilterLabel(_dateFilter),
+          icon: Icons.date_range_outlined,
+          onPressed: _pickDateFilter,
         ),
       ],
-      stats: _summaries.isEmpty
-          ? const <ErpDashboardStat>[]
-          : <ErpDashboardStat>[
-              ErpDashboardStat(
-                label: 'Active time',
-                value: _duration(metrics.activeSeconds),
-                helper: 'Focused foreground activity',
-                icon: Icons.bolt_outlined,
-                color: colors.primary,
-              ),
-              ErpDashboardStat(
-                label: 'Idle time',
-                value: _duration(metrics.idleSeconds),
-                helper: 'No recent input activity',
-                icon: Icons.hourglass_empty_outlined,
-                color: colors.tertiary,
-              ),
-              ErpDashboardStat(
-                label: 'Browser time',
-                value: _duration(metrics.browserSeconds),
-                helper: 'Category-only browser usage',
-                icon: Icons.language_outlined,
-                color: colors.secondary,
-              ),
-              ErpDashboardStat(
-                label: 'Tracked time',
-                value: _duration(metrics.trackedSeconds),
-                helper: 'Total reported device duration',
-                icon: Icons.schedule_outlined,
-                color: appTheme.tableLinkText,
-              ),
-            ],
+      stats: const <ErpDashboardStat>[],
       primarySections: _summaries.isEmpty
           ? const <ErpDashboardListSection>[]
           : <ErpDashboardListSection>[
@@ -605,38 +619,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                   .toList(growable: false),
             ),
       distribution: null,
-      highlights: _summaries.isEmpty
-          ? null
-          : ErpDashboardHighlightsCardData(
-              title: 'Highlights',
-              subtitle: 'Additional privacy-safe report totals',
-              entries: <ErpDashboardHighlightEntry>[
-                ErpDashboardHighlightEntry(
-                  label: 'Input activity',
-                  value: _duration(metrics.inputSeconds),
-                  helper: 'Aggregate sampled input time',
-                  color: colors.primary,
-                ),
-                ErpDashboardHighlightEntry(
-                  label: 'Devices',
-                  value: '${metrics.deviceCount}',
-                  helper: 'Devices represented in this report',
-                  color: colors.secondary,
-                ),
-                ErpDashboardHighlightEntry(
-                  label: 'Applications',
-                  value: '${metrics.applicationCount}',
-                  helper: 'Unique foreground application names',
-                  color: colors.tertiary,
-                ),
-                ErpDashboardHighlightEntry(
-                  label: 'Offline time',
-                  value: _duration(metrics.offlineSeconds),
-                  helper: 'Reported disconnected duration',
-                  color: colors.error,
-                ),
-              ],
-            ),
+      highlights: null,
       emptyTitle: 'No activity found',
       emptyMessage:
           'Try a different date range or confirm that a connected device is reporting.',
@@ -951,7 +934,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                     DataColumn(label: Text('Category')),
                     DataColumn(label: Text('Duration'), numeric: true),
                   ],
-                  rows: summary.applications
+                  rows: _uniqueApplications(summary.applications)
                       .map(
                         (application) => DataRow(
                           cells: <DataCell>[
@@ -1044,7 +1027,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                   DataColumn(label: Text('Tab title')),
                   DataColumn(label: Text('Duration'), numeric: true),
                 ],
-                rows: summary.browserTitles
+                rows: _uniqueBrowserTitles(summary.browserTitles)
                     .map(
                       (item) => DataRow(
                         cells: <DataCell>[
@@ -1060,7 +1043,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Widget _buildBackgroundApplicationList(ActivityWatchSummary summary) {
-    final applications = summary.backgroundApplications;
+    final applications = _uniqueBackgroundApplications(
+      summary.backgroundApplications,
+    );
     return _buildDetailListSection(
       icon: Icons.memory_outlined,
       title: 'Background applications',
@@ -1144,10 +1129,103 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   static String _summaryKey(ActivityWatchSummary summary) =>
       '${summary.deviceId}:${_date(summary.workDate)}';
 
+  List<ActivityWatchSummary> _uniqueSummaries(
+    List<ActivityWatchSummary> summaries,
+  ) {
+    final byKey = <String, ActivityWatchSummary>{};
+    for (final summary in summaries) {
+      byKey[_summaryKey(summary)] = summary;
+    }
+    final unique = byKey.values.toList(growable: false);
+    return unique
+      ..sort((left, right) => right.workDate.compareTo(left.workDate));
+  }
+
+  List<ActivityWatchDevice> _uniqueDevices(List<ActivityWatchDevice> devices) {
+    final byKey = <String, ActivityWatchDevice>{};
+    for (final device in devices) {
+      final key =
+          '${device.label.trim().toLowerCase()}|'
+          '${device.platform.trim().toLowerCase()}|${device.connectionStatus}';
+      final previous = byKey[key];
+      if (previous == null ||
+          _deviceDate(device).isAfter(_deviceDate(previous))) {
+        byKey[key] = device;
+      }
+    }
+    final unique = byKey.values.toList(growable: false);
+    unique.sort((left, right) {
+      if (left.isActive != right.isActive) return left.isActive ? -1 : 1;
+      return _deviceDate(right).compareTo(_deviceDate(left));
+    });
+    return unique;
+  }
+
+  static DateTime _deviceDate(ActivityWatchDevice device) =>
+      device.lastSeenAt ?? device.pairedAt ?? device.consentedAt;
+
+  static List<ActivityWatchApplicationTotal> _uniqueApplications(
+    List<ActivityWatchApplicationTotal> applications,
+  ) {
+    final totals = <String, ActivityWatchApplicationTotal>{};
+    for (final application in applications) {
+      final key =
+          '${application.name.trim().toLowerCase()}|'
+          '${application.classification.trim().toLowerCase()}';
+      final previous = totals[key];
+      totals[key] = previous == null
+          ? application
+          : ActivityWatchApplicationTotal(
+              name: previous.name,
+              classification: previous.classification,
+              seconds: previous.seconds + application.seconds,
+            );
+    }
+    return totals.values.toList(growable: false);
+  }
+
+  static List<ActivityWatchBrowserTitleTotal> _uniqueBrowserTitles(
+    List<ActivityWatchBrowserTitleTotal> titles,
+  ) {
+    final totals = <String, ActivityWatchBrowserTitleTotal>{};
+    for (final title in titles) {
+      final key = title.title.trim().toLowerCase();
+      final previous = totals[key];
+      totals[key] = previous == null
+          ? title
+          : ActivityWatchBrowserTitleTotal(
+              title: previous.title,
+              seconds: previous.seconds + title.seconds,
+            );
+    }
+    return totals.values.toList(growable: false);
+  }
+
+  static List<ActivityWatchBackgroundApplication> _uniqueBackgroundApplications(
+    List<ActivityWatchBackgroundApplication> applications,
+  ) {
+    final unique = <String, ActivityWatchBackgroundApplication>{};
+    for (final application in applications) {
+      final key =
+          '${application.name.trim().toLowerCase()}|'
+          '${(application.state ?? '').trim().toLowerCase()}';
+      unique[key] = application;
+    }
+    return unique.values.toList(growable: false);
+  }
+
   static String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
+
+  static String _dateFilterLabel(_ActivityDateFilter filter) =>
+      switch (filter) {
+        _ActivityDateFilter.today => 'Today',
+        _ActivityDateFilter.month => 'This month',
+        _ActivityDateFilter.year => 'This year',
+        _ActivityDateFilter.custom => 'Custom range',
+      };
 
   static String _shortDate(DateTime value) => '${value.month}/${value.day}';
 

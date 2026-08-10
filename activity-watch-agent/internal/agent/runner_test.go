@@ -53,6 +53,18 @@ func TestRunnerFlushesLogoutWithoutStoppingService(t *testing.T) {
 	}
 }
 
+func TestRunnerFlushPendingDrainsEveryBatch(t *testing.T) {
+	flusher := &countingFlusher{counts: []int{3, 2, 0}}
+	runner := NewRunner(nil, flusher, nil, Config{})
+
+	if err := runner.flushPending(context.Background()); err != nil {
+		t.Fatalf("flushPending() error = %v", err)
+	}
+	if flusher.calls != 3 {
+		t.Fatalf("Flush() calls = %d, want 3", flusher.calls)
+	}
+}
+
 type runnerRepository struct {
 	mu     sync.Mutex
 	events []store.SystemEvent
@@ -93,6 +105,17 @@ type runnerFlusher struct {
 func (f *runnerFlusher) Flush(context.Context) (int, error) {
 	f.called <- struct{}{}
 	return 0, nil
+}
+
+type countingFlusher struct {
+	counts []int
+	calls  int
+}
+
+func (f *countingFlusher) Flush(context.Context) (int, error) {
+	count := f.counts[f.calls]
+	f.calls++
+	return count, nil
 }
 
 type runnerControl struct {

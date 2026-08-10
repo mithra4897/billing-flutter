@@ -196,9 +196,15 @@ func (r *Runner) consumeControl(ctx context.Context) error {
 		if err := r.recorder.FinalizeSession(ctx, now, "logout"); err != nil {
 			return err
 		}
-		r.collectionActive = false
+		// A user logout ends the current session, but the service remains alive.
+		// Start a fresh local session so activity continues to be collected and
+		// durably saved until the device/service is actually shut down.
+		if err := r.recorder.StartSession(ctx, r.collection.DeviceID, now); err != nil {
+			return fmt.Errorf("restart collection session after logout: %w", err)
+		}
+		r.collectionActive = true
 	}
-	if _, err := r.flusher.Flush(ctx); err != nil {
+	if err := r.flushPending(ctx); err != nil {
 		return fmt.Errorf("logout synchronization: %w", err)
 	}
 	return nil
@@ -220,10 +226,25 @@ func (r *Runner) shutdown() error {
 	if err := r.record(ctx, "agent-stop", r.now().UTC()); err != nil {
 		firstError = err
 	}
-	if _, err := r.flusher.Flush(ctx); err != nil && firstError == nil {
+	if err := r.flushPending(ctx); err != nil && firstError == nil {
 		firstError = fmt.Errorf("final synchronization: %w", err)
 	}
 	return firstError
+}
+
+// flushPending drains the durable outbox rather than uploading only one batch.
+// This is used at lifecycle boundaries so logout and service shutdown do not
+// leave older locally saved summaries waiting for the next agent start.
+func (r *Runner) flushPending(ctx context.Context) error {
+	for {
+		count, err := r.flusher.Flush(ctx)
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			return nil
+		}
+	}
 }
 
 func (r *Runner) sample(ctx context.Context, at time.Time) {

@@ -12,10 +12,13 @@ rather than stopping the service.
 
 `activity-watch-agent` runs in the enrolled desktop user's session so native
 idle and foreground-application APIs see the correct interactive desktop. The
-service manager starts it when that user signs in. ERP logout closes the local
-collection session, prepares the daily summary, and requests an immediate
-sync. At OS/service shutdown it uses a bounded final summary/flush and then
-closes the encrypted database.
+service manager starts it automatically when that user's desktop session
+loads and keeps it alive until shutdown. ERP logout closes the
+current local collection session, prepares the daily summary, drains every
+pending outbox batch, and then starts a fresh local session so collection
+continues while the service remains alive. At OS/service shutdown it uses a
+bounded final summary/flush (including all pending batches) and then closes
+the encrypted database.
 
 After enrollment, the native Flutter page updates the conventional protected
 credential/configuration files automatically when they exist. It also stores

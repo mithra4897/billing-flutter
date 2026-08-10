@@ -124,10 +124,22 @@ final class ActivityWatchServiceControl {
       _storage.read(key: _executablePathKey),
       _storage.read(key: _configurationPathKey),
     ]);
-    final executablePath = values[0];
-    final configurationPath = values[1];
+    var executablePath = values[0];
+    var configurationPath = values[1];
     if (executablePath == null || configurationPath == null) {
-      return;
+      final root = _defaultServiceRoot();
+      if (root == null) return;
+      executablePath = path.join(
+        root,
+        Platform.isWindows
+            ? 'activity-watch-agent.exe'
+            : 'activity-watch-agent',
+      );
+      configurationPath = path.join(root, 'activity-watch-agent.config.json');
+      if (!await File(executablePath).exists() ||
+          !await File(configurationPath).exists()) {
+        return;
+      }
     }
     if (!path.isAbsolute(executablePath) ||
         !path.isAbsolute(configurationPath)) {
