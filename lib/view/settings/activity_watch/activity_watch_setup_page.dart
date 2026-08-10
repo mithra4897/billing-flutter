@@ -35,6 +35,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   List<ActivityWatchSummary> _summaries = const <ActivityWatchSummary>[];
   late DateTime _fromDate;
   late DateTime _toDate;
+  String? _expandedSummaryKey;
 
   @override
   void initState() {
@@ -84,6 +85,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _devices = results[0] as List<ActivityWatchDevice>;
         _devicePage = 1;
         _summaries = summaryPage.items;
+        _expandedSummaryKey = null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -575,7 +577,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                         secondaryFilterTags: summary.employeeId == null
                             ? const <String>['unassigned']
                             : <String>['employee:${summary.employeeId}'],
-                        onPressed: () => _showSummaryDetails(summary),
+                        onPressed: () => _toggleSummaryDetails(summary),
+                        expandedContent:
+                            _summaryKey(summary) == _expandedSummaryKey
+                            ? _buildExpandedSummaryDetails(summary)
+                            : null,
                       ),
                     )
                     .toList(growable: false),
@@ -662,15 +668,55 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
-    final entries = <(String, String)>[
-      ('Active', _duration(summary.activeSeconds)),
-      ('Idle', _duration(summary.idleSeconds)),
-      ('Keyboard / mouse', _duration(summary.inputSeconds)),
-      ('Browser', _duration(summary.browserSeconds)),
-      ('Locked', _duration(summary.lockedSeconds)),
-      ('Offline', _duration(summary.offlineSeconds)),
-      ('Unknown', _duration(summary.unknownSeconds)),
-      ('Tracked', _duration(summary.trackedSeconds)),
+    final entries = <(String, String, IconData, Color)>[
+      (
+        'Active time',
+        _duration(summary.activeSeconds),
+        Icons.bolt_outlined,
+        theme.colorScheme.primary,
+      ),
+      (
+        'Idle time',
+        _duration(summary.idleSeconds),
+        Icons.hourglass_empty_outlined,
+        theme.colorScheme.tertiary,
+      ),
+      (
+        'Keyboard / mouse',
+        _duration(summary.inputSeconds),
+        Icons.keyboard_alt_outlined,
+        theme.colorScheme.secondary,
+      ),
+      (
+        'Browser time',
+        _duration(summary.browserSeconds),
+        Icons.language_outlined,
+        appTheme.tableLinkText,
+      ),
+      (
+        'Locked time',
+        _duration(summary.lockedSeconds),
+        Icons.lock_outline,
+        theme.colorScheme.error,
+      ),
+      (
+        'Offline time',
+        _duration(summary.offlineSeconds),
+        Icons.cloud_off_outlined,
+        theme.colorScheme.error,
+      ),
+      (
+        'Unknown time',
+        _duration(summary.unknownSeconds),
+        Icons.help_outline,
+        appTheme.mutedText,
+      ),
+      (
+        'Tracked time',
+        _duration(summary.trackedSeconds),
+        Icons.schedule_outlined,
+        appTheme.tableLinkText,
+      ),
     ];
 
     return DecoratedBox(
@@ -703,12 +749,60 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               runSpacing: AppUiConstants.spacingSm,
               children: entries
                   .map(
-                    (entry) => Chip(
-                      label: Text('${entry.$1}: ${entry.$2}'),
-                      visualDensity: VisualDensity.compact,
+                    (entry) => SizedBox(
+                      width: 154,
+                      child: _buildMetricTile(
+                        label: entry.$1,
+                        value: entry.$2,
+                        icon: entry.$3,
+                        color: entry.$4,
+                      ),
                     ),
                   )
                   .toList(growable: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: Border.all(color: appTheme.tableBorder),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: appTheme.tableTitleText,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingXxs),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: appTheme.mutedText,
+              ),
             ),
           ],
         ),
@@ -858,33 +952,61 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     );
   }
 
-  Future<void> _showSummaryDetails(ActivityWatchSummary summary) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('${summary.deviceLabel} · ${_date(summary.workDate)}'),
-        content: SizedBox(
-          width: 760,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+  void _toggleSummaryDetails(ActivityWatchSummary summary) {
+    final key = _summaryKey(summary);
+    setState(() {
+      _expandedSummaryKey = _expandedSummaryKey == key ? null : key;
+    });
+  }
+
+  Widget _buildExpandedSummaryDetails(ActivityWatchSummary summary) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
               children: <Widget>[
-                _buildSelectedMetrics(summary),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                _buildApplicationTable(summary),
+                Icon(
+                  Icons.insights_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                Expanded(
+                  child: Text(
+                    'Full activity details',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  _date(summary.workDate),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).extension<AppThemeExtension>()!.mutedText,
+                  ),
+                ),
               ],
             ),
-          ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            _buildSelectedMetrics(summary),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildApplicationTable(summary),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
+
+  static String _summaryKey(ActivityWatchSummary summary) =>
+      '${summary.deviceId}:${_date(summary.workDate)}';
 
   static String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'

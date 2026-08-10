@@ -61,9 +61,9 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   dashboards and responds from four KPI columns down to one.
 - Dashboard values and the detailed table come from the same loaded summary
   collection and selected date range.
-- Selecting a recent activity record reveals active, idle, aggregate
-  keyboard/mouse input, browser, locked, offline, unknown, tracked, and
-  application totals in the full-details dialog.
+- Selecting a recent activity record expands an inline full-details dashboard
+  with active, idle, aggregate keyboard/mouse input, browser, locked, offline,
+  unknown, tracked, and application totals.
 - Super admins get an employee filter on Recent daily activity and can switch
   between all employees and each employee represented in the report. Other
   users see only the employee scope enforced by the Activity Watch API.

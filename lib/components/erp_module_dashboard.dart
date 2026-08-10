@@ -56,12 +56,14 @@ class ErpDashboardAction {
     required this.icon,
     this.route,
     this.onPressed,
+    this.expandedContent,
   });
 
   final String label;
   final IconData icon;
   final String? route;
   final VoidCallback? onPressed;
+  final Widget? expandedContent;
 }
 
 class ErpDashboardStat {
@@ -131,6 +133,7 @@ class ErpDashboardListItem {
     this.statusColor,
     this.route,
     this.onPressed,
+    this.expandedContent,
     this.filterTags = const <String>[],
     this.secondaryFilterTags = const <String>[],
   });
@@ -142,6 +145,7 @@ class ErpDashboardListItem {
   final Color? statusColor;
   final String? route;
   final VoidCallback? onPressed;
+  final Widget? expandedContent;
   final List<String> filterTags;
   final List<String> secondaryFilterTags;
 }
@@ -791,122 +795,140 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                             ? 0
                             : AppUiConstants.spacingSm,
                       ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(
-                          AppUiConstants.buttonRadius,
-                        ),
-                        onTap: item.onPressed != null || item.route != null
-                            ? () {
-                                if (item.onPressed != null) {
-                                  item.onPressed!();
-                                  return;
-                                }
-                                final navigate = ShellRouteScope.maybeOf(
-                                  context,
-                                );
-                                if (navigate != null) {
-                                  navigate(item.route!);
-                                  return;
-                                }
-                                Navigator.of(context).pushNamed(item.route!);
-                              }
-                            : null,
-                        child: Container(
-                          padding: const EdgeInsets.all(
-                            AppUiConstants.tilePadding,
-                          ),
-                          decoration: BoxDecoration(
-                            color: appTheme.subtleFill.withValues(alpha: 0.42),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          InkWell(
                             borderRadius: BorderRadius.circular(
                               AppUiConstants.buttonRadius,
                             ),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).dividerColor.withValues(alpha: 0.14),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.title,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
+                            onTap: item.onPressed != null || item.route != null
+                                ? () {
+                                    if (item.onPressed != null) {
+                                      item.onPressed!();
+                                      return;
+                                    }
+                                    final navigate = ShellRouteScope.maybeOf(
+                                      context,
+                                    );
+                                    if (navigate != null) {
+                                      navigate(item.route!);
+                                      return;
+                                    }
+                                    Navigator.of(
+                                      context,
+                                    ).pushNamed(item.route!);
+                                  }
+                                : null,
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                AppUiConstants.tilePadding,
+                              ),
+                              decoration: BoxDecoration(
+                                color: appTheme.subtleFill.withValues(
+                                  alpha: 0.42,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppUiConstants.buttonRadius,
+                                ),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).dividerColor.withValues(alpha: 0.14),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(
+                                          height: AppUiConstants.spacingXxs,
+                                        ),
+                                        Text(
+                                          item.subtitle,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: appTheme.mutedText,
+                                              ),
+                                        ),
+                                        if ((item.detail ?? '')
+                                            .trim()
+                                            .isNotEmpty) ...[
+                                          const SizedBox(
+                                            height: AppUiConstants.spacingXxs,
                                           ),
+                                          Text(
+                                            item.detail!,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelMedium
+                                                ?.copyWith(
+                                                  color: appTheme.mutedText,
+                                                ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                    const SizedBox(
-                                      height: AppUiConstants.spacingXxs,
-                                    ),
-                                    Text(
-                                      item.subtitle,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(color: appTheme.mutedText),
-                                    ),
-                                    if ((item.detail ?? '')
-                                        .trim()
-                                        .isNotEmpty) ...[
-                                      const SizedBox(
-                                        height: AppUiConstants.spacingXxs,
+                                  ),
+                                  if ((item.statusLabel ?? '')
+                                      .trim()
+                                      .isNotEmpty)
+                                    Container(
+                                      // Default to the shared status palette when
+                                      // a dashboard item exposes a business status.
+                                      // Explicit colors still win for alerts,
+                                      // priorities, and count badges.
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
                                       ),
-                                      Text(
-                                        item.detail!,
+                                      decoration: BoxDecoration(
+                                        color: _dashboardItemStatusColor(
+                                          item,
+                                          itemColor,
+                                        ).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(
+                                          AppUiConstants.pillRadius,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.statusLabel!,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelMedium
                                             ?.copyWith(
-                                              color: appTheme.mutedText,
+                                              color: _dashboardItemStatusColor(
+                                                item,
+                                                itemColor,
+                                              ),
+                                              fontWeight: FontWeight.w700,
                                             ),
                                       ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              if ((item.statusLabel ?? '').trim().isNotEmpty)
-                                Container(
-                                  // Default to the shared status palette when
-                                  // a dashboard item exposes a business status.
-                                  // Explicit colors still win for alerts,
-                                  // priorities, and count badges.
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _dashboardItemStatusColor(
-                                      item,
-                                      itemColor,
-                                    ).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(
-                                      AppUiConstants.pillRadius,
                                     ),
-                                  ),
-                                  child: Text(
-                                    item.statusLabel!,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelMedium
-                                        ?.copyWith(
-                                          color: _dashboardItemStatusColor(
-                                            item,
-                                            itemColor,
-                                          ),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                            ],
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+                          if (item.expandedContent != null) ...[
+                            const SizedBox(height: AppUiConstants.spacingSm),
+                            item.expandedContent!,
+                          ],
+                        ],
                       ),
                     ),
                   )

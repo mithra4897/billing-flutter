@@ -536,8 +536,8 @@ Status: Implemented (2026-08-10)
 The Activity report reuses `ErpModuleDashboard` to present KPI cards, an active
 time trend, recent daily activity, and summary highlights from the already-
 loaded report rows. The separate distribution card and duplicate bottom table
-are omitted. Selecting a recent activity record opens a full-details dialog with
-all daily metrics and classified application totals. Input is an aggregate
+are omitted. Selecting a recent activity record expands inline with all daily
+metrics and classified application totals. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of
 the API contract. No extra API request is introduced; date filtering,
 loading/error/empty behaviour, the API contract, and privacy restrictions are
