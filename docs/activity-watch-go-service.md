@@ -120,8 +120,7 @@ tested connection then uses encrypted WAL.
 The service records active/idle/locked/unknown duration, overlapping offline
 duration, foreground executable name/category, and bounded process/service name
 inventories. Cross-midnight segments are apportioned to the correct local date.
-It never records
-keystrokes, clipboard data, screenshots, pointer coordinates, window/tab
-titles, URLs, page/form content, or process command lines. Browser activity is
-category-only through the browser executable; raw tab collection is not
-implemented.
+It never records typed keys, click/button values, clipboard data, screenshots,
+pointer coordinates, URLs, page/form content, or process command lines. With
+consent-policy version 2, foreground browser titles and bounded process names
+are encrypted locally and included only in validated daily projections.

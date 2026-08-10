@@ -130,6 +130,34 @@ final class ActivityWatchApplicationTotal {
   }
 }
 
+final class ActivityWatchBrowserTitleTotal {
+  const ActivityWatchBrowserTitleTotal({
+    required this.title,
+    required this.seconds,
+  });
+  final String title;
+  final int seconds;
+
+  factory ActivityWatchBrowserTitleTotal.fromJson(Map<String, dynamic> json) =>
+      ActivityWatchBrowserTitleTotal(
+        title: json['title']?.toString() ?? '',
+        seconds: (json['seconds'] as num?)?.toInt() ?? 0,
+      );
+}
+
+final class ActivityWatchBackgroundApplication {
+  const ActivityWatchBackgroundApplication({required this.name, this.state});
+  final String name;
+  final String? state;
+
+  factory ActivityWatchBackgroundApplication.fromJson(
+    Map<String, dynamic> json,
+  ) => ActivityWatchBackgroundApplication(
+    name: json['name']?.toString() ?? '',
+    state: json['state']?.toString(),
+  );
+}
+
 final class ActivityWatchSummary {
   const ActivityWatchSummary({
     required this.deviceId,
@@ -147,6 +175,12 @@ final class ActivityWatchSummary {
     this.employeeId,
     this.employeeName,
     this.employeeCode,
+    this.keyboardActiveSeconds = 0,
+    this.keyboardIdleSeconds = 0,
+    this.mouseActiveSeconds = 0,
+    this.mouseIdleSeconds = 0,
+    this.browserTitles = const <ActivityWatchBrowserTitleTotal>[],
+    this.backgroundApplications = const <ActivityWatchBackgroundApplication>[],
   });
 
   final String deviceId;
@@ -164,9 +198,17 @@ final class ActivityWatchSummary {
   final int browserSeconds;
   final int trackedSeconds;
   final List<ActivityWatchApplicationTotal> applications;
+  final int keyboardActiveSeconds;
+  final int keyboardIdleSeconds;
+  final int mouseActiveSeconds;
+  final int mouseIdleSeconds;
+  final List<ActivityWatchBrowserTitleTotal> browserTitles;
+  final List<ActivityWatchBackgroundApplication> backgroundApplications;
 
   factory ActivityWatchSummary.fromJson(Map<String, dynamic> json) {
     final applications = json['applications'];
+    final browserTitles = json['browser_titles'];
+    final backgroundApplications = json['background_applications'];
     return ActivityWatchSummary(
       deviceId: json['device_id']?.toString() ?? '',
       deviceLabel: json['device_label']?.toString() ?? '',
@@ -183,6 +225,12 @@ final class ActivityWatchSummary {
       unknownSeconds: (json['unknown_seconds'] as num?)?.toInt() ?? 0,
       inputSeconds: (json['input_seconds'] as num?)?.toInt() ?? 0,
       browserSeconds: (json['browser_seconds'] as num?)?.toInt() ?? 0,
+      keyboardActiveSeconds:
+          (json['keyboard_active_seconds'] as num?)?.toInt() ?? 0,
+      keyboardIdleSeconds:
+          (json['keyboard_idle_seconds'] as num?)?.toInt() ?? 0,
+      mouseActiveSeconds: (json['mouse_active_seconds'] as num?)?.toInt() ?? 0,
+      mouseIdleSeconds: (json['mouse_idle_seconds'] as num?)?.toInt() ?? 0,
       trackedSeconds: (json['tracked_seconds'] as num?)?.toInt() ?? 0,
       applications: applications is List
           ? applications
@@ -194,6 +242,26 @@ final class ActivityWatchSummary {
                 )
                 .toList(growable: false)
           : const <ActivityWatchApplicationTotal>[],
+      browserTitles: browserTitles is List
+          ? browserTitles
+                .whereType<Map>()
+                .map(
+                  (item) => ActivityWatchBrowserTitleTotal.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList(growable: false)
+          : const <ActivityWatchBrowserTitleTotal>[],
+      backgroundApplications: backgroundApplications is List
+          ? backgroundApplications
+                .whereType<Map>()
+                .map(
+                  (item) => ActivityWatchBackgroundApplication.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList(growable: false)
+          : const <ActivityWatchBackgroundApplication>[],
     );
   }
 }

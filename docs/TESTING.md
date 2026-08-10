@@ -194,6 +194,16 @@ been packaged successfully.
   the report, and a selected row shows aggregate keyboard/mouse input alongside
   active, idle, state, and application totals.
 
+## Activity Watch office monitoring detail — 2026-08-10
+
+- Go coverage verifies schema-v3 migration/provisioning, encrypted browser-title
+  aggregation, sampled keyboard/mouse totals, bounded process projection, and
+  existing pairing/synchronization behavior.
+- Focused Flutter coverage verifies schema version 3, typed browser/background
+  summary data, legacy defaults, and dashboard parsing.
+- Manual installed-agent verification remains required for macOS System Events
+  permission and Windows interactive-session foreground/pointer APIs.
+
 ## Activity Watch setup cards and device pagination verification — 2026-08-10
 
 - The setup layout uses a `LayoutBuilder` breakpoint: Connect a computer and

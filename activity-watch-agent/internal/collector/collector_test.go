@@ -33,6 +33,15 @@ func TestClassifyApplicationUsesExecutableNameOnly(t *testing.T) {
 	}
 }
 
+func TestBrowserTitleOnlyAllowsRecognizedBrowser(t *testing.T) {
+	if got := browserTitle("browser", "  ERP Dashboard  "); got != "ERP Dashboard" {
+		t.Fatalf("browser title = %q", got)
+	}
+	if got := browserTitle("development", "Secret editor title"); got != "" {
+		t.Fatalf("non-browser title must be excluded, got %q", got)
+	}
+}
+
 func TestCanonicalItemsDeduplicatesAndSorts(t *testing.T) {
 	items := canonicalItems([]string{"zeta", "Alpha", "alpha", ""}, false)
 	if len(items) != 2 || items[0].Name != "alpha" || items[1].Name != "zeta" {

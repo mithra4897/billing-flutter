@@ -105,7 +105,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         final pairing = await _service.createPairingSession(
           deviceLabel: _deviceLabel.text,
           platform: _platform,
-          consentVersion: 1,
+          consentVersion: 2,
         );
         final downloaded = await saveTextFile(
           suggestedName:
@@ -133,7 +133,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       final enrollment = await _service.enroll(
         deviceLabel: _deviceLabel.text,
         platform: _platform,
-        consentVersion: 1,
+        consentVersion: 2,
       );
       if (!mounted) return;
       setState(() {
@@ -312,7 +312,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
           const Text(
-            'Tracks activity time and app categories. No keys, screen content, URLs, or screenshots are collected.',
+            'Tracks sampled keyboard/mouse time, foreground app and browser titles, and bounded background process names. No keys, clicks, coordinates, URLs, screenshots, clipboard, or page content are collected.',
           ),
           const SizedBox(height: AppUiConstants.spacingLg),
           AppFormTextField(controller: _deviceLabel, labelText: 'Device label'),
@@ -322,7 +322,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             onChanged: _submitting
                 ? null
                 : (value) => setState(() => _consented = value ?? false),
-            title: const Text('I consent to activity-time collection.'),
+            title: const Text('I consent to managed office-device monitoring.'),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -682,10 +682,28 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         theme.colorScheme.tertiary,
       ),
       (
-        'Keyboard / mouse',
-        _duration(summary.inputSeconds),
+        'Keyboard active',
+        _duration(summary.keyboardActiveSeconds),
         Icons.keyboard_alt_outlined,
         theme.colorScheme.secondary,
+      ),
+      (
+        'Keyboard idle',
+        _duration(summary.keyboardIdleSeconds),
+        Icons.keyboard_hide_outlined,
+        appTheme.mutedText,
+      ),
+      (
+        'Mouse active',
+        _duration(summary.mouseActiveSeconds),
+        Icons.mouse_outlined,
+        theme.colorScheme.primary,
+      ),
+      (
+        'Mouse idle',
+        _duration(summary.mouseIdleSeconds),
+        Icons.hourglass_disabled_outlined,
+        appTheme.mutedText,
       ),
       (
         'Browser time',
@@ -738,7 +756,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             ),
             const SizedBox(height: AppUiConstants.spacingXxs),
             Text(
-              'Keyboard and mouse are reported as one aggregate input duration; no raw keystrokes or clicks are collected.',
+              'Sampled activity durations only; no keys, clicks, coordinates, URLs, or screenshots are collected.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: appTheme.mutedText,
               ),
@@ -999,6 +1017,124 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             _buildSelectedMetrics(summary),
             const SizedBox(height: AppUiConstants.spacingMd),
             _buildApplicationTable(summary),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildBrowserTitleTable(summary),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildBackgroundApplicationList(summary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrowserTitleTable(ActivityWatchSummary summary) {
+    return _buildDetailListSection(
+      icon: Icons.tab_outlined,
+      title: 'Browser tab titles',
+      subtitle: 'Foreground browser titles only; URLs are never collected',
+      emptyMessage: 'No browser tab titles reported for this day.',
+      child: summary.browserTitles.isEmpty
+          ? null
+          : _buildActivityTableSurface(
+              DataTable(
+                headingRowHeight: 44,
+                dataRowMinHeight: 44,
+                dataRowMaxHeight: 56,
+                columns: const <DataColumn>[
+                  DataColumn(label: Text('Tab title')),
+                  DataColumn(label: Text('Duration'), numeric: true),
+                ],
+                rows: summary.browserTitles
+                    .map(
+                      (item) => DataRow(
+                        cells: <DataCell>[
+                          DataCell(Text(item.title)),
+                          DataCell(Text(_duration(item.seconds))),
+                        ],
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildBackgroundApplicationList(ActivityWatchSummary summary) {
+    final applications = summary.backgroundApplications;
+    return _buildDetailListSection(
+      icon: Icons.memory_outlined,
+      title: 'Background applications',
+      subtitle: 'Latest bounded process inventory for this device and day',
+      emptyMessage: 'No background application inventory reported.',
+      child: applications.isEmpty
+          ? null
+          : Wrap(
+              spacing: AppUiConstants.spacingXs,
+              runSpacing: AppUiConstants.spacingXs,
+              children: applications
+                  .map(
+                    (item) => Chip(
+                      avatar: const Icon(Icons.circle, size: 9),
+                      label: Text(
+                        (item.state ?? '').trim().isEmpty
+                            ? item.name
+                            : '${item.name} · ${item.state}',
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+    );
+  }
+
+  Widget _buildDetailListSection({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String emptyMessage,
+    required Widget? child,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill,
+        border: Border.all(color: appTheme.tableBorder),
+        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(icon, color: appTheme.tableLinkText),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            child ?? Text(emptyMessage),
           ],
         ),
       ),

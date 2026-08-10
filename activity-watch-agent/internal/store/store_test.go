@@ -29,7 +29,11 @@ func TestOpenSQLCipherUpgradesVersionOneInputMetrics(t *testing.T) {
 	}
 	for _, current := range schemaStatements {
 		legacy := strings.ReplaceAll(current, "\n    input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1)),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    keyboard_detected INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_detected IN (0, 1)),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    mouse_detected INTEGER NOT NULL DEFAULT 0 CHECK (mouse_detected IN (0, 1)),", "")
 		legacy = strings.ReplaceAll(legacy, "\n    input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    keyboard_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_active_seconds >= 0),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    mouse_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (mouse_active_seconds >= 0),", "")
 		legacy = strings.ReplaceAll(legacy, "\n    browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0),", "")
 		if _, err := database.Exec(legacy); err != nil {
 			database.Close()
@@ -50,7 +54,47 @@ func TestOpenSQLCipherUpgradesVersionOneInputMetrics(t *testing.T) {
 	}
 	defer upgraded.Close()
 	var version int
-	if err := upgraded.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil || version != 2 {
+	if err := upgraded.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil || version != 3 {
+		t.Fatalf("schema version = %d, error = %v", version, err)
+	}
+}
+
+func TestOpenSQLCipherUpgradesVersionTwoMonitoringMetrics(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "activity_watch_v2.db")
+	key := make([]byte, 32)
+	for index := range key {
+		key[index] = byte(index + 1)
+	}
+	query := url.Values{}
+	query.Set("_pragma_key", fmt.Sprintf("x'%s'", hex.EncodeToString(key)))
+	database, err := sql.Open("sqlite3", path+"?"+query.Encode())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, current := range schemaStatements {
+		legacy := strings.ReplaceAll(current, "\n    keyboard_detected INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_detected IN (0, 1)),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    mouse_detected INTEGER NOT NULL DEFAULT 0 CHECK (mouse_detected IN (0, 1)),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    keyboard_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_active_seconds >= 0),", "")
+		legacy = strings.ReplaceAll(legacy, "\n    mouse_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (mouse_active_seconds >= 0),", "")
+		if _, err := database.Exec(legacy); err != nil {
+			database.Close()
+			t.Fatal(err)
+		}
+	}
+	if _, err := database.Exec(`PRAGMA user_version = 2`); err != nil {
+		database.Close()
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+	upgraded, err := OpenSQLCipher(context.Background(), path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer upgraded.Close()
+	var version int
+	if err := upgraded.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil || version != 3 {
 		t.Fatalf("schema version = %d, error = %v", version, err)
 	}
 }

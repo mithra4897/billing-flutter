@@ -53,13 +53,13 @@ flowchart LR
   writer and uses the tested encrypted WAL configuration; helpers must not
   open the database directly.
 - Collector: use bounded OS commands/APIs to return idle duration, lock state,
-  foreground executable identity, category, process/service names, and a
-  content-free indication that keyboard or pointer input occurred since the
-  prior sample. Missing capabilities return unknown observations. No input
-  value, click, coordinate, title, URL, or page content crosses this boundary.
-- Store/aggregator: consolidate unchanged state/application/input samples,
-  deduplicate inventory hashes, derive category-only browser duration, generate
-  revisioned daily summaries, and purge synchronized local data after 90 days.
+  foreground executable identity/category, foreground browser title,
+  process/service names, and content-free keyboard/pointer activity signals.
+  Missing capabilities return empty/zero observations. No input value, click,
+  coordinate, URL, screenshot, clipboard, or page content crosses this boundary.
+- Store/aggregator: consolidate state/application/input samples, encrypt browser
+  titles and inventory payloads, produce bounded daily title/process projections,
+  generate revisioned summaries, and purge synchronized data after 90 days.
 - Syncer: select bounded indexed batches, upload encrypted payloads plus their
   approved reporting projection, acknowledge successes, and schedule retries.
 - Secret provider: supply database and device credentials without placing them

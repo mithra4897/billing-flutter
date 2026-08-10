@@ -1,6 +1,6 @@
 package store
 
-// schemaStatements mirrors the version-2 Flutter Activity Watch schema. It is
+// schemaStatements mirrors the version-3 Flutter Activity Watch schema. It is
 // kept in Go because provisioning must run before the Flutter application is
 // available; provision tests verify the resulting database with the shared
 // store verifier.
@@ -33,6 +33,8 @@ var schemaStatements = []string{
     end_monotonic_ms INTEGER, duration_seconds INTEGER CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
     last_input_at_utc TEXT, idle_threshold_seconds INTEGER NOT NULL,
     input_detected INTEGER NOT NULL DEFAULT 0 CHECK (input_detected IN (0, 1)),
+    keyboard_detected INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_detected IN (0, 1)),
+    mouse_detected INTEGER NOT NULL DEFAULT 0 CHECK (mouse_detected IN (0, 1)),
     confidence TEXT NOT NULL DEFAULT 'confirmed' CHECK (confidence IN ('confirmed','inferred','uncertain')),
     created_at_utc TEXT NOT NULL,
     FOREIGN KEY (session_id) REFERENCES device_sessions(id) ON DELETE CASCADE
@@ -83,6 +85,8 @@ var schemaStatements = []string{
     offline_seconds INTEGER NOT NULL DEFAULT 0 CHECK (offline_seconds >= 0),
     unknown_seconds INTEGER NOT NULL DEFAULT 0 CHECK (unknown_seconds >= 0),
     input_seconds INTEGER NOT NULL DEFAULT 0 CHECK (input_seconds >= 0),
+    keyboard_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (keyboard_active_seconds >= 0),
+    mouse_active_seconds INTEGER NOT NULL DEFAULT 0 CHECK (mouse_active_seconds >= 0),
     browser_seconds INTEGER NOT NULL DEFAULT 0 CHECK (browser_seconds >= 0),
     tracked_seconds INTEGER NOT NULL DEFAULT 0 CHECK (tracked_seconds >= 0),
     application_summary_encrypted BLOB, application_summary_nonce BLOB,

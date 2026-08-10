@@ -142,6 +142,13 @@ final class ActivityWatchDatabase {
         for (final statement in ActivityWatchSchema.upgradeVersionOneToTwo) {
           database.execute(statement);
         }
+        for (final statement in ActivityWatchSchema.upgradeVersionTwoToThree) {
+          database.execute(statement);
+        }
+      } else if (currentVersion == 2) {
+        for (final statement in ActivityWatchSchema.upgradeVersionTwoToThree) {
+          database.execute(statement);
+        }
       }
       database.userVersion = ActivityWatchSchema.version;
       database.execute('COMMIT');

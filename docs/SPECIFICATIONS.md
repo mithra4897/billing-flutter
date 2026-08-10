@@ -547,6 +547,38 @@ Super admins also receive an employee filter on Recent daily activity. The
 filter uses employee identity returned with each summary, while the API remains
 the source of truth for non-super-admin visibility.
 
+## Activity Watch office monitoring detail
+
+Status: Approved for implementation (2026-08-10)
+
+Objective: Extend consented office-device monitoring with operational detail
+without collecting input content or screen content.
+
+Requirements:
+
+- Record sampled keyboard-active and mouse-active duration independently when
+  the operating system exposes enough signal. Derive each corresponding idle
+  duration from tracked time. These values are sampled estimates, not event
+  counts.
+- Never record actual keys, typed text, mouse buttons, pointer coordinates,
+  clipboard content, screenshots, or form/page content.
+- Record the active browser window/tab title only while a recognized browser is
+  foreground. Never record or upload URLs.
+- Reuse encrypted local title columns and encrypted process inventory snapshots.
+- Include at most 50 browser-title totals and 100 background process names in a
+  daily summary. Deduplicate names case-insensitively and sort deterministically.
+- Expose the fields through validated summary metadata and render them only in
+  the expanded daily activity dashboard.
+- Existing agents and summaries remain readable with zero/empty defaults.
+
+Acceptance criteria:
+
+- A new agent reports keyboard/mouse active and idle estimates separately.
+- Expanded activity shows browser-title duration totals and the latest bounded
+  background-process inventory for that device/day.
+- Old agents continue syncing and the API accepts summaries without new fields.
+- Employee/API viewer scoping remains unchanged.
+
 The setup area places the Connect a computer and Devices cards side by side on
 wide screens and stacks them on narrow screens below the Activity dashboard.
 Devices are displayed newest first, five per local page, with older records

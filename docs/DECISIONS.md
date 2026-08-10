@@ -1,5 +1,28 @@
 # Architecture decisions
 
+## ADR-0013: Consent-gated office monitoring detail
+
+- Date: 2026-08-10
+- Status: Accepted; supersedes ADR-0012 only for explicitly consented office
+  devices.
+- Context: Administrators need separate sampled keyboard/mouse activity,
+  foreground browser titles, and background process inventory for managed
+  office laptops and desktops.
+- Decision: Collect boolean keyboard/mouse activity signals per sample without
+  event content; encrypt active browser titles locally; reuse encrypted bounded
+  process snapshots; upload only daily duration/name projections. Never collect
+  keys, text, clicks, coordinates, URLs, screenshots, clipboard, or page content.
+- Reason: This supplies operational monitoring while retaining a strict
+  content boundary and existing enrollment/consent gate.
+- Alternatives: Raw hooks/event logs and browser extensions were rejected as
+  unnecessarily invasive; fabricated splits from aggregate input were rejected
+  as inaccurate.
+- Consequences: Values are best-effort sampled estimates and platform
+  permissions may produce zero/empty data. Existing payloads use defaults.
+- Related files: `activity-watch-agent/internal/collector/`,
+  `activity-watch-agent/internal/store/`, Activity Watch API controller and
+  Flutter Activity Watch report.
+
 ## ADR-0012: Permit HTTP only for approved development servers
 
 - Date: 2026-08-10

@@ -17,14 +17,17 @@ import (
 )
 
 type Snapshot struct {
-	State           string
-	IdleFor         time.Duration
-	ApplicationName string
-	ExecutableName  string
-	Classification  string
-	InputDetected   bool
-	NetworkState    string
-	ObservedAt      time.Time
+	State            string
+	IdleFor          time.Duration
+	ApplicationName  string
+	ExecutableName   string
+	Classification   string
+	InputDetected    bool
+	KeyboardDetected bool
+	MouseDetected    bool
+	BrowserTabTitle  string
+	NetworkState     string
+	ObservedAt       time.Time
 }
 
 type InventoryItem struct {
@@ -52,11 +55,13 @@ func (execRunner) Output(ctx context.Context, name string, arguments ...string) 
 }
 
 type OSObserver struct {
-	goos             string
-	runner           commandRunner
-	inputMu          sync.Mutex
-	lastInputAt      time.Time
-	hasInputBaseline bool
+	goos               string
+	runner             commandRunner
+	inputMu            sync.Mutex
+	lastInputAt        time.Time
+	hasInputBaseline   bool
+	lastPointer        string
+	hasPointerBaseline bool
 }
 
 func NewOSObserver() *OSObserver {
@@ -66,7 +71,7 @@ func NewOSObserver() *OSObserver {
 func (o *OSObserver) Sample(ctx context.Context, at time.Time, idleThreshold time.Duration) (Snapshot, error) {
 	idle, idleErr := o.idleDuration(ctx)
 	locked, lockErr := o.locked(ctx)
-	application, appErr := o.foregroundApplication(ctx)
+	application, windowTitle, appErr := o.foregroundApplication(ctx)
 	state := "unknown"
 	switch {
 	case locked:
@@ -77,17 +82,70 @@ func (o *OSObserver) Sample(ctx context.Context, at time.Time, idleThreshold tim
 		state = "active"
 	}
 	executable := filepath.Base(strings.TrimSpace(application))
+	inputDetected := state == "active" && o.detectInput(at.UTC(), idle)
+	mouseDetected := inputDetected && o.detectPointerMovement(ctx)
+	keyboardDetected := inputDetected && !mouseDetected
+	classification := ClassifyApplication(executable)
 	result := Snapshot{
-		State:           state,
-		IdleFor:         idle,
-		ApplicationName: executable,
-		ExecutableName:  executable,
-		Classification:  ClassifyApplication(executable),
-		InputDetected:   state == "active" && o.detectInput(at.UTC(), idle),
-		NetworkState:    networkState(),
-		ObservedAt:      at.UTC(),
+		State:            state,
+		IdleFor:          idle,
+		ApplicationName:  executable,
+		ExecutableName:   executable,
+		Classification:   classification,
+		InputDetected:    inputDetected,
+		KeyboardDetected: keyboardDetected,
+		MouseDetected:    mouseDetected,
+		BrowserTabTitle:  browserTitle(classification, windowTitle),
+		NetworkState:     networkState(),
+		ObservedAt:       at.UTC(),
 	}
 	return result, errors.Join(idleErr, lockErr, appErr)
+}
+
+func browserTitle(classification, title string) string {
+	if classification != "browser" {
+		return ""
+	}
+	return strings.TrimSpace(title)
+}
+
+func (o *OSObserver) detectPointerMovement(ctx context.Context) bool {
+	position, err := o.pointerPosition(ctx)
+	if err != nil || position == "" {
+		return false
+	}
+	moved := o.hasPointerBaseline && position != o.lastPointer
+	o.lastPointer, o.hasPointerBaseline = position, true
+	return moved
+}
+
+func (o *OSObserver) pointerPosition(ctx context.Context) (string, error) {
+	switch o.goos {
+	case "darwin":
+		output, err := o.runner.Output(ctx, "osascript", "-l", "JavaScript", "-e", `ObjC.import('AppKit'); var p=$.NSEvent.mouseLocation; p.x+','+p.y`)
+		return strings.TrimSpace(string(output)), err
+	case "windows":
+		script := `$s='using System;using System.Runtime.InteropServices;public class P{[StructLayout(LayoutKind.Sequential)]public struct PT{public int X;public int Y;}[DllImport("user32.dll")]public static extern bool GetCursorPos(out PT p);}';Add-Type $s;$p=New-Object P+PT;[P]::GetCursorPos([ref]$p)|Out-Null;"$($p.X),$($p.Y)"`
+		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+		return strings.TrimSpace(string(output)), err
+	case "linux":
+		output, err := o.runner.Output(ctx, "xdotool", "getmouselocation", "--shell")
+		if err != nil {
+			return "", err
+		}
+		var x, y string
+		for _, line := range strings.Split(string(output), "\n") {
+			if strings.HasPrefix(line, "X=") {
+				x = strings.TrimPrefix(line, "X=")
+			}
+			if strings.HasPrefix(line, "Y=") {
+				y = strings.TrimPrefix(line, "Y=")
+			}
+		}
+		return x + "," + y, nil
+	default:
+		return "", errors.New("pointer position unavailable")
+	}
 }
 
 // detectInput reports only that input occurred between samples. It never
@@ -181,23 +239,40 @@ func (o *OSObserver) idleDuration(ctx context.Context) (time.Duration, error) {
 	}
 }
 
-func (o *OSObserver) foregroundApplication(ctx context.Context) (string, error) {
+func (o *OSObserver) foregroundApplication(ctx context.Context) (string, string, error) {
 	switch o.goos {
 	case "darwin":
-		output, err := o.runner.Output(ctx, "osascript", "-e", `tell application "System Events" to get name of first application process whose frontmost is true`)
-		return strings.TrimSpace(string(output)), err
+		output, err := o.runner.Output(ctx, "osascript", "-e", `tell application "System Events" to tell first application process whose frontmost is true
+set appName to name
+try
+set windowName to name of front window
+on error
+set windowName to ""
+end try
+return appName & linefeed & windowName
+end tell`)
+		parts := strings.SplitN(strings.TrimSpace(string(output)), "\n", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1], err
+		}
+		return strings.TrimSpace(string(output)), "", err
 	case "windows":
-		script := `$s='using System;using System.Runtime.InteropServices;public class W{[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);}';Add-Type $s;$p=0;[W]::GetWindowThreadProcessId([W]::GetForegroundWindow(),[ref]$p)|Out-Null;(Get-Process -Id $p).ProcessName`
+		script := `$s='using System;using System.Runtime.InteropServices;public class W{[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);}';Add-Type $s;$p=0;[W]::GetWindowThreadProcessId([W]::GetForegroundWindow(),[ref]$p)|Out-Null;$p=Get-Process -Id $p;Write-Output $p.ProcessName;Write-Output $p.MainWindowTitle`
 		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-		return strings.TrimSpace(string(output)), err
+		parts := strings.SplitN(strings.TrimSpace(string(output)), "\n", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1], err
+		}
+		return strings.TrimSpace(string(output)), "", err
 	default:
 		window, err := o.runner.Output(ctx, "xdotool", "getactivewindow", "getwindowpid")
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		pid := strings.TrimSpace(string(window))
 		output, err := o.runner.Output(ctx, "ps", "-p", pid, "-o", "comm=")
-		return strings.TrimSpace(string(output)), err
+		title, _ := o.runner.Output(ctx, "xdotool", "getactivewindow", "getwindowname")
+		return strings.TrimSpace(string(output)), strings.TrimSpace(string(title)), err
 	}
 }
 

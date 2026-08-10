@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-10 — Consent-gated office monitoring detail
+
+- Added sampled keyboard/mouse active and idle estimates, encrypted foreground
+  browser-title totals, and bounded background process inventory.
+- Added local schema version 3 with additive version-1/2 migration, API
+  validation/defaults, typed Flutter models, updated consent wording, and
+  expanded dashboard sections.
+- Existing summaries remain compatible through zero/empty defaults.
+- No typed keys, clicks, coordinates, URLs, screenshots, clipboard, page
+  content, or process command lines are collected.
+- Go agent suite, focused Flutter tests, PHP syntax, formatting, and Flutter
+  analysis were run. Installed Windows/macOS permission checks remain manual.
+
 ## 2026-08-10 — Activity Watch employee filter
 
 - Added a super-admin-only employee filter to Recent daily activity.

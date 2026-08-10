@@ -24,21 +24,32 @@ type ApplicationTotal struct {
 	Seconds        int64  `json:"seconds"`
 }
 
+type BrowserTitleTotal struct {
+	Title   string `json:"title"`
+	Seconds int64  `json:"seconds"`
+}
+
 type DailySummaryPayload struct {
-	WorkDateLocal  string             `json:"work_date_local"`
-	Timezone       string             `json:"timezone"`
-	FirstActiveAt  *string            `json:"first_active_at_utc,omitempty"`
-	LastActiveAt   *string            `json:"last_active_at_utc,omitempty"`
-	ActiveSeconds  int64              `json:"active_seconds"`
-	IdleSeconds    int64              `json:"idle_seconds"`
-	LockedSeconds  int64              `json:"locked_seconds"`
-	OfflineSeconds int64              `json:"offline_seconds"`
-	UnknownSeconds int64              `json:"unknown_seconds"`
-	InputSeconds   int64              `json:"input_seconds"`
-	BrowserSeconds int64              `json:"browser_seconds"`
-	TrackedSeconds int64              `json:"tracked_seconds"`
-	Applications   []ApplicationTotal `json:"applications"`
-	Revision       int                `json:"revision"`
+	WorkDateLocal          string                    `json:"work_date_local"`
+	Timezone               string                    `json:"timezone"`
+	FirstActiveAt          *string                   `json:"first_active_at_utc,omitempty"`
+	LastActiveAt           *string                   `json:"last_active_at_utc,omitempty"`
+	ActiveSeconds          int64                     `json:"active_seconds"`
+	IdleSeconds            int64                     `json:"idle_seconds"`
+	LockedSeconds          int64                     `json:"locked_seconds"`
+	OfflineSeconds         int64                     `json:"offline_seconds"`
+	UnknownSeconds         int64                     `json:"unknown_seconds"`
+	InputSeconds           int64                     `json:"input_seconds"`
+	KeyboardActiveSeconds  int64                     `json:"keyboard_active_seconds"`
+	KeyboardIdleSeconds    int64                     `json:"keyboard_idle_seconds"`
+	MouseActiveSeconds     int64                     `json:"mouse_active_seconds"`
+	MouseIdleSeconds       int64                     `json:"mouse_idle_seconds"`
+	BrowserSeconds         int64                     `json:"browser_seconds"`
+	TrackedSeconds         int64                     `json:"tracked_seconds"`
+	Applications           []ApplicationTotal        `json:"applications"`
+	BrowserTitles          []BrowserTitleTotal       `json:"browser_titles"`
+	BackgroundApplications []collector.InventoryItem `json:"background_applications"`
+	Revision               int                       `json:"revision"`
 }
 
 func (s *SQLCipherStore) StartSession(ctx context.Context, deviceID string, at time.Time) error {
@@ -59,7 +70,7 @@ func (s *SQLCipherStore) StartSession(ctx context.Context, deviceID string, at t
 	now := at.UTC().Format(time.RFC3339Nano)
 	timezone := timezoneName(at)
 	_, offset := at.Zone()
-	consentHash := sha256.Sum256([]byte("activity-watch-consent-v1"))
+	consentHash := sha256.Sum256([]byte("activity-watch-consent-v2"))
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin session: %w", err)
@@ -70,7 +81,7 @@ INSERT INTO local_users (
     id, server_user_id, company_id, device_id, platform, os_user_identity_hash,
     timezone, consent_policy_version, consent_text_hash, consented_at_utc,
     created_at_utc, last_authenticated_at_utc
-) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, ?, ?, ?)
 ON CONFLICT(server_user_id, device_id) DO UPDATE SET
     platform = excluded.platform, os_user_identity_hash = excluded.os_user_identity_hash,
     timezone = excluded.timezone, consent_revoked_at_utc = NULL,
@@ -104,7 +115,10 @@ INSERT INTO device_sessions (
 	s.deviceID = deviceID
 	s.sessionID = sessionID
 	s.activitySegmentID = ""
+	s.activityKeyboardDetected = false
+	s.activityMouseDetected = false
 	s.applicationSegmentID = ""
+	s.applicationTitle = ""
 	return nil
 }
 
@@ -129,7 +143,7 @@ func (s *SQLCipherStore) RecordObservation(ctx context.Context, observation coll
 		return fmt.Errorf("begin activity observation: %w", err)
 	}
 	defer tx.Rollback()
-	if err := s.writeActivitySegment(ctx, tx, state, networkState, observation.InputDetected, at, observation.IdleFor, idleThreshold); err != nil {
+	if err := s.writeActivitySegment(ctx, tx, state, networkState, observation.InputDetected, observation.KeyboardDetected, observation.MouseDetected, at, observation.IdleFor, idleThreshold); err != nil {
 		return err
 	}
 	application := strings.TrimSpace(observation.ExecutableName)
@@ -139,7 +153,7 @@ func (s *SQLCipherStore) RecordObservation(ctx context.Context, observation coll
 	if state != "active" {
 		application = ""
 	}
-	if err := s.writeApplicationSegment(ctx, tx, application, observation.Classification, at); err != nil {
+	if err := s.writeApplicationSegment(ctx, tx, application, observation.Classification, observation.BrowserTabTitle, at); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -148,10 +162,10 @@ func (s *SQLCipherStore) RecordObservation(ctx context.Context, observation coll
 	return nil
 }
 
-func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, state, networkState string, inputDetected bool, at time.Time, idleFor, idleThreshold time.Duration) error {
+func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, state, networkState string, inputDetected, keyboardDetected, mouseDetected bool, at time.Time, idleFor, idleThreshold time.Duration) error {
 	formatted := at.Format(time.RFC3339Nano)
 	lastInput := at.Add(-idleFor).Format(time.RFC3339Nano)
-	if s.activitySegmentID != "" && s.activityState == state && s.activityNetworkState == networkState && s.activityInputDetected == inputDetected {
+	if s.activitySegmentID != "" && s.activityState == state && s.activityNetworkState == networkState && s.activityInputDetected == inputDetected && s.activityKeyboardDetected == keyboardDetected && s.activityMouseDetected == mouseDetected {
 		duration := nonNegativeSeconds(at.Sub(s.activityStartedAt))
 		_, err := tx.ExecContext(ctx, `UPDATE activity_segments SET ended_at_utc = ?, duration_seconds = ?, last_input_at_utc = ? WHERE id = ?`, formatted, duration, lastInput, s.activitySegmentID)
 		return wrapUpdateError("extend activity segment", err)
@@ -169,20 +183,23 @@ func (s *SQLCipherStore) writeActivitySegment(ctx context.Context, tx *sql.Tx, s
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO activity_segments (
     id, session_id, activity_state, network_state, started_at_utc, ended_at_utc,
-    duration_seconds, last_input_at_utc, idle_threshold_seconds, input_detected, created_at_utc
-) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`, id, s.sessionID, state, networkState, formatted, formatted, lastInput, int64(idleThreshold/time.Second), inputDetected, formatted)
+    duration_seconds, last_input_at_utc, idle_threshold_seconds, input_detected,
+    keyboard_detected, mouse_detected, created_at_utc
+) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`, id, s.sessionID, state, networkState, formatted, formatted, lastInput, int64(idleThreshold/time.Second), inputDetected, keyboardDetected, mouseDetected, formatted)
 	if err != nil {
 		return fmt.Errorf("create activity segment: %w", err)
 	}
 	s.activitySegmentID, s.activityState, s.activityStartedAt = id, state, at
 	s.activityNetworkState = networkState
 	s.activityInputDetected = inputDetected
+	s.activityKeyboardDetected = keyboardDetected
+	s.activityMouseDetected = mouseDetected
 	return nil
 }
 
-func (s *SQLCipherStore) writeApplicationSegment(ctx context.Context, tx *sql.Tx, application, classification string, at time.Time) error {
+func (s *SQLCipherStore) writeApplicationSegment(ctx context.Context, tx *sql.Tx, application, classification, title string, at time.Time) error {
 	formatted := at.Format(time.RFC3339Nano)
-	if s.applicationSegmentID != "" && s.applicationName == application && application != "" {
+	if s.applicationSegmentID != "" && s.applicationName == application && s.applicationTitle == title && application != "" {
 		duration := nonNegativeSeconds(at.Sub(s.applicationStartedAt))
 		_, err := tx.ExecContext(ctx, `UPDATE application_segments SET ended_at_utc = ?, duration_seconds = ? WHERE id = ?`, formatted, duration, s.applicationSegmentID)
 		return wrapUpdateError("extend application segment", err)
@@ -194,6 +211,7 @@ func (s *SQLCipherStore) writeApplicationSegment(ctx context.Context, tx *sql.Tx
 		}
 		s.applicationSegmentID = ""
 		s.applicationName = ""
+		s.applicationTitle = ""
 	}
 	if application == "" {
 		return nil
@@ -206,16 +224,25 @@ func (s *SQLCipherStore) writeApplicationSegment(ctx context.Context, tx *sql.Tx
 		return err
 	}
 	fingerprint := sha256.Sum256([]byte(strings.ToLower(application)))
+	var titleCiphertext, titleNonce, titleTag []byte
+	if strings.TrimSpace(title) != "" {
+		titleCiphertext, titleNonce, titleTag, err = encryptPayload(s.payloadKey, []byte(strings.TrimSpace(title)))
+		if err != nil {
+			return err
+		}
+	}
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO application_segments (
     id, session_id, process_fingerprint, process_name, executable_name,
-    classification, started_at_utc, ended_at_utc, duration_seconds, created_at_utc
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`, id, s.sessionID,
-		hex.EncodeToString(fingerprint[:]), application, application, classification, formatted, formatted, formatted)
+    classification, window_title_encrypted, title_nonce, title_tag,
+    started_at_utc, ended_at_utc, duration_seconds, created_at_utc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`, id, s.sessionID,
+		hex.EncodeToString(fingerprint[:]), application, application, classification,
+		titleCiphertext, titleNonce, titleTag, formatted, formatted, formatted)
 	if err != nil {
 		return fmt.Errorf("create application segment: %w", err)
 	}
-	s.applicationSegmentID, s.applicationName, s.applicationStartedAt = id, application, at
+	s.applicationSegmentID, s.applicationName, s.applicationTitle, s.applicationStartedAt = id, application, title, at
 	return nil
 }
 
@@ -309,22 +336,26 @@ func (s *SQLCipherStore) PrepareDailySummary(ctx context.Context, at time.Time) 
 INSERT INTO daily_summaries (
     id, local_user_id, device_id, work_date_local, timezone, policy_version,
     first_active_at_utc, last_active_at_utc, active_seconds, idle_seconds,
-    locked_seconds, offline_seconds, unknown_seconds, input_seconds, browser_seconds,
+    locked_seconds, offline_seconds, unknown_seconds, input_seconds,
+    keyboard_active_seconds, mouse_active_seconds, browser_seconds,
     tracked_seconds, summary_checksum,
     revision, is_finalized, created_at_utc, updated_at_utc
-) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+) VALUES (?, ?, ?, ?, ?, 2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
 ON CONFLICT(local_user_id, device_id, work_date_local) DO UPDATE SET
     first_active_at_utc = excluded.first_active_at_utc,
     last_active_at_utc = excluded.last_active_at_utc,
     active_seconds = excluded.active_seconds, idle_seconds = excluded.idle_seconds,
     locked_seconds = excluded.locked_seconds, offline_seconds = excluded.offline_seconds,
     unknown_seconds = excluded.unknown_seconds, input_seconds = excluded.input_seconds,
+    keyboard_active_seconds = excluded.keyboard_active_seconds,
+    mouse_active_seconds = excluded.mouse_active_seconds,
     browser_seconds = excluded.browser_seconds,
     tracked_seconds = excluded.tracked_seconds, summary_checksum = excluded.summary_checksum,
     revision = excluded.revision, updated_at_utc = excluded.updated_at_utc`,
 		summaryID, s.localUserID, s.deviceID, payload.WorkDateLocal, payload.Timezone,
 		payload.FirstActiveAt, payload.LastActiveAt, payload.ActiveSeconds, payload.IdleSeconds,
 		payload.LockedSeconds, payload.OfflineSeconds, payload.UnknownSeconds, payload.InputSeconds,
+		payload.KeyboardActiveSeconds, payload.MouseActiveSeconds,
 		payload.BrowserSeconds, payload.TrackedSeconds,
 		hex.EncodeToString(checksum[:]), revision, now, now)
 	if err != nil {
@@ -361,7 +392,7 @@ func (s *SQLCipherStore) extendOpenSegments(ctx context.Context, at time.Time) e
 }
 
 func (s *SQLCipherStore) aggregateSummary(ctx context.Context, workDate, timezone string, start, end time.Time) (DailySummaryPayload, string, int, error) {
-	payload := DailySummaryPayload{WorkDateLocal: workDate, Timezone: timezone, Applications: []ApplicationTotal{}}
+	payload := DailySummaryPayload{WorkDateLocal: workDate, Timezone: timezone, Applications: []ApplicationTotal{}, BrowserTitles: []BrowserTitleTotal{}, BackgroundApplications: []collector.InventoryItem{}}
 	startText := start.Format(time.RFC3339Nano)
 	endText := end.Format(time.RFC3339Nano)
 	rows, err := s.db.QueryContext(ctx, `
@@ -432,6 +463,24 @@ WHERE d.local_user_id = ? AND a.input_detected = 1
 		endText, startText).Scan(&payload.InputSeconds); err != nil {
 		return payload, "", 0, fmt.Errorf("aggregate input summary: %w", err)
 	}
+	for column, target := range map[string]*int64{
+		"keyboard_detected": &payload.KeyboardActiveSeconds,
+		"mouse_detected":    &payload.MouseActiveSeconds,
+	} {
+		query := fmt.Sprintf(`SELECT COALESCE(SUM(CAST(MAX(0, ROUND(
+           (MIN(julianday(a.ended_at_utc), julianday(?)) -
+            MAX(julianday(a.started_at_utc), julianday(?))) * 86400
+       )) AS INTEGER)), 0)
+FROM activity_segments a JOIN device_sessions d ON d.id = a.session_id
+WHERE d.local_user_id = ? AND a.%s = 1
+  AND julianday(a.started_at_utc) < julianday(?)
+  AND julianday(a.ended_at_utc) > julianday(?)`, column)
+		if err := s.db.QueryRowContext(ctx, query, endText, startText, s.localUserID, endText, startText).Scan(target); err != nil {
+			return payload, "", 0, fmt.Errorf("aggregate %s summary: %w", column, err)
+		}
+	}
+	payload.KeyboardIdleSeconds = maxInt64(0, payload.TrackedSeconds-payload.KeyboardActiveSeconds)
+	payload.MouseIdleSeconds = maxInt64(0, payload.TrackedSeconds-payload.MouseActiveSeconds)
 	appRows, err := s.db.QueryContext(ctx, `
 SELECT a.executable_name, a.classification,
        COALESCE(SUM(CAST(MAX(0, ROUND(
@@ -459,6 +508,77 @@ GROUP BY executable_name, classification ORDER BY 3 DESC LIMIT 50`, endText, sta
 		}
 	}
 	appRows.Close()
+	titleRows, err := s.db.QueryContext(ctx, `
+SELECT a.window_title_encrypted, a.title_nonce, a.title_tag,
+       CAST(MAX(0, ROUND((MIN(julianday(a.ended_at_utc), julianday(?)) -
+            MAX(julianday(a.started_at_utc), julianday(?))) * 86400)) AS INTEGER)
+FROM application_segments a JOIN device_sessions d ON d.id = a.session_id
+WHERE d.local_user_id = ? AND a.classification = 'browser'
+  AND a.window_title_encrypted IS NOT NULL
+  AND julianday(a.started_at_utc) < julianday(?)
+  AND julianday(a.ended_at_utc) > julianday(?)`, endText, startText, s.localUserID, endText, startText)
+	if err != nil {
+		return payload, "", 0, fmt.Errorf("read browser titles: %w", err)
+	}
+	titleTotals := map[string]int64{}
+	for titleRows.Next() {
+		var ciphertext, nonce, tag []byte
+		var seconds int64
+		if err := titleRows.Scan(&ciphertext, &nonce, &tag, &seconds); err != nil {
+			titleRows.Close()
+			return payload, "", 0, err
+		}
+		plain, err := decryptPayload(s.payloadKey, ciphertext, nonce, tag)
+		if err != nil {
+			titleRows.Close()
+			return payload, "", 0, err
+		}
+		title := strings.TrimSpace(string(plain))
+		if title != "" {
+			titleTotals[title] += seconds
+		}
+	}
+	titleRows.Close()
+	for title, seconds := range titleTotals {
+		payload.BrowserTitles = append(payload.BrowserTitles, BrowserTitleTotal{Title: title, Seconds: seconds})
+	}
+	sort.Slice(payload.BrowserTitles, func(i, j int) bool { return payload.BrowserTitles[i].Seconds > payload.BrowserTitles[j].Seconds })
+	if len(payload.BrowserTitles) > 50 {
+		payload.BrowserTitles = payload.BrowserTitles[:50]
+	}
+	var inventoryCiphertext, inventoryNonce, inventoryTag []byte
+	err = s.db.QueryRowContext(ctx, `SELECT i.payload_encrypted, i.payload_nonce, i.payload_tag
+FROM inventory_snapshots i JOIN device_sessions d ON d.id = i.session_id
+WHERE d.local_user_id = ? AND i.inventory_type = 'processes'
+  AND julianday(i.captured_at_utc) >= julianday(?) AND julianday(i.captured_at_utc) < julianday(?)
+ORDER BY i.captured_at_utc DESC LIMIT 1`, s.localUserID, startText, endText).Scan(&inventoryCiphertext, &inventoryNonce, &inventoryTag)
+	if err == nil {
+		plain, decryptErr := decryptPayload(s.payloadKey, inventoryCiphertext, inventoryNonce, inventoryTag)
+		if decryptErr != nil {
+			return payload, "", 0, decryptErr
+		}
+		var inventory struct {
+			Items []collector.InventoryItem `json:"items"`
+		}
+		if jsonErr := json.Unmarshal(plain, &inventory); jsonErr != nil {
+			return payload, "", 0, jsonErr
+		}
+		foreground := make(map[string]struct{}, len(payload.Applications))
+		for _, application := range payload.Applications {
+			foreground[strings.ToLower(strings.TrimSpace(application.Name))] = struct{}{}
+		}
+		for _, item := range inventory.Items {
+			if _, found := foreground[strings.ToLower(strings.TrimSpace(item.Name))]; found {
+				continue
+			}
+			payload.BackgroundApplications = append(payload.BackgroundApplications, item)
+			if len(payload.BackgroundApplications) == 100 {
+				break
+			}
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return payload, "", 0, err
+	}
 	var summaryID string
 	var revision int
 	err = s.db.QueryRowContext(ctx, `SELECT id, revision FROM daily_summaries WHERE local_user_id = ? AND device_id = ? AND work_date_local = ?`, s.localUserID, s.deviceID, workDate).Scan(&summaryID, &revision)
@@ -469,6 +589,13 @@ GROUP BY executable_name, classification ORDER BY 3 DESC LIMIT 50`, endText, sta
 		revision++
 	}
 	return payload, summaryID, revision, err
+}
+
+func maxInt64(left, right int64) int64 {
+	if left > right {
+		return left
+	}
+	return right
 }
 
 func (s *SQLCipherStore) FinalizeSession(ctx context.Context, at time.Time, reason string) error {

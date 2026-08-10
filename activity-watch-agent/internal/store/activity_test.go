@@ -21,7 +21,7 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	if err := database.StartSession(ctx, "device-1", start); err != nil {
 		t.Fatal(err)
 	}
-	active := collector.Snapshot{State: "active", ExecutableName: "Chrome", Classification: "browser", InputDetected: true, ObservedAt: start}
+	active := collector.Snapshot{State: "active", ExecutableName: "Chrome", Classification: "browser", BrowserTabTitle: "ERP Dashboard", InputDetected: true, KeyboardDetected: true, ObservedAt: start}
 	if err := database.RecordObservation(ctx, active, 5*time.Minute); err != nil {
 		t.Fatal(err)
 	}
@@ -31,6 +31,9 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	}
 	idle := collector.Snapshot{State: "idle", IdleFor: 5 * time.Minute, ObservedAt: start.Add(30 * time.Second)}
 	if err := database.RecordObservation(ctx, idle, 5*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.RecordInventory(ctx, "processes", []collector.InventoryItem{{Name: "backup-agent"}}, start.Add(20*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,6 +70,15 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	}
 	if len(summary.Applications) != 1 || summary.Applications[0].Name != "Chrome" || summary.Applications[0].Seconds != 30 {
 		t.Fatalf("application summary = %#v", summary.Applications)
+	}
+	if summary.KeyboardActiveSeconds != 30 || summary.KeyboardIdleSeconds != 0 {
+		t.Fatalf("keyboard summary = %#v", summary)
+	}
+	if len(summary.BrowserTitles) != 1 || summary.BrowserTitles[0].Title != "ERP Dashboard" || summary.BrowserTitles[0].Seconds != 30 {
+		t.Fatalf("browser title summary = %#v", summary.BrowserTitles)
+	}
+	if len(summary.BackgroundApplications) != 1 || summary.BackgroundApplications[0].Name != "backup-agent" {
+		t.Fatalf("background applications = %#v", summary.BackgroundApplications)
 	}
 }
 
