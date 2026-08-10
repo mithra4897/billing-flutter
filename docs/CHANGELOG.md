@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-10 — macOS pairing-file launch race
+
+- Fixed the macOS package launcher exiting during startup before Launch Services
+  delivered a `.billingawpair` file. The updated package waits for the file
+  event, implements AppKit's `openFile` callback, pairs the device, and reports
+  the result instead of rejecting the document as unsupported.
+- Refresh the copied per-user agent from the installed package before pairing,
+  so package updates apply new agent behavior to an already provisioned Mac.
+- Generate 64-character hexadecimal pairing credentials rather than URL-safe
+  Base64 values, which may contain characters rejected by the server validator.
+- Replace obsolete invalid pairing candidates before exchange so a failed
+  development attempt can be retried without manually editing local files.
+
+## 2026-08-10 — Activity Watch local-network HTTP development exception
+
+- Permit only `http://bill.local/...` and `http://192.168.31.83:8000/...` for
+  development pairing and sync so agents can be tested against the internal
+  pre-TLS server. All other remote HTTP hosts remain blocked; trusted HTTPS is
+  still required before broader deployment. See
+  [the specification](activity-watch-bill-local-http-development.md).
+
 ## 2026-08-07 — Activity Watch summary table
 
 - Replaced the stacked Activity Watch daily-summary cards with a compact,

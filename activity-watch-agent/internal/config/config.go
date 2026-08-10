@@ -242,8 +242,8 @@ func (c Config) Validate() error {
 	if err != nil || parsed.Host == "" {
 		return errors.New("sync.url must be an absolute HTTP(S) URL")
 	}
-	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && isLoopbackHost(parsed.Hostname())) {
-		return errors.New("sync.url must use HTTPS except for loopback development")
+	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && isDevelopmentHTTPHost(parsed.Hostname())) {
+		return errors.New("sync.url must use HTTPS except for approved development hosts")
 	}
 	return nil
 }
@@ -255,6 +255,6 @@ func requireAbsolute(name, value string) error {
 	return nil
 }
 
-func isLoopbackHost(host string) bool {
-	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+func isDevelopmentHTTPHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "bill.local" || host == "192.168.31.83"
 }

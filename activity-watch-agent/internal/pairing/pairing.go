@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -197,23 +197,21 @@ func validateExchange(data exchangeData) error {
 }
 
 func generateCredential() (string, error) {
-	random := make([]byte, 48)
+	random := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, random); err != nil {
 		return "", fmt.Errorf("generate device credential: %w", err)
 	}
-	return base64.RawURLEncoding.EncodeToString(random), nil
+	return hex.EncodeToString(random), nil
 }
 
 func loadOrCreateCandidate(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err == nil {
 		credential := strings.TrimSpace(string(data))
-		if len(credential) != 64 || strings.ContainsAny(credential, "\r\n") {
-			return "", errors.New("stored pairing candidate is invalid")
+		if len(credential) == 64 && isAlphanumeric(credential) {
+			return credential, nil
 		}
-		return credential, nil
-	}
-	if !errors.Is(err, os.ErrNotExist) {
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf("read pairing candidate: %w", err)
 	}
 	credential, err := generateCredential()
@@ -224,6 +222,15 @@ func loadOrCreateCandidate(path string) (string, error) {
 		return "", fmt.Errorf("store pairing candidate: %w", err)
 	}
 	return credential, nil
+}
+
+func isAlphanumeric(value string) bool {
+	for _, character := range value {
+		if !(character >= 'a' && character <= 'z') && !(character >= 'A' && character <= 'Z') && !(character >= '0' && character <= '9') {
+			return false
+		}
+	}
+	return true
 }
 
 func ensureProvisioned(ctx context.Context, cfg config.Config) error {
@@ -277,11 +284,14 @@ func validateRemoteURL(value, field string) error {
 	if err != nil || parsed.Host == "" || parsed.User != nil {
 		return fmt.Errorf("%s must be an absolute HTTP(S) URL without user information", field)
 	}
-	loopback := parsed.Hostname() == "localhost" || parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "::1"
-	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && loopback) {
-		return fmt.Errorf("%s must use HTTPS except for loopback development", field)
+	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && isDevelopmentHTTPHost(parsed.Hostname())) {
+		return fmt.Errorf("%s must use HTTPS except for approved development hosts", field)
 	}
 	return nil
+}
+
+func isDevelopmentHTTPHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "bill.local" || host == "192.168.31.83"
 }
 
 func platformName() string {

@@ -88,6 +88,30 @@ func TestValidateBundleRejectsRemoteHTTP(t *testing.T) {
 	}
 }
 
+func TestValidateBundleAllowsBillLocalDevelopmentHTTP(t *testing.T) {
+	err := validateBundle(Bundle{
+		Version:      1,
+		PairingURL:   "http://bill.local/billing/api/v1/activity-watch/pair",
+		PairingToken: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Platform:     platformName(),
+	})
+	if err != nil {
+		t.Fatalf("validateBundle() error = %v", err)
+	}
+}
+
+func TestValidateBundleAllowsDevelopmentServerIPAddress(t *testing.T) {
+	err := validateBundle(Bundle{
+		Version:      1,
+		PairingURL:   "http://192.168.31.83:8000/api/v1/activity-watch/pair",
+		PairingToken: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Platform:     platformName(),
+	})
+	if err != nil {
+		t.Fatalf("validateBundle() error = %v", err)
+	}
+}
+
 func TestPairingCandidateIsStableAcrossRetries(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "secrets", "candidate")
 	first, err := loadOrCreateCandidate(path)
@@ -100,6 +124,16 @@ func TestPairingCandidateIsStableAcrossRetries(t *testing.T) {
 	}
 	if first != second || len(first) != 64 {
 		t.Fatalf("candidate retry values differ or are invalid: %d/%d", len(first), len(second))
+	}
+}
+
+func TestGenerateCredentialMatchesServerValidation(t *testing.T) {
+	credential, err := generateCredential()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(credential) != 64 || !isAlphanumeric(credential) {
+		t.Fatalf("credential must be 64-character alphanumeric text: %q", credential)
 	}
 }
 

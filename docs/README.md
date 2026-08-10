@@ -38,6 +38,8 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - [Activity Watch local database structure](ACTIVITY_WATCH_LOCAL_DATABASE_STRUCTURE.md) — proposed cross-platform 10-table SQLCipher MVP schema, operating-system capabilities, table purposes, encryption, retention, and recovery rules.
 - [Activity Watch Go desktop service](activity-watch-go-service.md) — build,
   configure, install, and operate the boot-time Windows/macOS/Linux agent.
+- [Activity Watch `bill.local` HTTP development exception](activity-watch-bill-local-http-development.md)
+  — narrowly scoped pre-TLS Windows pairing and upload validation.
 - [Activity Watch summary table](activity-watch-summary-table.md) — show daily
   device metrics in a compact, expandable report table.
 - [Payslip template pre-editing](payslip-template-preedit.md) — edit the company payslip layout using sample data before payroll creation.

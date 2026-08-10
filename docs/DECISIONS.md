@@ -1,5 +1,28 @@
 # Architecture decisions
 
+## ADR-0012: Permit HTTP only for approved development servers
+
+- Date: 2026-08-10
+- Status: Accepted for development only
+- Context: The approved internal development ERP server is on another LAN PC at
+  `http://bill.local` / `http://192.168.31.83:8000`, while the agent normally
+  permits HTTP only for loopback hosts. The team needs to validate installation
+  and pairing before its internal TLS deployment is ready.
+- Decision: Allow HTTP when the parsed hostname is exactly `bill.local` or
+  `192.168.31.83` in the pairing and sync URL validators. Continue rejecting
+  every other remote HTTP hostname.
+- Reason: A hostname-specific exception is the smallest change that permits the
+  required development workflow without turning off remote-HTTP protection
+  generally.
+- Alternatives: Trusted internal HTTPS (required for production); allowing all
+  private-network hosts (rejected as too broad); manually copying credentials
+  (rejected because it bypasses the pairing workflow).
+- Consequences: Pairing tokens and device credentials can be observed on that
+  LAN path. This build is unsuitable for wider deployment and must be replaced
+  by a trusted-HTTPS build.
+- Related files: `activity-watch-agent/internal/config/config.go`,
+  `activity-watch-agent/internal/pairing/pairing.go`.
+
 ## ADR-0011: Pair web employees through a single-use file handled by the agent
 
 - Date: 2026-08-07

@@ -39,8 +39,16 @@ desktop operating systems.
   stored server-side only as a hash, and never included in the pairing file,
   Flutter state, server response, logs, or documentation. Retrying the same
   token with the same credential is idempotent until token expiry.
+- The generated credential is a 64-character hexadecimal value, matching the
+  server's alphanumeric validation. A leftover URL-safe Base64 candidate from
+  an older development build is replaced before exchange.
 - Production pairing URLs require HTTPS. Loopback HTTP remains allowed only for
   local development.
+- During the approved internal development phase, the agent may also accept
+  `http://bill.local/...` and `http://192.168.31.83:8000/...` for pairing and
+  synchronization. No other remote HTTP hostname is permitted. This temporary
+  exception must be removed or superseded by trusted internal HTTPS before
+  wider deployment.
 - Pairing bundles are bounded, versioned, strict-decoded, and removed by the
   handler after a successful setup.
 - Existing direct enrollment remains available for native/developer

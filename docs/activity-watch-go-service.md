@@ -91,6 +91,18 @@ The installer runs `bootstrap` once with collection disabled and registers
 `pair`, which configures and restarts the service. Reinstallation is required
 only for a new computer or OS installation, not for normal ERP login or reboot.
 
+### macOS pairing-file launch behaviour
+
+The macOS document-handler launcher waits briefly after startup before showing
+its standalone installation message. This gives Launch Services time to deliver
+an opened `.billingawpair` file to the handler. It implements AppKit's
+`openFile` callback and returns the pairing result to Launch Services, rather
+than exiting before the file event arrives.
+
+On every package launch, the launcher refreshes the local copied agent from the
+installed application before pairing. This ensures a package update also applies
+new URL-validation and service behavior to an already provisioned machine.
+
 ## Build prerequisites
 
 - Go toolchain;

@@ -68,6 +68,22 @@ func TestValidateRejectsInsecureRemoteEndpoint(t *testing.T) {
 	}
 }
 
+func TestValidateAllowsBillLocalDevelopmentEndpoint(t *testing.T) {
+	cfg := validConfig(t)
+	cfg.Sync.URL = "http://bill.local/billing/api/v1/activity-watch/batches"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestValidateAllowsDevelopmentServerIPAddress(t *testing.T) {
+	cfg := validConfig(t)
+	cfg.Sync.URL = "http://192.168.31.83:8000/api/v1/activity-watch/batches"
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
 func TestValidateRejectsUnboundedBatch(t *testing.T) {
 	cfg := validConfig(t)
 	cfg.Sync.BatchSize = 501

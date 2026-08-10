@@ -56,6 +56,18 @@ Manual verification remains required for Windows service/login packaging,
 macOS launchd, Linux user services, native OS permission prompts, actual OS
 sleep/logout/shutdown, and production HTTPS deployment.
 
+## `bill.local` HTTP development exception — 2026-08-10
+
+- Focused `internal/config` and `internal/pairing` tests passed, including
+  acceptance of `http://bill.local/...`, `http://192.168.31.83:8000/...`, and
+  rejection of another remote HTTP hostname.
+- `go test ./...` and `go vet ./...` passed on macOS.
+- Cross-compiling the Windows agent on macOS could not proceed because the
+  Windows CGO headers/toolchain are unavailable. Build and manually install the
+  Windows release artifact on a Windows build machine before testing pairing.
+- Pairing tests verify generated credentials are 64-character alphanumeric
+  hexadecimal values accepted by the server's exchange validator.
+
 ## Standard commands
 
 Run from `billing-flutter`:
