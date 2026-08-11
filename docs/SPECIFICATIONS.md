@@ -584,3 +584,26 @@ wide screens and stacks them on narrow screens below the Activity dashboard.
 Devices are displayed newest first, five per local page, with older records
 available through pagination; refresh, enrollment, and revoke actions reset the
 device page to the newest records.
+
+## Employee salary component grouped amounts
+
+Status: Approved for implementation (2026-08-11)
+
+Objective: Allow salary component amounts displayed with digit grouping to be
+saved without a false numeric-validation error.
+
+Requirements:
+
+- Salary-component amounts such as `1,000.00` are treated as the numeric value
+  `1000.00` for both client validation and API serialization.
+- Empty, non-numeric, and negative values continue to be rejected where an
+  amount is required.
+- Salary-structure numeric fields use the same parsing rule when serialized so
+  the shared formatted form controls cannot cause a related API mismatch.
+- No API, database, authorization, or payroll-calculation behavior changes.
+
+Acceptance criteria:
+
+- A fixed component with `1,000.00` saves as numeric `1000.0`.
+- A percentage-based component accepts an optional grouped amount.
+- Invalid values and negative values remain invalid.

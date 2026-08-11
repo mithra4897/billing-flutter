@@ -1,5 +1,15 @@
 # Testing
 
+## Employee salary component grouped amounts — 2026-08-11
+
+- `flutter test test/controller/hr/employee_salary_component_order_test.dart`:
+  passed (3 tests), including grouped component and structure amount
+  serialization.
+- `flutter analyze`: completed with three existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; no issue was reported for the
+  salary-component change.
+
 ## Go Activity Watch service
 
 Run from `billing-flutter/activity-watch-agent`:

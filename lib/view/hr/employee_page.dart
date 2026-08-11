@@ -1462,27 +1462,23 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
     final amountText = _componentAmountController.text.trim();
     final percentText = _componentPercentController.text.trim();
+    final amount = Validators.parseFlexibleNumber(amountText);
+    final percentage = Validators.parseFlexibleNumber(percentText);
     if (_componentCalculationBasis == 'fixed') {
-      if (amountText.isEmpty ||
-          double.tryParse(amountText) == null ||
-          (double.tryParse(amountText) ?? 0) < 0) {
+      if (amountText.isEmpty || amount == null || amount < 0) {
         _updateController(
           () => _componentFormError = 'Amount must be a valid number.',
         );
         return;
       }
     } else {
-      if (percentText.isEmpty ||
-          double.tryParse(percentText) == null ||
-          (double.tryParse(percentText) ?? 0) < 0) {
+      if (percentText.isEmpty || percentage == null || percentage < 0) {
         _updateController(
           () => _componentFormError = 'Percentage must be a valid number.',
         );
         return;
       }
-      if (amountText.isNotEmpty &&
-          (double.tryParse(amountText) == null ||
-              (double.tryParse(amountText) ?? 0) < 0)) {
+      if (amountText.isNotEmpty && (amount == null || amount < 0)) {
         _updateController(
           () => _componentFormError = 'Amount must be a valid number.',
         );

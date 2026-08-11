@@ -247,10 +247,10 @@ class EmployeeSalaryStructureDraft {
       id: id,
       employeeId: employeeId,
       effectiveFrom: effectiveFrom,
-      basicSalary: double.tryParse(basicSalary),
-      grossSalary: double.tryParse(grossSalary),
-      netSalary: double.tryParse(netSalary),
-      ctcMonthly: ctc.isEmpty ? null : double.tryParse(ctc),
+      basicSalary: Validators.parseFlexibleNumber(basicSalary),
+      grossSalary: Validators.parseFlexibleNumber(grossSalary),
+      netSalary: Validators.parseFlexibleNumber(netSalary),
+      ctcMonthly: ctc.isEmpty ? null : Validators.parseFlexibleNumber(ctc),
       isActive: isActive,
       components: components
           .map((item) => item.toModel())
@@ -317,11 +317,11 @@ class EmployeeSalaryComponentDraft {
       id: id,
       componentName: componentName,
       componentType: componentType,
-      amount: double.tryParse(amount),
+      amount: Validators.parseFlexibleNumber(amount),
       calculationBasis: calculationBasis,
       percentValue: calculationBasis == 'fixed' || percentage.isEmpty
           ? null
-          : double.tryParse(percentage),
+          : Validators.parseFlexibleNumber(percentage),
       contributionRole: contributionRole,
     );
   }

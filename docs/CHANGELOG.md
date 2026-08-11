@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-11 — Employee salary component grouped amounts
+
+- Request: Fix the false `Amount must be a valid number` error when saving a
+  salary component whose amount is displayed with a thousands separator.
+- Specification: `1,000.00` must validate and serialize as numeric `1000.0`;
+  malformed and negative values remain invalid.
+- Implementation: Reused `Validators.parseFlexibleNumber` for component form
+  validation and salary draft serialization, including salary-structure numeric
+  fields that use the same formatted controls.
+- Files changed: Employee salary page/controller, focused controller test, and
+  frontend documentation.
+- Database/API impact: None; the existing numeric API contract is preserved.
+- Security impact: None.
+- Tests added or updated: Added grouped component and salary-structure
+  serialization coverage.
+- Tests executed and results: Focused Flutter test passed (3 tests); Flutter
+  analysis reported only three pre-existing unrelated warnings.
+- Documentation updated: Specification, testing notes, and changelog.
+- Known limitations: Final authenticated browser save remains a manual check.
+- Follow-up work: None.
+
 ## 2026-08-10 — Consent-gated office monitoring detail
 
 - Added sampled keyboard/mouse active and idle estimates, encrypted foreground
