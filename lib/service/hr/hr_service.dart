@@ -145,6 +145,14 @@ class HrService extends ErpModuleService {
     fromJson: EmployeeModel.fromJson,
   );
 
+  Future<ApiResponse<dynamic>> applySalaryComponentOrderToAll(
+    int employeeId,
+    int salaryStructureId,
+  ) => client.post<dynamic>(
+    '/hr/employees/$employeeId/apply-salary-component-order',
+    body: <String, dynamic>{'salary_structure_id': salaryStructureId},
+  );
+
   Future<ApiResponse<dynamic>> deleteEmployee(int id) =>
       destroy('/hr/employees/$id');
 

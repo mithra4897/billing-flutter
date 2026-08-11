@@ -1603,6 +1603,64 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     await _persistSalaryData('Salary component order updated successfully.');
   }
 
+  Future<void> _applyComponentOrderToAll(
+    EmployeeSalaryStructureDraft structure,
+  ) async {
+    final employeeId = _selectedEmployee?.id;
+    final structureId = structure.id;
+    if (employeeId == null ||
+        structureId == null ||
+        structure.components.isEmpty) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Apply component order to all employees'),
+        content: const Text(
+          'Apply this salary-component order to matching components for every '
+          'employee in this company? Amounts and salary rules will not change. '
+          'Already generated payrolls and payslips will not be changed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Apply to all'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    _updateController(() => _saving = true);
+    try {
+      final response = await _hrService.applySalaryComponentOrderToAll(
+        employeeId,
+        structureId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(response.message)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        _updateController(() => _saving = false);
+      }
+    }
+  }
+
   Future<void> _openCreateDepartmentDialog() async {
     final nameController = TextEditingController();
     var isActive = true;
@@ -2967,6 +3025,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             ),
           ),
         ],
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+          child: AppActionButton(
+            icon: Icons.group_outlined,
+            label: 'Apply order to all employees',
+            filled: false,
+            busy: _saving,
+            onPressed: structure.id == null || structure.components.isEmpty
+                ? null
+                : () => _applyComponentOrderToAll(structure),
+          ),
+        ),
         ReorderableListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

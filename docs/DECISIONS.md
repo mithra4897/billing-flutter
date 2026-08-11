@@ -285,3 +285,26 @@
 - Related files: `activity-watch-agent/internal/collector/`,
   `activity-watch-agent/internal/store/`, Activity Watch API validation, and the
   Flutter Activity Watch summary model/page.
+# ADR-0013: Persist salary-component display order separately from identity
+
+- Date: 2026-08-11
+- Status: Accepted
+- Context: Component ordering had relied on database creation IDs. Applying an
+  order to existing employees by deleting and recreating rows would risk
+  unintended record replacement and makes a company-wide ordering action
+  needlessly disruptive.
+- Decision: Add `sort_order` to employee salary components through a standalone
+  additive `ALTER TABLE` patch, preserve `id` as a legacy tie-breaker, and
+  update only that field when an authorized user applies a source structure's
+  order to the company.
+- Reason: A narrow field update preserves all salary settings and guarantees
+  that existing payroll lines and payslips are not changed.
+- Alternatives considered: Deleting/recreating all salary structures;
+  keeping creation-ID ordering; copying the entire source component set.
+- Consequences: Existing installations must apply one additive SQL patch; no
+  framework migration is introduced. Future payroll uses the explicit order,
+  while existing zero-order rows remain deterministic by ID until they are
+  updated.
+- Related files: `billing-api/doc/sql/alter_employee_salary_component_sort_order.sql`,
+  `billing-api/app/Services/Hr/EmployeeService.php`,
+  `billing-flutter/lib/view/hr/employee_page.dart`.

@@ -1,5 +1,17 @@
 # Testing
 
+## Apply salary-component order to all employees — 2026-08-11
+
+- `flutter test test/controller/hr/employee_salary_component_order_test.dart`:
+  passed (4 tests), including reorder preservation and invalid-index safety.
+- `vendor/bin/phpunit tests/Unit/Hr/EmployeeSalaryComponentOrderServiceTest.php`:
+  passed (1 test, 5 assertions). It covers case-insensitive matching,
+  target-only rows, company isolation, and preservation of a generated
+  payslip record.
+- `flutter analyze`: completed with one pre-existing unrelated warning in
+  `lib/view/crm/crm_followups_page.dart`; no issue was reported for this
+  feature.
+
 ## Employee salary component grouped amounts — 2026-08-11
 
 - `flutter test test/controller/hr/employee_salary_component_order_test.dart`:

@@ -91,6 +91,18 @@ typed data under `lib/model`, API services under `lib/service`, and shared
 infrastructure under `lib/core`. It communicates with the sibling Lumen API
 under `/api/v1` and stores normal ERP session state separately.
 
+### HR salary-component order propagation
+
+The Employee Salary Components tab sends the selected employee and salary
+structure to the authenticated HR API only after confirmation. The API derives
+the component-name order from that saved structure, updates the explicit
+`sort_order` field of matching salary components belonging to employees in the
+same company, and returns the number of affected structures and components.
+Unmatched target components retain their relative order after matched rows.
+Employee and payroll relations load components by `sort_order`, then `id` for
+legacy zero-order rows. Payroll lines and payslips are separate persisted
+records and are deliberately not read or mutated by this operation.
+
 ### Party-code editing flow
 
 The Parties page owns the remote lookup required to find codes already used by

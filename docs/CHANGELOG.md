@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-11 — Apply salary-component order to all employees
+
+- Request: Apply a configured Salary Components order to all employees without
+  changing generated payslips.
+- Specification: Copy ordering by matching component name within the selected
+  employee's company; retain unmatched target rows and all salary values.
+- Implementation: Added a confirmed per-structure action, an authorized API,
+  and explicit persisted component order. Only matching component rows in the
+  selected company are reordered; generated payroll and payslip records are
+  not queried or changed.
+- Database/API impact: Adds explicit component ordering through a standalone
+  additive SQL patch (no framework migration) and an authorized HR apply-order
+  endpoint; generated payroll and payslip records are excluded.
+- Security impact: Uses the existing authenticated `hr.update` permission.
+- Tests: Focused Flutter and PHP tests passed; Flutter analysis reported one
+  pre-existing CRM warning only.
+- Documentation updated: Specification, architecture, ADR, testing notes, and
+  backend contract record.
+
 ## 2026-08-11 — Employee salary component grouped amounts
 
 - Request: Fix the false `Amount must be a valid number` error when saving a

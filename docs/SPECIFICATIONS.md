@@ -607,3 +607,46 @@ Acceptance criteria:
 - A fixed component with `1,000.00` saves as numeric `1000.0`.
 - A percentage-based component accepts an optional grouped amount.
 - Invalid values and negative values remain invalid.
+
+## Apply employee salary-component order to all employees
+
+Status: Implemented (2026-08-11)
+
+Objective: Let an HR user apply the salary-component display order configured
+for one employee salary structure to every employee in the same company,
+without changing any generated payroll or payslip.
+
+Requirements:
+
+- The Salary Components tab provides an explicit, confirmed action for each
+  saved salary structure to apply its current component order to all employees.
+- Only components whose normalized names occur in the source order are moved;
+  components that are not in the source remain after them in their existing
+  relative order. Amounts, calculation rules, contribution roles, and salary
+  structures are not changed.
+- The backend persists the component sequence explicitly and returns ordered
+  components for employee editing and payroll calculation.
+- The action is limited to the selected employee's company and requires the
+  existing `hr.update` permission.
+- Existing payroll lines and generated payslips are never queried, updated, or
+  regenerated. The new order applies only when a future payroll/payslip is
+  generated.
+
+Edge cases and error handling:
+
+- The source salary structure must belong to the selected employee.
+- Empty source structures are rejected.
+- Differences in employees' component lists are allowed; nonmatching rows are
+  retained at the end.
+- The request runs in a transaction; a failure leaves all component ordering
+  unchanged.
+
+Acceptance criteria:
+
+1. A confirmed action applies Basic, HRA, and Allowance ordering from the
+   selected structure to matching components in every salary structure in that
+   company.
+2. A target-only component remains after the matched components.
+3. Existing generated payslips and payroll lines are unchanged.
+4. A new payroll/payslip displays its breakup in the saved applied order.
+5. Users outside the source employee's company cannot be affected.
