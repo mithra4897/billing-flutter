@@ -167,3 +167,14 @@ flowchart LR
   intentionally unrecoverable.
 - Platform permission denial is handled by later capability adapters and must
   be shown to the employee/administrator.
+## Activity Watch USB metadata flow
+
+Consent-v3 Windows agents poll best-effort USB topology and removable-drive
+metadata once per minute. The collector keeps a bounded in-memory snapshot and
+emits only differences after the first baseline scan. The store encrypts each
+`usb-observation` in the existing `system_events` metadata columns and sends it
+through the authenticated outbox. Daily-summary aggregation decrypts the local
+events, keeps at most 50 devices and 200 most-recent file changes, and exposes
+those bounded fields through the existing summary endpoint and expanded Flutter
+details. No file is opened or hashed. The scan is O(D + F) time and O(D + F)
+memory, where F is capped at 5,000 files per scan.

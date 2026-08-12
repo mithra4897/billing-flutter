@@ -66,15 +66,23 @@ internal static class InstallerLauncher
                 Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             };
 
             using (Process process = Process.Start(startInfo))
             {
+                string output = process.StandardOutput.ReadToEnd();
+                string errorOutput = process.StandardError.ReadToEnd();
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
+                    string detail = string.IsNullOrWhiteSpace(errorOutput)
+                        ? output
+                        : errorOutput;
                     throw new InvalidOperationException(
-                        "The installation script failed with exit code " + process.ExitCode + ".");
+                        "The installation script failed with exit code " + process.ExitCode + "." +
+                        (string.IsNullOrWhiteSpace(detail) ? "" : Environment.NewLine + detail.Trim()));
                 }
             }
 

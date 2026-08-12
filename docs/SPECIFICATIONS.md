@@ -477,8 +477,7 @@ encryption, schema versioning, foreign keys, transactions, and automated tests.
 The approved requirements, edge cases, compatibility constraints, acceptance
 criteria, and verification plan are maintained in
 [`party-code-type-sync.md`](party-code-type-sync.md).
-# Privacy-safe input and browser-category duration
-
+# Privacy-safe input and browser-category durationV
 Status: Implementing (2026-08-07)
 
 Objective: Report useful keyboard/mouse interaction and browser-use duration
@@ -582,6 +581,56 @@ Acceptance criteria:
   background-process inventory for that device/day.
 - Old agents continue syncing and the API accepts summaries without new fields.
 - Employee/API viewer scoping remains unchanged.
+
+## Activity Watch USB audit metadata
+
+Status: Approved for implementation (2026-08-12)
+
+Objective: Extend consented Windows Activity Watch monitoring with bounded USB
+device and removable-drive audit metadata without reading file contents.
+
+Requirements:
+
+- USB monitoring starts only for a paired agent whose employee accepted consent
+  policy version 3 or later. Existing version-2 devices continue activity
+  monitoring with USB collection disabled until they are paired again.
+- Report best-effort total and occupied USB port counts, connected USB device
+  name/manufacturer, removable volume label/drive, capacity/free bytes, first
+  observed connection time, last observation time, and observed duration.
+- Report bounded removable-drive file metadata changes as `added` or `deleted`:
+  relative path, file name, extension, byte size when known, and observation
+  time. Do not claim that an added file was copied because a polling observer
+  cannot prove its source.
+- Never read or upload file contents, file hashes, document text, clipboard
+  data, command lines, or deleted-file contents.
+- The Windows scan is bounded to 5,000 files per observation and daily summaries
+  contain at most 200 most-recent file events and 50 devices. A truncation flag
+  tells the UI when the boundary was reached.
+- USB payloads reuse encrypted `system_events` metadata and the existing daily
+  summary/outbox pipeline; no additional local table is introduced.
+- Non-Windows agents and older summaries remain valid with zero/empty USB
+  defaults.
+
+Limitations and error handling:
+
+- USB physical-port counts are best-effort because Windows firmware, hubs, and
+  drivers do not always expose a reliable chassis-port topology.
+- The initial removable-drive scan establishes a baseline and does not report
+  every existing file as newly added. Short-lived changes between scans can be
+  missed; the UI labels the feed as observed changes.
+- A failed or timed-out USB scan does not stop ordinary Activity Watch sampling
+  or synchronization.
+
+Acceptance criteria:
+
+1. A newly paired consent-v3 Windows agent records connected USB/removable
+   device metadata and updates observed duration.
+2. Adding or deleting a file on a removable drive produces metadata-only audit
+   entries without reading the file.
+3. The daily Activity Watch detail shows port counts, connected devices, drive
+   capacity usage, observed durations, file changes, and truncation notices.
+4. Existing consent-v2 devices, agents, and summaries continue to work with USB
+   fields absent or empty.
 
 The setup area places the Connect a computer and Devices cards side by side on
 wide screens and stacks them on narrow screens below the Activity dashboard.

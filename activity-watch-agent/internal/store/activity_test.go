@@ -36,6 +36,14 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	if err := database.RecordInventory(ctx, "processes", []collector.InventoryItem{{Name: "backup-agent"}}, start.Add(20*time.Second)); err != nil {
 		t.Fatal(err)
 	}
+	usbMetadata, _ := json.Marshal(collector.USBObservation{
+		TotalPorts: 4, UsedPorts: 1, ObservedAtUTC: start.Format(time.RFC3339Nano),
+		Devices:    []collector.USBDevice{{Fingerprint: "12345678901234567890123456789012", Name: "USB disk", ConnectedAtUTC: start.Format(time.RFC3339Nano), ObservedAtUTC: start.Format(time.RFC3339Nano), ObservedDurationSeconds: 20, Connected: true}},
+		FileEvents: []collector.USBFileEvent{{Operation: "added", DeviceFingerprint: "12345678901234567890123456789012", DriveLetter: "E:", RelativePath: "report.csv", Name: "report.csv", SizeBytes: 42, ObservedAtUTC: start.Add(20 * time.Second).Format(time.RFC3339Nano)}},
+	})
+	if err := database.RecordSystemEvent(ctx, SystemEvent{Type: "usb-observation", OccurredAt: start.Add(20 * time.Second), Metadata: usbMetadata}); err != nil {
+		t.Fatal(err)
+	}
 
 	var activityCount, applicationCount int
 	if err := database.db.QueryRow("SELECT count(*) FROM activity_segments").Scan(&activityCount); err != nil {
@@ -79,6 +87,9 @@ func TestActivityCollectionConsolidatesAndBuildsSummary(t *testing.T) {
 	}
 	if len(summary.BackgroundApplications) != 1 || summary.BackgroundApplications[0].Name != "backup-agent" {
 		t.Fatalf("background applications = %#v", summary.BackgroundApplications)
+	}
+	if summary.USBTotalPorts != 4 || summary.USBUsedPorts != 1 || len(summary.USBDevices) != 1 || len(summary.USBFileEvents) != 1 {
+		t.Fatalf("USB summary = %#v", summary)
 	}
 }
 

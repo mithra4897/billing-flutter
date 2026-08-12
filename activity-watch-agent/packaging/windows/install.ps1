@@ -4,6 +4,14 @@ $agentPath = Join-Path $installRoot 'activity-watch-agent.exe'
 $configPath = Join-Path $installRoot 'activity-watch-agent.config.json'
 
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
+$runningAgents = @(Get-CimInstance Win32_Process -Filter "Name='activity-watch-agent.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $agentPath, [System.StringComparison]::OrdinalIgnoreCase) })
+foreach ($process in $runningAgents) {
+    Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+}
+if ($runningAgents.Count -gt 0) {
+    Start-Sleep -Milliseconds 500
+}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'activity-watch-agent.exe') -Destination $agentPath -Force
 
 $regExe = Join-Path $env:SystemRoot 'System32\reg.exe'

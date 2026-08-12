@@ -183,12 +183,15 @@ func (p *serviceProgram) Start(service.Service) error {
 		log.Printf("activity-watch service: %s failed: %v", operation, err)
 	})
 	if !p.config.Collection.Disabled && p.config.Sync.Enabled {
+		database.SetConsentVersion(p.config.Collection.ConsentVersion)
 		runner.ConfigureCollection(collector.NewOSObserver(), database, agent.CollectionConfig{
 			DeviceID:                 p.config.Sync.DeviceID,
+			USBEnabled:               p.config.Collection.USBEnabled,
 			SampleInterval:           p.config.Collection.SampleInterval.Duration,
 			IdleThreshold:            p.config.Collection.IdleThreshold.Duration,
 			ProcessInventoryInterval: p.config.Collection.ProcessInventoryInterval.Duration,
 			ServiceInventoryInterval: p.config.Collection.ServiceInventoryInterval.Duration,
+			USBObservationInterval:   p.config.Collection.USBObservationInterval.Duration,
 			SummaryInterval:          p.config.Collection.SummaryInterval.Duration,
 			RetentionDays:            p.config.Collection.RetentionDays,
 		})

@@ -42,6 +42,7 @@ type SystemEvent struct {
 	Type       string
 	OccurredAt time.Time
 	BootID     string
+	Metadata   json.RawMessage
 }
 
 type OutboxItem struct {
@@ -85,6 +86,13 @@ type SQLCipherStore struct {
 	applicationName          string
 	applicationTitle         string
 	applicationStartedAt     time.Time
+	consentVersion           int
+}
+
+func (s *SQLCipherStore) SetConsentVersion(version int) {
+	if version > 0 {
+		s.consentVersion = version
+	}
 }
 
 func OpenSQLCipher(ctx context.Context, path string, key []byte) (*SQLCipherStore, error) {
@@ -255,12 +263,17 @@ func (s *SQLCipherStore) RecordSystemEvent(ctx context.Context, event SystemEven
 		return err
 	}
 	occurredAt := event.OccurredAt.UTC().Format(time.RFC3339Nano)
+	if len(event.Metadata) > 0 && !json.Valid(event.Metadata) {
+		return errors.New("system event metadata must be valid JSON")
+	}
 	payload, err := json.Marshal(struct {
-		EventType  string `json:"event_type"`
-		OccurredAt string `json:"occurred_at_utc"`
+		EventType  string          `json:"event_type"`
+		OccurredAt string          `json:"occurred_at_utc"`
+		USB        json.RawMessage `json:"usb,omitempty"`
 	}{
 		EventType:  event.Type,
 		OccurredAt: occurredAt,
+		USB:        event.Metadata,
 	})
 	if err != nil {
 		return fmt.Errorf("encode system event: %w", err)
@@ -275,10 +288,19 @@ func (s *SQLCipherStore) RecordSystemEvent(ctx context.Context, event SystemEven
 		return fmt.Errorf("begin system event: %w", err)
 	}
 	defer tx.Rollback()
+	var metadataCiphertext, metadataNonce, metadataTag []byte
+	if len(event.Metadata) > 0 {
+		metadataCiphertext, metadataNonce, metadataTag, err = encryptPayload(s.payloadKey, event.Metadata)
+		if err != nil {
+			return fmt.Errorf("encrypt system event metadata: %w", err)
+		}
+	}
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO system_events (
-    id, boot_id, event_type, event_at_utc, created_at_utc
-) VALUES (?, NULLIF(?, ''), ?, ?, ?)`, id, event.BootID, event.Type, occurredAt, occurredAt)
+    id, session_id, boot_id, event_type, event_at_utc, metadata_encrypted,
+    metadata_nonce, metadata_tag, created_at_utc
+) VALUES (?, NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?)`, id, s.sessionID,
+		event.BootID, event.Type, occurredAt, metadataCiphertext, metadataNonce, metadataTag, occurredAt)
 	if err != nil {
 		return fmt.Errorf("record system event: %w", err)
 	}

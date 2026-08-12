@@ -571,3 +571,16 @@
   integration, and native packaging verification outside macOS remain outside
   this change.
 - Follow-up work: Add authorized Activity Watch runtime and platform adapters.
+## 2026-08-12 - Consent-gated USB audit metadata
+
+- Added bounded Windows USB/removable-drive collection for consent-v3 pairings,
+  including best-effort port counts, device/volume/storage/duration metadata,
+  and observed added/deleted file metadata without reading file contents.
+- Reused encrypted system events and daily summaries, preserving the approved
+  ten-table local schema and backward-compatible empty defaults.
+- Added API validation and expanded Activity Watch USB details with truncation
+  messaging.
+- The Windows installer now stops only the existing agent at its known install
+  path before replacing it, allowing connected devices to upgrade cleanly.
+- Removed the non-running scheduled-task stop command that could make upgrades
+  exit with code 1, and surfaced PowerShell diagnostics in installer failures.

@@ -49,6 +49,11 @@ type DailySummaryPayload struct {
 	Applications           []ApplicationTotal        `json:"applications"`
 	BrowserTitles          []BrowserTitleTotal       `json:"browser_titles"`
 	BackgroundApplications []collector.InventoryItem `json:"background_applications"`
+	USBTotalPorts          int                       `json:"usb_total_ports"`
+	USBUsedPorts           int                       `json:"usb_used_ports"`
+	USBDevices             []collector.USBDevice     `json:"usb_devices"`
+	USBFileEvents          []collector.USBFileEvent  `json:"usb_file_events"`
+	USBFilesTruncated      bool                      `json:"usb_files_truncated"`
 	Revision               int                       `json:"revision"`
 }
 
@@ -70,7 +75,11 @@ func (s *SQLCipherStore) StartSession(ctx context.Context, deviceID string, at t
 	now := at.UTC().Format(time.RFC3339Nano)
 	timezone := timezoneName(at)
 	_, offset := at.Zone()
-	consentHash := sha256.Sum256([]byte("activity-watch-consent-v2"))
+	consentVersion := s.consentVersion
+	if consentVersion < 1 {
+		consentVersion = 2
+	}
+	consentHash := sha256.Sum256([]byte(fmt.Sprintf("activity-watch-consent-v%d", consentVersion)))
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin session: %w", err)
@@ -81,13 +90,13 @@ INSERT INTO local_users (
     id, server_user_id, company_id, device_id, platform, os_user_identity_hash,
     timezone, consent_policy_version, consent_text_hash, consented_at_utc,
     created_at_utc, last_authenticated_at_utc
-) VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(server_user_id, device_id) DO UPDATE SET
     platform = excluded.platform, os_user_identity_hash = excluded.os_user_identity_hash,
     timezone = excluded.timezone, consent_revoked_at_utc = NULL,
     last_authenticated_at_utc = excluded.last_authenticated_at_utc`,
 		localUserID, deviceID, "device-scope", deviceID, platformName(),
-		hex.EncodeToString(identityHash[:]), timezone, hex.EncodeToString(consentHash[:]), now, now, now)
+		hex.EncodeToString(identityHash[:]), timezone, consentVersion, hex.EncodeToString(consentHash[:]), now, now, now)
 	if err != nil {
 		return fmt.Errorf("upsert local collection identity: %w", err)
 	}
@@ -103,8 +112,8 @@ INSERT INTO device_sessions (
     id, local_user_id, boot_id, started_at_utc, start_monotonic_ms,
     start_reason, agent_version, policy_version, timezone,
     timezone_offset_minutes, is_finalized, created_at_utc
-) VALUES (?, ?, ?, ?, 0, 'agent-start', '1', 1, ?, ?, 0, ?)`,
-		sessionID, localUserID, sessionID, now, timezone, offset/60, now)
+) VALUES (?, ?, ?, ?, 0, 'agent-start', '1', ?, ?, ?, 0, ?)`,
+		sessionID, localUserID, sessionID, now, consentVersion, timezone, offset/60, now)
 	if err != nil {
 		return fmt.Errorf("create device session: %w", err)
 	}
@@ -340,7 +349,7 @@ INSERT INTO daily_summaries (
     keyboard_active_seconds, mouse_active_seconds, browser_seconds,
     tracked_seconds, summary_checksum,
     revision, is_finalized, created_at_utc, updated_at_utc
-) VALUES (?, ?, ?, ?, ?, 2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
 ON CONFLICT(local_user_id, device_id, work_date_local) DO UPDATE SET
     first_active_at_utc = excluded.first_active_at_utc,
     last_active_at_utc = excluded.last_active_at_utc,
@@ -352,7 +361,7 @@ ON CONFLICT(local_user_id, device_id, work_date_local) DO UPDATE SET
     browser_seconds = excluded.browser_seconds,
     tracked_seconds = excluded.tracked_seconds, summary_checksum = excluded.summary_checksum,
     revision = excluded.revision, updated_at_utc = excluded.updated_at_utc`,
-		summaryID, s.localUserID, s.deviceID, payload.WorkDateLocal, payload.Timezone,
+		summaryID, s.localUserID, s.deviceID, payload.WorkDateLocal, payload.Timezone, max(s.consentVersion, 2),
 		payload.FirstActiveAt, payload.LastActiveAt, payload.ActiveSeconds, payload.IdleSeconds,
 		payload.LockedSeconds, payload.OfflineSeconds, payload.UnknownSeconds, payload.InputSeconds,
 		payload.KeyboardActiveSeconds, payload.MouseActiveSeconds,
@@ -392,7 +401,7 @@ func (s *SQLCipherStore) extendOpenSegments(ctx context.Context, at time.Time) e
 }
 
 func (s *SQLCipherStore) aggregateSummary(ctx context.Context, workDate, timezone string, start, end time.Time) (DailySummaryPayload, string, int, error) {
-	payload := DailySummaryPayload{WorkDateLocal: workDate, Timezone: timezone, Applications: []ApplicationTotal{}, BrowserTitles: []BrowserTitleTotal{}, BackgroundApplications: []collector.InventoryItem{}}
+	payload := DailySummaryPayload{WorkDateLocal: workDate, Timezone: timezone, Applications: []ApplicationTotal{}, BrowserTitles: []BrowserTitleTotal{}, BackgroundApplications: []collector.InventoryItem{}, USBDevices: []collector.USBDevice{}, USBFileEvents: []collector.USBFileEvent{}}
 	startText := start.Format(time.RFC3339Nano)
 	endText := end.Format(time.RFC3339Nano)
 	rows, err := s.db.QueryContext(ctx, `
@@ -579,6 +588,9 @@ ORDER BY i.captured_at_utc DESC LIMIT 1`, s.localUserID, startText, endText).Sca
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return payload, "", 0, err
 	}
+	if err := s.aggregateUSB(ctx, &payload, startText, endText); err != nil {
+		return payload, "", 0, err
+	}
 	var summaryID string
 	var revision int
 	err = s.db.QueryRowContext(ctx, `SELECT id, revision FROM daily_summaries WHERE local_user_id = ? AND device_id = ? AND work_date_local = ?`, s.localUserID, s.deviceID, workDate).Scan(&summaryID, &revision)
@@ -589,6 +601,60 @@ ORDER BY i.captured_at_utc DESC LIMIT 1`, s.localUserID, startText, endText).Sca
 		revision++
 	}
 	return payload, summaryID, revision, err
+}
+
+func (s *SQLCipherStore) aggregateUSB(ctx context.Context, payload *DailySummaryPayload, startText, endText string) error {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT e.metadata_encrypted, e.metadata_nonce, e.metadata_tag
+FROM system_events e JOIN device_sessions d ON d.id = e.session_id
+WHERE d.local_user_id = ? AND e.event_type = 'usb-observation'
+  AND julianday(e.event_at_utc) >= julianday(?) AND julianday(e.event_at_utc) < julianday(?)
+ORDER BY e.event_at_utc`, s.localUserID, startText, endText)
+	if err != nil {
+		return fmt.Errorf("read USB observations: %w", err)
+	}
+	defer rows.Close()
+	devices := map[string]collector.USBDevice{}
+	for rows.Next() {
+		var ciphertext, nonce, tag []byte
+		if err := rows.Scan(&ciphertext, &nonce, &tag); err != nil {
+			return err
+		}
+		plain, err := decryptPayload(s.payloadKey, ciphertext, nonce, tag)
+		if err != nil {
+			return fmt.Errorf("decrypt USB observation: %w", err)
+		}
+		var observation collector.USBObservation
+		if err := json.Unmarshal(plain, &observation); err != nil {
+			return fmt.Errorf("decode USB observation: %w", err)
+		}
+		payload.USBTotalPorts = observation.TotalPorts
+		payload.USBUsedPorts = observation.UsedPorts
+		payload.USBFilesTruncated = payload.USBFilesTruncated || observation.FilesTruncated
+		for _, device := range observation.Devices {
+			devices[device.Fingerprint] = device
+		}
+		payload.USBFileEvents = append(payload.USBFileEvents, observation.FileEvents...)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, device := range devices {
+		payload.USBDevices = append(payload.USBDevices, device)
+	}
+	sort.Slice(payload.USBDevices, func(i, j int) bool { return payload.USBDevices[i].Name < payload.USBDevices[j].Name })
+	if len(payload.USBDevices) > 50 {
+		payload.USBDevices = payload.USBDevices[:50]
+		payload.USBFilesTruncated = true
+	}
+	sort.Slice(payload.USBFileEvents, func(i, j int) bool {
+		return payload.USBFileEvents[i].ObservedAtUTC > payload.USBFileEvents[j].ObservedAtUTC
+	})
+	if len(payload.USBFileEvents) > 200 {
+		payload.USBFileEvents = payload.USBFileEvents[:200]
+		payload.USBFilesTruncated = true
+	}
+	return nil
 }
 
 func maxInt64(left, right int64) int64 {

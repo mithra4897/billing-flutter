@@ -45,9 +45,10 @@ type exchangeResponse struct {
 }
 
 type exchangeData struct {
-	DeviceID      string `json:"device_id"`
-	BatchURL      string `json:"batch_url"`
-	RetentionDays int    `json:"retention_days"`
+	DeviceID       string `json:"device_id"`
+	BatchURL       string `json:"batch_url"`
+	RetentionDays  int    `json:"retention_days"`
+	ConsentVersion int    `json:"consent_version"`
 }
 
 func Apply(ctx context.Context, bundlePath, configPath string, client *http.Client) (Result, error) {
@@ -90,6 +91,8 @@ func Apply(ctx context.Context, bundlePath, configPath string, client *http.Clie
 	cfg.Sync.DeviceID = paired.DeviceID
 	cfg.Sync.URL = paired.BatchURL
 	cfg.Collection.Disabled = false
+	cfg.Collection.USBEnabled = paired.ConsentVersion >= 3
+	cfg.Collection.ConsentVersion = paired.ConsentVersion
 	if paired.RetentionDays > 0 {
 		cfg.Collection.RetentionDays = paired.RetentionDays
 	}
@@ -192,6 +195,9 @@ func validateExchange(data exchangeData) error {
 	}
 	if data.RetentionDays < 1 || data.RetentionDays > 365 {
 		return errors.New("pairing response contains invalid retention_days")
+	}
+	if data.ConsentVersion < 1 {
+		return errors.New("pairing response contains invalid consent_version")
 	}
 	return validateRemoteURL(data.BatchURL, "batch_url")
 }

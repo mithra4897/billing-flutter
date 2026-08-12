@@ -108,7 +108,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         final pairing = await _service.createPairingSession(
           deviceLabel: _deviceLabel.text,
           platform: _platform,
-          consentVersion: 2,
+          consentVersion: 3,
         );
         final downloaded = await saveTextFile(
           suggestedName:
@@ -136,7 +136,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       final enrollment = await _service.enroll(
         deviceLabel: _deviceLabel.text,
         platform: _platform,
-        consentVersion: 2,
+        consentVersion: 3,
       );
       if (!mounted) return;
       setState(() {
@@ -353,7 +353,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             onChanged: _submitting
                 ? null
                 : (value) => setState(() => _consented = value ?? false),
-            title: const Text('I consent to managed office-device monitoring.'),
+            title: const Text(
+              'I consent to managed office-device monitoring, including USB device and removable-file metadata.',
+            ),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -1001,6 +1003,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             _buildBrowserTitleTable(summary),
             const SizedBox(height: AppUiConstants.spacingMd),
             _buildBackgroundApplicationList(summary),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildUsbDetails(summary),
           ],
         ),
       ),
@@ -1068,6 +1072,128 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                   .toList(growable: false),
             ),
     );
+  }
+
+  Widget _buildUsbDetails(ActivityWatchSummary summary) {
+    final hasData =
+        summary.usbTotalPorts > 0 ||
+        summary.usbUsedPorts > 0 ||
+        summary.usbDevices.isNotEmpty ||
+        summary.usbFileEvents.isNotEmpty;
+    return _buildDetailListSection(
+      icon: Icons.usb_outlined,
+      title: 'USB activity',
+      subtitle:
+          'Best-effort port status and observed removable-file metadata; file contents are never collected',
+      emptyMessage: 'No USB metadata reported for this day.',
+      child: !hasData
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  '${summary.usbUsedPorts} used / ${summary.usbTotalPorts} total ports',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (summary.usbDevices.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  _buildActivityTableSurface(
+                    DataTable(
+                      columns: const <DataColumn>[
+                        DataColumn(label: Text('Device')),
+                        DataColumn(label: Text('Drive')),
+                        DataColumn(label: Text('Storage')),
+                        DataColumn(label: Text('Observed')),
+                      ],
+                      rows: summary.usbDevices
+                          .map(
+                            (device) => DataRow(
+                              cells: <DataCell>[
+                                DataCell(
+                                  Text(
+                                    '${device.name} · ${device.connected ? 'Connected' : 'Disconnected'}',
+                                  ),
+                                ),
+                                DataCell(Text(device.driveLetter ?? '—')),
+                                DataCell(
+                                  Text(
+                                    device.capacityBytes <= 0
+                                        ? '—'
+                                        : '${_bytes(device.capacityBytes - device.freeBytes)} / ${_bytes(device.capacityBytes)}',
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    _duration(
+                                      device.observedDurationSeconds,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ],
+                if (summary.usbFileEvents.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Text(
+                    'Observed file changes',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  _buildActivityTableSurface(
+                    DataTable(
+                      columns: const <DataColumn>[
+                        DataColumn(label: Text('Action')),
+                        DataColumn(label: Text('File')),
+                        DataColumn(label: Text('Drive')),
+                        DataColumn(label: Text('Size'), numeric: true),
+                      ],
+                      rows: summary.usbFileEvents
+                          .map(
+                            (event) => DataRow(
+                              cells: <DataCell>[
+                                DataCell(Text(event.operation)),
+                                DataCell(
+                                  Tooltip(
+                                    message: event.relativePath,
+                                    child: Text(event.name),
+                                  ),
+                                ),
+                                DataCell(Text(event.driveLetter)),
+                                DataCell(
+                                  Text(
+                                    event.sizeBytes > 0
+                                        ? _bytes(event.sizeBytes)
+                                        : '—',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ],
+                if (summary.usbFilesTruncated) ...<Widget>[
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  const Text(
+                    'Some USB file metadata was omitted because the safety limit was reached.',
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+
+  String _bytes(int value) {
+    if (value < 1024) return '$value B';
+    final kib = value / 1024;
+    if (kib < 1024) return '${kib.toStringAsFixed(1)} KB';
+    final mib = kib / 1024;
+    if (mib < 1024) return '${mib.toStringAsFixed(1)} MB';
+    return '${(mib / 1024).toStringAsFixed(1)} GB';
   }
 
   Widget _buildDetailListSection({

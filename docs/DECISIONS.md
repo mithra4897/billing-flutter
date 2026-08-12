@@ -330,3 +330,31 @@
 - Related files: `billing-api/doc/sql/alter_employee_salary_component_sort_order.sql`,
   `billing-api/app/Services/Hr/EmployeeService.php`,
   `billing-flutter/lib/view/hr/employee_page.dart`.
+
+# ADR-0015: Store bounded USB audit data as encrypted system events
+
+- Date: 2026-08-12
+- Status: Accepted
+- Context: USB device and removable-drive auditing adds sensitive file-system
+  metadata, but Activity Watch already has an approved ten-table encrypted
+  schema and an authenticated system-event/outbox path.
+- Decision: Gate USB collection behind consent policy version 3, poll Windows
+  USB/removable-drive metadata at a bounded interval, store observations in the
+  encrypted metadata columns of `system_events`, and derive bounded USB fields
+  for the existing daily-summary payload. File contents and hashes are never
+  read. Added files are not described as copied because their source is not
+  knowable from snapshot differences.
+- Reason: Reusing encrypted system events preserves the compact schema,
+  offline durability, retry/idempotency behavior, and backward-compatible API
+  summary contract while keeping privacy limits explicit.
+- Alternatives considered: A new USB table family; reading the NTFS USN journal
+  with elevated privileges; continuous recursive file-system watchers; treating
+  every newly observed file as a proven copy.
+- Consequences: Scans are O(D + F) time and O(D + F) memory for D devices and F
+  removable-drive files, with F capped at 5,000. Firmware-derived port counts
+  and polling-derived file events are best-effort, and rapid changes between
+  observations can be missed. Existing version-2 pairings must be renewed to
+  enable this expanded collection scope.
+- Related files: `activity-watch-agent/internal/collector/`,
+  `activity-watch-agent/internal/store/`, Activity Watch API validation, and the
+  Flutter Activity Watch summary details.

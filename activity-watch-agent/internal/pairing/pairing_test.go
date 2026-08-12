@@ -34,7 +34,7 @@ func TestApplyPairsProvisionsAndWritesProtectedFiles(t *testing.T) {
 			StatusCode: http.StatusOK,
 			Header:     make(http.Header),
 			Body: io.NopCloser(strings.NewReader(
-				`{"success":true,"message":"paired","data":{"device_id":"device-1","batch_url":"http://127.0.0.1/batches","retention_days":90}}`,
+				`{"success":true,"message":"paired","data":{"device_id":"device-1","batch_url":"http://127.0.0.1/batches","retention_days":90,"consent_version":3}}`,
 			)),
 		}, nil
 	})}
@@ -64,6 +64,9 @@ func TestApplyPairsProvisionsAndWritesProtectedFiles(t *testing.T) {
 	}
 	if !loaded.Sync.Enabled || loaded.Sync.DeviceID != "device-1" || loaded.Collection.Disabled {
 		t.Fatalf("paired config = %#v", loaded)
+	}
+	if !loaded.Collection.USBEnabled {
+		t.Fatal("consent version 3 must enable USB metadata collection")
 	}
 	stored, err := os.ReadFile(cfg.Sync.CredentialFile)
 	if err != nil || string(stored) != exchangedCredential {

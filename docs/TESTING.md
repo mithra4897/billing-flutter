@@ -261,3 +261,15 @@ been packaged successfully.
   `lib/view/crm/crm_followups_page.dart`.
 - Manual browser verification remains for confirming the exact breakpoint and
   pagination interaction in the authenticated desktop and narrow layouts.
+## Activity Watch USB audit checks
+
+- `go test ./...` covers baseline behavior, added-file detection, hashed device
+  identity, encrypted system-event persistence, daily aggregation, consent-v3
+  pairing enablement, and old-summary defaults.
+- Verify on Windows with a newly paired consent-v3 device: connect a removable
+  drive, wait one scan interval, add and delete a test file, then expand that
+  day's Activity Watch row. Confirm port/device/storage/duration metadata and
+  observed `added`/`deleted` rows appear, while no file content is present.
+- Confirm a consent-v2 configuration keeps `usb_enabled` false.
+- Large-drive verification must confirm the 5,000-file scan and 200-event daily
+  caps set the truncation notice rather than growing the payload without bound.

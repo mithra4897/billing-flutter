@@ -160,6 +160,83 @@ final class ActivityWatchBackgroundApplication {
   );
 }
 
+final class ActivityWatchUsbDevice {
+  const ActivityWatchUsbDevice({
+    required this.fingerprint,
+    required this.name,
+    required this.connectedAt,
+    required this.observedDurationSeconds,
+    this.manufacturer,
+    this.driveLetter,
+    this.volumeLabel,
+    this.capacityBytes = 0,
+    this.freeBytes = 0,
+    this.connected = false,
+  });
+
+  final String fingerprint;
+  final String name;
+  final String? manufacturer;
+  final String? driveLetter;
+  final String? volumeLabel;
+  final int capacityBytes;
+  final int freeBytes;
+  final DateTime? connectedAt;
+  final int observedDurationSeconds;
+  final bool connected;
+
+  factory ActivityWatchUsbDevice.fromJson(Map<String, dynamic> json) =>
+      ActivityWatchUsbDevice(
+        fingerprint: json['fingerprint']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        manufacturer: json['manufacturer']?.toString(),
+        driveLetter: json['drive_letter']?.toString(),
+        volumeLabel: json['volume_label']?.toString(),
+        capacityBytes: JsonModel.intOf(json['capacity_bytes']),
+        freeBytes: JsonModel.intOf(json['free_bytes']),
+        connectedAt: DateTime.tryParse(
+          json['connected_at_utc']?.toString() ?? '',
+        ),
+        observedDurationSeconds: JsonModel.intOf(
+          json['observed_duration_seconds'],
+        ),
+        connected: json['connected'] == true,
+      );
+}
+
+final class ActivityWatchUsbFileEvent {
+  const ActivityWatchUsbFileEvent({
+    required this.operation,
+    required this.driveLetter,
+    required this.relativePath,
+    required this.name,
+    required this.observedAt,
+    this.extension,
+    this.sizeBytes = 0,
+  });
+
+  final String operation;
+  final String driveLetter;
+  final String relativePath;
+  final String name;
+  final String? extension;
+  final int sizeBytes;
+  final DateTime? observedAt;
+
+  factory ActivityWatchUsbFileEvent.fromJson(Map<String, dynamic> json) =>
+      ActivityWatchUsbFileEvent(
+        operation: json['operation']?.toString() ?? '',
+        driveLetter: json['drive_letter']?.toString() ?? '',
+        relativePath: json['relative_path']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        extension: json['extension']?.toString(),
+        sizeBytes: JsonModel.intOf(json['size_bytes']),
+        observedAt: DateTime.tryParse(
+          json['observed_at_utc']?.toString() ?? '',
+        ),
+      );
+}
+
 final class ActivityWatchSummary {
   const ActivityWatchSummary({
     required this.deviceId,
@@ -183,6 +260,11 @@ final class ActivityWatchSummary {
     this.mouseIdleSeconds = 0,
     this.browserTitles = const <ActivityWatchBrowserTitleTotal>[],
     this.backgroundApplications = const <ActivityWatchBackgroundApplication>[],
+    this.usbTotalPorts = 0,
+    this.usbUsedPorts = 0,
+    this.usbDevices = const <ActivityWatchUsbDevice>[],
+    this.usbFileEvents = const <ActivityWatchUsbFileEvent>[],
+    this.usbFilesTruncated = false,
   });
 
   final String deviceId;
@@ -206,11 +288,18 @@ final class ActivityWatchSummary {
   final int mouseIdleSeconds;
   final List<ActivityWatchBrowserTitleTotal> browserTitles;
   final List<ActivityWatchBackgroundApplication> backgroundApplications;
+  final int usbTotalPorts;
+  final int usbUsedPorts;
+  final List<ActivityWatchUsbDevice> usbDevices;
+  final List<ActivityWatchUsbFileEvent> usbFileEvents;
+  final bool usbFilesTruncated;
 
   factory ActivityWatchSummary.fromJson(Map<String, dynamic> json) {
     final applications = json['applications'];
     final browserTitles = json['browser_titles'];
     final backgroundApplications = json['background_applications'];
+    final usbDevices = json['usb_devices'];
+    final usbFileEvents = json['usb_file_events'];
     return ActivityWatchSummary(
       deviceId: json['device_id']?.toString() ?? '',
       deviceLabel: json['device_label']?.toString() ?? '',
@@ -262,6 +351,29 @@ final class ActivityWatchSummary {
                 )
                 .toList(growable: false)
           : const <ActivityWatchBackgroundApplication>[],
+      usbTotalPorts: JsonModel.intOf(json['usb_total_ports']),
+      usbUsedPorts: JsonModel.intOf(json['usb_used_ports']),
+      usbDevices: usbDevices is List
+          ? usbDevices
+                .whereType<Map>()
+                .map(
+                  (item) => ActivityWatchUsbDevice.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList(growable: false)
+          : const <ActivityWatchUsbDevice>[],
+      usbFileEvents: usbFileEvents is List
+          ? usbFileEvents
+                .whereType<Map>()
+                .map(
+                  (item) => ActivityWatchUsbFileEvent.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList(growable: false)
+          : const <ActivityWatchUsbFileEvent>[],
+      usbFilesTruncated: json['usb_files_truncated'] == true,
     );
   }
 }

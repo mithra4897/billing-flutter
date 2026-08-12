@@ -45,10 +45,18 @@ type commandRunner interface {
 	Output(context.Context, string, ...string) ([]byte, error)
 }
 
+type timeoutCommandRunner interface {
+	OutputWithTimeout(context.Context, time.Duration, string, ...string) ([]byte, error)
+}
+
 type execRunner struct{}
 
 func (execRunner) Output(ctx context.Context, name string, arguments ...string) ([]byte, error) {
-	commandContext, cancel := context.WithTimeout(ctx, 3*time.Second)
+	return execRunner{}.OutputWithTimeout(ctx, 3*time.Second, name, arguments...)
+}
+
+func (execRunner) OutputWithTimeout(ctx context.Context, timeout time.Duration, name string, arguments ...string) ([]byte, error) {
+	commandContext, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	command := exec.CommandContext(commandContext, name, arguments...)
 	return command.Output()
@@ -62,6 +70,11 @@ type OSObserver struct {
 	hasInputBaseline   bool
 	lastPointer        string
 	hasPointerBaseline bool
+	usbMu              sync.Mutex
+	usbFiles           map[string]USBFile
+	usbDevices         map[string]USBDevice
+	usbConnectedAt     map[string]time.Time
+	hasUSBBaseline     bool
 }
 
 func NewOSObserver() *OSObserver {

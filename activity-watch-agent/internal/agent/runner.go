@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -26,10 +27,12 @@ type Config struct {
 
 type CollectionConfig struct {
 	DeviceID                 string
+	USBEnabled               bool
 	SampleInterval           time.Duration
 	IdleThreshold            time.Duration
 	ProcessInventoryInterval time.Duration
 	ServiceInventoryInterval time.Duration
+	USBObservationInterval   time.Duration
 	SummaryInterval          time.Duration
 	RetentionDays            int
 }
@@ -104,6 +107,9 @@ func (r *Runner) Run(ctx context.Context) error {
 		r.sample(ctx, localNow)
 		r.inventory(ctx, "processes", localNow)
 		r.inventory(ctx, "system-services", localNow)
+		if r.collection.USBEnabled {
+			r.usb(ctx, localNow)
+		}
 	}
 	if err := r.record(ctx, "agent-start", now); err != nil {
 		return err
@@ -115,12 +121,16 @@ func (r *Runner) Run(ctx context.Context) error {
 	heartbeatTicker := time.NewTicker(r.config.HeartbeatInterval)
 	syncTicker := time.NewTicker(r.config.SyncInterval)
 	controlTicker := time.NewTicker(r.config.ControlPollInterval)
-	var sampleTicker, processTicker, serviceTicker, summaryTicker *time.Ticker
-	var sampleC, processC, serviceC, summaryC <-chan time.Time
+	var sampleTicker, processTicker, serviceTicker, usbTicker, summaryTicker *time.Ticker
+	var sampleC, processC, serviceC, usbC, summaryC <-chan time.Time
 	if r.collectionActive {
 		sampleTicker = time.NewTicker(r.collection.SampleInterval)
 		processTicker = time.NewTicker(r.collection.ProcessInventoryInterval)
 		serviceTicker = time.NewTicker(r.collection.ServiceInventoryInterval)
+		if r.collection.USBEnabled {
+			usbTicker = time.NewTicker(r.collection.USBObservationInterval)
+			usbC = usbTicker.C
+		}
 		summaryTicker = time.NewTicker(r.collection.SummaryInterval)
 		sampleC, processC, serviceC, summaryC = sampleTicker.C, processTicker.C, serviceTicker.C, summaryTicker.C
 	}
@@ -135,6 +145,9 @@ func (r *Runner) Run(ctx context.Context) error {
 	}
 	if serviceTicker != nil {
 		defer serviceTicker.Stop()
+	}
+	if usbTicker != nil {
+		defer usbTicker.Stop()
 	}
 	if summaryTicker != nil {
 		defer summaryTicker.Stop()
@@ -167,6 +180,10 @@ func (r *Runner) Run(ctx context.Context) error {
 		case at := <-serviceC:
 			if r.collectionActive {
 				r.inventory(ctx, "system-services", at)
+			}
+		case at := <-usbC:
+			if r.collectionActive {
+				r.usb(ctx, at)
 			}
 		case at := <-summaryC:
 			if r.collectionActive {
@@ -303,6 +320,30 @@ func (r *Runner) inventory(ctx context.Context, inventoryType string, at time.Ti
 	}
 	if err := r.recorder.RecordInventory(ctx, inventoryType, items, at); err != nil {
 		r.logError("record "+inventoryType+" inventory", err)
+	}
+}
+
+type usbObserver interface {
+	ObserveUSB(context.Context, time.Time) (collector.USBObservation, error)
+}
+
+func (r *Runner) usb(ctx context.Context, at time.Time) {
+	observer, ok := r.observer.(usbObserver)
+	if !ok {
+		return
+	}
+	observation, err := observer.ObserveUSB(ctx, at)
+	if err != nil {
+		r.logError("collect USB metadata", err)
+		return
+	}
+	metadata, err := json.Marshal(observation)
+	if err != nil {
+		r.logError("encode USB metadata", err)
+		return
+	}
+	if err := r.repository.RecordSystemEvent(ctx, store.SystemEvent{Type: "usb-observation", OccurredAt: at.UTC(), Metadata: metadata}); err != nil {
+		r.logError("record USB metadata", err)
 	}
 }
 
