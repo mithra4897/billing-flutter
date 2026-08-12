@@ -11,6 +11,9 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 
 - Keep the existing date-range filters, loading/error/empty states, summary
   API model, and privacy-safe metrics unchanged.
+- Parse Activity Watch integer fields whether the API serializes them as JSON
+  numbers or numeric strings; a legacy serialization difference must not block
+  the dashboard or device panel from loading.
 - Reuse `ErpModuleDashboard` for the report overview instead of creating a
   separate Activity Watch dashboard system.
 - Show active, idle, browser, and tracked duration KPI cards; an active-time

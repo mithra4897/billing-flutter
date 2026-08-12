@@ -97,6 +97,12 @@ sleep/logout/shutdown, and production HTTPS deployment.
   the execution PATH; final responsive verification must confirm that the
   Devices card scrolls at constrained heights and ListTile ink remains visible.
 
+## Activity Watch numeric-string response parsing (2026-08-12)
+
+- Focused coverage: `flutter test test/model/activity_watch_enrollment_test.dart`.
+- It verifies numeric-string employee IDs, duration fields, application totals,
+  and pagination values parse without runtime type errors.
+
 ## Standard commands
 
 Run from `billing-flutter`:

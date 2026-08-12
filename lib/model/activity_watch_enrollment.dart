@@ -1,3 +1,5 @@
+import 'common/json_model.dart';
+
 final class ActivityWatchEnrollment {
   const ActivityWatchEnrollment({
     required this.deviceId,
@@ -13,7 +15,7 @@ final class ActivityWatchEnrollment {
     return ActivityWatchEnrollment(
       deviceId: json['device_id']?.toString() ?? '',
       credential: json['credential']?.toString() ?? '',
-      retentionDays: (json['retention_days'] as num?)?.toInt() ?? 90,
+      retentionDays: JsonModel.intOf(json['retention_days'], fallback: 90),
     );
   }
 }
@@ -125,7 +127,7 @@ final class ActivityWatchApplicationTotal {
     return ActivityWatchApplicationTotal(
       name: json['name']?.toString() ?? '',
       classification: json['classification']?.toString() ?? 'unclassified',
-      seconds: (json['seconds'] as num?)?.toInt() ?? 0,
+      seconds: JsonModel.intOf(json['seconds']),
     );
   }
 }
@@ -141,7 +143,7 @@ final class ActivityWatchBrowserTitleTotal {
   factory ActivityWatchBrowserTitleTotal.fromJson(Map<String, dynamic> json) =>
       ActivityWatchBrowserTitleTotal(
         title: json['title']?.toString() ?? '',
-        seconds: (json['seconds'] as num?)?.toInt() ?? 0,
+        seconds: JsonModel.intOf(json['seconds']),
       );
 }
 
@@ -212,26 +214,24 @@ final class ActivityWatchSummary {
     return ActivityWatchSummary(
       deviceId: json['device_id']?.toString() ?? '',
       deviceLabel: json['device_label']?.toString() ?? '',
-      employeeId: (json['employee_id'] as num?)?.toInt(),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       employeeName: json['employee_name']?.toString(),
       employeeCode: json['employee_code']?.toString(),
       workDate:
           DateTime.tryParse(json['work_date_local']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      activeSeconds: (json['active_seconds'] as num?)?.toInt() ?? 0,
-      idleSeconds: (json['idle_seconds'] as num?)?.toInt() ?? 0,
-      lockedSeconds: (json['locked_seconds'] as num?)?.toInt() ?? 0,
-      offlineSeconds: (json['offline_seconds'] as num?)?.toInt() ?? 0,
-      unknownSeconds: (json['unknown_seconds'] as num?)?.toInt() ?? 0,
-      inputSeconds: (json['input_seconds'] as num?)?.toInt() ?? 0,
-      browserSeconds: (json['browser_seconds'] as num?)?.toInt() ?? 0,
-      keyboardActiveSeconds:
-          (json['keyboard_active_seconds'] as num?)?.toInt() ?? 0,
-      keyboardIdleSeconds:
-          (json['keyboard_idle_seconds'] as num?)?.toInt() ?? 0,
-      mouseActiveSeconds: (json['mouse_active_seconds'] as num?)?.toInt() ?? 0,
-      mouseIdleSeconds: (json['mouse_idle_seconds'] as num?)?.toInt() ?? 0,
-      trackedSeconds: (json['tracked_seconds'] as num?)?.toInt() ?? 0,
+      activeSeconds: JsonModel.intOf(json['active_seconds']),
+      idleSeconds: JsonModel.intOf(json['idle_seconds']),
+      lockedSeconds: JsonModel.intOf(json['locked_seconds']),
+      offlineSeconds: JsonModel.intOf(json['offline_seconds']),
+      unknownSeconds: JsonModel.intOf(json['unknown_seconds']),
+      inputSeconds: JsonModel.intOf(json['input_seconds']),
+      browserSeconds: JsonModel.intOf(json['browser_seconds']),
+      keyboardActiveSeconds: JsonModel.intOf(json['keyboard_active_seconds']),
+      keyboardIdleSeconds: JsonModel.intOf(json['keyboard_idle_seconds']),
+      mouseActiveSeconds: JsonModel.intOf(json['mouse_active_seconds']),
+      mouseIdleSeconds: JsonModel.intOf(json['mouse_idle_seconds']),
+      trackedSeconds: JsonModel.intOf(json['tracked_seconds']),
       applications: applications is List
           ? applications
                 .whereType<Map>()
@@ -295,9 +295,9 @@ final class ActivityWatchSummaryPage {
                 )
                 .toList(growable: false)
           : const <ActivityWatchSummary>[],
-      page: (pagination['page'] as num?)?.toInt() ?? 1,
-      lastPage: (pagination['last_page'] as num?)?.toInt() ?? 1,
-      total: (pagination['total'] as num?)?.toInt() ?? 0,
+      page: JsonModel.intOf(pagination['page'], fallback: 1),
+      lastPage: JsonModel.intOf(pagination['last_page'], fallback: 1),
+      total: JsonModel.intOf(pagination['total']),
     );
   }
 }

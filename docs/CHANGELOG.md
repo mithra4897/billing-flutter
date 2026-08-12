@@ -1,5 +1,17 @@
 # Changelog
 
+## Activity Watch numeric-string response parsing (2026-08-12)
+
+- Request: Restore the Activity Watch dashboard and Devices panel when the API
+  returns numeric fields as strings.
+- Implementation: Reused `JsonModel` numeric parsers for summary metrics,
+  employee IDs, application totals, pagination, and enrollment retention.
+- Database/API impact: None; both numeric API representations are accepted.
+- Tests added: Activity Watch summary parsing coverage with production-shaped
+  numeric strings.
+- Known limitations: Flutter tooling must run the focused test in a configured
+  SDK environment.
+
 ## 2026-08-12 â€” Fix section-card ink surfaces and device-card overflow
 
 - Request: Resolve a ListTile ink/background assertion and a constrained
