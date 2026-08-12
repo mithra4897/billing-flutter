@@ -256,6 +256,13 @@ Future<DesignedPayslipEmailResult> emailDesignedPayslipsForRun(
 DocumentPrintDataModel buildPayslipPrintData(PayslipModel payslip) {
   final company = payslip.company;
   final employee = payslip.employeeProfile;
+  // A draft-generated payslip can predate the stored payslip_date value. Its
+  // payroll run date is the intended issue date, so keep the printout dated.
+  final storedPayslipDate = payslip.payslipDate?.trim();
+  final runDate = payslip.runDate?.trim();
+  final documentDate = storedPayslipDate?.isNotEmpty == true
+      ? storedPayslipDate!
+      : (runDate?.isNotEmpty == true ? runDate! : '');
   final gross = payslip.grossSalary ?? 0;
   final deductions = payslip.totalDeductions ?? 0;
   final net = payslip.netSalary ?? 0;
@@ -316,7 +323,7 @@ DocumentPrintDataModel buildPayslipPrintData(PayslipModel payslip) {
     companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
     companyGstin: company?.gstin ?? '',
     documentNumber: payslip.payslipNo ?? 'PAYSLIP-${payslip.id ?? ''}',
-    documentDate: payslip.payslipDate ?? '',
+    documentDate: documentDate,
     referenceNumber: payslip.payrollPeriodLabel,
     partyName: employee?.employeeName ?? payslip.employeeName ?? '',
     partyAddress: company?.address ?? '',
