@@ -20,13 +20,17 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   daily trend; recent daily activity records; and input/device/application
   highlights from the already-loaded summaries. Omit the separate distribution
   card.
+- Show each active-time trend point as a human-readable duration when hovered,
+  rather than an unlabeled numeric minute value.
 - Limit the chart to the latest 12 reporting days when a selected range has
   more daily buckets, while keeping KPI totals and the detailed table scoped to
   the complete selected range.
+- Format active-time graph labels with abbreviated month names, for example
+  `Aug 12`, instead of numeric month/day values.
 - On wide screens, place the Connect a computer and Devices cards in one equal
   two-column row; stack them below the responsive breakpoint.
-- Place that setup-card row below the Activity dashboard so the report is the
-  first operational section users see.
+- Keep the activity list and active-time graph above the setup-card row, while
+  omitting only the standalone Activity dashboard header bar.
 - Show five newest devices per page in the Devices card and use the shared
   local pagination control for older devices. Refreshing, enrolling, or
   revoking a device returns the list to its first page.

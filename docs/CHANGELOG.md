@@ -1,5 +1,52 @@
 # Changelog
 
+## Activity Watch Windows developer setup guide (2026-08-12)
+
+- Request: Document the complete Windows agent setup for new developers.
+- Documentation: Added prerequisites, the Go/CGO/UCRT64 toolchain explanation,
+  build and packaging commands, backend publishing, pairing, verification,
+  release checks, and troubleshooting based on validated Windows setup issues.
+- Compatibility: Documentation only; no API, database, or runtime behavior
+  changed.
+
+## Activity Watch self-contained Windows installer (2026-08-12)
+
+- Request: Produce the standalone Activity Watch Windows installer after
+  IExpress repeatedly failed during MakeCAB generation.
+- Implementation: Replaced IExpress with a small .NET Framework launcher that
+  embeds the compiled agent and existing per-user installation script in one
+  EXE, runs the script, reports its result, and cleans temporary files.
+- Database/API impact: None.
+- Known limitation: Clean-user installation, code signing, and distribution
+  verification remain release checks.
+- Follow-up: Replaced PowerShell registry-provider default-value writes with
+  explicit `reg.exe ADD /ve` commands so `.billingawpair` registration persists
+  in the employee's current-user Classes hive.
+
+## Activity Watch graph date labels (2026-08-12)
+
+- Request: Use readable graph dates such as `Aug 12` and `Aug 13`.
+- Implementation: Updated the Activity Watch trend-label formatter from numeric
+  month/day output to abbreviated month-name dates.
+- Database/API impact: None.
+
+## Activity Watch dashboard header removal (2026-08-12)
+
+- Request: Remove only the top Activity dashboard header card.
+- Implementation: The activity list and active-time graph remain visible; the
+  standalone header surface is hidden for Activity Watch only.
+- Database/API impact: None.
+
+## Activity Watch active-time graph labels (2026-08-12)
+
+- Request: Display active time clearly in the Activity dashboard graph.
+- Implementation: The shared trend chart accepts an optional hover formatter;
+  Activity Watch uses it to display each daily point as a human-readable active
+  duration rather than an unlabeled numeric minute value.
+- Database/API impact: None; the existing summary collection is reused.
+- Known limitations: Flutter visual verification requires a configured SDK
+  environment.
+
 ## Activity Watch numeric-string response parsing (2026-08-12)
 
 - Request: Restore the Activity Watch dashboard and Devices panel when the API

@@ -30,7 +30,10 @@ until pairing succeeds.
 The implemented desktop runtime is a Go user-service executable under
 `activity-watch-agent`. It is managed in the enrolled user's login context by
 Windows, launchd, or the Linux service manager and remains independent of the
-Flutter application's lifecycle while that OS session exists.
+Flutter application's lifecycle while that OS session exists. On Windows, the
+release builder embeds this Go binary and the per-user installation script in a
+small .NET Framework launcher so employees receive one executable without an
+IExpress/MakeCAB dependency.
 
 ```mermaid
 flowchart LR

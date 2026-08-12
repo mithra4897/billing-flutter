@@ -74,6 +74,13 @@ and rejection of an existing database without modifying it.
 The Go command tests also start and stop a provisioned foreground worker to
 ensure cancellation completes within its configured shutdown deadline.
 
+Windows release packaging is a manual target-OS check. The package script uses
+the installed .NET Framework C# compiler to embed the Go agent and reviewed
+installation script into one launcher EXE. A clean-user installation and file
+association test remain required before production signing and distribution.
+The installation script treats every `reg.exe` file-association write as a
+checked operation and fails the launcher if Windows returns a nonzero code.
+
 Manual verification remains required for Windows service/login packaging,
 macOS launchd, Linux user services, native OS permission prompts, actual OS
 sleep/logout/shutdown, and production HTTPS deployment.

@@ -162,6 +162,7 @@ class ErpDashboardTrendCardData {
     this.color = const Color(0xFF2F6FED),
     this.chartStyle = ErpDashboardTrendChartStyle.line,
     this.isCurrency = false,
+    this.hoverValueFormatter,
   });
 
   final String title;
@@ -171,6 +172,7 @@ class ErpDashboardTrendCardData {
   final Color color;
   final ErpDashboardTrendChartStyle chartStyle;
   final bool isCurrency;
+  final String Function(double value)? hoverValueFormatter;
 }
 
 class ErpDashboardTrendPoint {
@@ -252,6 +254,7 @@ class ErpModuleDashboard extends StatelessWidget {
     this.onTrendControlChanged,
     this.showTrendControls = false,
     this.trendLoading = false,
+    this.showHeader = true,
   });
 
   final ErpDashboardSnapshot snapshot;
@@ -259,6 +262,7 @@ class ErpModuleDashboard extends StatelessWidget {
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
   final bool trendLoading;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -271,10 +275,14 @@ class ErpModuleDashboard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _DashboardHeader(snapshot: snapshot),
-        const SizedBox(height: AppUiConstants.spacingLg),
-        _DashboardStatGrid(stats: snapshot.stats),
-        const SizedBox(height: AppUiConstants.spacingLg),
+        if (showHeader) ...[
+          _DashboardHeader(snapshot: snapshot),
+          const SizedBox(height: AppUiConstants.spacingLg),
+        ],
+        if (snapshot.stats.isNotEmpty) ...[
+          _DashboardStatGrid(stats: snapshot.stats),
+          const SizedBox(height: AppUiConstants.spacingLg),
+        ],
         if (!snapshot.hasContent)
           _DashboardEmptyState(
             title: snapshot.emptyTitle,
@@ -1163,6 +1171,7 @@ class _DashboardTrendCardState extends State<_DashboardTrendCard> {
                                 value: _formatTrendHoverValue(
                                   hoveredPoint.value,
                                   isCurrency: data.isCurrency,
+                                  formatter: data.hoverValueFormatter,
                                 ),
                               ),
                             ),
@@ -1913,9 +1922,16 @@ class _TrendChartPainter extends CustomPainter {
   }
 }
 
-String _formatTrendHoverValue(double value, {required bool isCurrency}) {
+String _formatTrendHoverValue(
+  double value, {
+  required bool isCurrency,
+  String Function(double value)? formatter,
+}) {
   if (value == 0) {
     return 'No data';
+  }
+  if (formatter != null) {
+    return formatter(value);
   }
   final prefix = isCurrency ? '₹' : '';
   return '$prefix${formatAmount(value)}';

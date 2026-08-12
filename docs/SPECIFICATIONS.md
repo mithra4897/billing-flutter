@@ -336,6 +336,10 @@ pending records without data loss for a later retry.
 - SQLCipher runtime and approved schema are verified before writes.
 - `go test ./...`, `go vet ./...`, and `go build ./cmd/activity-watch-agent`
   pass where a Go/CGO toolchain is available.
+- On Windows, the release packaging command must build one self-contained EXE
+  that embeds the compiled Go agent and the reviewed per-user installation
+  script. The launcher extracts both into a unique temporary directory, waits
+  for the script, reports success or failure, and performs best-effort cleanup.
 
 ## Engineering optimization and reuse policy
 

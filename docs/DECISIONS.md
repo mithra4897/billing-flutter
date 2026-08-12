@@ -1,5 +1,27 @@
 # Architecture decisions
 
+## ADR-0014: Package the Windows agent with a .NET launcher
+
+- Date: 2026-08-12
+- Status: Accepted
+- Context: IExpress repeatedly failed while generating its internal MakeCAB
+  directive on the supported Windows build, despite valid no-space staging and
+  SED inputs. The release still requires one employee-facing installer EXE.
+- Decision: Compile a small .NET Framework launcher that embeds the existing Go
+  agent and reviewed `install.ps1`. At runtime it extracts both to a unique
+  temporary directory, waits for the installation script, reports the result,
+  and attempts to remove temporary files.
+- Reason: The compiler is present on supported Windows installations, handles
+  large embedded resources reliably, and preserves the existing installation
+  and file-association behavior without adding another packaging dependency.
+- Alternatives considered: Continue debugging deprecated IExpress behavior;
+  distribute a ZIP with separate agent and script; require an additional MSI
+  or third-party installer toolchain.
+- Consequences: The unsigned launcher remains a release artifact that must be
+  code-signed and verified on a clean employee account before distribution.
+- Related files: `activity-watch-agent/packaging/windows/build-exe.ps1`,
+  `activity-watch-agent/packaging/windows/install.ps1`.
+
 ## ADR-0013: Consent-gated office monitoring detail
 
 - Date: 2026-08-10

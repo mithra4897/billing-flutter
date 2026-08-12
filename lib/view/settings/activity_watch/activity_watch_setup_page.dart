@@ -523,7 +523,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        ErpModuleDashboard(snapshot: _buildActivityDashboardSnapshot()),
+        ErpModuleDashboard(
+          snapshot: _buildActivityDashboardSnapshot(),
+          showHeader: false,
+        ),
       ],
     );
   }
@@ -588,9 +591,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           : ErpDashboardTrendCardData(
               title: 'Active time trend',
               subtitle: metrics.dailyActive.length > 12
-                  ? 'Active minutes for the latest 12 reporting days'
-                  : 'Active minutes by day',
+                  ? 'Active time for the latest 12 reporting days'
+                  : 'Active time by day',
               color: colors.primary,
+              hoverValueFormatter: (minutes) =>
+                  _duration((minutes * 60).round()),
               points: dailyTrend
                   .map(
                     (point) => ErpDashboardTrendPoint(
@@ -1219,7 +1224,23 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _ActivityDateFilter.custom => 'Custom range',
       };
 
-  static String _shortDate(DateTime value) => '${value.month}/${value.day}';
+  static String _shortDate(DateTime value) {
+    const monthNames = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${monthNames[value.month - 1]} ${value.day}';
+  }
 
   static String _dateTime(DateTime? value) {
     if (value == null) return 'never';

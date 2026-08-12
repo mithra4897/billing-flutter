@@ -89,10 +89,13 @@ ACTIVITY_WATCH_AGENT_API_BASE_URL=https://erp.example.com/api/v1
 ACTIVITY_WATCH_INSTALLER_BASE_URL=https://erp.example.com/downloads/activity-watch
 ```
 
-The installer runs `bootstrap` once with collection disabled and registers
-`.billingawpair`. ERP Web downloads the short-lived bundle; opening it invokes
-`pair`, which configures and restarts the service. Reinstallation is required
-only for a new computer or OS installation, not for normal ERP login or reboot.
+The Windows installer copies the agent and registers `.billingawpair`. ERP Web
+downloads the short-lived bundle; opening it invokes `pair`, which bootstraps
+encrypted local storage when absent, configures the device, and starts the
+service. Reinstallation is required only for a new computer or OS installation,
+not for normal ERP login or reboot. Windows build-machine setup and publishing
+steps are documented in
+[`activity-watch-windows-developer-setup.md`](activity-watch-windows-developer-setup.md).
 
 ### macOS pairing-file launch behaviour
 
