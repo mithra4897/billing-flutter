@@ -18,8 +18,6 @@ class AppSectionCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
         boxShadow: showShadow
             ? [
                 BoxShadow(
@@ -30,7 +28,14 @@ class AppSectionCard extends StatelessWidget {
               ]
             : null,
       ),
-      child: Padding(padding: padding, child: child),
+      child: Material(
+        color: appTheme.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: padding, child: child),
+      ),
     );
   }
 }

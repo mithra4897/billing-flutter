@@ -90,6 +90,13 @@ sleep/logout/shutdown, and production HTTPS deployment.
 - Pairing tests verify generated credentials are 64-character alphanumeric
   hexadecimal values accepted by the server's exchange validator.
 
+## Section-card ink surface and constrained Devices card (2026-08-12)
+
+- `git diff --check` validates the focused source and documentation changes.
+- Flutter/Dart formatting, analysis, and widget tests require a Flutter SDK on
+  the execution PATH; final responsive verification must confirm that the
+  Devices card scrolls at constrained heights and ListTile ink remains visible.
+
 ## Standard commands
 
 Run from `billing-flutter`:

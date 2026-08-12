@@ -299,32 +299,28 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         }
 
         if (hasPairing && constraints.maxWidth >= 1120) {
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(child: _buildEnrollmentCard()),
-                const SizedBox(width: AppUiConstants.spacingXl),
-                Expanded(child: _buildDevicesCard()),
-                const SizedBox(width: AppUiConstants.spacingXl),
-                Expanded(child: _buildPairingCard()),
-              ],
-            ),
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _buildEnrollmentCard()),
+              const SizedBox(width: AppUiConstants.spacingXl),
+              Expanded(child: _buildDevicesCard()),
+              const SizedBox(width: AppUiConstants.spacingXl),
+              Expanded(child: _buildPairingCard()),
+            ],
           );
         }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Expanded(child: _buildEnrollmentCard()),
-                  const SizedBox(width: AppUiConstants.spacingXl),
-                  Expanded(child: _buildDevicesCard()),
-                ],
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: _buildEnrollmentCard()),
+                const SizedBox(width: AppUiConstants.spacingXl),
+                Expanded(child: _buildDevicesCard()),
+              ],
             ),
             if (hasPairing) ...<Widget>[
               const SizedBox(height: AppUiConstants.spacingXl),
@@ -447,63 +443,65 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final visibleDevices = _pagedDevices;
 
     return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Expanded(
-                child: Text(
-                  'Devices',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                const Expanded(
+                  child: Text(
+                    'Devices',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Refresh',
-                onPressed: _loading ? null : _loadStatus,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-          if (_loading) const LinearProgressIndicator(),
-          if (_loadError != null)
-            Padding(
-              padding: const EdgeInsets.only(top: AppUiConstants.spacingSm),
-              child: Text('Could not load devices: $_loadError'),
-            )
-          else if (!_loading && _devices.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: AppUiConstants.spacingSm),
-              child: Text('No connected computers.'),
-            )
-          else
-            ...visibleDevices.map(
-              (device) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  device.isActive
-                      ? device.isPaired
-                            ? Icons.desktop_windows_outlined
-                            : Icons.pending_outlined
-                      : Icons.desktop_access_disabled_outlined,
+                IconButton(
+                  tooltip: 'Refresh',
+                  onPressed: _loading ? null : _loadStatus,
+                  icon: const Icon(Icons.refresh),
                 ),
-                title: Text(device.label),
-                subtitle: Text(device.connectionStatus),
-                trailing: device.isActive
-                    ? TextButton(
-                        onPressed: () => _revoke(device),
-                        child: const Text('Disconnect'),
-                      )
-                    : null,
-              ),
+              ],
             ),
-          LocalPageNavigation(
-            totalItems: _devices.length,
-            currentPage: _devicePage,
-            pageSize: _devicePageSize,
-            onPageChanged: (page) => setState(() => _devicePage = page),
-          ),
-        ],
+            if (_loading) const LinearProgressIndicator(),
+            if (_loadError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppUiConstants.spacingSm),
+                child: Text('Could not load devices: $_loadError'),
+              )
+            else if (!_loading && _devices.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: AppUiConstants.spacingSm),
+                child: Text('No connected computers.'),
+              )
+            else
+              ...visibleDevices.map(
+                (device) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    device.isActive
+                        ? device.isPaired
+                              ? Icons.desktop_windows_outlined
+                              : Icons.pending_outlined
+                        : Icons.desktop_access_disabled_outlined,
+                  ),
+                  title: Text(device.label),
+                  subtitle: Text(device.connectionStatus),
+                  trailing: device.isActive
+                      ? TextButton(
+                          onPressed: () => _revoke(device),
+                          child: const Text('Disconnect'),
+                        )
+                      : null,
+                ),
+              ),
+            LocalPageNavigation(
+              totalItems: _devices.length,
+              currentPage: _devicePage,
+              pageSize: _devicePageSize,
+              onPageChanged: (page) => setState(() => _devicePage = page),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -52,6 +54,12 @@ func run(arguments []string) error {
 		return bootstrap(*configPath)
 	}
 	cfg, err := config.Load(*configPath)
+	if command == "pair" && errors.Is(err, os.ErrNotExist) {
+		if err := bootstrap(*configPath); err != nil {
+			return err
+		}
+		cfg, err = config.Load(*configPath)
+	}
 	if err != nil {
 		return err
 	}
@@ -278,6 +286,9 @@ func pathExists(path string) bool {
 }
 
 func activateService(cfg config.Config, configPath string) error {
+	if runtime.GOOS == "windows" {
+		return activateWindowsTask(cfg.ServiceName, configPath)
+	}
 	program := &serviceProgram{config: cfg}
 	nativeService, err := newNativeService(program, cfg, configPath)
 	if err != nil {
@@ -294,6 +305,26 @@ func activateService(cfg config.Config, configPath string) error {
 		return service.Control(nativeService, "restart")
 	}
 	return service.Control(nativeService, "start")
+}
+
+func activateWindowsTask(taskName, configPath string) error {
+	command := fmt.Sprintf(`"%s" run --config "%s"`, os.Args[0], configPath)
+	if _, err := exec.Command("schtasks.exe", "/Query", "/TN", taskName).CombinedOutput(); err != nil {
+		output, createErr := exec.Command(
+			"schtasks.exe", "/Create", "/TN", taskName, "/SC", "ONLOGON",
+			"/TR", command, "/RL", "LIMITED", "/F",
+		).CombinedOutput()
+		if createErr != nil {
+			return fmt.Errorf("create Windows Activity Watch task: %w: %s", createErr, string(output))
+		}
+	} else {
+		_, _ = exec.Command("schtasks.exe", "/End", "/TN", taskName).CombinedOutput()
+	}
+	output, err := exec.Command("schtasks.exe", "/Run", "/TN", taskName).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("start Windows Activity Watch task: %w: %s", err, string(output))
+	}
+	return nil
 }
 
 func newNativeService(program *serviceProgram, cfg config.Config, configPath string) (service.Service, error) {

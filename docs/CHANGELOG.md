@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-12 â€” Fix section-card ink surfaces and device-card overflow
+
+- Request: Resolve a ListTile ink/background assertion and a constrained
+  Activity Watch Devices card RenderFlex overflow.
+- Specification: Section cards must provide the Material surface that paints
+  their background; the Devices card must scroll its legitimate paged content
+  when its parent limits height.
+- Implementation: Moved the shared card background from `DecoratedBox` to its
+  rounded `Material` child while retaining the outer shadow. Wrapped Devices
+  card content in a vertical `SingleChildScrollView`.
+- Files changed: Shared section card, Activity Watch setup page, and frontend
+  documentation.
+- Database/API impact: None.
+- Security impact: None.
+- Tests executed and results: `git diff --check` passed. Flutter/Dart commands
+  could not run because neither executable is available on the execution PATH.
+- Documentation updated: Activity Watch feature specification and changelog.
+- Known limitations: Authenticated responsive visual verification remains
+  manual.
+
 ## 2026-08-11 — Apply salary-component order to all employees
 
 - Request: Apply a configured Salary Components order to all employees without

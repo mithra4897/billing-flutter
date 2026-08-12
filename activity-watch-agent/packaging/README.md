@@ -26,7 +26,10 @@ the service. Pairing files never contain permanent credentials.
 Release signing and native installer construction must run on the target OS:
 
 - macOS: package/notarize the app bundle and installer with Developer ID.
-- Windows: wrap `windows/install.ps1` and the binary in a signed MSI.
+- Windows: run `packaging/windows/build-exe.ps1`. The resulting installer EXE
+  installs the agent per user and associates `.billingawpair`.
+  The first pairing automatically creates its local configuration and starts
+  the per-user scheduled task.
 - Linux: wrap `linux/install.sh`, desktop entry, MIME XML, and binary in signed
   DEB/RPM packages.
 

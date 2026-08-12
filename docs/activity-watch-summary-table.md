@@ -27,6 +27,9 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Show five newest devices per page in the Devices card and use the shared
   local pagination control for older devices. Refreshing, enrolling, or
   revoking a device returns the list to its first page.
+- When the responsive setup row gives the Devices card a bounded height, keep
+  its paged content vertically scrollable so device rows and navigation remain
+  reachable without a RenderFlex overflow.
 - Aggregate dashboard totals in one bounded pass over summaries and application
   totals, then sort only the distinct daily trend buckets. Do not issue another
   API request for dashboard data.
