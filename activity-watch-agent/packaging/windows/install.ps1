@@ -1,7 +1,17 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$LauncherPath
+)
+
 $ErrorActionPreference = 'Stop'
 $installRoot = Join-Path $env:LOCALAPPDATA 'BillingActivityWatch'
 $agentPath = Join-Path $installRoot 'activity-watch-agent.exe'
 $configPath = Join-Path $installRoot 'activity-watch-agent.config.json'
+$launcherTargetPath = Join-Path $installRoot 'BillingActivityWatch.exe'
+
+if (-not (Test-Path -LiteralPath $LauncherPath -PathType Leaf)) {
+    throw 'The Activity Watch launcher could not be found.'
+}
 
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
 $runningAgents = @(Get-CimInstance Win32_Process -Filter "Name='activity-watch-agent.exe'" -ErrorAction SilentlyContinue |
@@ -13,10 +23,11 @@ if ($runningAgents.Count -gt 0) {
     Start-Sleep -Milliseconds 500
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'activity-watch-agent.exe') -Destination $agentPath -Force
+Copy-Item -LiteralPath $LauncherPath -Destination $launcherTargetPath -Force
 
 $regExe = Join-Path $env:SystemRoot 'System32\reg.exe'
 $fileClass = 'BillingActivityWatch.PairingFile'
-$openCommand = '"{0}" pair --config "{1}" --bundle "%1"' -f $agentPath, $configPath
+$openCommand = '"{0}" "%1"' -f $launcherTargetPath
 $registryValues = @(
     @('HKCU\Software\Classes\.billingawpair', $fileClass),
     @('HKCU\Software\Classes\BillingActivityWatch.PairingFile', 'Billing Activity Watch pairing file'),

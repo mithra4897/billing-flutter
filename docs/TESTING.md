@@ -81,6 +81,20 @@ association test remain required before production signing and distribution.
 The installation script treats every `reg.exe` file-association write as a
 checked operation and fails the launcher if Windows returns a nonzero code.
 
+The pairing-result launcher must be checked on a clean Windows account: a valid
+pairing file shows a connection dialog, and a missing agent or rejected pairing
+shows a safe failure dialog without secrets.
+
+Windows pairing verification must also deny Scheduled Task creation for a
+standard user and confirm the ERP shows **Connected** while the launcher shows
+the separate background-start warning.
+
+For the 2026-08-12 pairing-result change, the Windows installer rebuilt with
+UCRT64 GCC enabled. `go test ./...` passed in every package except the existing
+Windows-only POSIX credential-mode assertion in `internal/pairing`; `go vet
+./...` completed without output. Clean-user pairing verification remains
+required.
+
 Manual verification remains required for Windows service/login packaging,
 macOS launchd, Linux user services, native OS permission prompts, actual OS
 sleep/logout/shutdown, and production HTTPS deployment.
@@ -264,8 +278,9 @@ been packaged successfully.
 ## Activity Watch USB audit checks
 
 - `go test ./...` covers baseline behavior, added-file detection, hashed device
-  identity, encrypted system-event persistence, daily aggregation, consent-v3
-  pairing enablement, and old-summary defaults.
+  identity, exact UTF-16LE PowerShell command round-tripping, encoded-command
+  invocation, encrypted system-event persistence, daily aggregation,
+  consent-v3 pairing enablement, and old-summary defaults.
 - Verify on Windows with a newly paired consent-v3 device: connect a removable
   drive, wait one scan interval, add and delete a test file, then expand that
   day's Activity Watch row. Confirm port/device/storage/duration metadata and
@@ -273,3 +288,30 @@ been packaged successfully.
 - Confirm a consent-v2 configuration keeps `usb_enabled` false.
 - Large-drive verification must confirm the 5,000-file scan and 200-event daily
   caps set the truncation notice rather than growing the payload without bound.
+
+## Activity Watch company-scope checks
+
+- Sign in as two different super administrators with the same company context;
+  both Activity Watch pages must list the same company devices and summaries.
+- Switch a super administrator to another company and verify devices and
+  summaries from the previous company are absent.
+- Sign in as a non-super-admin user and verify the requests omit company scope
+  and only that user's devices and summaries are returned.
+
+## Windows USB collector command verification — 2026-08-12
+
+- `go test -count=1 ./internal/collector ./internal/agent ./internal/config
+  ./internal/store ./internal/syncer ./cmd/activity-watch-agent`: passed.
+- `go test -count=1 ./...`: all packages passed except the existing Windows
+  `internal/pairing` POSIX file-mode assertion (`-rw-rw-rw-` versus the Unix
+  owner-only expectation); this is unrelated to USB command transport.
+- The exact `windowsUSBScript` extracted from the Go source was transported via
+  UTF-16LE `EncodedCommand` and executed by Windows PowerShell 5.1: exit code 0
+  with valid JSON (`total_ports`, `used_ports`, `devices`, `drives`, `files`,
+  and `files_truncated`). No removable drive was attached for this check.
+- `packaging/windows/build-exe.ps1` rebuilt the API download artifact at
+  `billing-api/public/downloads/activity-watch/BillingActivityWatch-windows.exe`.
+- Installer SHA-256:
+  `3FCF8A38E63EE85E6B7C42E20FF4BA087DE2D3664096F46DB0B7642922F2A8DE`.
+- Manual verification with an attached removable drive is still required to
+  confirm real device/file metadata reaches the ERP daily detail.

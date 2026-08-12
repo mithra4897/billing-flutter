@@ -88,7 +88,8 @@ func run(arguments []string) error {
 			return err
 		}
 		if err := activateService(cfg, *configPath); err != nil {
-			return fmt.Errorf("activate paired service: %w", err)
+			fmt.Printf("Activity Watch connected: %s\nAutomatic background startup could not be configured: %v\n", result.DeviceID, err)
+			return nil
 		}
 		fmt.Printf("Activity Watch connected: %s\n", result.DeviceID)
 		return nil

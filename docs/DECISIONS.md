@@ -1,5 +1,20 @@
 # Architecture decisions
 
+## ADR-0015: Make Windows pairing failures visible
+
+- Date: 2026-08-12
+- Status: Accepted
+- Context: The direct executable association had no visible output when local
+  pairing failed, leaving the employee with only an unexplained pending row.
+- Decision: Install a copy of the Windows launcher and register it as the
+  pairing-file handler. It runs the installed agent and shows a safe result.
+- Reason: Reuses the existing packaging artifact while making failure local and
+  actionable.
+- Alternatives considered: Require command-line diagnosis; build another UI.
+- Consequences: Install the rebuilt installer once to update the handler.
+- Related files: `activity-watch-agent/packaging/windows/install.ps1`,
+  `activity-watch-agent/packaging/windows/build-exe.ps1`.
+
 ## ADR-0014: Package the Windows agent with a .NET launcher
 
 - Date: 2026-08-12

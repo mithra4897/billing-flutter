@@ -42,8 +42,13 @@ using System.Windows.Forms;
 internal static class InstallerLauncher
 {
     [STAThread]
-    private static int Main()
+    private static int Main(string[] arguments)
     {
+        if (arguments.Length == 1 && arguments[0].EndsWith(".billingawpair", StringComparison.OrdinalIgnoreCase))
+        {
+            return Pair(arguments[0]);
+        }
+
         string stage = Path.Combine(
             Path.GetTempPath(),
             "BillingActivityWatch-" + Guid.NewGuid().ToString("N"));
@@ -63,7 +68,7 @@ internal static class InstallerLauncher
             var startInfo = new ProcessStartInfo
             {
                 FileName = powershell,
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\"",
+                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\" -LauncherPath \"" + Assembly.GetExecutingAssembly().Location + "\"",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -115,6 +120,72 @@ internal static class InstallerLauncher
             {
                 // Installation has completed; temporary cleanup is best effort.
             }
+        }
+    }
+
+    private static int Pair(string bundlePath)
+    {
+        string installRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BillingActivityWatch");
+        string agentPath = Path.Combine(installRoot, "activity-watch-agent.exe");
+        string configPath = Path.Combine(installRoot, "activity-watch-agent.config.json");
+        if (!File.Exists(agentPath))
+        {
+            MessageBox.Show(
+                "The Activity Watch agent is missing. Reinstall the agent, then download a new pairing file.",
+                "Activity Watch setup failed",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return 1;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = agentPath,
+                Arguments = "pair --config \"" + configPath + "\" --bundle \"" + bundlePath + "\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            string pairingOutput;
+            using (Process process = Process.Start(startInfo))
+            {
+                string output = process.StandardOutput.ReadToEnd();
+                string errorOutput = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                {
+                    string detail = string.IsNullOrWhiteSpace(errorOutput) ? output : errorOutput;
+                    throw new InvalidOperationException(
+                        "Activity Watch could not pair this computer." +
+                        (string.IsNullOrWhiteSpace(detail) ? "" : Environment.NewLine + detail.Trim()));
+                }
+                pairingOutput = output;
+            }
+            bool startupWarning = pairingOutput.IndexOf(
+                "Automatic background startup could not be configured:",
+                StringComparison.Ordinal) >= 0;
+            MessageBox.Show(
+                startupWarning
+                    ? "This computer is connected to Activity Watch, but Windows blocked automatic background startup. An administrator must configure the BillingActivityWatch scheduled task. Return to ERP and refresh Devices."
+                    : "This computer is connected to Activity Watch. Return to ERP and refresh Devices.",
+                startupWarning ? "Activity Watch startup needs attention" : "Billing Activity Watch",
+                MessageBoxButtons.OK,
+                startupWarning ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+            return 0;
+        }
+        catch (Exception error)
+        {
+            MessageBox.Show(
+                error.Message,
+                "Activity Watch setup failed",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return 1;
         }
     }
 

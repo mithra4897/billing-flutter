@@ -1,5 +1,17 @@
 # Architecture
 
+## Activity Watch viewer scope
+
+The Flutter Activity Watch page resolves the session's super-admin flag and
+current company before loading reports. Super admins send explicit
+`scope=company` and, when available, `company_id` query parameters to both the
+device and summary endpoints. The backend remains the authorization boundary:
+it accepts company scope only for super admins or `hr.view` users and applies
+the selected company restriction for super admins. Ordinary requests continue
+to be restricted by device owner. Company summary pagination is consumed in
+100-row batches so employee filters and trend calculations use the full
+authorized date-range dataset.
+
 ## Activity Watch self-service pairing
 
 ```mermaid
@@ -24,6 +36,13 @@ introduced. Token lookup uses a unique hash and transactional row lock. The
 browser handles only the short-lived token. Per-platform signed installers
 register the pairing file and bootstrap a disabled service that cannot collect
 until pairing succeeds.
+
+On Windows, the installed launcher handles `.billingawpair` files. It invokes
+the installed Go agent without a console window and displays either successful
+connection or a safe pairing failure, without exposing a token or credential.
+If Windows denies creation of the user Scheduled Task after a successful
+exchange, the paired configuration remains valid and the launcher reports the
+separate startup limitation.
 
 ## Activity Watch desktop runtime
 
@@ -178,3 +197,10 @@ events, keeps at most 50 devices and 200 most-recent file changes, and exposes
 those bounded fields through the existing summary endpoint and expanded Flutter
 details. No file is opened or hashed. The scan is O(D + F) time and O(D + F)
 memory, where F is capped at 5,000 files per scan.
+
+The Windows collector sends the multi-statement USB query using PowerShell's
+UTF-16LE `EncodedCommand` contract. This preserves nested WMI filter quotes
+across Windows process argument reconstruction; it does not encrypt or conceal
+the script and does not change the collected data boundary. Its bounded generic
+file list is materialized with `ToArray()` before JSON projection to avoid the
+Windows PowerShell 5.1 dynamic-binder failure for generic collections.

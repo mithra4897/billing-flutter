@@ -61,9 +61,16 @@ final class ActivityWatchService {
     return pairing;
   }
 
-  Future<List<ActivityWatchDevice>> devices() async {
+  Future<List<ActivityWatchDevice>> devices({
+    bool companyScope = false,
+    int? companyId,
+  }) async {
     final response = await _client.get<List<ActivityWatchDevice>>(
       '/activity-watch/devices',
+      queryParameters: _viewerScopeParameters(
+        companyScope: companyScope,
+        companyId: companyId,
+      ),
       fromData: (json) => json is List
           ? json
                 .whereType<Map>()
@@ -82,6 +89,9 @@ final class ActivityWatchService {
     required DateTime from,
     required DateTime to,
     int page = 1,
+    int limit = 31,
+    bool companyScope = false,
+    int? companyId,
   }) async {
     final response = await _client.get<ActivityWatchSummaryPage>(
       '/activity-watch/summaries',
@@ -89,7 +99,11 @@ final class ActivityWatchService {
         'from': _dateOnly(from),
         'to': _dateOnly(to),
         'page': page,
-        'limit': 31,
+        'limit': limit,
+        ..._viewerScopeParameters(
+          companyScope: companyScope,
+          companyId: companyId,
+        ),
       },
       fromData: (json) => ActivityWatchSummaryPage.fromJson(
         Map<String, dynamic>.from(json as Map),
@@ -112,4 +126,12 @@ final class ActivityWatchService {
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
+
+  static Map<String, dynamic> _viewerScopeParameters({
+    required bool companyScope,
+    required int? companyId,
+  }) => <String, dynamic>{
+    if (companyScope) 'scope': 'company',
+    if (companyScope && companyId != null) 'company_id': companyId,
+  };
 }

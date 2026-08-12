@@ -1,5 +1,28 @@
 # Changelog
 
+## Windows Activity Watch pairing result dialog (2026-08-12)
+
+- Request: Fix an installed Windows agent that gave no reason when a fresh
+  pairing did not complete.
+- Implementation: The installer now registers its installed launcher as the
+  `.billingawpair` handler. The launcher runs the installed agent and shows a
+  safe success or error dialog.
+- Security: Dialogs do not contain pairing tokens or device credentials.
+- Compatibility: Install the rebuilt Windows installer once before generating
+  a new pairing file.
+- Verification: The Windows installer rebuilt with UCRT64 GCC. The Go suite
+  passed except the existing Windows-only POSIX permission assertion in the
+  pairing package; static analysis completed without findings.
+
+## Windows Activity Watch task-permission pairing recovery (2026-08-12)
+
+- Request: Correct the false pairing-failed dialog shown when Windows denied
+  Scheduled Task creation after a successful server exchange.
+- Implementation: Pairing now remains successful after the exchange and stores
+  configuration before reporting a separate background-start warning.
+- Compatibility: Existing paired devices do not need a new pairing token;
+  administrator task setup can be completed separately.
+
 ## Activity Watch Windows developer setup guide (2026-08-12)
 
 - Request: Document the complete Windows agent setup for new developers.
@@ -584,3 +607,37 @@
   path before replacing it, allowing connected devices to upgrade cleanly.
 - Removed the non-running scheduled-task stop command that could make upgrades
   exit with code 1, and surfaced PowerShell diagnostics in installer failures.
+
+## 2026-08-12 - Super-admin Activity Watch company scope
+
+- Activity Watch now resolves super-admin status and the current company before
+  loading data, then sends `scope=company` and the selected `company_id` to both
+  device and daily-summary endpoints.
+- Company summaries are fetched across all API pages in batches of 100, and the
+  backend now validates the scope and company query parameters.
+- Ordinary users retain personal device ownership scope. No database, pairing,
+  consent, or revoke behavior changed.
+
+## 2026-08-12 - Windows USB collector command transport
+
+- Request: Diagnose the running Windows agent's repeated `collect USB metadata
+  failed: exit status 1` message.
+- Specification: The Windows USB query must preserve WMI filter quoting and a
+  USB-only failure must not interrupt normal activity sampling or sync.
+- Implementation: The agent now passes the existing bounded USB PowerShell
+  script using PowerShell's UTF-16LE `EncodedCommand` contract instead of a raw
+  `Command` argument whose nested WMI quotes were stripped by Windows argument
+  reconstruction. The script also materializes its bounded generic file list
+  before JSON projection for Windows PowerShell 5.1 compatibility.
+- Files changed: USB collector, collector tests, specification, architecture,
+  testing notes, changelog, and rebuilt Windows installer artifact.
+- Database/API impact: None.
+- Security impact: Collection scope and consent-v3 gating are unchanged; the
+  encoding is command transport, not encryption.
+- Tests added or updated: Exact script round-trip and encoded invocation.
+- Tests executed and results: Collector regression tests passed; focused agent,
+  config, store, syncer, and command suites passed; the exact encoded USB query
+  completed on Windows PowerShell 5.1 with exit code 0 and valid JSON; the
+  Windows installer rebuilt successfully. The complete Go suite passed except
+  the existing Windows-only pairing test's POSIX file-mode assertion.
+- Known limitations: Physical USB port counts remain best-effort.

@@ -2,18 +2,41 @@ package collector
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/binary"
 	"testing"
 	"time"
+	"unicode/utf16"
 )
 
 type sequenceCommandRunner struct {
 	outputs [][]byte
+	args    [][]string
 }
 
-func (r *sequenceCommandRunner) Output(context.Context, string, ...string) ([]byte, error) {
+func (r *sequenceCommandRunner) Output(_ context.Context, _ string, args ...string) ([]byte, error) {
+	r.args = append(r.args, args)
 	output := r.outputs[0]
 	r.outputs = r.outputs[1:]
 	return output, nil
+}
+
+func TestEncodePowerShellCommandPreservesUSBFilterQuotes(t *testing.T) {
+	encoded := encodePowerShellCommand(windowsUSBScript)
+	raw, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(raw)%2 != 0 {
+		t.Fatalf("encoded PowerShell byte count = %d, want an even UTF-16LE length", len(raw))
+	}
+	units := make([]uint16, len(raw)/2)
+	for index := range units {
+		units[index] = binary.LittleEndian.Uint16(raw[index*2:])
+	}
+	if decoded := string(utf16.Decode(units)); decoded != windowsUSBScript {
+		t.Fatal("encoded PowerShell command did not round-trip exactly")
+	}
 }
 
 func TestDetectInputReportsOnlyNewInputTimestamp(t *testing.T) {
@@ -72,7 +95,8 @@ func TestObserveUSBBaselinesThenReportsAddedMetadata(t *testing.T) {
 	second := []byte(`{"total_ports":4,"used_ports":1,"devices":[{"id":"USB\\VID_1","name":"USB disk","manufacturer":"Example"}],"drives":[{"drive_letter":"E:","volume_label":"WORK","capacity_bytes":1000,"free_bytes":350}],"files":[{"drive_letter":"E:","relative_path":"existing.txt","size_bytes":10,"modified_at_utc":"2026-08-12T09:00:00Z"},{"drive_letter":"E:","relative_path":"reports\\new.csv","size_bytes":50,"modified_at_utc":"2026-08-12T09:01:00Z"}],"files_truncated":false}`)
 	disconnected := []byte(`{"total_ports":4,"used_ports":0,"devices":[],"drives":[],"files":[],"files_truncated":false}`)
 	reconnected := first
-	observer := &OSObserver{goos: "windows", runner: &sequenceCommandRunner{outputs: [][]byte{first, second, disconnected, reconnected}}}
+	runner := &sequenceCommandRunner{outputs: [][]byte{first, second, disconnected, reconnected}}
+	observer := &OSObserver{goos: "windows", runner: runner}
 	at := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
 	baseline, err := observer.ObserveUSB(context.Background(), at)
 	if err != nil || len(baseline.FileEvents) != 0 {
@@ -98,5 +122,8 @@ func TestObserveUSBBaselinesThenReportsAddedMetadata(t *testing.T) {
 	replugged, err := observer.ObserveUSB(context.Background(), at.Add(3*time.Minute))
 	if err != nil || len(replugged.FileEvents) != 0 {
 		t.Fatalf("reconnected drive must establish a fresh baseline: %#v / %v", replugged, err)
+	}
+	if len(runner.args) != 4 || len(runner.args[0]) < 2 || runner.args[0][len(runner.args[0])-2] != "-EncodedCommand" {
+		t.Fatalf("USB collector PowerShell arguments = %#v", runner.args)
 	}
 }

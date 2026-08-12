@@ -199,7 +199,8 @@ as `?v=<release-hash-prefix>` and clear the browser/CDN cache.
 The Windows installer:
 
 1. copies the agent to `%LOCALAPPDATA%\BillingActivityWatch`;
-2. registers `.billingawpair` for the current user; and
+2. copies its pairing launcher and registers `.billingawpair` for the current
+   user; and
 3. instructs the employee to return to ERP.
 
 The installer does not display a normal application window after completion.
@@ -217,6 +218,10 @@ Opening the pairing file automatically bootstraps encrypted local storage when
 needed, exchanges the one-time token, deletes the consumed pairing file, saves
 the protected device credential, enables collection, and starts the background
 agent.
+
+The launcher reports either a connected confirmation or the local pairing error.
+Do not treat an old **Pairing expired** row as the result of a new pairing file:
+the dialog reports the outcome for the file that was just opened.
 
 Expired pairing rows cannot be reused. Create a new pairing session and open
 only its newest downloaded pairing file.
@@ -352,4 +357,3 @@ open its newest pairing file before the displayed expiration time.
 - Confirm the backend serves the new artifact and cache-versioned URL.
 - Code-sign the installer and verify its Authenticode signature.
 - Retain no pairing token, device credential, or database key in build logs.
-

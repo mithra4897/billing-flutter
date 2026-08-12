@@ -3,6 +3,8 @@ package collector
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -10,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 const maxUSBFilesPerScan = 5000
@@ -91,10 +94,11 @@ func (o *OSObserver) ObserveUSB(ctx context.Context, at time.Time) (USBObservati
 	}
 	var output []byte
 	var err error
+	encodedScript := encodePowerShellCommand(windowsUSBScript)
 	if runner, ok := o.runner.(timeoutCommandRunner); ok {
-		output, err = runner.OutputWithTimeout(ctx, 20*time.Second, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", windowsUSBScript)
+		output, err = runner.OutputWithTimeout(ctx, 20*time.Second, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
 	} else {
-		output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", windowsUSBScript)
+		output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
 	}
 	if err != nil {
 		return result, err
@@ -215,6 +219,18 @@ func (o *OSObserver) ObserveUSB(ctx context.Context, at time.Time) (USBObservati
 	return result, nil
 }
 
+// encodePowerShellCommand uses PowerShell's UTF-16LE EncodedCommand contract.
+// This avoids Windows command-line reconstruction changing quotes inside WMI
+// filters before PowerShell parses the script.
+func encodePowerShellCommand(script string) string {
+	units := utf16.Encode([]rune(script))
+	bytes := make([]byte, len(units)*2)
+	for index, unit := range units {
+		binary.LittleEndian.PutUint16(bytes[index*2:], unit)
+	}
+	return base64.StdEncoding.EncodeToString(bytes)
+}
+
 func usbFileEvent(operation string, file USBFile, at time.Time) USBFileEvent {
 	return USBFileEvent{Operation: operation, DeviceFingerprint: file.DeviceFingerprint, DriveLetter: file.DriveLetter, RelativePath: file.RelativePath, Name: file.Name, Extension: file.Extension, SizeBytes: file.SizeBytes, ObservedAtUTC: at.UTC().Format(time.RFC3339Nano)}
 }
@@ -237,4 +253,4 @@ func boundedText(value string, limit int) string {
 	return value
 }
 
-const windowsUSBScript = `$ErrorActionPreference='Stop';$hubs=@(Get-CimInstance Win32_USBHub -ErrorAction SilentlyContinue);$entities=@(Get-CimInstance Win32_PnPEntity -Filter "PNPDeviceID LIKE 'USB%'" -ErrorAction SilentlyContinue | Where-Object {$_.Name -and $_.PNPDeviceID -notmatch 'ROOT_HUB|USB\\ROOT'});$drives=@(Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" -ErrorAction SilentlyContinue);$files=New-Object System.Collections.Generic.List[object];$truncated=$false;foreach($d in $drives){$root=$d.DeviceID+'\\';foreach($f in @(Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 5001)){if($files.Count -ge 5000){$truncated=$true;break};$files.Add([pscustomobject]@{drive_letter=$d.DeviceID;relative_path=$f.FullName.Substring($root.Length);size_bytes=[int64]$f.Length;modified_at_utc=$f.LastWriteTimeUtc.ToString('o')})}};$total=0;foreach($h in $hubs){if($h.NumberOfPorts -gt 0){$total+=[int]$h.NumberOfPorts}};[pscustomobject]@{total_ports=$total;used_ports=$entities.Count;devices=@($entities|ForEach-Object{[pscustomobject]@{id=$_.PNPDeviceID;name=$_.Name;manufacturer=$_.Manufacturer}});drives=@($drives|ForEach-Object{[pscustomobject]@{drive_letter=$_.DeviceID;volume_label=$_.VolumeName;capacity_bytes=[int64]$_.Size;free_bytes=[int64]$_.FreeSpace}});files=@($files);files_truncated=$truncated}|ConvertTo-Json -Depth 5 -Compress`
+const windowsUSBScript = `$ErrorActionPreference='Stop';$hubs=@(Get-CimInstance Win32_USBHub -ErrorAction SilentlyContinue);$entities=@(Get-CimInstance Win32_PnPEntity -Filter "PNPDeviceID LIKE 'USB%'" -ErrorAction SilentlyContinue | Where-Object {$_.Name -and $_.PNPDeviceID -notmatch 'ROOT_HUB|USB\\ROOT'});$drives=@(Get-CimInstance Win32_LogicalDisk -Filter "DriveType=2" -ErrorAction SilentlyContinue);$files=New-Object System.Collections.Generic.List[object];$truncated=$false;foreach($d in $drives){$root=$d.DeviceID+'\\';foreach($f in @(Get-ChildItem -LiteralPath $root -File -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -First 5001)){if($files.Count -ge 5000){$truncated=$true;break};$files.Add([pscustomobject]@{drive_letter=$d.DeviceID;relative_path=$f.FullName.Substring($root.Length);size_bytes=[int64]$f.Length;modified_at_utc=$f.LastWriteTimeUtc.ToString('o')})}};$total=0;foreach($h in $hubs){if($h.NumberOfPorts -gt 0){$total+=[int]$h.NumberOfPorts}};[pscustomobject]@{total_ports=$total;used_ports=$entities.Count;devices=@($entities|ForEach-Object{[pscustomobject]@{id=$_.PNPDeviceID;name=$_.Name;manufacturer=$_.Manufacturer}});drives=@($drives|ForEach-Object{[pscustomobject]@{drive_letter=$_.DeviceID;volume_label=$_.VolumeName;capacity_bytes=[int64]$_.Size;free_bytes=[int64]$_.FreeSpace}});files=@($files.ToArray());files_truncated=$truncated}|ConvertTo-Json -Depth 5 -Compress`

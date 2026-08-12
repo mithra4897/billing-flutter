@@ -74,17 +74,22 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       _loadError = null;
     });
     try {
+      final currentUser = await SessionStorage.getCurrentUser();
+      final isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1;
+      final companyId = await SessionStorage.getCurrentCompanyId();
       final results = await Future.wait<Object>(<Future<Object>>[
-        _service.devices(),
-        _service.summaries(from: _fromDate, to: _toDate),
+        _service.devices(companyScope: isSuperAdmin, companyId: companyId),
+        _loadSummaries(
+          companyScope: isSuperAdmin,
+          companyId: companyId,
+        ),
       ]);
       if (!mounted) return;
-      final currentUser = await SessionStorage.getCurrentUser();
       final summaryPage = results[1] as ActivityWatchSummaryPage;
       setState(() {
-        _isSuperAdmin =
-            currentUser?['is_super_admin'] == true ||
-            currentUser?['is_super_admin'] == 1;
+        _isSuperAdmin = isSuperAdmin;
         _devices = _uniqueDevices(results[0] as List<ActivityWatchDevice>);
         _devicePage = 1;
         _summaries = _uniqueSummaries(summaryPage.items);
@@ -96,6 +101,40 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<ActivityWatchSummaryPage> _loadSummaries({
+    required bool companyScope,
+    required int? companyId,
+  }) async {
+    final first = await _service.summaries(
+      from: _fromDate,
+      to: _toDate,
+      page: 1,
+      limit: companyScope ? 100 : 31,
+      companyScope: companyScope,
+      companyId: companyId,
+    );
+    if (!companyScope || first.lastPage <= 1) return first;
+
+    final items = <ActivityWatchSummary>[...first.items];
+    for (var page = 2; page <= first.lastPage; page++) {
+      final next = await _service.summaries(
+        from: _fromDate,
+        to: _toDate,
+        page: page,
+        limit: 100,
+        companyScope: true,
+        companyId: companyId,
+      );
+      items.addAll(next.items);
+    }
+    return ActivityWatchSummaryPage(
+      items: items,
+      page: 1,
+      lastPage: 1,
+      total: items.length,
+    );
   }
 
   Future<void> _enroll() async {

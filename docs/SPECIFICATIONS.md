@@ -66,6 +66,11 @@ desktop operating systems.
 - Service installation/start failure: preserve the paired configuration and
   show an actionable local error so install/start can be retried without
   exposing the credential.
+- A Windows Scheduled Task permission failure after the server exchange must
+  leave the device paired. The launcher reports connected setup with a separate
+  background-start warning; it must not misreport this as a pairing failure.
+- Windows pairing-file launch failure: the installed handler must show the
+  safe local failure detail rather than silently returning to ERP.
 
 ### Acceptance criteria
 
@@ -620,6 +625,12 @@ Limitations and error handling:
   missed; the UI labels the feed as observed changes.
 - A failed or timed-out USB scan does not stop ordinary Activity Watch sampling
   or synchronization.
+- The Windows collector must pass its multi-statement PowerShell query through
+  an encoding-safe command form so WMI filter quoting is preserved by Windows
+  process argument handling, and must materialize its bounded generic file list
+  before JSON projection for Windows PowerShell 5.1 compatibility. A command-
+  transport or projection failure is logged as a USB scan failure and remains
+  isolated from ordinary activity collection.
 
 Acceptance criteria:
 
@@ -631,6 +642,39 @@ Acceptance criteria:
    capacity usage, observed durations, file changes, and truncation notices.
 4. Existing consent-v2 devices, agents, and summaries continue to work with USB
    fields absent or empty.
+
+## Activity Watch super-admin company scope
+
+Status: Approved for implementation (2026-08-12)
+
+Objective: Let every super administrator see the same Activity Watch devices
+and employee activity for the selected company instead of only devices enrolled
+by that administrator's own user account.
+
+Requirements:
+
+- The Activity Watch page determines super-admin status before loading devices
+  and summaries.
+- A super administrator requests `scope=company` for both device and summary
+  endpoints and includes the current context company ID when one is selected.
+- Company summary pages are fetched in API-sized batches until every authorized
+  summary in the selected date range is available to the employee filter and
+  trend calculations.
+- With a selected company, records from other companies are excluded. Without a
+  selected company, the existing backend super-admin company scope may return
+  all companies.
+- Non-super-admin users retain the existing personal viewer scope. The employee
+  filter remains a client-side filter over the authorized summary response.
+- Enrollment, pairing, consent, device ownership, and revoke authorization are
+  unchanged.
+
+Acceptance criteria:
+
+1. Two super administrators using the same company context receive the same
+   authorized company device and daily-summary dataset.
+2. A super administrator does not receive another company's records when a
+   company is selected.
+3. An ordinary user continues to receive only their own devices and summaries.
 
 The setup area places the Connect a computer and Devices cards side by side on
 wide screens and stacks them on narrow screens below the Activity dashboard.
