@@ -72,6 +72,13 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   cards by duration descending and show readable category labels and duration.
   Reuse only the existing privacy-safe application name, classification, and
   duration fields; do not add an API request or expose additional process data.
+- Present browser tab titles as a separate privacy-safe compact activity list,
+  not a table or card grid. Retain the foreground-title-only and no-URL notice,
+  rank the existing de-duplicated titles by duration, show an icon and duration
+  badge on each row, and separate rows with subtle dividers.
+- Present background applications as a responsive three-column process grid,
+  not chips or an enclosing outer card. Each card displays only the existing
+  process name and state; stack cards when the panel is narrow.
 - Label input as an aggregate keyboard/mouse activity duration. Do not expose
   raw keystrokes, clicks, coordinates, or an unprovided background-process list.
 
@@ -96,6 +103,10 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   application breakdown is visually distinct from the daily table.
 - The application breakdown is a readable, responsive three-card ranked grid
   rather than a table and ranks applications by duration.
+- Browser tab titles appear as a compact, duration-ranked activity list rather
+  than a table or card grid.
+- Background applications appear as a responsive three-card process grid rather
+  than compact chips.
 - Date filtering, loading, errors, and empty responses retain their current
   behaviour.
 - The change is presentation-only: no Activity Watch API, storage, consent, or

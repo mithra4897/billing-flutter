@@ -643,6 +643,19 @@ It intentionally is not a table and does not calculate or display a share
 percentage, so the presentation makes no claim about the entire workday or
 unreported device time. The cards use three equal columns when the panel is
 wide enough and stack on narrow layouts, without an enclosing outer card.
+The application heading does not repeat the selected date or device label, and
+classification formatting must preserve a single unclassified word.
+
+Browser tab titles remain limited to existing foreground titles; URLs and page
+content are never shown. The details view de-duplicates and ranks those titles
+by duration and presents them in a compact activity list with an icon, duration
+badge, and subtle row dividers. The section heading does not repeat a
+supporting privacy sentence.
+
+Background application inventory uses the existing bounded process name and
+state fields. The UI de-duplicates and orders the entries deterministically,
+then displays them in a responsive three-column process grid without an
+enclosing outer card; it stacks the cards on narrow layouts.
 
 Super admins also receive an employee filter on Recent daily activity. The
 filter uses employee identity returned with each summary, while the API remains

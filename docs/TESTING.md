@@ -1,5 +1,27 @@
 # Testing
 
+## Activity Watch background-application process grid — 2026-08-13
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to assess the three-card
+  process grid, state-label truncation, and narrow-layout stacking.
+
+## Activity Watch browser-title activity list — 2026-08-13
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to assess title truncation
+  and duration-badge alignment with real browser-title data.
+
 ## Activity Watch application report — 2026-08-13
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
@@ -9,7 +31,8 @@
   test/model/activity_watch_enrollment_test.dart`: passed with no issues.
 - `git diff --check`: passed.
 - Manual authenticated verification remains required to assess the three-card
-  desktop grid and narrow-layout stacking with real application totals.
+  desktop grid and narrow-layout stacking with real application totals,
+  including an `Unclassified` category label.
 
 ## Activity Watch locked and untracked graphs — 2026-08-13
 

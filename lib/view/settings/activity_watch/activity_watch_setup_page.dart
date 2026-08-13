@@ -1355,69 +1355,49 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-            Row(
-              children: <Widget>[
-                Icon(
-                  Icons.apps_outlined,
-                  size: 20,
-                  color: appTheme.tableLinkText,
+        Row(
+          children: <Widget>[
+            Icon(Icons.apps_outlined, size: 20, color: appTheme.tableLinkText),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            Expanded(
+              child: Text(
+                'Application activity',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: AppUiConstants.spacingXs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        'Application activity',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingXxs),
-                      Text(
-                        '${_date(summary.workDate)} · ${summary.deviceLabel}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: appTheme.mutedText,
-                        ),
-                      ),
-                    ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        if (applications.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No application totals for this day.'),
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final threeColumns = constraints.maxWidth >= 820;
+              final cardWidth = threeColumns
+                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: List<Widget>.generate(
+                  applications.length,
+                  (index) => SizedBox(
+                    width: cardWidth,
+                    child: _buildApplicationListItem(
+                      application: applications[index],
+                      rank: index + 1,
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            if (applications.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: AppUiConstants.spacingMd,
-                ),
-                child: Text('No application totals for this day.'),
-              )
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final threeColumns = constraints.maxWidth >= 820;
-                  final cardWidth = threeColumns
-                      ? (constraints.maxWidth -
-                                (AppUiConstants.spacingSm * 2)) /
-                            3
-                      : constraints.maxWidth;
-                  return Wrap(
-                    spacing: AppUiConstants.spacingSm,
-                    runSpacing: AppUiConstants.spacingSm,
-                    children: List<Widget>.generate(
-                      applications.length,
-                      (index) => SizedBox(
-                        width: cardWidth,
-                        child: _buildApplicationListItem(
-                          application: applications[index],
-                          rank: index + 1,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -1569,34 +1549,108 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Widget _buildBrowserTitleTable(ActivityWatchSummary summary) {
-    return _buildDetailListSection(
-      icon: Icons.tab_outlined,
-      title: 'Browser tab titles',
-      subtitle: 'Foreground browser titles only; URLs are never collected',
-      emptyMessage: 'No browser tab titles reported for this day.',
-      child: summary.browserTitles.isEmpty
-          ? null
-          : _buildActivityTableSurface(
-              DataTable(
-                headingRowHeight: 44,
-                dataRowMinHeight: 44,
-                dataRowMaxHeight: 56,
-                columns: const <DataColumn>[
-                  DataColumn(label: Text('Tab title')),
-                  DataColumn(label: Text('Duration'), numeric: true),
-                ],
-                rows: _uniqueBrowserTitles(summary.browserTitles)
-                    .map(
-                      (item) => DataRow(
-                        cells: <DataCell>[
-                          DataCell(Text(item.title)),
-                          DataCell(Text(_duration(item.seconds))),
-                        ],
-                      ),
-                    )
-                    .toList(growable: false),
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final titles = _uniqueBrowserTitles(summary.browserTitles);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(Icons.tab_outlined, size: 20, color: appTheme.tableLinkText),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            Expanded(
+              child: Text(
+                'Browser tab titles',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        if (titles.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No browser tab titles reported for this day.'),
+          )
+        else
+          Column(
+            children: List<Widget>.generate(
+              titles.length,
+              (index) => _buildBrowserTitleListItem(
+                title: titles[index],
+                showDivider: index != titles.length - 1,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBrowserTitleListItem({
+    required ActivityWatchBrowserTitleTotal title,
+    required bool showDivider,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final label = title.title.trim().isEmpty
+        ? 'Untitled browser tab'
+        : title.title;
+    final duration = _duration(title.seconds);
+
+    return Semantics(
+      label: '$label, $duration',
+      child: Column(
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppUiConstants.spacingSm,
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.tab_outlined, color: appTheme.tableLinkText),
+                const SizedBox(width: AppUiConstants.spacingSm),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppUiConstants.spacingSm),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.spacingSm,
+                      vertical: AppUiConstants.spacingXxs,
+                    ),
+                    child: Text(
+                      duration,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showDivider) Divider(height: 1, color: appTheme.tableBorder),
+        ],
+      ),
     );
   }
 
@@ -1604,30 +1658,119 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final applications = _uniqueBackgroundApplications(
       summary.backgroundApplications,
     );
-    return _buildDetailListSection(
-      icon: Icons.memory_outlined,
-      title: 'Background applications',
-      subtitle: 'Latest bounded process inventory for this device and day',
-      emptyMessage: 'No background application inventory reported.',
-      child: applications.isEmpty
-          ? null
-          : Wrap(
-              spacing: AppUiConstants.spacingXs,
-              runSpacing: AppUiConstants.spacingXs,
-              children: applications
-                  .map(
-                    (item) => Chip(
-                      avatar: const Icon(Icons.circle, size: 9),
-                      label: Text(
-                        (item.state ?? '').trim().isEmpty
-                            ? item.name
-                            : '${item.name} · ${item.state}',
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  )
-                  .toList(growable: false),
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(
+              Icons.memory_outlined,
+              size: 20,
+              color: appTheme.tableLinkText,
             ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            Expanded(
+              child: Text(
+                'Background applications',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        if (applications.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No background application inventory reported.'),
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final threeColumns = constraints.maxWidth >= 820;
+              final cardWidth = threeColumns
+                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: applications
+                    .map(
+                      (application) => SizedBox(
+                        width: cardWidth,
+                        child: _buildBackgroundApplicationGridItem(application),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBackgroundApplicationGridItem(
+    ActivityWatchBackgroundApplication application,
+  ) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final name = application.name.trim().isEmpty
+        ? 'Unlabelled application'
+        : application.name;
+    final state = application.state?.trim();
+    final stateLabel = state == null || state.isEmpty
+        ? 'State unavailable'
+        : state;
+
+    return Semantics(
+      label: '$name, $stateLabel',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: appTheme.cardBackground,
+          border: Border.all(color: appTheme.tableBorder),
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.spacingMd,
+            vertical: AppUiConstants.spacingSm,
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.memory_outlined, color: appTheme.tableLinkText),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingXxs),
+                    Text(
+                      stateLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1880,7 +2023,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   static String _applicationClassificationLabel(String classification) {
     final words = classification
         .trim()
-        .split(RegExp(r'[_\\s-]+'))
+        .split(RegExp(r'[_\s-]+'))
         .where((word) => word.isNotEmpty)
         .map(
           (word) =>
@@ -1904,7 +2047,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               seconds: previous.seconds + title.seconds,
             );
     }
-    return totals.values.toList(growable: false);
+    final unique = totals.values.toList(growable: false);
+    unique.sort((left, right) {
+      final duration = right.seconds.compareTo(left.seconds);
+      return duration != 0
+          ? duration
+          : left.title.toLowerCase().compareTo(right.title.toLowerCase());
+    });
+    return unique;
   }
 
   static List<ActivityWatchBackgroundApplication> _uniqueBackgroundApplications(
@@ -1917,7 +2067,16 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           '${(application.state ?? '').trim().toLowerCase()}';
       unique[key] = application;
     }
-    return unique.values.toList(growable: false);
+    final values = unique.values.toList(growable: false);
+    values.sort((left, right) {
+      final name = left.name.toLowerCase().compareTo(right.name.toLowerCase());
+      return name != 0
+          ? name
+          : (left.state ?? '').toLowerCase().compareTo(
+              (right.state ?? '').toLowerCase(),
+            );
+    });
+    return values;
   }
 
   static String _date(DateTime value) =>

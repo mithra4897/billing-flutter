@@ -67,6 +67,50 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-13 — Activity Watch background-application process grid
+
+- Request: Update the Background applications section UI.
+- Specification: Show existing bounded process names and states in a responsive
+  three-column grid without chips or an enclosing outer card.
+- Implementation: Replaced the chip list and outer section card with compact
+  process cards, and sort de-duplicated process entries alphabetically for a
+  stable display.
+- Files changed: Activity Watch setup page, specifications, testing notes, and
+  changelog.
+- Database/API impact: None.
+- Security impact: No new process data is exposed; only the existing bounded
+  name/state fields are displayed.
+- Tests added or updated: Existing model parsing coverage remains applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification with live process data
+  remains manual.
+- Follow-up work: None.
+
+## 2026-08-13 — Activity Watch browser-title activity list
+
+- Request: Update the Browser tab titles section UI.
+- Specification: Show existing browser titles as a compact, duration-ranked
+  activity list without supporting label text below the heading.
+- Implementation: Replaced the browser-title table and card grid with compact
+  icon-led rows, duration badges, and subtle dividers, sorting titles by
+  duration; removed the supporting label beneath the Browser tab titles heading.
+- Files changed: Activity Watch setup page, specifications, testing notes, and
+  changelog.
+- Database/API impact: None.
+- Security impact: The UI continues to display only existing foreground tab
+  titles; URLs and page content remain absent.
+- Tests added or updated: Existing model parsing coverage remains applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification with live browser-title
+  data remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 — Professional Activity Watch application report
 
 - Request: Update the Activity Watch application section with a professional
@@ -76,7 +120,8 @@
   comparison.
 - Implementation: Sorted the existing de-duplicated totals by duration and
   replaced the application table with a responsive three-card grid without an
-  enclosing outer card.
+  enclosing outer card. Removed the duplicate date/device subtitle and fixed
+  category tokenization so `Unclassified` is not split into two words.
 - Files changed: Activity Watch setup page, dashboard specification, main
   specification, testing notes, and changelog.
 - Database/API impact: None; the UI reuses existing application name,
