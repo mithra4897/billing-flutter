@@ -113,6 +113,14 @@ typed data under `lib/model`, API services under `lib/service`, and shared
 infrastructure under `lib/core`. It communicates with the sibling Lumen API
 under `/api/v1` and stores normal ERP session state separately.
 
+### Payroll-run lifecycle actions
+
+The payroll-run detail dialog reuses `HrService.deletePayrollRun` for eligible
+draft and processed records. The backend enforces lifecycle and voucher checks;
+on deletion, database foreign keys cascade from the run to payroll lines and
+their payslips. Processed runs deliberately expose only this delete action;
+posted runs remain undeletable and are not offered a client action.
+
 ### HR salary-component order propagation
 
 The Employee Salary Components tab sends the selected employee and salary

@@ -1,86 +1,22 @@
 # Changelog
 
-## Windows Activity Watch pairing result dialog (2026-08-12)
+## 2026-08-13 — Allow processed payroll-run deletion
 
-- Request: Fix an installed Windows agent that gave no reason when a fresh
-  pairing did not complete.
-- Implementation: The installer now registers its installed launcher as the
-  `.billingawpair` handler. The launcher runs the installed agent and shows a
-  safe success or error dialog.
-- Security: Dialogs do not contain pairing tokens or device credentials.
-- Compatibility: Install the rebuilt Windows installer once before generating
-  a new pairing file.
-- Verification: The Windows installer rebuilt with UCRT64 GCC. The Go suite
-  passed except the existing Windows-only POSIX permission assertion in the
-  pairing package; static analysis completed without findings.
-
-## Windows Activity Watch task-permission pairing recovery (2026-08-12)
-
-- Request: Correct the false pairing-failed dialog shown when Windows denied
-  Scheduled Task creation after a successful server exchange.
-- Implementation: Pairing now remains successful after the exchange and stores
-  configuration before reporting a separate background-start warning.
-- Compatibility: Existing paired devices do not need a new pairing token;
-  administrator task setup can be completed separately.
-
-## Activity Watch Windows developer setup guide (2026-08-12)
-
-- Request: Document the complete Windows agent setup for new developers.
-- Documentation: Added prerequisites, the Go/CGO/UCRT64 toolchain explanation,
-  build and packaging commands, backend publishing, pairing, verification,
-  release checks, and troubleshooting based on validated Windows setup issues.
-- Compatibility: Documentation only; no API, database, or runtime behavior
-  changed.
-
-## Activity Watch self-contained Windows installer (2026-08-12)
-
-- Request: Produce the standalone Activity Watch Windows installer after
-  IExpress repeatedly failed during MakeCAB generation.
-- Implementation: Replaced IExpress with a small .NET Framework launcher that
-  embeds the compiled agent and existing per-user installation script in one
-  EXE, runs the script, reports its result, and cleans temporary files.
-- Database/API impact: None.
-- Known limitation: Clean-user installation, code signing, and distribution
-  verification remain release checks.
-- Follow-up: Replaced PowerShell registry-provider default-value writes with
-  explicit `reg.exe ADD /ve` commands so `.billingawpair` registration persists
-  in the employee's current-user Classes hive.
-
-## Activity Watch graph date labels (2026-08-12)
-
-- Request: Use readable graph dates such as `Aug 12` and `Aug 13`.
-- Implementation: Updated the Activity Watch trend-label formatter from numeric
-  month/day output to abbreviated month-name dates.
-- Database/API impact: None.
-
-## Activity Watch dashboard header removal (2026-08-12)
-
-- Request: Remove only the top Activity dashboard header card.
-- Implementation: The activity list and active-time graph remain visible; the
-  standalone header surface is hidden for Activity Watch only.
-- Database/API impact: None.
-
-## Activity Watch active-time graph labels (2026-08-12)
-
-- Request: Display active time clearly in the Activity dashboard graph.
-- Implementation: The shared trend chart accepts an optional hover formatter;
-  Activity Watch uses it to display each daily point as a human-readable active
-  duration rather than an unlabeled numeric minute value.
-- Database/API impact: None; the existing summary collection is reused.
-- Known limitations: Flutter visual verification requires a configured SDK
-  environment.
-
-## Activity Watch numeric-string response parsing (2026-08-12)
-
-- Request: Restore the Activity Watch dashboard and Devices panel when the API
-  returns numeric fields as strings.
-- Implementation: Reused `JsonModel` numeric parsers for summary metrics,
-  employee IDs, application totals, pagination, and enrollment retention.
-- Database/API impact: None; both numeric API representations are accepted.
-- Tests added: Activity Watch summary parsing coverage with production-shaped
-  numeric strings.
-- Known limitations: Flutter tooling must run the focused test in a configured
-  SDK environment.
+- Request: Make Delete available while viewing a processed payroll run.
+- Specification: Processed and draft runs require confirmation before using the
+  existing delete API; posted and voucher-linked protection remains server-side.
+- Implementation: Extended the existing delete action to processed state with
+  a cascade-deletion warning for generated payroll lines and payslips, and
+  removed the processed-state Post action.
+- Files changed: Payroll workflow dialog and frontend documentation.
+- Database/API impact: None; reuses the existing DELETE endpoint and database
+  foreign-key cascade.
+- Security impact: Existing `hr.delete` authorization remains unchanged.
+- Tests added or updated: UI behavior is covered by focused source-level
+  verification; no API/model contract changed.
+- Documentation updated: Specification, architecture, testing notes, and
+  changelog.
+- Known limitations: Authenticated UI confirmation remains a manual check.
 
 ## 2026-08-12 â€” Fix section-card ink surfaces and device-card overflow
 
@@ -594,50 +530,3 @@
   integration, and native packaging verification outside macOS remain outside
   this change.
 - Follow-up work: Add authorized Activity Watch runtime and platform adapters.
-## 2026-08-12 - Consent-gated USB audit metadata
-
-- Added bounded Windows USB/removable-drive collection for consent-v3 pairings,
-  including best-effort port counts, device/volume/storage/duration metadata,
-  and observed added/deleted file metadata without reading file contents.
-- Reused encrypted system events and daily summaries, preserving the approved
-  ten-table local schema and backward-compatible empty defaults.
-- Added API validation and expanded Activity Watch USB details with truncation
-  messaging.
-- The Windows installer now stops only the existing agent at its known install
-  path before replacing it, allowing connected devices to upgrade cleanly.
-- Removed the non-running scheduled-task stop command that could make upgrades
-  exit with code 1, and surfaced PowerShell diagnostics in installer failures.
-
-## 2026-08-12 - Super-admin Activity Watch company scope
-
-- Activity Watch now resolves super-admin status and the current company before
-  loading data, then sends `scope=company` and the selected `company_id` to both
-  device and daily-summary endpoints.
-- Company summaries are fetched across all API pages in batches of 100, and the
-  backend now validates the scope and company query parameters.
-- Ordinary users retain personal device ownership scope. No database, pairing,
-  consent, or revoke behavior changed.
-
-## 2026-08-12 - Windows USB collector command transport
-
-- Request: Diagnose the running Windows agent's repeated `collect USB metadata
-  failed: exit status 1` message.
-- Specification: The Windows USB query must preserve WMI filter quoting and a
-  USB-only failure must not interrupt normal activity sampling or sync.
-- Implementation: The agent now passes the existing bounded USB PowerShell
-  script using PowerShell's UTF-16LE `EncodedCommand` contract instead of a raw
-  `Command` argument whose nested WMI quotes were stripped by Windows argument
-  reconstruction. The script also materializes its bounded generic file list
-  before JSON projection for Windows PowerShell 5.1 compatibility.
-- Files changed: USB collector, collector tests, specification, architecture,
-  testing notes, changelog, and rebuilt Windows installer artifact.
-- Database/API impact: None.
-- Security impact: Collection scope and consent-v3 gating are unchanged; the
-  encoding is command transport, not encryption.
-- Tests added or updated: Exact script round-trip and encoded invocation.
-- Tests executed and results: Collector regression tests passed; focused agent,
-  config, store, syncer, and command suites passed; the exact encoded USB query
-  completed on Windows PowerShell 5.1 with exit code 0 and valid JSON; the
-  Windows installer rebuilt successfully. The complete Go suite passed except
-  the existing Windows-only pairing test's POSIX file-mode assertion.
-- Known limitations: Physical USB port counts remain best-effort.

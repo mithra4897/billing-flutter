@@ -1,5 +1,34 @@
 # Specifications
 
+## Payroll run deletion from processed state
+
+- Date: 2026-08-13
+- Status: Approved for implementation
+
+### Objective
+
+Allow an authorized HR user to delete a processed payroll run from its detail
+dialog, matching the existing backend lifecycle rule.
+
+### Scope and rules
+
+- The detail dialog shows **Delete** for both `draft` and `processed` runs.
+- A confirmation is required before either deletion. The processed-state prompt
+  explicitly warns that generated payroll lines and payslips are permanently
+  removed through the existing database cascade.
+- Posted runs retain no delete action. The existing API remains the authority
+  and rejects voucher-linked or otherwise ineligible records.
+- No API, database, permission, or accounting behavior changes. A successful
+  deletion closes the dialog and refreshes the register; an API failure leaves
+  the dialog open and displays the server message.
+
+### Acceptance criteria
+
+- Opening a processed payroll run displays Delete and no Post action.
+- Deleting a processed run requires confirmation, calls the existing DELETE
+  endpoint, and refreshes the payroll-run register after success.
+- Draft and posted-run behavior remains unchanged.
+
 ## Activity Watch self-service employee onboarding
 
 - Date: 2026-08-07

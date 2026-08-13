@@ -1,5 +1,20 @@
 # Testing
 
+## Processed payroll-run deletion — 2026-08-13
+
+- `dart format lib/view/hr/hr_workflow_dialogs.dart`: passed; no formatting
+  changes were needed.
+- `flutter analyze`: completed with one pre-existing unrelated unused
+  `_buildGapList` warning in `lib/view/crm/crm_followups_page.dart`; no issue
+  was reported for the payroll dialog.
+- The change reuses the existing typed `HrService.deletePayrollRun` request and
+  its existing dialog confirmation/delete-success flow; no API or model contract
+  changed. Processed runs present the confirmed delete action and no Post
+  action, so no additional unit test fixture was required.
+- Manual authenticated verification remains required to confirm server-side
+  voucher-linked and posted-run rejection messages, and the processed deletion
+  confirmation, with production-like data.
+
 ## Apply salary-component order to all employees — 2026-08-11
 
 - `flutter test test/controller/hr/employee_salary_component_order_test.dart`:
