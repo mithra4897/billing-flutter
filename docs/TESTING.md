@@ -1,5 +1,16 @@
 # Testing
 
+## Activity Watch USB detail layout — 2026-08-13
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required for USB-device card
+  wrapping, long file-change labels, and the file-path hover tooltip.
+
 ## Activity Watch background-application process grid — 2026-08-13
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart

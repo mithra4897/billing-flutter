@@ -67,6 +67,29 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-13 — Activity Watch USB detail layout
+
+- Request: Update the USB activity section UI.
+- Specification: Render existing USB data as a port-status line, responsive
+  device cards, and compact file-change rows instead of tables or an outer card.
+- Implementation: Replaced USB device and file-event tables with the new
+  responsive detail layouts, retaining the existing file-path tooltip and
+  safety-limit message. Removed obsolete table/outer-card helpers that were no
+  longer used by any expanded detail section.
+- Files changed: Activity Watch setup page, specifications, testing notes, and
+  changelog.
+- Database/API impact: None.
+- Security impact: Existing privacy limits remain unchanged; file content and
+  URLs are not shown.
+- Tests added or updated: Existing model parsing coverage remains applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification with real USB metadata
+  remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 — Activity Watch background-application process grid
 
 - Request: Update the Background applications section UI.

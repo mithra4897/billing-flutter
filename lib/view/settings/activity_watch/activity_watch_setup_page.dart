@@ -1290,63 +1290,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       )
       .toList(growable: false);
 
-  Widget _buildActivityTableSurface(Widget table) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-
-    return LayoutBuilder(
-      builder: (context, constraints) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: appTheme.cardBackground,
-          border: Border.all(color: appTheme.tableBorder),
-          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
-              child: _buildActivityTableTheme(table),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActivityTableTheme(Widget child) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-
-    return Theme(
-      data: theme.copyWith(
-        dividerColor: appTheme.tableBorder,
-        dataTableTheme: DataTableThemeData(
-          headingRowColor: WidgetStatePropertyAll(
-            appTheme.tableHeaderBackground,
-          ),
-          dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
-            if (states.contains(WidgetState.selected)) {
-              return appTheme.tableRowSelected;
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return appTheme.tableRowHover;
-            }
-            return appTheme.cardBackground;
-          }),
-          headingTextStyle: theme.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: appTheme.tableTitleText,
-          ),
-          dataTextStyle: theme.textTheme.bodySmall?.copyWith(
-            color: appTheme.tableCellText,
-          ),
-        ),
-      ),
-      child: child,
-    );
-  }
-
   Widget _buildApplicationTable(ActivityWatchSummary summary) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
@@ -1780,108 +1723,250 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         summary.usbUsedPorts > 0 ||
         summary.usbDevices.isNotEmpty ||
         summary.usbFileEvents.isNotEmpty;
-    return _buildDetailListSection(
-      icon: Icons.usb_outlined,
-      title: 'USB activity',
-      subtitle:
-          'Best-effort port status and observed removable-file metadata; file contents are never collected',
-      emptyMessage: 'No USB metadata reported for this day.',
-      child: !hasData
-          ? null
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  '${summary.usbUsedPorts} used / ${summary.usbTotalPorts} total ports',
-                  style: Theme.of(context).textTheme.titleSmall,
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(Icons.usb_outlined, size: 20, color: appTheme.tableLinkText),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            Expanded(
+              child: Text(
+                'USB activity',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                if (summary.usbDevices.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildActivityTableSurface(
-                    DataTable(
-                      columns: const <DataColumn>[
-                        DataColumn(label: Text('Device')),
-                        DataColumn(label: Text('Drive')),
-                        DataColumn(label: Text('Storage')),
-                        DataColumn(label: Text('Observed')),
-                      ],
-                      rows: summary.usbDevices
-                          .map(
-                            (device) => DataRow(
-                              cells: <DataCell>[
-                                DataCell(
-                                  Text(
-                                    '${device.name} · ${device.connected ? 'Connected' : 'Disconnected'}',
-                                  ),
-                                ),
-                                DataCell(Text(device.driveLetter ?? '—')),
-                                DataCell(
-                                  Text(
-                                    device.capacityBytes <= 0
-                                        ? '—'
-                                        : '${_bytes(device.capacityBytes - device.freeBytes)} / ${_bytes(device.capacityBytes)}',
-                                  ),
-                                ),
-                                DataCell(
-                                  Text(
-                                    _duration(device.observedDurationSeconds),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList(growable: false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        if (!hasData)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No USB metadata reported for this day.'),
+          )
+        else ...<Widget>[
+          _buildUsbPortStatus(summary),
+          if (summary.usbDevices.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppUiConstants.spacingSm),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final threeColumns = constraints.maxWidth >= 820;
+                final cardWidth = threeColumns
+                    ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) /
+                          3
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: summary.usbDevices
+                      .map(
+                        (device) => SizedBox(
+                          width: cardWidth,
+                          child: _buildUsbDeviceCard(device),
+                        ),
+                      )
+                      .toList(growable: false),
+                );
+              },
+            ),
+          ],
+          if (summary.usbFileEvents.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Text(
+              'Observed file changes',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Column(
+              children: List<Widget>.generate(
+                summary.usbFileEvents.length,
+                (index) => _buildUsbFileEventRow(
+                  event: summary.usbFileEvents[index],
+                  showDivider: index != summary.usbFileEvents.length - 1,
+                ),
+              ),
+            ),
+          ],
+          if (summary.usbFilesTruncated) ...<Widget>[
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Text(
+              'Some USB file metadata was omitted because the safety limit was reached.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: appTheme.mutedText,
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildUsbPortStatus(ActivityWatchSummary summary) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppUiConstants.spacingMd,
+          vertical: AppUiConstants.spacingSm,
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.usb_outlined, color: appTheme.tableLinkText),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(
+              child: Text(
+                '${summary.usbUsedPorts} of ${summary.usbTotalPorts} USB ports in use',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsbDeviceCard(ActivityWatchUsbDevice device) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final name = device.name.trim().isEmpty
+        ? 'Unnamed USB device'
+        : device.name;
+    final drive = device.driveLetter?.trim();
+    final driveLabel = drive == null || drive.isEmpty ? 'No drive' : drive;
+    final storage = device.capacityBytes <= 0
+        ? 'Storage unavailable'
+        : '${_bytes(device.capacityBytes - device.freeBytes)} of ${_bytes(device.capacityBytes)} used';
+    final status = device.connected ? 'Connected' : 'Disconnected';
+
+    return Semantics(
+      label: '$name, $status, $driveLabel, $storage',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: appTheme.cardBackground,
+          border: Border.all(color: appTheme.tableBorder),
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(Icons.usb_outlined, color: appTheme.tableLinkText),
+                  const SizedBox(width: AppUiConstants.spacingXs),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
-                if (summary.usbFileEvents.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  Text(
-                    'Observed file changes',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  _buildActivityTableSurface(
-                    DataTable(
-                      columns: const <DataColumn>[
-                        DataColumn(label: Text('Action')),
-                        DataColumn(label: Text('File')),
-                        DataColumn(label: Text('Drive')),
-                        DataColumn(label: Text('Size'), numeric: true),
-                      ],
-                      rows: summary.usbFileEvents
-                          .map(
-                            (event) => DataRow(
-                              cells: <DataCell>[
-                                DataCell(Text(event.operation)),
-                                DataCell(
-                                  Tooltip(
-                                    message: event.relativePath,
-                                    child: Text(event.name),
-                                  ),
-                                ),
-                                DataCell(Text(event.driveLetter)),
-                                DataCell(
-                                  Text(
-                                    event.sizeBytes > 0
-                                        ? _bytes(event.sizeBytes)
-                                        : '—',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList(growable: false),
+              ),
+              const SizedBox(height: AppUiConstants.spacingXs),
+              Text(
+                '$status · $driveLabel',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingXxs),
+              Text(
+                storage,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingXxs),
+              Text(
+                'Observed ${_duration(device.observedDurationSeconds)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsbFileEventRow({
+    required ActivityWatchUsbFileEvent event,
+    required bool showDivider,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final operation = event.operation.trim().isEmpty
+        ? 'Changed'
+        : event.operation;
+    final name = event.name.trim().isEmpty ? 'Unnamed file' : event.name;
+    final drive = event.driveLetter.trim().isEmpty
+        ? 'Unknown drive'
+        : event.driveLetter;
+    final size = event.sizeBytes > 0
+        ? _bytes(event.sizeBytes)
+        : 'Size unavailable';
+
+    return Semantics(
+      label: '$operation, $name, $drive, $size',
+      child: Column(
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppUiConstants.spacingSm,
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.insert_drive_file_outlined,
+                  color: appTheme.tableLinkText,
+                ),
+                const SizedBox(width: AppUiConstants.spacingSm),
+                Expanded(
+                  child: Tooltip(
+                    message: event.relativePath,
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ],
-                if (summary.usbFilesTruncated) ...<Widget>[
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  const Text(
-                    'Some USB file metadata was omitted because the safety limit was reached.',
+                ),
+                const SizedBox(width: AppUiConstants.spacingSm),
+                Text(
+                  '$operation · $drive · $size',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: appTheme.mutedText,
                   ),
-                ],
+                ),
               ],
             ),
+          ),
+          if (showDivider) Divider(height: 1, color: appTheme.tableBorder),
+        ],
+      ),
     );
   }
 
@@ -1900,59 +1985,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final mib = kib / 1024;
     if (mib < 1024) return '${mib.toStringAsFixed(1)} MB';
     return '${(mib / 1024).toStringAsFixed(1)} GB';
-  }
-
-  Widget _buildDetailListSection({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String emptyMessage,
-    required Widget? child,
-  }) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.subtleFill,
-        border: Border.all(color: appTheme.tableBorder),
-        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Icon(icon, color: appTheme.tableLinkText),
-                const SizedBox(width: AppUiConstants.spacingXs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: appTheme.mutedText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            child ?? Text(emptyMessage),
-          ],
-        ),
-      ),
-    );
   }
 
   static String _summaryKey(ActivityWatchSummary summary) =>

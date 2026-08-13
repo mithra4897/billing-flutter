@@ -657,6 +657,12 @@ state fields. The UI de-duplicates and orders the entries deterministically,
 then displays them in a responsive three-column process grid without an
 enclosing outer card; it stacks the cards on narrow layouts.
 
+USB activity continues to display only the existing consented port, device, and
+bounded file-metadata fields. The details view renders a concise port-status
+line, responsive device cards, and compact file-change rows rather than data
+tables, without an enclosing outer card. File paths remain available only as
+the existing hover tooltip, and the safety-limit notice remains visible.
+
 Super admins also receive an employee filter on Recent daily activity. The
 filter uses employee identity returned with each summary, while the API remains
 the source of truth for non-super-admin visibility.

@@ -79,6 +79,10 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Present background applications as a responsive three-column process grid,
   not chips or an enclosing outer card. Each card displays only the existing
   process name and state; stack cards when the panel is narrow.
+- Present USB activity without an enclosing outer card: show port usage as a
+  concise status line, existing USB devices in a responsive three-card grid,
+  and existing file-change metadata as compact icon-led rows rather than data
+  tables. Preserve the existing safety-limit notice.
 - Label input as an aggregate keyboard/mouse activity duration. Do not expose
   raw keystrokes, clicks, coordinates, or an unprovided background-process list.
 
@@ -107,6 +111,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   than a table or card grid.
 - Background applications appear as a responsive three-card process grid rather
   than compact chips.
+- USB activity uses a concise port status, responsive device cards, and compact
+  file-change rows rather than tables.
 - Date filtering, loading, errors, and empty responses retain their current
   behaviour.
 - The change is presentation-only: no Activity Watch API, storage, consent, or
