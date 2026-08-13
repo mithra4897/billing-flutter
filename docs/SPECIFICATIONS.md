@@ -636,6 +636,14 @@ the API contract. No extra API request is introduced; date filtering,
 loading/error/empty behaviour, the API contract, and privacy restrictions are
 unchanged.
 
+The application details section presents the existing application totals as a
+ranked report. It sorts the existing de-duplicated totals by duration, uses
+readable category labels, and renders each result as a card with its duration.
+It intentionally is not a table and does not calculate or display a share
+percentage, so the presentation makes no claim about the entire workday or
+unreported device time. The cards use three equal columns when the panel is
+wide enough and stack on narrow layouts, without an enclosing outer card.
+
 Super admins also receive an employee filter on Recent daily activity. The
 filter uses employee identity returned with each summary, while the API remains
 the source of truth for non-super-admin visibility.

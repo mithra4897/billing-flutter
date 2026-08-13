@@ -60,13 +60,18 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   space permits.
 - Keep daily rows compact and remove selection checkboxes. The selected row may
   use the shared subtle highlight only to identify the open application panel.
-- Place both tables inside rounded, bordered surfaces using the existing table
-  theme colors. The application breakdown must appear as a clearly separated
-  details panel with its own heading and close action.
-- Permit horizontal scrolling when the available width cannot fit all columns;
+- Place the daily table inside a rounded, bordered surface using the existing
+  table theme colors. The application breakdown must appear as a clearly
+  responsive ranked-card grid without an enclosing outer card. Show three cards
+  per row when the panel is wide enough; otherwise stack the cards.
+- Permit horizontal scrolling when the daily-table width cannot fit all columns;
   do not hide duration values or change the server request.
 - Preserve the existing human-readable duration format and show a clear empty
   message when no application totals are available.
+- Present application totals as a professional, ranked-card breakdown: order
+  cards by duration descending and show readable category labels and duration.
+  Reuse only the existing privacy-safe application name, classification, and
+  duration fields; do not add an API request or expose additional process data.
 - Label input as an aggregate keyboard/mouse activity duration. Do not expose
   raw keystrokes, clicks, coordinates, or an unprovided background-process list.
 
@@ -89,6 +94,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   than being limited by the setup-card width.
 - The daily table has no checkbox column or oversized empty row area, and the
   application breakdown is visually distinct from the daily table.
+- The application breakdown is a readable, responsive three-card ranked grid
+  rather than a table and ranks applications by duration.
 - Date filtering, loading, errors, and empty responses retain their current
   behaviour.
 - The change is presentation-only: no Activity Watch API, storage, consent, or

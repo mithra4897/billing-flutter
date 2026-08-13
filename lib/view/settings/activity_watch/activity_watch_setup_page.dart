@@ -1350,18 +1350,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   Widget _buildApplicationTable(ActivityWatchSummary summary) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
+    final applications = _uniqueApplications(summary.applications);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.subtleFill,
-        border: Border.all(color: appTheme.tableBorder),
-        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
             Row(
               children: <Widget>[
                 Icon(
@@ -1393,7 +1386,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            if (summary.applications.isEmpty)
+            if (applications.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(
                   vertical: AppUiConstants.spacingMd,
@@ -1401,32 +1394,116 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 child: Text('No application totals for this day.'),
               )
             else
-              _buildActivityTableSurface(
-                DataTable(
-                  headingRowHeight: 44,
-                  dataRowMinHeight: 48,
-                  dataRowMaxHeight: 48,
-                  horizontalMargin: AppUiConstants.spacingMd,
-                  columnSpacing: AppUiConstants.spacingLg,
-                  columns: const <DataColumn>[
-                    DataColumn(label: Text('Application')),
-                    DataColumn(label: Text('Category')),
-                    DataColumn(label: Text('Duration'), numeric: true),
-                  ],
-                  rows: _uniqueApplications(summary.applications)
-                      .map(
-                        (application) => DataRow(
-                          cells: <DataCell>[
-                            DataCell(Text(application.name)),
-                            DataCell(Text(application.classification)),
-                            DataCell(Text(_duration(application.seconds))),
-                          ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final threeColumns = constraints.maxWidth >= 820;
+                  final cardWidth = threeColumns
+                      ? (constraints.maxWidth -
+                                (AppUiConstants.spacingSm * 2)) /
+                            3
+                      : constraints.maxWidth;
+                  return Wrap(
+                    spacing: AppUiConstants.spacingSm,
+                    runSpacing: AppUiConstants.spacingSm,
+                    children: List<Widget>.generate(
+                      applications.length,
+                      (index) => SizedBox(
+                        width: cardWidth,
+                        child: _buildApplicationListItem(
+                          application: applications[index],
+                          rank: index + 1,
                         ),
-                      )
-                      .toList(growable: false),
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ],
+    );
+  }
+
+  Widget _buildApplicationListItem({
+    required ActivityWatchApplicationTotal application,
+    required int rank,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final name = application.name.isEmpty
+        ? 'Unlabelled application'
+        : application.name;
+    final classification = _applicationClassificationLabel(
+      application.classification,
+    );
+    final duration = _duration(application.seconds);
+
+    return Semantics(
+      label: 'Rank $rank, $name, $classification, $duration',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: appTheme.cardBackground,
+          border: Border.all(color: appTheme.tableBorder),
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.spacingMd,
+            vertical: AppUiConstants.spacingSm,
+          ),
+          child: Row(
+            children: <Widget>[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Center(
+                    child: Text(
+                      '$rank',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-          ],
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingXxs),
+                    Text(
+                      classification,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Text(
+                duration,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1790,7 +1867,27 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               seconds: previous.seconds + application.seconds,
             );
     }
-    return totals.values.toList(growable: false);
+    final unique = totals.values.toList(growable: false);
+    unique.sort((left, right) {
+      final duration = right.seconds.compareTo(left.seconds);
+      return duration != 0
+          ? duration
+          : left.name.toLowerCase().compareTo(right.name.toLowerCase());
+    });
+    return unique;
+  }
+
+  static String _applicationClassificationLabel(String classification) {
+    final words = classification
+        .trim()
+        .split(RegExp(r'[_\\s-]+'))
+        .where((word) => word.isNotEmpty)
+        .map(
+          (word) =>
+              '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        );
+    final label = words.join(' ');
+    return label.isEmpty ? 'Unclassified' : label;
   }
 
   static List<ActivityWatchBrowserTitleTotal> _uniqueBrowserTitles(

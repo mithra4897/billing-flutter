@@ -67,6 +67,31 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-13 — Professional Activity Watch application report
+
+- Request: Update the Activity Watch application section with a professional
+  presentation.
+- Specification: Present existing application totals as a responsive three-card
+  ranked grid with readable categories and durations, not a table or percentage
+  comparison.
+- Implementation: Sorted the existing de-duplicated totals by duration and
+  replaced the application table with a responsive three-card grid without an
+  enclosing outer card.
+- Files changed: Activity Watch setup page, dashboard specification, main
+  specification, testing notes, and changelog.
+- Database/API impact: None; the UI reuses existing application name,
+  classification, and duration fields.
+- Security impact: None; no additional process or input information is shown.
+- Tests added or updated: Existing summary parsing coverage remains applicable;
+  no API contract changed.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification with real application
+  totals remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 — Add missing Activity Watch duration graphs
 
 - Request: Show locked and untracked time in the Activity Watch graph section.
