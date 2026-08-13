@@ -624,8 +624,10 @@ overview must not reserve an empty analytics column or show a `No analytics
 configured` card when it contains no insight cards. Each duration graph is a
 separate borderless rounded surface with smooth filled mountain curves: green for the main
 series and red for the companion idle series. Graph cards omit redundant
-legend/date labels, show a duration timeline at the left, and reveal the
-selected day's duration values on hover. The expanded view has no enclosing
+legends and point markers, show a duration timeline at the left and compact
+month/day labels along the bottom, and reveal the selected day's duration
+values in a visible, on-screen hover tooltip.
+The expanded view has no enclosing
 outlined duration-trends container or supporting label. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of
 the API contract. No extra API request is introduced; date filtering,

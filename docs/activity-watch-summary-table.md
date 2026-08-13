@@ -25,8 +25,10 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   strong color and the companion idle series uses a light color.
 - Render every duration graph inside its own rounded card with smooth filled
   mountain curves, using green for main duration series and red for idle series.
-- Omit redundant legends and date labels, retain a left duration timeline, and
-  show the selected day and duration values when the user hovers a graph.
+- Omit redundant legends and point markers; retain a left duration timeline,
+  compact month/day labels along the bottom, and show the selected day and
+  duration values in an on-screen, high-contrast tooltip when the user hovers
+  a graph.
 - Do not wrap the graph set in an additional outlined container or show an
   `Activity duration trends` heading; only the individual graph cards remain.
 - When an overview supplies only a primary activity list, it must use the full

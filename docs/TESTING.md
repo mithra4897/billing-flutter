@@ -1,5 +1,25 @@
 # Testing
 
+## Activity Watch graph date-axis verification — 2026-08-13
+
+- `dart format --output=none lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed.
+- `dart analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed with no issues.
+- `git diff --check`: passed.
+- Manual browser verification remains required for label spacing with real
+  report data.
+
+## Activity Watch graph hover visibility verification — 2026-08-13
+
+- `dart format --output=none lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed.
+- `dart analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed with no issues.
+- `git diff --check`: passed.
+- Manual browser verification remains required for pointer hover placement at
+  desktop and narrow widths.
+
 ## Activity Watch graph timelines and hover values â€” 2026-08-13
 
 - `C:\flutter\bin\cache\dart-sdk\bin\dart.exe format

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-13 — Add Activity Watch graph date axis
+
+- Request: Show the month and day at the bottom of each graph.
+- Implementation: Added up to four evenly spaced `MMM d` labels below each
+  graph so dates remain readable at narrow widths.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+
+## 2026-08-13 — Fix Activity Watch graph hover visibility
+
+- Request: Make graph hover values visible and remove graph points.
+- Implementation: The hover tooltip now follows the selected graph position,
+  stays within the graph bounds, and uses a high-contrast elevated surface.
+  Removed all plotted point markers.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+
 ## 2026-08-13 — Remove Activity Watch graph card borders
 
 - Request: Remove the graph card borders.
