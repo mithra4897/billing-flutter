@@ -1891,33 +1891,6 @@ Future<void> showPayrollRunDetailDialog(
                       },
                       child: const Text('Process'),
                     ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(ctx).colorScheme.error,
-                        foregroundColor: Theme.of(ctx).colorScheme.onError,
-                      ),
-                      onPressed: () async {
-                        if (!await _confirm(
-                          ctx,
-                          'Delete payroll run',
-                          'Delete this draft payroll run?',
-                        )) {
-                          return;
-                        }
-                        final del = await hr.deletePayrollRun(id);
-                        if (!ctx.mounted) {
-                          return;
-                        }
-                        ScaffoldMessenger.of(
-                          ctx,
-                        ).showSnackBar(SnackBar(content: Text(del.message)));
-                        if (del.success == true) {
-                          Navigator.pop(ctx);
-                          onChanged();
-                        }
-                      },
-                      child: const Text('Delete'),
-                    ),
                   ],
                   if (st == 'processed')
                     FilledButton(
@@ -1969,6 +1942,36 @@ Future<void> showPayrollRunDetailDialog(
                         }
                       },
                       child: const Text('Post'),
+                    ),
+                  if (st == 'draft' || st == 'processed')
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Theme.of(ctx).colorScheme.error,
+                        foregroundColor: Theme.of(ctx).colorScheme.onError,
+                      ),
+                      onPressed: () async {
+                        if (!await _confirm(
+                          ctx,
+                          'Delete payroll run',
+                          st == 'processed'
+                              ? 'Delete this processed payroll run and its payslips?'
+                              : 'Delete this draft payroll run?',
+                        )) {
+                          return;
+                        }
+                        final del = await hr.deletePayrollRun(id);
+                        if (!ctx.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(del.message)));
+                        if (del.success == true) {
+                          Navigator.pop(ctx);
+                          onChanged();
+                        }
+                      },
+                      child: const Text('Delete'),
                     ),
                   if (st == 'posted')
                     FilledButton.tonalIcon(
