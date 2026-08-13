@@ -30,7 +30,13 @@ updates, and the Flutter web production bundle.
 ## Deployment Handoff
 
 The verified artifact is `billing-flutter/build/web/`. The repository contains
-no deployment script or hosting configuration for the production frontend, so
-no upload was performed. Deployment requires the authorized hosting target and
-method. After upload, smoke-test login, dashboard startup, master create/update,
-browser refresh, Clear Cache, and database backup download.
+a workspace SFTP configuration at `.vscode/sftp.json` for the authorized
+production target. Open `billing-flutter` as the VS Code workspace, build the
+web bundle, then use the SFTP extension's **Upload Folder** command for
+`build/web`. The configured target is `~/public_html/bill/` on port `65002`.
+
+The configuration never stores a password or private key and leaves automatic
+upload disabled. Configure authentication only in the developer's local SFTP
+extension settings or SSH agent. After upload, smoke-test login, dashboard
+startup, master create/update, browser refresh, Clear Cache, and database
+backup download.

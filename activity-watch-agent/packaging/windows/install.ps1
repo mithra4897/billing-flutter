@@ -40,4 +40,13 @@ foreach ($entry in $registryValues) {
     }
 }
 
-Write-Host 'Billing Activity Watch is installed. Return to ERP, create a new pairing file, and open it within 30 minutes.'
+# Updating stops the installed process before replacing its executable. Resume
+# an already-paired installation immediately instead of waiting for a new logon
+# or requiring the Scheduled Task to be restarted manually.
+if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+    Start-Process -FilePath $agentPath `
+        -ArgumentList @('run', '--config', ('"{0}"' -f $configPath)) `
+        -WindowStyle Hidden
+}
+
+Write-Host 'Billing Activity Watch is installed. Existing pairing resumes automatically; open a new pairing file only when connecting a new device.'

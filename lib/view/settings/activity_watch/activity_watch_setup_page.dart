@@ -77,10 +77,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       final currentUser = await SessionStorage.getCurrentUser();
       final isSuperAdmin =
           currentUser?['is_super_admin'] == true ||
-          currentUser?['is_super_admin'] == 1;
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
       final companyId = await SessionStorage.getCurrentCompanyId();
       final results = await Future.wait<Object>(<Future<Object>>[
-        _service.devices(companyScope: isSuperAdmin, companyId: companyId),
+        _service.devices(
+          companyScope: isSuperAdmin,
+          companyId: companyId,
+        ),
         _loadSummaries(
           companyScope: isSuperAdmin,
           companyId: companyId,
@@ -604,8 +608,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 items: _summaries
                     .map(
                       (summary) => ErpDashboardListItem(
-                        title: summary.deviceLabel,
-                        subtitle: _date(summary.workDate),
+                        title: summary.employeeName?.trim().isNotEmpty == true
+                            ? summary.employeeName!.trim()
+                            : summary.deviceLabel,
+                        subtitle:
+                            '${summary.deviceLabel} - ${_date(summary.workDate)}',
                         detail:
                             'Active ${_duration(summary.activeSeconds)} · Idle ${_duration(summary.idleSeconds)} · Browser ${_duration(summary.browserSeconds)}',
                         statusLabel:
@@ -614,9 +621,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                         filterTags: _ActivityDateFilter.values
                             .map((filter) => filter.name)
                             .toList(growable: false),
-                        secondaryFilterTags: summary.employeeId == null
-                            ? const <String>['unassigned']
-                            : <String>['employee:${summary.employeeId}'],
+                        secondaryFilterTags: <String>[
+                          _employeeFilterValue(summary),
+                        ],
                         onPressed: () => _toggleSummaryDetails(summary),
                         expandedContent:
                             _summaryKey(summary) == _expandedSummaryKey
@@ -657,13 +664,12 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   List<ErpDashboardListFilterOption> _employeeFilterOptions() {
     final employees = <String, String>{};
     for (final summary in _summaries) {
-      final id = summary.employeeId;
       final label = summary.employeeName?.trim().isNotEmpty == true
           ? summary.employeeName!.trim()
           : summary.employeeCode?.trim().isNotEmpty == true
           ? summary.employeeCode!.trim()
           : 'Unassigned employee';
-      employees[id == null ? 'unassigned' : 'employee:$id'] = label;
+      employees[_employeeFilterValue(summary)] = label;
     }
     final options = employees.entries.toList()
       ..sort((left, right) => left.value.compareTo(right.value));
@@ -1224,6 +1230,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
               ],
             ),
     );
+  }
+
+  static String _employeeFilterValue(ActivityWatchSummary summary) {
+    final employeeId = summary.employeeId;
+    if (employeeId != null) return 'employee:$employeeId';
+    final ownerUserId = summary.ownerUserId;
+    if (ownerUserId != null) return 'user:$ownerUserId';
+    return 'unassigned';
   }
 
   String _bytes(int value) {

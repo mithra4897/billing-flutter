@@ -3,14 +3,14 @@
 ## Activity Watch viewer scope
 
 The Flutter Activity Watch page resolves the session's super-admin flag and
-current company before loading reports. Super admins send explicit
-`scope=company` and, when available, `company_id` query parameters to both the
-device and summary endpoints. The backend remains the authorization boundary:
-it accepts company scope only for super admins or `hr.view` users and applies
-the selected company restriction for super admins. Ordinary requests continue
-to be restricted by device owner. Company summary pagination is consumed in
-100-row batches so employee filters and trend calculations use the full
-authorized date-range dataset.
+current company before loading reports. Only super administrators send explicit
+`scope=company` and, when available, `company_id` query parameters to both
+endpoints. The backend remains the authorization boundary and applies the
+selected-company restriction. Every non-super-admin request remains restricted
+by device owner.
+Company summary pagination is consumed in 100-row batches. Summary ownership
+uses a linked employee where available and otherwise a distinct user fallback,
+so employee filters and labels do not collapse legacy devices into one name.
 
 ## Activity Watch self-service pairing
 
@@ -42,7 +42,8 @@ the installed Go agent without a console window and displays either successful
 connection or a safe pairing failure, without exposing a token or credential.
 If Windows denies creation of the user Scheduled Task after a successful
 exchange, the paired configuration remains valid and the launcher reports the
-separate startup limitation.
+separate startup limitation. An installer update starts the replaced agent
+immediately when an existing paired configuration is present.
 
 ## Activity Watch desktop runtime
 
@@ -79,6 +80,12 @@ flowchart LR
   process/service names, and content-free keyboard/pointer activity signals.
   Missing capabilities return empty/zero observations. No input value, click,
   coordinate, URL, screenshot, clipboard, or page content crosses this boundary.
+  High-frequency Windows activity probes call User32/Kernel32 directly so a
+  sample does not depend on PowerShell startup or script timing. Windows
+  process inventory uses a native Toolhelp process snapshot and records only
+  executable names. Lower-frequency Windows service and USB inventory commands
+  use encoded UTF-16LE PowerShell transport; this is transport protection, not
+  encryption of collected data.
 - Store/aggregator: consolidate state/application/input samples, encrypt browser
   titles and inventory payloads, produce bounded daily title/process projections,
   generate revisioned summaries, and purge synchronized data after 90 days.

@@ -4,10 +4,28 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"runtime"
 	"testing"
 	"time"
 	"unicode/utf16"
 )
+
+func TestWindowsActivityProbesHandleMissingForeground(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows collector integration test")
+	}
+	observer := NewOSObserver()
+	idle, err := observer.idleDuration(context.Background())
+	if err != nil {
+		t.Fatalf("idleDuration() error = %v", err)
+	}
+	if idle < 0 {
+		t.Fatalf("idleDuration() = %s, want non-negative", idle)
+	}
+	if _, _, err := observer.foregroundApplication(context.Background()); err != nil {
+		t.Fatalf("foregroundApplication() error = %v", err)
+	}
+}
 
 type sequenceCommandRunner struct {
 	outputs [][]byte
@@ -36,6 +54,48 @@ func TestEncodePowerShellCommandPreservesUSBFilterQuotes(t *testing.T) {
 	}
 	if decoded := string(utf16.Decode(units)); decoded != windowsUSBScript {
 		t.Fatal("encoded PowerShell command did not round-trip exactly")
+	}
+}
+
+func TestWindowsServiceInventoryUsesEncodedPowerShellCommand(t *testing.T) {
+	runner := &sequenceCommandRunner{outputs: [][]byte{[]byte("alpha\n")}}
+	observer := &OSObserver{goos: "windows", runner: runner}
+	items, err := observer.ServiceInventory(context.Background())
+	if err != nil || len(items) != 1 || items[0].Name != "alpha" {
+		t.Fatalf("service inventory = %#v, error = %v", items, err)
+	}
+	if len(runner.args) != 1 {
+		t.Fatalf("PowerShell calls = %#v", runner.args)
+	}
+	arguments := runner.args[0]
+	if len(arguments) < 2 || arguments[len(arguments)-2] != "-EncodedCommand" {
+		t.Fatalf("PowerShell arguments = %#v", arguments)
+	}
+	encoded := arguments[len(arguments)-1]
+	raw, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	units := make([]uint16, len(raw)/2)
+	for index := range units {
+		units[index] = binary.LittleEndian.Uint16(raw[index*2:])
+	}
+	if script := string(utf16.Decode(units)); script != `Get-Service | ForEach-Object { "$($_.Name)|$($_.Status)" }` {
+		t.Fatalf("decoded service script = %q", script)
+	}
+}
+
+func TestWindowsProcessInventoryUsesNativeSnapshot(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows collector integration test")
+	}
+	observer := NewOSObserver()
+	items, err := observer.ProcessInventory(context.Background())
+	if err != nil {
+		t.Fatalf("process inventory error = %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatal("process inventory returned no items")
 	}
 }
 

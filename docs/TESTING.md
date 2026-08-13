@@ -1,5 +1,39 @@
 # Testing
 
+## Windows Activity Watch collector command transport — 2026-08-12
+
+- `go test ./internal/collector`: passed, including encoded PowerShell command
+  round-trip coverage for Windows service inventory and native process
+  inventory coverage.
+- `go vet ./internal/collector`: passed.
+- The Windows integration probe passed: idle duration was non-negative and the
+  foreground probe completed even when Windows returned no foreground process.
+- After moving the sample hot path to native Windows APIs,
+  `go test -count=100 -run TestWindowsActivityProbesHandleMissingForeground
+  ./internal/collector` passed in 0.43 seconds.
+- After moving Windows process inventory to the native Toolhelp snapshot path,
+  `go test -count=1 ./internal/collector` and `go vet ./internal/collector`
+  passed on Windows with a workspace-local `GOCACHE`.
+- Manual check after installing the rebuilt agent: the service log must stop
+  reporting activity-sample/process-inventory exit-status failures and a new
+  summary must appear after the configured summary interval.
+- Updating an already-paired installation must launch the replaced agent from
+  the existing config without manual `schtasks /End` or `/Run` commands.
+
+## Activity Watch company viewers and employee labels — 2026-08-12
+
+- Source inspection verifies company scope is requested and authorized for a
+  super administrator only.
+- Model coverage extends the numeric-string Activity Watch response test with
+  a numeric-string owner user ID.
+- `php`, `dart`, and `flutter` were unavailable on the current PATH, so lint,
+  formatting, and automated test execution remain required in the normal
+  backend/Flutter development environment.
+- Manual check: sign in as two super administrators in the same company and
+  confirm identical devices/summaries; verify every non-super-admin sees only
+  their own data. Confirm separate employee/owner filter labels for the
+  super-admin view.
+
 ## Apply salary-component order to all employees — 2026-08-11
 
 - `flutter test test/controller/hr/employee_salary_component_order_test.dart`:

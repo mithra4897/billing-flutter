@@ -241,6 +241,7 @@ final class ActivityWatchSummary {
   const ActivityWatchSummary({
     required this.deviceId,
     required this.deviceLabel,
+    this.ownerUserId,
     required this.workDate,
     required this.activeSeconds,
     required this.idleSeconds,
@@ -269,6 +270,7 @@ final class ActivityWatchSummary {
 
   final String deviceId;
   final String deviceLabel;
+  final int? ownerUserId;
   final int? employeeId;
   final String? employeeName;
   final String? employeeCode;
@@ -303,6 +305,7 @@ final class ActivityWatchSummary {
     return ActivityWatchSummary(
       deviceId: json['device_id']?.toString() ?? '',
       deviceLabel: json['device_label']?.toString() ?? '',
+      ownerUserId: JsonModel.nullableInt(json['user_id']),
       employeeId: JsonModel.nullableInt(json['employee_id']),
       employeeName: json['employee_name']?.toString(),
       employeeCode: json['employee_code']?.toString(),

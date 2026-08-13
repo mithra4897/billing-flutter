@@ -106,6 +106,17 @@ the ERP.
    only OS idle duration and foreground executable/application identity, and
    classifies active, idle, locked, or unknown state. Unsupported or denied OS
    APIs produce `unknown`; they must not crash the service.
+   On Windows, idle duration, foreground window/process, pointer position, and
+   interactive-desktop availability use direct bounded Windows API calls so the
+   15-second sample loop does not depend on PowerShell startup. Windows process
+   inventory also uses native process snapshots so the five-minute inventory
+   loop is not blocked by PowerShell startup, script policy, or Scheduled Task
+   command failures. Remaining multi-part PowerShell inventory commands use
+   UTF-16LE `EncodedCommand` transport so Scheduled Task argument reconstruction
+   cannot alter pipelines.
+   A missing foreground window/process is a valid empty observation, not a
+   collector error. Windows idle duration must account for the native 32-bit
+   last-input timer wrapping during long system uptimes.
 3. State and application samples are consolidated into local segments. An
    unchanged state/application updates the current segment in constant time;
    a change closes the current segment and opens one new segment.
@@ -643,38 +654,41 @@ Acceptance criteria:
 4. Existing consent-v2 devices, agents, and summaries continue to work with USB
    fields absent or empty.
 
-## Activity Watch super-admin company scope
+## Activity Watch super-admin company scope and employee labels
 
 Status: Approved for implementation (2026-08-12)
 
-Objective: Let every super administrator see the same Activity Watch devices
-and employee activity for the selected company instead of only devices enrolled
-by that administrator's own user account.
+Objective: Let only super administrators see company-wide Activity Watch
+devices and employee activity for the selected company, with a distinct,
+human-readable owner label for each summary.
 
 Requirements:
 
-- The Activity Watch page determines super-admin status before loading devices
-  and summaries.
-- A super administrator requests `scope=company` for both device and summary
-  endpoints and includes the current context company ID when one is selected.
+- The Activity Watch page determines whether the signed-in user is a super
+  administrator before loading devices and summaries.
+- Only a super administrator requests `scope=company` for both device and
+  summary endpoints and includes the current context company ID when selected.
 - Company summary pages are fetched in API-sized batches until every authorized
   summary in the selected date range is available to the employee filter and
   trend calculations.
-- With a selected company, records from other companies are excluded. Without a
-  selected company, the existing backend super-admin company scope may return
-  all companies.
-- Non-super-admin users retain the existing personal viewer scope. The employee
-  filter remains a client-side filter over the authorized summary response.
+- With a selected company, records from other companies are excluded. A super
+  administrator without a selected company retains the authorized all-company
+  view. Every non-super-admin retains personal viewer scope.
+- Summary labels use the linked employee's name and code. If a legacy device
+  has no linked employee, they use its owning user's display name/username and
+  keep that owner as a distinct filter value.
 - Enrollment, pairing, consent, device ownership, and revoke authorization are
   unchanged.
 
 Acceptance criteria:
 
-1. Two super administrators using the same company context receive the same
-   authorized company device and daily-summary dataset.
-2. A super administrator does not receive another company's records when a
-   company is selected.
-3. An ordinary user continues to receive only their own devices and summaries.
+1. Two super administrators using the same company context receive the
+   same authorized company device and daily-summary dataset.
+2. A super administrator does not receive another company's records when a company
+   is selected.
+3. Every non-super-admin continues to receive only their own devices and summaries.
+4. Every employee or legacy device owner is visible as a separate readable
+   employee-filter option.
 
 The setup area places the Connect a computer and Devices cards side by side on
 wide screens and stacks them on narrow screens below the Activity dashboard.

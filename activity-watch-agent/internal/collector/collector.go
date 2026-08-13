@@ -77,6 +77,17 @@ type OSObserver struct {
 	hasUSBBaseline     bool
 }
 
+func (o *OSObserver) windowsPowerShellOutput(ctx context.Context, script string) ([]byte, error) {
+	return o.runner.Output(
+		ctx,
+		"powershell.exe",
+		"-NoProfile",
+		"-NonInteractive",
+		"-EncodedCommand",
+		encodePowerShellCommand(script),
+	)
+}
+
 func NewOSObserver() *OSObserver {
 	return &OSObserver{goos: runtime.GOOS, runner: execRunner{}}
 }
@@ -138,9 +149,7 @@ func (o *OSObserver) pointerPosition(ctx context.Context) (string, error) {
 		output, err := o.runner.Output(ctx, "osascript", "-l", "JavaScript", "-e", `ObjC.import('AppKit'); var p=$.NSEvent.mouseLocation; p.x+','+p.y`)
 		return strings.TrimSpace(string(output)), err
 	case "windows":
-		script := `$s='using System;using System.Runtime.InteropServices;public class P{[StructLayout(LayoutKind.Sequential)]public struct PT{public int X;public int Y;}[DllImport("user32.dll")]public static extern bool GetCursorPos(out PT p);}';Add-Type $s;$p=New-Object P+PT;[P]::GetCursorPos([ref]$p)|Out-Null;"$($p.X),$($p.Y)"`
-		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-		return strings.TrimSpace(string(output)), err
+		return windowsPointerPosition()
 	case "linux":
 		output, err := o.runner.Output(ctx, "xdotool", "getmouselocation", "--shell")
 		if err != nil {
@@ -191,7 +200,7 @@ func (o *OSObserver) ProcessInventory(ctx context.Context) ([]InventoryItem, err
 	var err error
 	switch o.goos {
 	case "windows":
-		output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", "Get-Process | Select-Object -ExpandProperty ProcessName")
+		return windowsProcessInventory()
 	default:
 		output, err = o.runner.Output(ctx, "ps", "-axo", "comm=")
 	}
@@ -206,7 +215,7 @@ func (o *OSObserver) ServiceInventory(ctx context.Context) ([]InventoryItem, err
 	var err error
 	switch o.goos {
 	case "windows":
-		output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", `Get-Service | ForEach-Object { "$($_.Name)|$($_.Status)" }`)
+		output, err = o.windowsPowerShellOutput(ctx, `Get-Service | ForEach-Object { "$($_.Name)|$($_.Status)" }`)
 	case "darwin":
 		output, err = o.runner.Output(ctx, "launchctl", "list")
 	default:
@@ -235,13 +244,7 @@ func (o *OSObserver) idleDuration(ctx context.Context) (time.Duration, error) {
 		nanoseconds, err := strconv.ParseInt(string(match[1]), 10, 64)
 		return time.Duration(nanoseconds), err
 	case "windows":
-		script := `$s='using System;using System.Runtime.InteropServices;public class I{[StructLayout(LayoutKind.Sequential)]public struct L{public uint cbSize;public uint dwTime;}[DllImport("user32.dll")]public static extern bool GetLastInputInfo(ref L p);}';Add-Type $s;$i=New-Object I+L;$i.cbSize=[Runtime.InteropServices.Marshal]::SizeOf($i);[I]::GetLastInputInfo([ref]$i)|Out-Null;[Environment]::TickCount64-$i.dwTime`
-		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-		if err != nil {
-			return 0, err
-		}
-		milliseconds, err := strconv.ParseInt(strings.TrimSpace(string(output)), 10, 64)
-		return time.Duration(milliseconds) * time.Millisecond, err
+		return windowsIdleDuration()
 	default:
 		output, err := o.runner.Output(ctx, "xprintidle")
 		if err != nil {
@@ -270,13 +273,7 @@ end tell`)
 		}
 		return strings.TrimSpace(string(output)), "", err
 	case "windows":
-		script := `$s='using System;using System.Runtime.InteropServices;public class W{[DllImport("user32.dll")]public static extern IntPtr GetForegroundWindow();[DllImport("user32.dll")]public static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);}';Add-Type $s;$p=0;[W]::GetWindowThreadProcessId([W]::GetForegroundWindow(),[ref]$p)|Out-Null;$p=Get-Process -Id $p;Write-Output $p.ProcessName;Write-Output $p.MainWindowTitle`
-		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-		parts := strings.SplitN(strings.TrimSpace(string(output)), "\n", 2)
-		if len(parts) == 2 {
-			return parts[0], parts[1], err
-		}
-		return strings.TrimSpace(string(output)), "", err
+		return windowsForegroundApplication()
 	default:
 		window, err := o.runner.Output(ctx, "xdotool", "getactivewindow", "getwindowpid")
 		if err != nil {
@@ -309,12 +306,7 @@ func (o *OSObserver) locked(ctx context.Context) (bool, error) {
 		// detection instead of failing every sample; lock state remains unknown.
 		return false, nil
 	case "windows":
-		script := `$session=(Get-Process -Id $PID).SessionId;$locked=Get-Process LogonUI -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $session };if($locked){'true'}else{'false'}`
-		output, err := o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-		if err != nil {
-			return false, err
-		}
-		return strings.EqualFold(strings.TrimSpace(string(output)), "true"), nil
+		return windowsSessionLocked()
 	default:
 		sessionID := strings.TrimSpace(os.Getenv("XDG_SESSION_ID"))
 		if sessionID == "" {

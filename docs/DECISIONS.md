@@ -1,5 +1,71 @@
 # Architecture decisions
 
+## ADR-0018: Encode all Windows collector PowerShell commands
+
+- Date: 2026-08-12
+- Status: Superseded in part by ADR-0019
+- Context: The scheduled Windows agent reported exit status 1 for foreground
+  sampling and process inventory. Raw `-Command` arguments can be changed by
+  Windows argument reconstruction before PowerShell parses embedded quotes.
+- Decision: Reuse the USB collector's UTF-16LE `EncodedCommand` helper for all
+  Windows activity, lock, foreground, pointer, process, and service commands.
+- Reason: One existing, tested command transport removes inconsistent quoting
+  behavior without widening collection scope.
+- Alternatives considered: Shell quoting variations; a separate native helper.
+- Consequences: Windows collectors remain bounded and fail safely, while their
+  commands are reliable from the scheduled task.
+- Related files: `activity-watch-agent/internal/collector/collector.go`,
+  `activity-watch-agent/internal/collector/usb.go`.
+
+## ADR-0019: Use native APIs for Windows activity and process inventory
+
+- Date: 2026-08-12
+- Status: Accepted
+- Context: Even with safe encoded command transport, starting three PowerShell
+  processes for every sample approached the bounded command timeout and caused
+  intermittent `exit status 1` failures under the Scheduled Task. Later
+  installed agents also reported `collect processes inventory failed: exit
+  status 1` because the five-minute process inventory path still depended on
+  PowerShell.
+- Decision: Call User32 and Kernel32 directly for idle duration, foreground
+  process/title, pointer position, and interactive-desktop availability. Use a
+  native Toolhelp process snapshot for process inventory. Keep encoded
+  PowerShell only for service and USB collection.
+- Reason: Native calls avoid process startup and script compilation on the
+  high-frequency sample path and recurring process-inventory path while
+  retaining the existing privacy boundary.
+- Consequences: Sampling is faster and no longer depends on PowerShell timing;
+  protected foreground processes safely return an empty executable identity.
+  Process inventory remains limited to executable names and no command lines.
+- Related files: `activity-watch-agent/internal/collector/collector.go`,
+  `activity-watch-agent/internal/collector/windows_api_windows.go`.
+
+## ADR-0016: Use the Activity Watch company-view permission in the client
+
+- Date: 2026-08-12
+- Status: Superseded by ADR-0017
+- Context: The API grants company Activity Watch scope to super administrators
+  and `hr.view` users, but the Flutter page requested it only for super admins.
+  Device rows without an employee link also collapsed into one filter entry.
+- Decision: Superseded. The employee-label fallback remains valid, but company
+  scope is no longer granted from `hr.view`.
+- Related files: `lib/view/settings/activity_watch/activity_watch_setup_page.dart`,
+  `lib/model/activity_watch_enrollment.dart`,
+  `billing-api/app/Http/Controllers/ActivityWatchController.php`.
+
+## ADR-0017: Restrict company-wide Activity Watch access to super admins
+
+- Date: 2026-08-12
+- Status: Accepted
+- Context: The intended policy is company-wide Activity Watch access for super
+  administrators only; a regular administrator must not receive peer devices.
+- Decision: Both Flutter and API authorization require super-admin status for
+  `scope=company`. `hr.view` alone does not broaden Activity Watch scope.
+- Reason: Monitoring data is sensitive and needs the stricter ownership rule.
+- Consequences: Every non-super-admin sees only their own devices and summaries.
+- Related files: `lib/view/settings/activity_watch/activity_watch_setup_page.dart`,
+  `billing-api/app/Http/Controllers/ActivityWatchController.php`.
+
 ## ADR-0015: Make Windows pairing failures visible
 
 - Date: 2026-08-12

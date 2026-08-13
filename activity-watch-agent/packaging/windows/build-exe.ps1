@@ -92,7 +92,7 @@ internal static class InstallerLauncher
             }
 
             MessageBox.Show(
-                "Billing Activity Watch was installed. Return to ERP and open a new pairing file within 30 minutes.",
+                "Billing Activity Watch was installed. An existing pairing resumes automatically. Open a new pairing file only when connecting a new device.",
                 "Billing Activity Watch",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);

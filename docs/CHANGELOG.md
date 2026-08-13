@@ -1,5 +1,74 @@
 # Changelog
 
+## Windows Activity Watch process inventory collector (2026-08-13)
+
+- Request: Fix the installed Windows agent still logging `collect processes
+  inventory failed: exit status 1`.
+- Specification: Windows process inventory must not depend on PowerShell; it
+  remains limited to process executable names.
+- Implementation: Replaced the Windows `Get-Process` collector with a native
+  Toolhelp process snapshot and kept service/USB PowerShell paths encoded.
+- Files changed: `activity-watch-agent/internal/collector/`,
+  `docs/SPECIFICATIONS.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`,
+  `docs/TESTING.md`, and `docs/CHANGELOG.md`.
+- Database/API impact: None.
+- Security impact: No command lines, window contents, URLs, clipboard,
+  screenshots, keys, clicks, or pointer coordinates are collected.
+- Tests added or updated: Windows collector coverage now checks native process
+  inventory and encoded service inventory transport.
+- Tests executed and results: `go test -count=1 ./internal/collector` and
+  `go vet ./internal/collector` passed on Windows with a workspace-local
+  `GOCACHE`.
+
+## Flutter web SFTP deployment configuration (2026-08-13)
+
+- Request: Configure production SFTP deployment for the Flutter web bundle.
+- Implementation: Added a VS Code SFTP target for `build/web` to upload to
+  `~/public_html/bill/` on the authorized SSH port; automatic upload is off.
+- Security: No password, token, or private key is stored in the repository.
+- Tests: Configuration inspected; upload and production smoke testing require
+  an authorized local SFTP credential and were not performed.
+- Follow-up: Build with the approved production `API_BASE_URL`, upload the
+  complete `build/web` directory, then perform the documented smoke checks.
+
+## Windows Activity Watch collector command transport (2026-08-12)
+
+- Request: Fix repeated Windows `collect activity sample failed: exit status 1`
+  and process-inventory failures from the scheduled agent.
+- Implementation: Reused the USB collector's UTF-16LE PowerShell
+  `EncodedCommand` transport for every Windows collector command.
+- Security: The command transport changes no collection fields and records no
+  keys, clicks, coordinates, URLs, clipboard, screenshots, or page content.
+- Tests: Focused collector tests and static analysis passed.
+- Follow-up: Treated a missing foreground window/process as a valid empty
+  observation and corrected Windows' wrapping 32-bit last-input timer so long
+  system uptimes cannot produce negative idle duration or probe failures.
+- Final fix: Replaced the high-frequency idle, foreground, pointer, and lock
+  PowerShell processes with direct User32/Kernel32 calls after repeated testing
+  showed process startup could approach the three-second command timeout.
+- Verification: 100 consecutive native Windows activity-probe tests passed in
+  0.43 seconds; focused tests and static analysis passed; installer rebuilt.
+- Update behavior: The installer now starts the replaced agent automatically
+  when an existing configuration is present, so users do not need to manually
+  end and run the Scheduled Task after installing a newer build.
+
+## Activity Watch company viewers and employee labels (2026-08-12)
+
+- Request: Let both authorized administrators see the same company device data
+  and show the correct employee/owner names.
+- Implementation: Summary responses fall back from employee name to the device
+  owner's display name/username, and unlinked owners get distinct filter keys.
+- Security: Company-wide scope is restricted to super administrators; every
+  other user retains personal scope.
+- Tests: Model parsing coverage includes the owning user ID. PHP, Dart, and
+  Flutter commands were unavailable on the current PATH.
+
+## Activity Watch super-admin-only company scope (2026-08-12)
+
+- Request: Restrict company-wide device and activity data to super admins.
+- Implementation: Removed `hr.view` as an Activity Watch company-scope grant
+  in both the Flutter request path and API authorization.
+
 ## Windows Activity Watch pairing result dialog (2026-08-12)
 
 - Request: Fix an installed Windows agent that gave no reason when a fresh
