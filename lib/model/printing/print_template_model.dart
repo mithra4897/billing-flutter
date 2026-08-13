@@ -581,47 +581,104 @@ class DocumentPrintTemplate {
       return this;
     }
 
+    var normalizedShapes = shapes
+        .map((shape) {
+          if (shape.type != 'table') {
+            return shape;
+          }
+
+          final String? payslipDataPath;
+          final String heading;
+          if (shape.id == 'earnings-table' || shape.dataPath == 'earnings') {
+            payslipDataPath = 'earnings';
+            heading = 'Earnings';
+          } else if (shape.id == 'deductions-table' ||
+              shape.dataPath == 'deductions') {
+            payslipDataPath = 'deductions';
+            heading = 'Deductions';
+          } else {
+            return shape;
+          }
+
+          final keys = shape.columns.map((column) => column.key).toSet();
+          final columns = keys.containsAll(const <String>{'label', 'amount'})
+              ? shape.columns
+              : <DocumentPrintColumn>[
+                  DocumentPrintColumn(
+                    key: 'label',
+                    label: heading,
+                    widthFactor: 3.2,
+                  ),
+                  const DocumentPrintColumn(
+                    key: 'amount',
+                    label: 'Amount',
+                    widthFactor: 1.5,
+                    align: 'right',
+                    titleAlign: 'center',
+                  ),
+                ];
+
+          return shape.copyWith(dataPath: payslipDataPath, columns: columns);
+        })
+        .toList(growable: false);
+    normalizedShapes = normalizedShapes
+        .map((shape) {
+          final isSalarySummary =
+              shape.id == 'summary-text' ||
+              shape.text.contains('{{salary_summary.gross_salary}}') ||
+              shape.text.contains('{{salary_summary.net_salary}}');
+          if (!isSalarySummary ||
+              shape.text.contains('{{salary_summary.ctc_monthly}}')) {
+            return shape;
+          }
+          return shape.copyWith(
+            text:
+                '${shape.text}\nCTC Monthly: '
+                '{{salary_summary.ctc_monthly}}',
+          );
+        })
+        .toList(growable: false);
+    final hasSalarySummary = normalizedShapes.any(
+      (shape) =>
+          shape.id == 'summary-text' ||
+          shape.text.contains('{{salary_summary.gross_salary}}') ||
+          shape.text.contains('{{salary_summary.net_salary}}'),
+    );
+    if (hasSalarySummary) {
+      return copyWith(shapes: normalizedShapes);
+    }
+
     return copyWith(
-      shapes: shapes
-          .map((shape) {
-            if (shape.type != 'table') {
-              return shape;
-            }
-
-            final String? payslipDataPath;
-            final String heading;
-            if (shape.id == 'earnings-table' || shape.dataPath == 'earnings') {
-              payslipDataPath = 'earnings';
-              heading = 'Earnings';
-            } else if (shape.id == 'deductions-table' ||
-                shape.dataPath == 'deductions') {
-              payslipDataPath = 'deductions';
-              heading = 'Deductions';
-            } else {
-              return shape;
-            }
-
-            final keys = shape.columns.map((column) => column.key).toSet();
-            final columns = keys.containsAll(const <String>{'label', 'amount'})
-                ? shape.columns
-                : <DocumentPrintColumn>[
-                    DocumentPrintColumn(
-                      key: 'label',
-                      label: heading,
-                      widthFactor: 3.2,
-                    ),
-                    const DocumentPrintColumn(
-                      key: 'amount',
-                      label: 'Amount',
-                      widthFactor: 1.5,
-                      align: 'right',
-                      titleAlign: 'center',
-                    ),
-                  ];
-
-            return shape.copyWith(dataPath: payslipDataPath, columns: columns);
-          })
-          .toList(growable: false),
+      shapes: <DocumentPrintShape>[
+        ...normalizedShapes,
+        const DocumentPrintShape(
+          id: 'salary-summary-fallback-box',
+          type: 'rectangle',
+          x: 308,
+          y: 618,
+          width: 248,
+          height: 90,
+          strokeColor: 0xFF38BDF8,
+          fillColor: 0xFFE0F2FE,
+          fillAlpha: 1,
+          borderRadius: 12,
+        ),
+        const DocumentPrintShape(
+          id: 'salary-summary-fallback-text',
+          type: 'text',
+          x: 322,
+          y: 632,
+          width: 220,
+          height: 62,
+          text:
+              'Gross Salary: {{salary_summary.gross_salary}}\n'
+              'CTC Monthly: {{salary_summary.ctc_monthly}}\n'
+              'Total Deductions: {{salary_summary.total_deductions}}\n'
+              'Net Salary: {{salary_summary.net_salary}}',
+          fontSize: 10,
+          multiline: true,
+        ),
+      ],
     );
   }
 
@@ -2159,6 +2216,7 @@ DocumentPrintTemplate _defaultPayslipPrintTemplate(String resolvedTitle) {
         height: 62,
         text:
             'Gross Salary: {{salary_summary.gross_salary}}\n'
+            'CTC Monthly: {{salary_summary.ctc_monthly}}\n'
             'Total Deductions: {{salary_summary.total_deductions}}\n'
             'Net Salary: {{salary_summary.net_salary}}',
         fontSize: 10,

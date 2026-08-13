@@ -1,5 +1,66 @@
 # Specifications
 
+## Payslip gross and net salary summary fallback
+
+- Date: 2026-08-13
+- Status: Approved for implementation
+
+### Objective
+
+Show the calculated Gross Salary and Net Salary on every rendered payslip,
+including older saved templates that lack a salary summary.
+
+### Scope and rules
+
+- Earnings and deductions stay as individual pay heads; calculated Gross and
+  Net amounts are not inserted into either table.
+- The deductions table never includes a calculated `Total Deductions` row;
+  that aggregate appears only in the salary summary.
+- The salary summary shows CTC Monthly alongside Gross Salary, Total
+  Deductions, and Net Salary.
+- A saved `hr_payslip` template without a Gross/Net salary-summary binding
+  receives a non-editing preview fallback beneath the breakup tables.
+- Templates that already bind either salary-summary Gross or Net value retain
+  their existing layout without an added fallback.
+- The values come from the existing payslip `salary_summary` payload; no
+  payroll, API, database, or salary-component calculation changes.
+
+### Acceptance criteria
+
+- A payslip with no summary text shows Gross Salary, CTC Monthly, Total
+  Deductions, and Net Salary beneath its breakup tables.
+- A template that already displays the salary summary is not duplicated.
+- Earnings and Deductions tables retain their current rows and bindings.
+
+## Payroll run deletion from processed state
+
+- Date: 2026-08-13
+- Status: Approved for implementation
+
+### Objective
+
+Allow an authorized HR user to delete a processed payroll run from its detail
+dialog, matching the existing backend lifecycle rule.
+
+### Scope and rules
+
+- The detail dialog shows **Delete** for both `draft` and `processed` runs.
+- A confirmation is required before either deletion. The processed-state prompt
+  explicitly warns that generated payroll lines and payslips are permanently
+  removed through the existing database cascade.
+- Posted runs retain no delete action. The existing API remains the authority
+  and rejects voucher-linked or otherwise ineligible records.
+- No API, database, permission, or accounting behavior changes. A successful
+  deletion closes the dialog and refreshes the register; an API failure leaves
+  the dialog open and displays the server message.
+
+### Acceptance criteria
+
+- Opening a processed payroll run displays Delete and no Post action.
+- Deleting a processed run requires confirmation, calls the existing DELETE
+  endpoint, and refreshes the payroll-run register after success.
+- Draft and posted-run behavior remains unchanged.
+
 ## Activity Watch self-service employee onboarding
 
 - Date: 2026-08-07

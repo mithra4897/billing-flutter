@@ -297,13 +297,7 @@ DocumentPrintDataModel buildPayslipPrintData(PayslipModel payslip) {
         ];
   final printableDeductions = deductionRows.isNotEmpty
       ? deductionRows
-      : <Map<String, dynamic>>[
-          if (deductions > 0)
-            <String, dynamic>{
-              'label': 'Total Deductions',
-              'amount': deductions,
-            },
-        ];
+      : const <Map<String, dynamic>>[];
   final employeeProfileData = <String, dynamic>{
     'employee_name': employee?.employeeName ?? payslip.employeeName ?? '',
     'employee_code': employee?.employeeCode ?? payslip.employeeCode ?? '',

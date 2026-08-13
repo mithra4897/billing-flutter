@@ -1,38 +1,34 @@
 # Testing
 
-## Windows Activity Watch collector command transport — 2026-08-12
+## Payslip gross and net salary summary — 2026-08-13
 
-- `go test ./internal/collector`: passed, including encoded PowerShell command
-  round-trip coverage for Windows service inventory and native process
-  inventory coverage.
-- `go vet ./internal/collector`: passed.
-- The Windows integration probe passed: idle duration was non-negative and the
-  foreground probe completed even when Windows returned no foreground process.
-- After moving the sample hot path to native Windows APIs,
-  `go test -count=100 -run TestWindowsActivityProbesHandleMissingForeground
-  ./internal/collector` passed in 0.43 seconds.
-- After moving Windows process inventory to the native Toolhelp snapshot path,
-  `go test -count=1 ./internal/collector` and `go vet ./internal/collector`
-  passed on Windows with a workspace-local `GOCACHE`.
-- Manual check after installing the rebuilt agent: the service log must stop
-  reporting activity-sample/process-inventory exit-status failures and a new
-  summary must appear after the configured summary interval.
-- Updating an already-paired installation must launch the replaced agent from
-  the existing config without manual `schtasks /End` or `/Run` commands.
+- `dart format lib/model/printing/print_template_model.dart
+  test/model/printing/payslip_template_compatibility_test.dart`: passed.
+- `flutter test test/model/printing/payslip_template_compatibility_test.dart`:
+  passed (5 tests), including missing-summary fallback and existing-summary
+  no-duplication coverage.
+- `flutter analyze`: completed with one pre-existing unrelated unused
+  `_buildGapList` warning in `lib/view/crm/crm_followups_page.dart`; no issue
+  was reported for the payslip template change.
+- `php -l ../billing-api/app/Http/Controllers/Hr/PayslipController.php`:
+  passed with no syntax errors after removing the calculated deduction row.
+- Manual verification remains required for highly custom saved template
+  placement in the authenticated print preview.
 
-## Activity Watch company viewers and employee labels — 2026-08-12
+## Processed payroll-run deletion — 2026-08-13
 
-- Source inspection verifies company scope is requested and authorized for a
-  super administrator only.
-- Model coverage extends the numeric-string Activity Watch response test with
-  a numeric-string owner user ID.
-- `php`, `dart`, and `flutter` were unavailable on the current PATH, so lint,
-  formatting, and automated test execution remain required in the normal
-  backend/Flutter development environment.
-- Manual check: sign in as two super administrators in the same company and
-  confirm identical devices/summaries; verify every non-super-admin sees only
-  their own data. Confirm separate employee/owner filter labels for the
-  super-admin view.
+- `dart format lib/view/hr/hr_workflow_dialogs.dart`: passed; no formatting
+  changes were needed.
+- `flutter analyze`: completed with one pre-existing unrelated unused
+  `_buildGapList` warning in `lib/view/crm/crm_followups_page.dart`; no issue
+  was reported for the payroll dialog.
+- The change reuses the existing typed `HrService.deletePayrollRun` request and
+  its existing dialog confirmation/delete-success flow; no API or model contract
+  changed. Processed runs present the confirmed delete action and no Post
+  action, so no additional unit test fixture was required.
+- Manual authenticated verification remains required to confirm server-side
+  voucher-linked and posted-run rejection messages, and the processed deletion
+  confirmation, with production-like data.
 
 ## Apply salary-component order to all employees — 2026-08-11
 
