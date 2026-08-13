@@ -271,6 +271,11 @@ class ErpModuleDashboard extends StatelessWidget {
     final hasPrimarySections = snapshot.primarySections.any(
       (section) => section.items.isNotEmpty,
     );
+    final hasInsights =
+        snapshot.trend?.points.isNotEmpty == true ||
+        snapshot.distribution?.segments.any((segment) => segment.value > 0) ==
+            true ||
+        snapshot.highlights?.entries.isNotEmpty == true;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +301,7 @@ class ErpModuleDashboard extends StatelessWidget {
             showTrendControls: showTrendControls,
             trendLoading: trendLoading,
           )
-        else if (showTwoColumn)
+        else if (showTwoColumn && hasInsights)
           Row(
             key: const Key('erp-dashboard-two-column'),
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,7 +325,7 @@ class ErpModuleDashboard extends StatelessWidget {
               ),
             ],
           )
-        else
+        else if (hasInsights)
           Column(
             key: const Key('erp-dashboard-stacked'),
             children: [
@@ -334,7 +339,9 @@ class ErpModuleDashboard extends StatelessWidget {
                 trendLoading: trendLoading,
               ),
             ],
-          ),
+          )
+        else
+          _DashboardPrimaryColumn(sections: snapshot.primarySections),
       ],
     );
   }
@@ -670,11 +677,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
     ];
 
     if (cards.isEmpty) {
-      return const _DashboardEmptyState(
-        title: 'No analytics configured',
-        message:
-            'Add trend, distribution, or highlight data to populate the analytics column.',
-      );
+      return const SizedBox.shrink();
     }
 
     return Column(

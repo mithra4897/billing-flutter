@@ -3,9 +3,322 @@ import '../../../model/activity_watch_enrollment.dart';
 import '../../../service/activity_watch/activity_watch_service.dart';
 import '../../../core/activity_watch/service/activity_watch_service_control.dart';
 import '../../../core/files/external_url.dart';
-import 'activity_watch_dashboard_metrics.dart';
 
 enum _ActivityDateFilter { today, month, year, custom }
+
+const _activityGraphGreen = Color(0xFF68A95B);
+const _activityGraphRed = Color(0xFFFF5252);
+
+final class _ActivityGraphPoint {
+  const _ActivityGraphPoint({
+    required this.date,
+    required this.activeSeconds,
+    required this.idleSeconds,
+  });
+
+  final DateTime date;
+  final int activeSeconds;
+  final int idleSeconds;
+}
+
+final class _DeviceActivityPoint {
+  const _DeviceActivityPoint({
+    required this.date,
+    required this.activeSeconds,
+    required this.idleSeconds,
+    required this.keyboardActiveSeconds,
+    required this.keyboardIdleSeconds,
+    required this.mouseActiveSeconds,
+    required this.mouseIdleSeconds,
+    required this.browserSeconds,
+  });
+
+  final DateTime date;
+  final int activeSeconds;
+  final int idleSeconds;
+  final int keyboardActiveSeconds;
+  final int keyboardIdleSeconds;
+  final int mouseActiveSeconds;
+  final int mouseIdleSeconds;
+  final int browserSeconds;
+}
+
+class _ActivityGraph extends StatelessWidget {
+  const _ActivityGraph({
+    required this.title,
+    required this.activeLabel,
+    this.idleLabel,
+    required this.points,
+    required this.activeColor,
+    this.idleColor,
+  });
+
+  final String title;
+  final String activeLabel;
+  final String? idleLabel;
+  final List<_ActivityGraphPoint> points;
+  final Color activeColor;
+  final Color? idleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        border: Border.all(color: appTheme.tableBorder),
+        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: points.isEmpty
+            ? Text(
+                'No activity was reported for this device in the selected date range.',
+                style: theme.textTheme.bodySmall,
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Wrap(
+                    spacing: AppUiConstants.spacingMd,
+                    children: <Widget>[
+                      _ActivityGraphLegend(
+                        label: activeLabel,
+                        color: activeColor,
+                      ),
+                      if (idleLabel != null && idleColor != null)
+                        _ActivityGraphLegend(
+                          label: idleLabel!,
+                          color: idleColor!,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  SizedBox(
+                    height: 160,
+                    child: CustomPaint(
+                      painter: _ActivityGraphPainter(
+                        points: points,
+                        activeColor: activeColor,
+                        idleColor: idleColor,
+                        gridColor: theme.dividerColor.withValues(alpha: 0.16),
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Row(
+                    children: points
+                        .map(
+                          (point) => Expanded(
+                            child: Text(
+                              _activityGraphDate(point.date),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _ActivityGraphLegend extends StatelessWidget {
+  const _ActivityGraphLegend({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: AppUiConstants.spacingXs),
+      Text(label, style: Theme.of(context).textTheme.labelSmall),
+    ],
+  );
+}
+
+class _ActivityGraphPainter extends CustomPainter {
+  _ActivityGraphPainter({
+    required this.points,
+    required this.activeColor,
+    required this.idleColor,
+    required this.gridColor,
+  });
+
+  final List<_ActivityGraphPoint> points;
+  final Color activeColor;
+  final Color? idleColor;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const horizontalPadding = 12.0;
+    const verticalPadding = 16.0;
+    final width = size.width - (horizontalPadding * 2);
+    final height = size.height - (verticalPadding * 2);
+    if (width <= 0 || height <= 0) return;
+
+    final maxSeconds = points.fold<int>(0, (maximum, point) {
+      final value = idleColor != null && point.activeSeconds < point.idleSeconds
+          ? point.idleSeconds
+          : point.activeSeconds;
+      return value > maximum ? value : maximum;
+    });
+    final scale = maxSeconds > 0 ? maxSeconds.toDouble() : 1.0;
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var index = 0; index < 4; index += 1) {
+      final y = verticalPadding + ((height / 3) * index);
+      canvas.drawLine(
+        Offset(horizontalPadding, y),
+        Offset(horizontalPadding + width, y),
+        gridPaint,
+      );
+    }
+    _drawSeries(
+      canvas,
+      points,
+      activeColor,
+      scale,
+      width,
+      height,
+      3,
+      isActive: true,
+    );
+    if (idleColor != null) {
+      _drawSeries(
+        canvas,
+        points,
+        idleColor!,
+        scale,
+        width,
+        height,
+        2,
+        isActive: false,
+      );
+    }
+  }
+
+  void _drawSeries(
+    Canvas canvas,
+    List<_ActivityGraphPoint> points,
+    Color color,
+    double scale,
+    double width,
+    double height,
+    double strokeWidth, {
+    required bool isActive,
+  }) {
+    const horizontalPadding = 12.0;
+    const verticalPadding = 16.0;
+    final offsets = List<Offset>.generate(points.length, (index) {
+      final ratio = points.length == 1 ? 0.5 : index / (points.length - 1);
+      final seconds = isActive
+          ? points[index].activeSeconds
+          : points[index].idleSeconds;
+      return Offset(
+        horizontalPadding + (width * ratio),
+        verticalPadding + height - ((seconds / scale) * height),
+      );
+    });
+    final path = Path();
+    for (var index = 0; index < offsets.length; index += 1) {
+      final offset = offsets[index];
+      if (index == 0) {
+        path.moveTo(offset.dx, offset.dy);
+      } else {
+        final previous = offsets[index - 1];
+        final midpoint = (previous.dx + offset.dx) / 2;
+        path.cubicTo(
+          midpoint,
+          previous.dy,
+          midpoint,
+          offset.dy,
+          offset.dx,
+          offset.dy,
+        );
+      }
+    }
+    final fillPath = Path.from(path)
+      ..lineTo(offsets.last.dx, verticalPadding + height)
+      ..lineTo(offsets.first.dx, verticalPadding + height)
+      ..close();
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader =
+            LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                color.withValues(alpha: 0.30),
+                color.withValues(alpha: 0.12),
+              ],
+            ).createShader(
+              Rect.fromLTWH(horizontalPadding, verticalPadding, width, height),
+            ),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..strokeWidth = strokeWidth
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    for (final offset in offsets) {
+      canvas.drawCircle(offset, isActive ? 4 : 3, Paint()..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ActivityGraphPainter oldDelegate) =>
+      oldDelegate.points != points ||
+      oldDelegate.activeColor != activeColor ||
+      oldDelegate.idleColor != idleColor ||
+      oldDelegate.gridColor != gridColor;
+}
+
+String _activityGraphDate(DateTime value) {
+  const months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[value.month - 1]} ${value.day}';
+}
 
 class ActivityWatchSetupPage extends StatefulWidget {
   const ActivityWatchSetupPage({super.key, this.embedded = false});
@@ -81,14 +394,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           currentUser?['is_super_admin'] == '1';
       final companyId = await SessionStorage.getCurrentCompanyId();
       final results = await Future.wait<Object>(<Future<Object>>[
-        _service.devices(
-          companyScope: isSuperAdmin,
-          companyId: companyId,
-        ),
-        _loadSummaries(
-          companyScope: isSuperAdmin,
-          companyId: companyId,
-        ),
+        _service.devices(companyScope: isSuperAdmin, companyId: companyId),
+        _loadSummaries(companyScope: isSuperAdmin, companyId: companyId),
       ]);
       if (!mounted) return;
       final summaryPage = results[1] as ActivityWatchSummaryPage;
@@ -579,10 +886,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   ErpDashboardSnapshot _buildActivityDashboardSnapshot() {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final metrics = ActivityWatchDashboardMetrics.fromSummaries(_summaries);
-    final dailyTrend = metrics.dailyActive.length <= 12
-        ? metrics.dailyActive
-        : metrics.dailyActive.sublist(metrics.dailyActive.length - 12);
     final employeeOptions = _employeeFilterOptions();
 
     return ErpDashboardSnapshot(
@@ -634,25 +937,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                     .toList(growable: false),
               ),
             ],
-      trend: _summaries.isEmpty
-          ? null
-          : ErpDashboardTrendCardData(
-              title: 'Active time trend',
-              subtitle: metrics.dailyActive.length > 12
-                  ? 'Active time for the latest 12 reporting days'
-                  : 'Active time by day',
-              color: colors.primary,
-              hoverValueFormatter: (minutes) =>
-                  _duration((minutes * 60).round()),
-              points: dailyTrend
-                  .map(
-                    (point) => ErpDashboardTrendPoint(
-                      label: _shortDate(point.date),
-                      value: point.activeSeconds / 60,
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
       distribution: null,
       highlights: null,
       emptyTitle: 'No activity found',
@@ -695,72 +979,49 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
-    final entries = <(String, String, IconData, Color)>[
-      (
-        'Active time',
-        _duration(summary.activeSeconds),
-        Icons.bolt_outlined,
-        theme.colorScheme.primary,
+    final timeline = _deviceActivityTrend(summary.deviceId);
+    final graphs = <Widget>[
+      _ActivityGraph(
+        title: 'Active and idle time',
+        activeLabel: 'Active time',
+        idleLabel: 'Idle time',
+        activeColor: _activityGraphGreen,
+        idleColor: _activityGraphRed,
+        points: _graphPoints(
+          timeline,
+          (point) => point.activeSeconds,
+          (point) => point.idleSeconds,
+        ),
       ),
-      (
-        'Idle time',
-        _duration(summary.idleSeconds),
-        Icons.hourglass_empty_outlined,
-        theme.colorScheme.tertiary,
+      _ActivityGraph(
+        title: 'Keyboard activity',
+        activeLabel: 'Keyboard active',
+        idleLabel: 'Keyboard idle',
+        activeColor: _activityGraphGreen,
+        idleColor: _activityGraphRed,
+        points: _graphPoints(
+          timeline,
+          (point) => point.keyboardActiveSeconds,
+          (point) => point.keyboardIdleSeconds,
+        ),
       ),
-      (
-        'Keyboard active',
-        _duration(summary.keyboardActiveSeconds),
-        Icons.keyboard_alt_outlined,
-        theme.colorScheme.secondary,
+      _ActivityGraph(
+        title: 'Mouse activity',
+        activeLabel: 'Mouse active',
+        idleLabel: 'Mouse idle',
+        activeColor: _activityGraphGreen,
+        idleColor: _activityGraphRed,
+        points: _graphPoints(
+          timeline,
+          (point) => point.mouseActiveSeconds,
+          (point) => point.mouseIdleSeconds,
+        ),
       ),
-      (
-        'Keyboard idle',
-        _duration(summary.keyboardIdleSeconds),
-        Icons.keyboard_hide_outlined,
-        appTheme.mutedText,
-      ),
-      (
-        'Mouse active',
-        _duration(summary.mouseActiveSeconds),
-        Icons.mouse_outlined,
-        theme.colorScheme.primary,
-      ),
-      (
-        'Mouse idle',
-        _duration(summary.mouseIdleSeconds),
-        Icons.hourglass_disabled_outlined,
-        appTheme.mutedText,
-      ),
-      (
-        'Browser time',
-        _duration(summary.browserSeconds),
-        Icons.language_outlined,
-        appTheme.tableLinkText,
-      ),
-      (
-        'Locked time',
-        _duration(summary.lockedSeconds),
-        Icons.lock_outline,
-        theme.colorScheme.error,
-      ),
-      (
-        'Offline time',
-        _duration(summary.offlineSeconds),
-        Icons.cloud_off_outlined,
-        theme.colorScheme.error,
-      ),
-      (
-        'Unknown time',
-        _duration(summary.unknownSeconds),
-        Icons.help_outline,
-        appTheme.mutedText,
-      ),
-      (
-        'Tracked time',
-        _duration(summary.trackedSeconds),
-        Icons.schedule_outlined,
-        appTheme.tableLinkText,
+      _ActivityGraph(
+        title: 'Browser time',
+        activeLabel: 'Browser time',
+        activeColor: _activityGraphGreen,
+        points: _graphPoints(timeline, (point) => point.browserSeconds),
       ),
     ];
 
@@ -776,35 +1037,33 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Daily activity metrics',
+              'Activity duration trends',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingXxs),
             Text(
-              'Sampled activity durations only; no keys, clicks, coordinates, URLs, or screenshots are collected.',
+              'All graphs show this device in the selected date range. No keys, typed content, coordinates, URLs, or screenshots are collected.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: appTheme.mutedText,
               ),
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: entries
-                  .map(
-                    (entry) => SizedBox(
-                      width: 154,
-                      child: _buildMetricTile(
-                        label: entry.$1,
-                        value: entry.$2,
-                        icon: entry.$3,
-                        color: entry.$4,
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                final graphWidth = wide
+                    ? (constraints.maxWidth - AppUiConstants.spacingLg) / 2
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: AppUiConstants.spacingLg,
+                  runSpacing: AppUiConstants.spacingLg,
+                  children: graphs
+                      .map((graph) => SizedBox(width: graphWidth, child: graph))
+                      .toList(growable: false),
+                );
+              },
             ),
           ],
         ),
@@ -812,48 +1071,66 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     );
   }
 
-  Widget _buildMetricTile({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.subtleFill,
-        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-        border: Border.all(color: appTheme.tableBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingSm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Icon(icon, size: 20, color: color),
-            const SizedBox(height: AppUiConstants.spacingXs),
-            Text(
-              value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: appTheme.tableTitleText,
+  List<_DeviceActivityPoint> _deviceActivityTrend(String deviceId) {
+    final byDate =
+        <
+          DateTime,
+          (
+            int active,
+            int idle,
+            int keyboardActive,
+            int keyboardIdle,
+            int mouseActive,
+            int mouseIdle,
+            int browser,
+          )
+        >{};
+    for (final item in _summaries) {
+      if (item.deviceId != deviceId) continue;
+      final date = DateUtils.dateOnly(item.workDate);
+      final totals = byDate[date] ?? (0, 0, 0, 0, 0, 0, 0);
+      byDate[date] = (
+        totals.$1 + item.activeSeconds,
+        totals.$2 + item.idleSeconds,
+        totals.$3 + item.keyboardActiveSeconds,
+        totals.$4 + item.keyboardIdleSeconds,
+        totals.$5 + item.mouseActiveSeconds,
+        totals.$6 + item.mouseIdleSeconds,
+        totals.$7 + item.browserSeconds,
+      );
+    }
+    final points =
+        byDate.entries
+            .map(
+              (entry) => _DeviceActivityPoint(
+                date: entry.key,
+                activeSeconds: entry.value.$1,
+                idleSeconds: entry.value.$2,
+                keyboardActiveSeconds: entry.value.$3,
+                keyboardIdleSeconds: entry.value.$4,
+                mouseActiveSeconds: entry.value.$5,
+                mouseIdleSeconds: entry.value.$6,
+                browserSeconds: entry.value.$7,
               ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingXxs),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: appTheme.mutedText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+            )
+            .toList(growable: false)
+          ..sort((left, right) => left.date.compareTo(right.date));
+    return points.length <= 12 ? points : points.sublist(points.length - 12);
   }
+
+  List<_ActivityGraphPoint> _graphPoints(
+    List<_DeviceActivityPoint> timeline,
+    int Function(_DeviceActivityPoint point) active, [
+    int Function(_DeviceActivityPoint point)? idle,
+  ]) => timeline
+      .map(
+        (point) => _ActivityGraphPoint(
+          date: point.date,
+          activeSeconds: active(point),
+          idleSeconds: idle?.call(point) ?? 0,
+        ),
+      )
+      .toList(growable: false);
 
   Widget _buildActivityTableSurface(Widget table) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
@@ -1169,9 +1446,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                                 ),
                                 DataCell(
                                   Text(
-                                    _duration(
-                                      device.observedDurationSeconds,
-                                    ),
+                                    _duration(device.observedDurationSeconds),
                                   ),
                                 ),
                               ],
@@ -1402,24 +1677,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _ActivityDateFilter.year => 'This year',
         _ActivityDateFilter.custom => 'Custom range',
       };
-
-  static String _shortDate(DateTime value) {
-    const monthNames = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${monthNames[value.month - 1]} ${value.day}';
-  }
 
   static String _dateTime(DateTime? value) {
     if (value == null) return 'never';

@@ -16,30 +16,28 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   the dashboard or device panel from loading.
 - Reuse `ErpModuleDashboard` for the report overview instead of creating a
   separate Activity Watch dashboard system.
-- Show active, idle, browser, and tracked duration KPI cards; an active-time
-  daily trend; recent daily activity records; and input/device/application
-  highlights from the already-loaded summaries. Omit the separate distribution
+- Show recent daily activity records from the already-loaded summaries. Omit
+  the active-time trend, keyboard activity graph, and separate distribution
   card.
-- Show each active-time trend point as a human-readable duration when hovered,
-  rather than an unlabeled numeric minute value.
-- Limit the chart to the latest 12 reporting days when a selected range has
-  more daily buckets, while keeping KPI totals and the detailed table scoped to
-  the complete selected range.
-- Format active-time graph labels with abbreviated month names, for example
-  `Aug 12`, instead of numeric month/day values.
+- When a recent activity record is expanded, replace its daily metric tiles
+  with active/idle, keyboard active/idle, mouse active/idle, and browser-time
+  graphs for that device in the selected date range. Each active series uses a
+  strong color and the companion idle series uses a light color.
+- Render every duration graph inside its own rounded card with smooth filled
+  mountain curves, using green for main duration series and red for idle series.
+- When an overview supplies only a primary activity list, it must use the full
+  available width without rendering the empty analytics configuration state.
 - On wide screens, place the Connect a computer and Devices cards in one equal
   two-column row; stack them below the responsive breakpoint.
-- Keep the activity list and active-time graph above the setup-card row, while
-  omitting only the standalone Activity dashboard header bar.
+- Keep the activity list above the setup-card row, while omitting the standalone
+  Activity dashboard header bar.
 - Show five newest devices per page in the Devices card and use the shared
   local pagination control for older devices. Refreshing, enrolling, or
   revoking a device returns the list to its first page.
 - When the responsive setup row gives the Devices card a bounded height, keep
   its paged content vertically scrollable so device rows and navigation remain
   reachable without a RenderFlex overflow.
-- Aggregate dashboard totals in one bounded pass over summaries and application
-  totals, then sort only the distinct daily trend buckets. Do not issue another
-  API request for dashboard data.
+- Do not issue another API request for dashboard data.
 - Display one row per returned daily device summary with date, device, active,
   idle, input, browser, locked, offline, unknown, and tracked durations.
 - Make Recent daily activity records the entry point to full details. Selecting
@@ -68,12 +66,12 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - The initial Activity view is a labelled table with consistently aligned
   daily metrics rather than a stacked list of text blocks.
 - The dashboard uses the same reusable visual structure as other ERP module
-  dashboards and responds from four KPI columns down to one.
+  dashboards while showing the recent daily activity list without an active
+  trend graph.
 - Dashboard values and the detailed table come from the same loaded summary
   collection and selected date range.
 - Selecting a recent activity record expands an inline full-details dashboard
-  with active, idle, aggregate keyboard/mouse input, browser, locked, offline,
-  unknown, tracked, and application totals.
+  with all activity-duration graphs and application totals.
 - Super admins get an employee filter on Recent daily activity and can switch
   between all employees and each employee represented in the report. Other
   users see only the employee scope enforced by the Activity Watch API.
@@ -88,15 +86,4 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 
 ## Verification
 
-- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
-  completed with no further changes.
-- Focused Activity Watch dashboard and model tests passed all 6 tests.
-- `flutter test`: passed all 54 tests.
-- `flutter build web`: passed.
-- `flutter analyze`: completed with only the two pre-existing unrelated
-  warnings in `lib/app/constants/app_config.dart` and
-  `lib/view/crm/crm_followups_page.dart`.
-- The supplied desktop screenshot was used to identify the automatic checkbox
-  column and oversized selected row; the supplied dashboard reference guided
-  reuse of the ERP dashboard structure. Final browser verification at desktop
-  and narrow widths remains manual.
+- Verification for the active-trend removal is recorded in `TESTING.md`.

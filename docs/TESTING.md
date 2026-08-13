@@ -1,5 +1,54 @@
 # Testing
 
+## Activity Watch mountain graph cards â€” 2026-08-13
+
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe format
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart`: passed.
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe analyze
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart
+  lib\components\erp_module_dashboard.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated browser verification remains required to confirm the
+  intended green/red curves and card wrapping with real report data.
+
+## Activity Watch duration graphs and overview layout â€” 2026-08-13
+
+- Static source verification confirms the Activity Watch details graph set
+  includes total, keyboard, mouse, and browser durations, and the overview no
+  longer creates an empty analytics column.
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe format --output=none
+  lib\components\erp_module_dashboard.dart
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart`: passed.
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe analyze
+  lib\components\erp_module_dashboard.dart
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart`: passed
+  with no issues.
+- Full `flutter analyze` exceeded the two-minute execution limit without
+  returning diagnostics.
+- Authenticated visual verification remains required for all graphs and narrow
+  layout wrapping.
+
+## Activity Watch detail keyboard graph â€” 2026-08-13
+
+- Static source verification confirms the expanded Activity Watch card no
+  longer renders the metric-tile grid and scopes graph aggregation to the
+  selected device.
+- `dart format`, focused Flutter tests, and `flutter analyze` could not run
+  because neither `dart` nor `flutter` is available on the execution PATH.
+- Authenticated visual verification remains required for the chart at desktop
+  and narrow widths.
+
+## Activity Watch active trend removal â€” 2026-08-13
+
+- Static source verification confirmed Activity Watch no longer supplied a
+  dashboard `trend`, and the page-only daily active-time metrics helper was
+  removed.
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart`,
+  focused Activity Watch tests, and `flutter analyze` could not run because
+  neither `dart` nor `flutter` is available on the execution PATH.
+- Manual authenticated verification remains required to confirm the Activity
+  Watch dashboard shows recent daily activity without an active trend graph.
+
 ## Payslip gross and net salary summary — 2026-08-13
 
 - `dart format lib/model/printing/print_template_model.dart

@@ -40,9 +40,9 @@ class AppConfig {
     //   }
     // }
 
-    //return 'http://bill.local:8000';
+    // return 'http://bill.local:8000';
      //return 'http://192.168.31.83:8000';
-    return 'https://bill.sakthicontroller.com/api/public';
+     return 'https://bill.sakthicontroller.com/api/public';
   }
 
   static String get apiBaseUrl => '$baseHost$apiPrefix';

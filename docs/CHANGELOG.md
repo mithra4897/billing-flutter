@@ -1,5 +1,60 @@
 # Changelog
 
+## 2026-08-13 â€” Style Activity Watch duration graphs as mountain cards
+
+- Request: Match the supplied curved green/red mountain-graph visual and wrap
+  every Activity Watch graph in its own card.
+- Implementation: Updated the local Activity Watch custom painter to draw
+  smooth filled curves and added individually bordered graph cards.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+- Tests executed and results: Recorded in `TESTING.md`.
+
+
+## 2026-08-13 â€” Expand Activity Watch duration graphs
+
+- Request: Show all Activity Watch duration types as graphs and remove the
+  unused analytics configuration space.
+- Implementation: Added total, keyboard, mouse, and browser duration graphs to
+  selected activity details. The shared dashboard now omits its analytics
+  column when no insight card is available.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+- Tests executed and results: Recorded in `TESTING.md`.
+
+
+## 2026-08-13 â€” Move the Activity Watch keyboard graph into details
+
+- Request: Replace the expanded Activity Watch metric containers with the
+  previously requested keyboard active/idle graph, not a dashboard-level graph.
+- Implementation: Replaced the selected activity metric-tile grid with a
+  two-line, per-device daily keyboard activity graph using already-loaded
+  summaries.
+- Database/API impact: None.
+- Security impact: Aggregate durations only; no input content is displayed.
+- Tests executed and results: Recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specification, dashboard record,
+  testing notes, and changelog.
+
+
+## 2026-08-13 â€” Remove Activity Watch active trend graph
+
+- Request: Remove the active trend graph from Activity Watch.
+- Specification: Keep recent daily activity, filters, loading/error/empty
+  states, and the detailed activity view; omit only the chart.
+- Implementation: Removed the Activity Watch dashboard trend configuration and
+  its page-only daily active-time aggregation helper.
+- Files changed: Activity Watch setup page and frontend documentation.
+- Database/API impact: None.
+- Security impact: None.
+- Tests added or updated: No behavior-specific automated test was needed; the
+  removed chart had no interactive or API contract.
+- Tests executed and results: Recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specification, dashboard record,
+  testing notes, and changelog.
+- Known limitations: Authenticated visual confirmation remains manual.
+
+
 ## 2026-08-13 — Add gross and net summary to saved payslips
 
 - Request: Mention Gross Amount and Net Amount on the payslip.

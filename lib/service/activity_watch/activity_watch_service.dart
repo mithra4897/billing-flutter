@@ -71,6 +71,7 @@ final class ActivityWatchService {
         companyScope: companyScope,
         companyId: companyId,
       ),
+      headerOverrides: companyScope ? _companyWideHeaderOverrides : null,
       fromData: (json) => json is List
           ? json
                 .whereType<Map>()
@@ -105,6 +106,7 @@ final class ActivityWatchService {
           companyId: companyId,
         ),
       },
+      headerOverrides: companyScope ? _companyWideHeaderOverrides : null,
       fromData: (json) => ActivityWatchSummaryPage.fromJson(
         Map<String, dynamic>.from(json as Map),
       ),
@@ -132,6 +134,12 @@ final class ActivityWatchService {
     required int? companyId,
   }) => <String, dynamic>{
     if (companyScope) 'scope': 'company',
-    if (companyScope && companyId != null) 'company_id': companyId,
   };
+  static const Map<String, String?> _companyWideHeaderOverrides =
+      <String, String?>{
+        'X-Company-Id': null,
+        'X-Branch-Id': null,
+        'X-Location-Id': null,
+        'X-Financial-Year-Id': null,
+      };
 }
