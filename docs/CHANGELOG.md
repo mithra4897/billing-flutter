@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 â€” Simplify Activity Watch graph labels and add hover values
+
+- Request: Remove unwanted graph labels, add a left timeline, and support
+  hover values.
+- Implementation: Removed graph legends/date labels, added duration scale
+  labels on the left, and added pointer hover tooltips.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+
+
 ## 2026-08-13 â€” Style Activity Watch duration graphs as mountain cards
 
 - Request: Match the supplied curved green/red mountain-graph visual and wrap

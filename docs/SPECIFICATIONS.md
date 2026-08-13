@@ -613,11 +613,19 @@ Acceptance criteria:
 
 Status: Implemented (2026-08-10)
 
-The Activity report reuses `ErpModuleDashboard` to present KPI cards, an active
-time trend, recent daily activity, and summary highlights from the already-
-loaded report rows. The separate distribution card and duplicate bottom table
-are omitted. Selecting a recent activity record expands inline with all daily
-metrics and classified application totals. Input is an aggregate
+The Activity report reuses `ErpModuleDashboard` to present recent daily
+activity from the already-loaded report rows. The active-time trend, keyboard
+activity graph, separate distribution card, and duplicate bottom table are
+omitted from the dashboard overview. Selecting a recent activity record expands
+inline with active/idle, keyboard active/idle, mouse active/idle, and browser
+time graphs in place of the metric-tile grid. Each graph uses only the selected
+device's already-loaded daily summaries in the current date range. The dashboard
+overview must not reserve an empty analytics column or show a `No analytics
+configured` card when it contains no insight cards. Each duration graph is a
+separate rounded card with smooth filled mountain curves: green for the main
+series and red for the companion idle series. Graph cards omit redundant
+legend/date labels, show a duration timeline at the left, and reveal the
+selected day's duration values on hover. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of
 the API contract. No extra API request is introduced; date filtering,
 loading/error/empty behaviour, the API contract, and privacy restrictions are

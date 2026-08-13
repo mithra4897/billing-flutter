@@ -43,7 +43,7 @@ final class _DeviceActivityPoint {
   final int browserSeconds;
 }
 
-class _ActivityGraph extends StatelessWidget {
+class _ActivityGraph extends StatefulWidget {
   const _ActivityGraph({
     required this.title,
     required this.activeLabel,
@@ -61,9 +61,26 @@ class _ActivityGraph extends StatelessWidget {
   final Color? idleColor;
 
   @override
+  State<_ActivityGraph> createState() => _ActivityGraphState();
+}
+
+class _ActivityGraphState extends State<_ActivityGraph> {
+  int? _hoveredIndex;
+
+  void _setHoveredIndex(Offset position, double width) {
+    if (width <= 0 || widget.points.isEmpty) return;
+    final fraction = (position.dx / width).clamp(0.0, 1.0);
+    final index = widget.points.length == 1
+        ? 0
+        : (fraction * (widget.points.length - 1)).round();
+    if (_hoveredIndex != index) setState(() => _hoveredIndex = index);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
+    final scale = _activityGraphScale(widget.points, widget.idleColor != null);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: appTheme.cardBackground,
@@ -72,7 +89,7 @@ class _ActivityGraph extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: points.isEmpty
+        child: widget.points.isEmpty
             ? Text(
                 'No activity was reported for this device in the selected date range.',
                 style: theme.textTheme.bodySmall,
@@ -81,54 +98,62 @@ class _ActivityGraph extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   Text(
-                    title,
+                    widget.title,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  Wrap(
-                    spacing: AppUiConstants.spacingMd,
-                    children: <Widget>[
-                      _ActivityGraphLegend(
-                        label: activeLabel,
-                        color: activeColor,
-                      ),
-                      if (idleLabel != null && idleColor != null)
-                        _ActivityGraphLegend(
-                          label: idleLabel!,
-                          color: idleColor!,
-                        ),
-                    ],
-                  ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   SizedBox(
                     height: 160,
-                    child: CustomPaint(
-                      painter: _ActivityGraphPainter(
-                        points: points,
-                        activeColor: activeColor,
-                        idleColor: idleColor,
-                        gridColor: theme.dividerColor.withValues(alpha: 0.16),
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  Row(
-                    children: points
-                        .map(
-                          (point) => Expanded(
-                            child: Text(
-                              _activityGraphDate(point.date),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall,
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 44,
+                          child: _ActivityGraphTimeline(scale: scale),
+                        ),
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) => MouseRegion(
+                              onExit: (_) =>
+                                  setState(() => _hoveredIndex = null),
+                              onHover: (event) => _setHoveredIndex(
+                                event.localPosition,
+                                constraints.maxWidth,
+                              ),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: <Widget>[
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _ActivityGraphPainter(
+                                        points: widget.points,
+                                        activeColor: widget.activeColor,
+                                        idleColor: widget.idleColor,
+                                        gridColor: theme.dividerColor
+                                            .withValues(alpha: 0.16),
+                                        hoveredIndex: _hoveredIndex,
+                                        scale: scale,
+                                      ),
+                                      child: const SizedBox.expand(),
+                                    ),
+                                  ),
+                                  if (_hoveredIndex != null)
+                                    _ActivityGraphTooltip(
+                                      point: widget.points[_hoveredIndex!],
+                                      activeLabel: widget.activeLabel,
+                                      idleLabel: widget.idleLabel,
+                                      activeColor: widget.activeColor,
+                                      index: _hoveredIndex!,
+                                      count: widget.points.length,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        )
-                        .toList(growable: false),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -137,24 +162,69 @@ class _ActivityGraph extends StatelessWidget {
   }
 }
 
-class _ActivityGraphLegend extends StatelessWidget {
-  const _ActivityGraphLegend({required this.label, required this.color});
+class _ActivityGraphTimeline extends StatelessWidget {
+  const _ActivityGraphTimeline({required this.scale});
 
-  final String label;
-  final Color color;
+  final int scale;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => Column(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: CrossAxisAlignment.end,
     children: <Widget>[
-      Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      Text(
+        _durationLabel(scale),
+        style: Theme.of(context).textTheme.labelSmall,
       ),
-      const SizedBox(width: AppUiConstants.spacingXs),
-      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      Text(
+        _durationLabel((scale * 2 / 3).round()),
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+      Text(
+        _durationLabel((scale / 3).round()),
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+      Text('0m', style: Theme.of(context).textTheme.labelSmall),
     ],
+  );
+}
+
+class _ActivityGraphTooltip extends StatelessWidget {
+  const _ActivityGraphTooltip({
+    required this.point,
+    required this.activeLabel,
+    required this.idleLabel,
+    required this.activeColor,
+    required this.index,
+    required this.count,
+  });
+
+  final _ActivityGraphPoint point;
+  final String activeLabel;
+  final String? idleLabel;
+  final Color activeColor;
+  final int index;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: count == 1 ? 0 : (index / (count - 1)) * 100,
+    top: 4,
+    child: IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Text(
+          '${_activityGraphDate(point.date)}  $activeLabel ${_durationLabel(point.activeSeconds)}'
+          '${idleLabel == null ? '' : ' · $idleLabel ${_durationLabel(point.idleSeconds)}'}',
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ),
+    ),
   );
 }
 
@@ -164,12 +234,16 @@ class _ActivityGraphPainter extends CustomPainter {
     required this.activeColor,
     required this.idleColor,
     required this.gridColor,
+    required this.hoveredIndex,
+    required this.scale,
   });
 
   final List<_ActivityGraphPoint> points;
   final Color activeColor;
   final Color? idleColor;
   final Color gridColor;
+  final int? hoveredIndex;
+  final int scale;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -179,13 +253,7 @@ class _ActivityGraphPainter extends CustomPainter {
     final height = size.height - (verticalPadding * 2);
     if (width <= 0 || height <= 0) return;
 
-    final maxSeconds = points.fold<int>(0, (maximum, point) {
-      final value = idleColor != null && point.activeSeconds < point.idleSeconds
-          ? point.idleSeconds
-          : point.activeSeconds;
-      return value > maximum ? value : maximum;
-    });
-    final scale = maxSeconds > 0 ? maxSeconds.toDouble() : 1.0;
+    final chartScale = scale.toDouble();
     final gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
@@ -197,11 +265,23 @@ class _ActivityGraphPainter extends CustomPainter {
         gridPaint,
       );
     }
+    if (hoveredIndex != null && points.isNotEmpty) {
+      final index = hoveredIndex!.clamp(0, points.length - 1);
+      final ratio = points.length == 1 ? 0.5 : index / (points.length - 1);
+      final x = horizontalPadding + (width * ratio);
+      canvas.drawLine(
+        Offset(x, verticalPadding),
+        Offset(x, verticalPadding + height),
+        Paint()
+          ..color = activeColor.withValues(alpha: 0.45)
+          ..strokeWidth = 1,
+      );
+    }
     _drawSeries(
       canvas,
       points,
       activeColor,
-      scale,
+      chartScale,
       width,
       height,
       3,
@@ -212,7 +292,7 @@ class _ActivityGraphPainter extends CustomPainter {
         canvas,
         points,
         idleColor!,
-        scale,
+        chartScale,
         width,
         height,
         2,
@@ -299,8 +379,23 @@ class _ActivityGraphPainter extends CustomPainter {
       oldDelegate.points != points ||
       oldDelegate.activeColor != activeColor ||
       oldDelegate.idleColor != idleColor ||
-      oldDelegate.gridColor != gridColor;
+      oldDelegate.gridColor != gridColor ||
+      oldDelegate.hoveredIndex != hoveredIndex ||
+      oldDelegate.scale != scale;
 }
+
+int _activityGraphScale(List<_ActivityGraphPoint> points, bool hasIdleSeries) {
+  final maximum = points.fold<int>(0, (current, point) {
+    final value = hasIdleSeries && point.idleSeconds > point.activeSeconds
+        ? point.idleSeconds
+        : point.activeSeconds;
+    return value > current ? value : current;
+  });
+  return maximum <= 0 ? 60 : ((maximum + 899) ~/ 900) * 900;
+}
+
+String _durationLabel(int seconds) =>
+    seconds >= 3600 ? '${seconds ~/ 3600}h' : '${seconds ~/ 60}m';
 
 String _activityGraphDate(DateTime value) {
   const months = <String>[

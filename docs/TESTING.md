@@ -1,5 +1,16 @@
 # Testing
 
+## Activity Watch graph timelines and hover values â€” 2026-08-13
+
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe format
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart`: passed.
+- `C:\flutter\bin\cache\dart-sdk\bin\dart.exe analyze
+  lib\view\settings\activity_watch\activity_watch_setup_page.dart
+  lib\components\erp_module_dashboard.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated browser verification remains required for pointer hover
+  tooltips and duration timelines with real report data.
+
 ## Activity Watch mountain graph cards â€” 2026-08-13
 
 - `C:\flutter\bin\cache\dart-sdk\bin\dart.exe format
