@@ -31,6 +31,8 @@ final class _DeviceActivityPoint {
     required this.mouseActiveSeconds,
     required this.mouseIdleSeconds,
     required this.browserSeconds,
+    required this.lockedSeconds,
+    required this.untrackedSeconds,
   });
 
   final DateTime date;
@@ -41,6 +43,8 @@ final class _DeviceActivityPoint {
   final int mouseActiveSeconds;
   final int mouseIdleSeconds;
   final int browserSeconds;
+  final int lockedSeconds;
+  final int untrackedSeconds;
 }
 
 class _ActivityGraph extends StatefulWidget {
@@ -115,8 +119,8 @@ class _ActivityGraphState extends State<_ActivityGraph> {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               const tooltipMaximumWidth = 260.0;
-                              final tooltipWidth = constraints.maxWidth <
-                                      tooltipMaximumWidth
+                              final tooltipWidth =
+                                  constraints.maxWidth < tooltipMaximumWidth
                                   ? constraints.maxWidth
                                   : tooltipMaximumWidth;
                               final tooltipLeft = _activityGraphTooltipLeft(
@@ -136,28 +140,28 @@ class _ActivityGraphState extends State<_ActivityGraph> {
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: <Widget>[
-                                  Positioned.fill(
-                                    child: CustomPaint(
-                                      painter: _ActivityGraphPainter(
-                                        points: widget.points,
-                                        activeColor: widget.activeColor,
-                                        idleColor: widget.idleColor,
-                                        gridColor: theme.dividerColor
-                                            .withValues(alpha: 0.16),
-                                        hoveredIndex: _hoveredIndex,
-                                        scale: scale,
+                                    Positioned.fill(
+                                      child: CustomPaint(
+                                        painter: _ActivityGraphPainter(
+                                          points: widget.points,
+                                          activeColor: widget.activeColor,
+                                          idleColor: widget.idleColor,
+                                          gridColor: theme.dividerColor
+                                              .withValues(alpha: 0.16),
+                                          hoveredIndex: _hoveredIndex,
+                                          scale: scale,
+                                        ),
+                                        child: const SizedBox.expand(),
                                       ),
-                                      child: const SizedBox.expand(),
                                     ),
-                                  ),
-                                  if (_hoveredIndex != null)
-                                    _ActivityGraphTooltip(
-                                      point: widget.points[_hoveredIndex!],
-                                      activeLabel: widget.activeLabel,
-                                      idleLabel: widget.idleLabel,
-                                      left: tooltipLeft,
-                                      width: tooltipWidth,
-                                    ),
+                                    if (_hoveredIndex != null)
+                                      _ActivityGraphTooltip(
+                                        point: widget.points[_hoveredIndex!],
+                                        activeLabel: widget.activeLabel,
+                                        idleLabel: widget.idleLabel,
+                                        left: tooltipLeft,
+                                        width: tooltipWidth,
+                                      ),
                                   ],
                                 ),
                               );
@@ -462,7 +466,8 @@ double _activityGraphTooltipLeft({
   }
   const horizontalPadding = 12.0;
   final ratio = hoveredIndex / (count - 1);
-  final anchor = horizontalPadding + ((graphWidth - (horizontalPadding * 2)) * ratio);
+  final anchor =
+      horizontalPadding + ((graphWidth - (horizontalPadding * 2)) * ratio);
   final preferredLeft = anchor - (tooltipWidth / 2);
   final maximumLeft = graphWidth - tooltipWidth;
   return preferredLeft.clamp(0.0, maximumLeft);
@@ -1187,6 +1192,18 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         activeColor: _activityGraphGreen,
         points: _graphPoints(timeline, (point) => point.browserSeconds),
       ),
+      _ActivityGraph(
+        title: 'Locked time',
+        activeLabel: 'Locked time',
+        activeColor: _activityGraphGreen,
+        points: _graphPoints(timeline, (point) => point.lockedSeconds),
+      ),
+      _ActivityGraph(
+        title: 'Untracked time',
+        activeLabel: 'Untracked time',
+        activeColor: _activityGraphGreen,
+        points: _graphPoints(timeline, (point) => point.untrackedSeconds),
+      ),
     ];
 
     return LayoutBuilder(
@@ -1218,12 +1235,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             int mouseActive,
             int mouseIdle,
             int browser,
+            int locked,
+            int untracked,
           )
         >{};
     for (final item in _summaries) {
       if (item.deviceId != deviceId) continue;
       final date = DateUtils.dateOnly(item.workDate);
-      final totals = byDate[date] ?? (0, 0, 0, 0, 0, 0, 0);
+      final totals = byDate[date] ?? (0, 0, 0, 0, 0, 0, 0, 0, 0);
       byDate[date] = (
         totals.$1 + item.activeSeconds,
         totals.$2 + item.idleSeconds,
@@ -1232,6 +1251,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         totals.$5 + item.mouseActiveSeconds,
         totals.$6 + item.mouseIdleSeconds,
         totals.$7 + item.browserSeconds,
+        totals.$8 + item.lockedSeconds,
+        totals.$9 + item.unknownSeconds,
       );
     }
     final points =
@@ -1246,6 +1267,8 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                 mouseActiveSeconds: entry.value.$5,
                 mouseIdleSeconds: entry.value.$6,
                 browserSeconds: entry.value.$7,
+                lockedSeconds: entry.value.$8,
+                untrackedSeconds: entry.value.$9,
               ),
             )
             .toList(growable: false)

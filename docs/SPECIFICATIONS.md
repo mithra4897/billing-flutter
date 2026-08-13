@@ -617,8 +617,10 @@ The Activity report reuses `ErpModuleDashboard` to present recent daily
 activity from the already-loaded report rows. The active-time trend, keyboard
 activity graph, separate distribution card, and duplicate bottom table are
 omitted from the dashboard overview. Selecting a recent activity record expands
-inline with active/idle, keyboard active/idle, mouse active/idle, and browser
-time graphs in place of the metric-tile grid. Each graph uses only the selected
+inline with active/idle, keyboard active/idle, mouse active/idle, browser,
+locked, and untracked-time graphs in place of the metric-tile grid.
+Untracked time is displayed from the existing `unknown_seconds` response field;
+it does not estimate unreported device time. Each graph uses only the selected
 device's already-loaded daily summaries in the current date range. The dashboard
 overview must not reserve an empty analytics column or show a `No analytics
 configured` card when it contains no insight cards. Each duration graph is a

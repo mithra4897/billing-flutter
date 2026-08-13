@@ -67,6 +67,29 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-13 — Add missing Activity Watch duration graphs
+
+- Request: Show locked and untracked time in the Activity Watch graph section.
+- Specification: Extend the expanded device details with two duration graphs.
+  Untracked time maps directly to the existing `unknown_seconds` API field and
+  does not estimate time absent from a device report.
+- Implementation: Extended the selected-device, date-keyed aggregation and
+  rendered Locked time and Untracked time graph cards from the already-loaded
+  summaries.
+- Files changed: Activity Watch setup page, model parsing test, specification,
+  dashboard record, testing notes, and changelog.
+- Database/API impact: None; existing summary fields are reused.
+- Security impact: None; the change renders only existing aggregate durations.
+- Tests added or updated: Added numeric-string parsing coverage for the two
+  graph duration fields.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specification, dashboard record,
+  testing notes, and changelog.
+- Known limitations: Authenticated visual verification with live report data
+  remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 â€” Move the Activity Watch keyboard graph into details
 
 - Request: Replace the expanded Activity Watch metric containers with the

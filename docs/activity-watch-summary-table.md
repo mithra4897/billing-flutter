@@ -20,9 +20,12 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   the active-time trend, keyboard activity graph, and separate distribution
   card.
 - When a recent activity record is expanded, replace its daily metric tiles
-  with active/idle, keyboard active/idle, mouse active/idle, and browser-time
-  graphs for that device in the selected date range. Each active series uses a
-  strong color and the companion idle series uses a light color.
+  with active/idle, keyboard active/idle, mouse active/idle, browser-time,
+  locked-time, and untracked-time graphs for that device in the
+  selected date range. Untracked time is the existing API
+  `unknown_seconds` duration; it does not infer time that was not reported by
+  the device. Each active series uses a strong color and the companion idle
+  series uses a light color.
 - Render every duration graph inside its own rounded card with smooth filled
   mountain curves, using green for main duration series and red for idle series.
 - Omit redundant legends and point markers; retain a left duration timeline,
@@ -77,7 +80,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Dashboard values and the detailed table come from the same loaded summary
   collection and selected date range.
 - Selecting a recent activity record expands an inline full-details dashboard
-  with all activity-duration graphs and application totals.
+  with all activity-duration graphs, including locked and untracked time, and
+  application totals.
 - Super admins get an employee filter on Recent daily activity and can switch
   between all employees and each employee represented in the report. Other
   users see only the employee scope enforced by the Activity Watch API.

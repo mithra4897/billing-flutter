@@ -1,5 +1,16 @@
 # Testing
 
+## Activity Watch locked and untracked graphs — 2026-08-13
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to inspect the added graphs
+  and hover tooltips with live report data at desktop and narrow widths.
+
 ## Activity Watch graph date-axis verification — 2026-08-13
 
 - `dart format --output=none lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
