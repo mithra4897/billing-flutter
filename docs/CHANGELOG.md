@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-13 — Remove Activity Watch graph card borders
+
+- Request: Remove the graph card borders.
+- Implementation: Kept each graph's rounded card surface and removed its
+  outline, leaving the mountain curves, timeline, and hover values unchanged.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+
+## 2026-08-13 â€” Remove the Activity Watch graph-set container
+
+- Request: Remove the Activity duration label, supporting label, and outer
+  outlined container.
+- Implementation: The expanded details view now renders only the individual
+  duration graph cards.
+- Database/API impact: None.
+- Security impact: None.
+
 ## 2026-08-13 â€” Simplify Activity Watch graph labels and add hover values
 
 - Request: Remove unwanted graph labels, add a left timeline, and support

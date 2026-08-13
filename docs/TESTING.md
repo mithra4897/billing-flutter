@@ -340,6 +340,16 @@ been packaged successfully.
   the report, and a selected row shows aggregate keyboard/mouse input alongside
   active, idle, state, and application totals.
 
+## Activity Watch graph border verification — 2026-08-13
+
+- `dart format --output=none lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed.
+- `dart analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart`:
+  passed with no issues.
+- `git diff --check`: passed.
+- Manual browser verification should confirm the graph cards have no outline at
+  desktop and narrow widths.
+
 ## Activity Watch office monitoring detail — 2026-08-10
 
 - Go coverage verifies schema-v3 migration/provisioning, encrypted browser-title

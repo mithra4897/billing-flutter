@@ -622,10 +622,11 @@ time graphs in place of the metric-tile grid. Each graph uses only the selected
 device's already-loaded daily summaries in the current date range. The dashboard
 overview must not reserve an empty analytics column or show a `No analytics
 configured` card when it contains no insight cards. Each duration graph is a
-separate rounded card with smooth filled mountain curves: green for the main
+separate borderless rounded surface with smooth filled mountain curves: green for the main
 series and red for the companion idle series. Graph cards omit redundant
 legend/date labels, show a duration timeline at the left, and reveal the
-selected day's duration values on hover. Input is an aggregate
+selected day's duration values on hover. The expanded view has no enclosing
+outlined duration-trends container or supporting label. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of
 the API contract. No extra API request is introduced; date filtering,
 loading/error/empty behaviour, the API contract, and privacy restrictions are

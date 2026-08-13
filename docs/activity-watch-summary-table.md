@@ -27,6 +27,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   mountain curves, using green for main duration series and red for idle series.
 - Omit redundant legends and date labels, retain a left duration timeline, and
   show the selected day and duration values when the user hovers a graph.
+- Do not wrap the graph set in an additional outlined container or show an
+  `Activity duration trends` heading; only the individual graph cards remain.
 - When an overview supplies only a primary activity list, it must use the full
   available width without rendering the empty analytics configuration state.
 - On wide screens, place the Connect a computer and Devices cards in one equal

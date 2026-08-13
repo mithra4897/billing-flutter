@@ -84,7 +84,6 @@ class _ActivityGraphState extends State<_ActivityGraph> {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: appTheme.cardBackground,
-        border: Border.all(color: appTheme.tableBorder),
         borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
       ),
       child: Padding(
@@ -1072,8 +1071,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       .toList(growable: false);
 
   Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
     final timeline = _deviceActivityTrend(summary.deviceId);
     final graphs = <Widget>[
       _ActivityGraph(
@@ -1120,49 +1117,20 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       ),
     ];
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        border: Border.all(color: appTheme.tableBorder),
-        borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Activity duration trends',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingXxs),
-            Text(
-              'All graphs show this device in the selected date range. No keys, typed content, coordinates, URLs, or screenshots are collected.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: appTheme.mutedText,
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 760;
-                final graphWidth = wide
-                    ? (constraints.maxWidth - AppUiConstants.spacingLg) / 2
-                    : constraints.maxWidth;
-                return Wrap(
-                  spacing: AppUiConstants.spacingLg,
-                  runSpacing: AppUiConstants.spacingLg,
-                  children: graphs
-                      .map((graph) => SizedBox(width: graphWidth, child: graph))
-                      .toList(growable: false),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 760;
+        final graphWidth = wide
+            ? (constraints.maxWidth - AppUiConstants.spacingLg) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: AppUiConstants.spacingLg,
+          runSpacing: AppUiConstants.spacingLg,
+          children: graphs
+              .map((graph) => SizedBox(width: graphWidth, child: graph))
+              .toList(growable: false),
+        );
+      },
     );
   }
 
