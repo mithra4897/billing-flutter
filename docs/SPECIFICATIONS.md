@@ -1,5 +1,37 @@
 # Specifications
 
+## Payslip gross and net salary summary fallback
+
+- Date: 2026-08-13
+- Status: Approved for implementation
+
+### Objective
+
+Show the calculated Gross Salary and Net Salary on every rendered payslip,
+including older saved templates that lack a salary summary.
+
+### Scope and rules
+
+- Earnings and deductions stay as individual pay heads; calculated Gross and
+  Net amounts are not inserted into either table.
+- The deductions table never includes a calculated `Total Deductions` row;
+  that aggregate appears only in the salary summary.
+- The salary summary shows CTC Monthly alongside Gross Salary, Total
+  Deductions, and Net Salary.
+- A saved `hr_payslip` template without a Gross/Net salary-summary binding
+  receives a non-editing preview fallback beneath the breakup tables.
+- Templates that already bind either salary-summary Gross or Net value retain
+  their existing layout without an added fallback.
+- The values come from the existing payslip `salary_summary` payload; no
+  payroll, API, database, or salary-component calculation changes.
+
+### Acceptance criteria
+
+- A payslip with no summary text shows Gross Salary, CTC Monthly, Total
+  Deductions, and Net Salary beneath its breakup tables.
+- A template that already displays the salary summary is not duplicated.
+- Earnings and Deductions tables retain their current rows and bindings.
+
 ## Payroll run deletion from processed state
 
 - Date: 2026-08-13

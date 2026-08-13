@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-13 — Add gross and net summary to saved payslips
+
+- Request: Mention Gross Amount and Net Amount on the payslip.
+- Specification: Render a summary fallback for saved payslip templates that do
+  not already reference the existing salary-summary values.
+- Implementation: Extended the shared payslip-template normalization to append
+  a Gross Salary, Total Deductions, and Net Salary display only when a saved
+  layout has no existing salary-summary binding.
+- Follow-up: Removed the duplicate Total Deductions table row and added CTC
+  Monthly to the bottom salary summary.
+- Database/API impact: None; uses existing `salary_summary` print data.
+- Security impact: None.
+- Tests added or updated: Added fallback and no-duplication cases to payslip
+  template compatibility coverage.
+- Tests executed and results: Focused payslip-template tests passed (5 tests).
+  PHP syntax validation passed; Flutter analysis reported only the existing
+  unrelated CRM unused-method warning.
+- Documentation updated: Specification, architecture, testing notes, and
+  changelog.
+- Known limitations: The fallback position follows the standard payslip layout;
+  highly custom designs can be adjusted through the existing print designer.
+
 ## 2026-08-13 — Allow processed payroll-run deletion
 
 - Request: Make Delete available while viewing a processed payroll run.

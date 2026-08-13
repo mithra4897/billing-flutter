@@ -121,6 +121,14 @@ on deletion, database foreign keys cascade from the run to payroll lines and
 their payslips. Processed runs deliberately expose only this delete action;
 posted runs remain undeletable and are not offered a client action.
 
+### Payslip salary totals
+
+The print-template normalization path retains configured earnings and deduction
+tables, then adds a presentation-only Gross Salary, Total Deductions, and Net
+Salary fallback when an older saved `hr_payslip` layout has no salary-summary
+binding. The values are already provided in `salary_summary`; the fallback
+does not alter payroll calculations or persisted template data.
+
 ### HR salary-component order propagation
 
 The Employee Salary Components tab sends the selected employee and salary

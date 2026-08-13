@@ -1,5 +1,20 @@
 # Testing
 
+## Payslip gross and net salary summary — 2026-08-13
+
+- `dart format lib/model/printing/print_template_model.dart
+  test/model/printing/payslip_template_compatibility_test.dart`: passed.
+- `flutter test test/model/printing/payslip_template_compatibility_test.dart`:
+  passed (5 tests), including missing-summary fallback and existing-summary
+  no-duplication coverage.
+- `flutter analyze`: completed with one pre-existing unrelated unused
+  `_buildGapList` warning in `lib/view/crm/crm_followups_page.dart`; no issue
+  was reported for the payslip template change.
+- `php -l ../billing-api/app/Http/Controllers/Hr/PayslipController.php`:
+  passed with no syntax errors after removing the calculated deduction row.
+- Manual verification remains required for highly custom saved template
+  placement in the authenticated print preview.
+
 ## Processed payroll-run deletion — 2026-08-13
 
 - `dart format lib/view/hr/hr_workflow_dialogs.dart`: passed; no formatting
