@@ -1,5 +1,30 @@
 # Testing
 
+## Activity Watch foldable detail sections — 2026-08-14
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/components/erp_module_dashboard.dart
+  lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to confirm that non-graph
+  sections toggle independently while duration graphs remain visible.
+
+## Activity Watch expanded-row indicator — 2026-08-14
+
+- `dart format lib/components/erp_module_dashboard.dart
+  lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/components/erp_module_dashboard.dart
+  lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to confirm the chevron
+  direction and expanded-details association with real activity records.
+
 ## Activity Watch single-day graph line — 2026-08-14
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart

@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-08-14 — Fold Activity Watch detail sections
+
+- Request: Keep graphs visible and make each non-graph detail section foldable.
+- Specification: Application activity, Browser tab titles, Background
+  applications, and USB activity are initially folded and independently toggle
+  from their headers; duration graphs remain visible in an open daily record.
+- Implementation: Added one reusable icon-led foldable-section header with
+  state-specific chevrons and used it for the four existing detail sections.
+- Files changed: Activity Watch setup page, specifications, summary-table
+  requirements, testing notes, and changelog.
+- Database/API impact: None.
+- Security impact: None; folded content remains limited to existing
+  privacy-safe response fields.
+- Tests added or updated: Existing Activity Watch parsing coverage remains
+  applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, summary-table
+  requirements, testing notes, and changelog.
+- Known limitations: Authenticated visual verification remains manual.
+- Follow-up work: None.
+
+## 2026-08-14 — Clarify the expanded Activity Watch record
+
+- Request: Make it clear which Recent daily activity card is open or folded.
+- Specification: A closed record has a down chevron; the record with inline
+  details open has an up chevron.
+- Implementation: Added an optional trailing widget to the shared ERP dashboard
+  list item and supplied a labelled direction-changing chevron for Activity
+  Watch records.
+- Files changed: Shared ERP dashboard component, Activity Watch setup page,
+  specifications, testing notes, and changelog.
+- Database/API impact: None.
+- Security impact: None; the control exposes no additional activity data.
+- Tests added or updated: Existing Activity Watch parsing coverage remains
+  applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, summary-table
+  requirements, testing notes, and changelog.
+- Known limitations: Authenticated visual verification remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 — Add Activity Watch graph date axis
 
 - Request: Show the month and day at the bottom of each graph.

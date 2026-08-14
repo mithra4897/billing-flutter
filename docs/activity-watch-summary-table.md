@@ -19,6 +19,12 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Show recent daily activity records from the already-loaded summaries. Omit
   the active-time trend, keyboard activity graph, and separate distribution
   card.
+- Show a trailing down chevron for a closed recent activity record and an up
+  chevron for the record whose inline details are open, so users can identify
+  the expanded record at a glance.
+- Keep duration graphs visible in an open record, while allowing Application
+  activity, Browser tab titles, Background applications, and USB activity to
+  be independently expanded from initially folded headers.
 - When a recent activity record is expanded, replace its daily metric tiles
   with active/idle, keyboard active/idle, mouse active/idle, browser-time,
   locked-time, and untracked-time graphs for that device in the
@@ -100,6 +106,10 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Selecting a recent activity record expands an inline full-details dashboard
   with all activity-duration graphs, including locked and untracked time, and
   application totals.
+- The selected recent activity record has an up chevron while every closed
+  record has a down chevron.
+- Graphs stay visible for an open record; the four non-graph detail sections
+  are independently foldable and show a chevron matching their state.
 - Super admins get an employee filter on Recent daily activity and can switch
   between all employees and each employee represented in the report. Other
   users see only the employee scope enforced by the Activity Watch API.

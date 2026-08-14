@@ -533,6 +533,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   late DateTime _toDate;
   _ActivityDateFilter _dateFilter = _ActivityDateFilter.month;
   String? _expandedSummaryKey;
+  final Set<String> _expandedDetailSections = <String>{};
 
   @override
   void initState() {
@@ -586,6 +587,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         _devicePage = 1;
         _summaries = _uniqueSummaries(summaryPage.items);
         _expandedSummaryKey = null;
+        _expandedDetailSections.clear();
       });
     } catch (error) {
       if (!mounted) return;
@@ -1090,8 +1092,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                     ? employeeOptions
                     : const <ErpDashboardListFilterOption>[],
                 items: _summaries
-                    .map(
-                      (summary) => ErpDashboardListItem(
+                    .map((summary) {
+                      final isExpanded =
+                          _summaryKey(summary) == _expandedSummaryKey;
+                      return ErpDashboardListItem(
                         title: summary.employeeName?.trim().isNotEmpty == true
                             ? summary.employeeName!.trim()
                             : summary.deviceLabel,
@@ -1102,6 +1106,17 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                         statusLabel:
                             '${_duration(summary.trackedSeconds)} tracked',
                         statusColor: colors.primary,
+                        trailing: Tooltip(
+                          message: isExpanded
+                              ? 'Collapse activity details'
+                              : 'Expand activity details',
+                          child: Icon(
+                            isExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            color: colors.primary,
+                          ),
+                        ),
                         filterTags: _ActivityDateFilter.values
                             .map((filter) => filter.name)
                             .toList(growable: false),
@@ -1109,12 +1124,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                           _employeeFilterValue(summary),
                         ],
                         onPressed: () => _toggleSummaryDetails(summary),
-                        expandedContent:
-                            _summaryKey(summary) == _expandedSummaryKey
+                        expandedContent: isExpanded
                             ? _buildExpandedSummaryDetails(summary)
                             : null,
-                      ),
-                    )
+                      );
+                    })
                     .toList(growable: false),
               ),
             ],
@@ -1301,57 +1315,35 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       .toList(growable: false);
 
   Widget _buildApplicationTable(ActivityWatchSummary summary) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
     final applications = _uniqueApplications(summary.applications);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Icon(Icons.apps_outlined, size: 20, color: appTheme.tableLinkText),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            Expanded(
-              child: Text(
-                'Application activity',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+    if (applications.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+        child: Text('No application totals for this day.'),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final threeColumns = constraints.maxWidth >= 820;
+        final cardWidth = threeColumns
+            ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: List<Widget>.generate(
+            applications.length,
+            (index) => SizedBox(
+              width: cardWidth,
+              child: _buildApplicationListItem(
+                application: applications[index],
+                rank: index + 1,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (applications.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
-            child: Text('No application totals for this day.'),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final threeColumns = constraints.maxWidth >= 820;
-              final cardWidth = threeColumns
-                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
-                  : constraints.maxWidth;
-              return Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: List<Widget>.generate(
-                  applications.length,
-                  (index) => SizedBox(
-                    width: cardWidth,
-                    child: _buildApplicationListItem(
-                      application: applications[index],
-                      rank: index + 1,
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
-      ],
+        );
+      },
     );
   }
 
@@ -1488,58 +1480,128 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             const SizedBox(height: AppUiConstants.spacingSm),
             _buildSelectedMetrics(summary),
             const SizedBox(height: AppUiConstants.spacingMd),
-            _buildApplicationTable(summary),
+            _buildFoldableDetailSection(
+              summary: summary,
+              sectionId: 'applications',
+              title: 'Application activity',
+              icon: Icons.apps_outlined,
+              child: _buildApplicationTable(summary),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            _buildBrowserTitleTable(summary),
+            _buildFoldableDetailSection(
+              summary: summary,
+              sectionId: 'browser-titles',
+              title: 'Browser tab titles',
+              icon: Icons.tab_outlined,
+              child: _buildBrowserTitleTable(summary),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            _buildBackgroundApplicationList(summary),
+            _buildFoldableDetailSection(
+              summary: summary,
+              sectionId: 'background-applications',
+              title: 'Background applications',
+              icon: Icons.memory_outlined,
+              child: _buildBackgroundApplicationList(summary),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            _buildUsbDetails(summary),
+            _buildFoldableDetailSection(
+              summary: summary,
+              sectionId: 'usb',
+              title: 'USB activity',
+              icon: Icons.usb_outlined,
+              child: _buildUsbDetails(summary),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBrowserTitleTable(ActivityWatchSummary summary) {
+  Widget _buildFoldableDetailSection({
+    required ActivityWatchSummary summary,
+    required String sectionId,
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
-    final titles = _uniqueBrowserTitles(summary.browserTitles);
+    final key = '${_summaryKey(summary)}::$sectionId';
+    final isExpanded = _expandedDetailSections.contains(key);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Icon(Icons.tab_outlined, size: 20, color: appTheme.tableLinkText),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            Expanded(
-              child: Text(
-                'Browser tab titles',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+        Semantics(
+          button: true,
+          expanded: isExpanded,
+          label: '$title ${isExpanded ? 'expanded' : 'collapsed'}',
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+              onTap: () {
+                setState(() {
+                  if (isExpanded) {
+                    _expandedDetailSections.remove(key);
+                  } else {
+                    _expandedDetailSections.add(key);
+                  }
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppUiConstants.spacingXxs,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(icon, size: 20, color: appTheme.tableLinkText),
+                    const SizedBox(width: AppUiConstants.spacingXs),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: appTheme.tableLinkText,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (titles.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
-            child: Text('No browser tab titles reported for this day.'),
-          )
-        else
-          Column(
-            children: List<Widget>.generate(
-              titles.length,
-              (index) => _buildBrowserTitleListItem(
-                title: titles[index],
-                showDivider: index != titles.length - 1,
-              ),
-            ),
           ),
+        ),
+        if (isExpanded) ...<Widget>[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          child,
+        ],
       ],
+    );
+  }
+
+  Widget _buildBrowserTitleTable(ActivityWatchSummary summary) {
+    final titles = _uniqueBrowserTitles(summary.browserTitles);
+
+    if (titles.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+        child: Text('No browser tab titles reported for this day.'),
+      );
+    }
+    return Column(
+      children: List<Widget>.generate(
+        titles.length,
+        (index) => _buildBrowserTitleListItem(
+          title: titles[index],
+          showDivider: index != titles.length - 1,
+        ),
+      ),
     );
   }
 
@@ -1611,58 +1673,32 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final applications = _uniqueBackgroundApplications(
       summary.backgroundApplications,
     );
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Icon(
-              Icons.memory_outlined,
-              size: 20,
-              color: appTheme.tableLinkText,
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            Expanded(
-              child: Text(
-                'Background applications',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+    if (applications.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+        child: Text('No background application inventory reported.'),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fourColumns = constraints.maxWidth >= 1040;
+        final cardWidth = fourColumns
+            ? (constraints.maxWidth - (AppUiConstants.spacingSm * 3)) / 4
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: applications
+              .map(
+                (application) => SizedBox(
+                  width: cardWidth,
+                  child: _buildBackgroundApplicationGridItem(application),
                 ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (applications.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
-            child: Text('No background application inventory reported.'),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final fourColumns = constraints.maxWidth >= 1040;
-              final cardWidth = fourColumns
-                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 3)) / 4
-                  : constraints.maxWidth;
-              return Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: applications
-                    .map(
-                      (application) => SizedBox(
-                        width: cardWidth,
-                        child: _buildBackgroundApplicationGridItem(application),
-                      ),
-                    )
-                    .toList(growable: false),
-              );
-            },
-          ),
-      ],
+              )
+              .toList(growable: false),
+        );
+      },
     );
   }
 
@@ -1736,83 +1772,66 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
 
+    if (!hasData) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+        child: Text('No USB metadata reported for this day.'),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Icon(Icons.usb_outlined, size: 20, color: appTheme.tableLinkText),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            Expanded(
-              child: Text(
-                'USB activity',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+        _buildUsbPortStatus(summary),
+        if (summary.usbDevices.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final threeColumns = constraints.maxWidth >= 820;
+              final cardWidth = threeColumns
+                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: summary.usbDevices
+                    .map(
+                      (device) => SizedBox(
+                        width: cardWidth,
+                        child: _buildUsbDeviceCard(device),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
+        if (summary.usbFileEvents.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Text(
+            'Observed file changes',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Column(
+            children: List<Widget>.generate(
+              summary.usbFileEvents.length,
+              (index) => _buildUsbFileEventRow(
+                event: summary.usbFileEvents[index],
+                showDivider: index != summary.usbFileEvents.length - 1,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (!hasData)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
-            child: Text('No USB metadata reported for this day.'),
-          )
-        else ...<Widget>[
-          _buildUsbPortStatus(summary),
-          if (summary.usbDevices.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppUiConstants.spacingSm),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final threeColumns = constraints.maxWidth >= 820;
-                final cardWidth = threeColumns
-                    ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) /
-                          3
-                    : constraints.maxWidth;
-                return Wrap(
-                  spacing: AppUiConstants.spacingSm,
-                  runSpacing: AppUiConstants.spacingSm,
-                  children: summary.usbDevices
-                      .map(
-                        (device) => SizedBox(
-                          width: cardWidth,
-                          child: _buildUsbDeviceCard(device),
-                        ),
-                      )
-                      .toList(growable: false),
-                );
-              },
+          ),
+        ],
+        if (summary.usbFilesTruncated) ...<Widget>[
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            'Some USB file metadata was omitted because the safety limit was reached.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: appTheme.mutedText,
             ),
-          ],
-          if (summary.usbFileEvents.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Text(
-              'Observed file changes',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingXs),
-            Column(
-              children: List<Widget>.generate(
-                summary.usbFileEvents.length,
-                (index) => _buildUsbFileEventRow(
-                  event: summary.usbFileEvents[index],
-                  showDivider: index != summary.usbFileEvents.length - 1,
-                ),
-              ),
-            ),
-          ],
-          if (summary.usbFilesTruncated) ...<Widget>[
-            const SizedBox(height: AppUiConstants.spacingXs),
-            Text(
-              'Some USB file metadata was omitted because the safety limit was reached.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: appTheme.mutedText,
-              ),
-            ),
-          ],
+          ),
         ],
       ],
     );

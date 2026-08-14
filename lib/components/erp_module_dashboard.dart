@@ -133,6 +133,7 @@ class ErpDashboardListItem {
     this.detail,
     this.statusLabel,
     this.statusColor,
+    this.trailing,
     this.route,
     this.onPressed,
     this.expandedContent,
@@ -145,6 +146,7 @@ class ErpDashboardListItem {
   final String? detail;
   final String? statusLabel;
   final Color? statusColor;
+  final Widget? trailing;
   final String? route;
   final VoidCallback? onPressed;
   final Widget? expandedContent;
@@ -934,6 +936,12 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                                             ),
                                       ),
                                     ),
+                                  if (item.trailing != null) ...[
+                                    const SizedBox(
+                                      width: AppUiConstants.spacingXs,
+                                    ),
+                                    item.trailing!,
+                                  ],
                                 ],
                               ),
                             ),

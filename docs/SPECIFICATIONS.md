@@ -631,6 +631,13 @@ month/day labels along the bottom, and reveal the selected day's duration
 values in a visible, on-screen hover tooltip.
 For a single-day range, each series draws a full-width horizontal value line
 instead of leaving its one-point path invisible.
+Each recent daily activity row shows a trailing down chevron while closed and
+an up chevron while its inline details are open, so the selected record and its
+expanded state are clear without changing the row's privacy-safe metrics.
+The duration graphs remain visible whenever the daily record is open. The
+Application activity, Browser tab titles, Background applications, and USB
+activity sections are independently folded by default and toggle from their
+icon-led headers, with directional chevrons showing their state.
 The expanded view has no enclosing
 outlined duration-trends container or supporting label. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of
