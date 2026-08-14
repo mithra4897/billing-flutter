@@ -76,7 +76,7 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   not a table or card grid. Retain the foreground-title-only and no-URL notice,
   rank the existing de-duplicated titles by duration, show an icon and duration
   badge on each row, and separate rows with subtle dividers.
-- Present background applications as a responsive three-column process grid,
+- Present background applications as a responsive four-column process grid,
   not chips or an enclosing outer card. Each card displays only the existing
   process name and state; stack cards when the panel is narrow.
 - Present USB activity without an enclosing outer card: show port usage as a
@@ -109,7 +109,7 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   rather than a table and ranks applications by duration.
 - Browser tab titles appear as a compact, duration-ranked activity list rather
   than a table or card grid.
-- Background applications appear as a responsive three-card process grid rather
+- Background applications appear as a responsive four-card process grid rather
   than compact chips.
 - USB activity uses a concise port status, responsive device cards, and compact
   file-change rows rather than tables.

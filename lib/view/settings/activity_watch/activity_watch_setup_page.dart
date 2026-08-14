@@ -1634,9 +1634,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         else
           LayoutBuilder(
             builder: (context, constraints) {
-              final threeColumns = constraints.maxWidth >= 820;
-              final cardWidth = threeColumns
-                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 2)) / 3
+              final fourColumns = constraints.maxWidth >= 1040;
+              final cardWidth = fourColumns
+                  ? (constraints.maxWidth - (AppUiConstants.spacingSm * 3)) / 4
                   : constraints.maxWidth;
               return Wrap(
                 spacing: AppUiConstants.spacingSm,

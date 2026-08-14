@@ -67,6 +67,24 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-14 — Restore Full activity details background
+
+- Request: Undo the removal of the Full activity details background color.
+- Specification: Retain the details background fill, rounded shape, spacing,
+  and content.
+- Implementation: Restored the filled rounded container around the details.
+- Files changed: Activity Watch setup page, specification, testing notes, and
+  changelog.
+- Database/API impact: None.
+- Security impact: None.
+- Tests added or updated: Existing model parsing coverage remains applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specification, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification remains manual.
+- Follow-up work: None.
+
 ## 2026-08-13 — Activity Watch USB detail layout
 
 - Request: Update the USB activity section UI.
@@ -94,7 +112,7 @@
 
 - Request: Update the Background applications section UI.
 - Specification: Show existing bounded process names and states in a responsive
-  three-column grid without chips or an enclosing outer card.
+  four-column grid without chips or an enclosing outer card.
 - Implementation: Replaced the chip list and outer section card with compact
   process cards, and sort de-duplicated process entries alphabetically for a
   stable display.

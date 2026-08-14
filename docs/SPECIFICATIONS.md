@@ -654,8 +654,11 @@ supporting privacy sentence.
 
 Background application inventory uses the existing bounded process name and
 state fields. The UI de-duplicates and orders the entries deterministically,
-then displays them in a responsive three-column process grid without an
+then displays them in a responsive four-column process grid without an
 enclosing outer card; it stacks the cards on narrow layouts.
+
+The expanded Full activity details content retains its existing background fill,
+rounded shape, and internal spacing.
 
 USB activity continues to display only the existing consented port, device, and
 bounded file-metadata fields. The details view renders a concise port-status

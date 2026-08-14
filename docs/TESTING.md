@@ -1,5 +1,16 @@
 # Testing
 
+## Activity Watch details background restoration — 2026-08-14
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required to confirm the restored
+  background separation around the details.
+
 ## Activity Watch USB detail layout — 2026-08-13
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
@@ -19,7 +30,7 @@
 - `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
   test/model/activity_watch_enrollment_test.dart`: passed with no issues.
 - `git diff --check`: passed.
-- Manual authenticated verification remains required to assess the three-card
+- Manual authenticated verification remains required to assess the four-card
   process grid, state-label truncation, and narrow-layout stacking.
 
 ## Activity Watch browser-title activity list — 2026-08-13
