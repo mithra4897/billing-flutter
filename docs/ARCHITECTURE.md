@@ -62,15 +62,16 @@ flowchart LR
     Service --> DB["SQLCipher 10-table database"]
     Service --> Outbox["Indexed sync_outbox batches"]
     Outbox -->|"device credential + idempotency"| ERP["ERP Activity Watch API"]
-    Logout["ERP or OS logout"] -->|"finalize summary + flush"| Service
-    Shutdown["OS shutdown"] -->|"bounded final flush"| Service
+    Logout["ERP logout"] -->|"finalize summary + flush"| Service
+    Shutdown["OS shutdown"] -->|"finalize local records"| Service
 ```
 
 ### Runtime responsibilities
 
 - Service host: install/start/stop integration and bounded lifecycle callbacks.
-- Worker: coordinate collection, immediate flush requests, periodic sync, and
-  graceful shutdown.
+- Worker: coordinate collection, the ERP-logout outbox flush, and graceful
+  shutdown. It does not upload on a timer, agent start, summary revision, or
+  shutdown.
 - Store: apply the SQLCipher key first, verify cipher/schema, and transact each
   approved lifecycle event with its pending outbox record. It is the business
   writer and uses the tested encrypted WAL configuration; helpers must not
@@ -211,15 +212,19 @@ flowchart LR
   be shown to the employee/administrator.
 ## Activity Watch USB metadata flow
 
-Consent-v3 Windows agents poll best-effort USB topology and removable-drive
-metadata once per minute. The collector keeps a bounded in-memory snapshot and
-emits only differences after the first baseline scan. The store encrypts each
-`usb-observation` in the existing `system_events` metadata columns and sends it
-through the authenticated outbox. Daily-summary aggregation decrypts the local
-events, keeps at most 50 devices and 200 most-recent file changes, and exposes
-those bounded fields through the existing summary endpoint and expanded Flutter
-details. No file is opened or hashed. The scan is O(D + F) time and O(D + F)
-memory, where F is capped at 5,000 files per scan.
+Consent-v3 Windows agents poll USB topology and removable-drive metadata once
+per minute; macOS agents poll USB device topology through `system_profiler`.
+The collector keeps a bounded in-memory snapshot and emits only differences
+after the first baseline scan. Windows retains bounded removable-drive file
+change observations; macOS reports device metadata only because drive file
+enumeration would require broader filesystem access. The store encrypts each
+`usb-observation` in the existing `system_events` metadata columns and queues
+it for the next ERP-logout upload. Daily-summary aggregation decrypts the local
+events, keeps at most 50 devices and 200 most-recent Windows file changes, and
+exposes those bounded fields through the existing summary endpoint and expanded
+Flutter details. No file is opened or hashed. Windows scanning is O(D + F) time
+and O(D + F) memory, where F is capped at 5,000 files per scan; macOS device
+parsing is O(D) in discovered USB nodes.
 
 The Windows collector sends the multi-statement USB query using PowerShell's
 UTF-16LE `EncodedCommand` contract. This preserves nested WMI filter quotes

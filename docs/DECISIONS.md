@@ -1,5 +1,42 @@
 # Architecture decisions
 
+## ADR-0020: Upload Activity Watch outbox only on ERP logout
+
+- Date: 2026-08-14
+- Status: Accepted
+- Context: The existing worker uploaded on start, every sync interval, after
+  each summary revision, on ERP logout, and during shutdown. The requested
+  policy reduces server requests while retaining encrypted offline records.
+- Decision: Drain the outbox only when the native ERP logout control is
+  consumed. Keep collection, summary generation, retry metadata, and encrypted
+  local persistence active. Shutdown finalizes local state without uploading.
+- Reason: ERP logout is the requested explicit synchronization boundary and
+  avoids background server traffic.
+- Alternatives considered: Longer periodic interval; startup-only uploads;
+  shutdown uploads.
+- Consequences: Pending records can remain local across power cycles until the
+  next ERP logout; they remain SQLCipher/AES-GCM protected.
+- Related files: `activity-watch-agent/internal/agent/runner.go`,
+  `activity-watch-agent/internal/agent/runner_test.go`.
+
+## ADR-0021: Add metadata-only macOS USB topology monitoring
+
+- Date: 2026-08-14
+- Status: Accepted
+- Context: USB monitoring previously returned no data outside Windows.
+- Decision: On macOS, derive bounded USB device metadata from
+  `system_profiler SPUSBDataType -json` and feed it into the existing encrypted
+  USB observation pipeline. Keep Windows-only removable-drive file event
+  monitoring unchanged.
+- Reason: This adds practical macOS USB visibility without broad filesystem
+  permissions or reading file contents.
+- Alternatives considered: Full macOS mounted-volume scanning; a privileged
+  native extension; no macOS USB support.
+- Consequences: macOS reports connected/disconnected device metadata but not
+  removable-drive file changes or port totals.
+- Related files: `activity-watch-agent/internal/collector/usb.go`,
+  `activity-watch-agent/internal/collector/collector_test.go`.
+
 ## ADR-0018: Encode all Windows collector PowerShell commands
 
 - Date: 2026-08-12

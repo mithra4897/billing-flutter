@@ -20,7 +20,6 @@ type LogoutControl interface {
 
 type Config struct {
 	HeartbeatInterval   time.Duration
-	SyncInterval        time.Duration
 	ControlPollInterval time.Duration
 	ShutdownTimeout     time.Duration
 }
@@ -114,12 +113,7 @@ func (r *Runner) Run(ctx context.Context) error {
 	if err := r.record(ctx, "agent-start", now); err != nil {
 		return err
 	}
-	if _, err := r.flusher.Flush(ctx); err != nil {
-		r.logError("initial synchronization", err)
-	}
-
 	heartbeatTicker := time.NewTicker(r.config.HeartbeatInterval)
-	syncTicker := time.NewTicker(r.config.SyncInterval)
 	controlTicker := time.NewTicker(r.config.ControlPollInterval)
 	var sampleTicker, processTicker, serviceTicker, usbTicker, summaryTicker *time.Ticker
 	var sampleC, processC, serviceC, usbC, summaryC <-chan time.Time
@@ -135,7 +129,6 @@ func (r *Runner) Run(ctx context.Context) error {
 		sampleC, processC, serviceC, summaryC = sampleTicker.C, processTicker.C, serviceTicker.C, summaryTicker.C
 	}
 	defer heartbeatTicker.Stop()
-	defer syncTicker.Stop()
 	defer controlTicker.Stop()
 	if sampleTicker != nil {
 		defer sampleTicker.Stop()
@@ -161,10 +154,6 @@ func (r *Runner) Run(ctx context.Context) error {
 			if err := r.record(ctx, "agent-heartbeat", at.UTC()); err != nil {
 				r.logError("record heartbeat", err)
 			}
-		case <-syncTicker.C:
-			if _, err := r.flusher.Flush(ctx); err != nil {
-				r.logError("periodic synchronization", err)
-			}
 		case <-controlTicker.C:
 			if err := r.consumeControl(ctx); err != nil {
 				r.logError("consume service control", err)
@@ -189,8 +178,6 @@ func (r *Runner) Run(ctx context.Context) error {
 			if r.collectionActive {
 				if err := r.recorder.PrepareDailySummary(ctx, at); err != nil {
 					r.logError("prepare daily summary", err)
-				} else if _, err := r.flusher.Flush(ctx); err != nil {
-					r.logError("summary synchronization", err)
 				}
 			}
 		}
@@ -243,15 +230,12 @@ func (r *Runner) shutdown() error {
 	if err := r.record(ctx, "agent-stop", r.now().UTC()); err != nil {
 		firstError = err
 	}
-	if err := r.flushPending(ctx); err != nil && firstError == nil {
-		firstError = fmt.Errorf("final synchronization: %w", err)
-	}
 	return firstError
 }
 
 // flushPending drains the durable outbox rather than uploading only one batch.
-// This is used at lifecycle boundaries so logout and service shutdown do not
-// leave older locally saved summaries waiting for the next agent start.
+// ERP logout is the sole upload boundary; startup, timers, summaries, and
+// shutdown deliberately leave queued encrypted records on the local device.
 func (r *Runner) flushPending(ctx context.Context) error {
 	for {
 		count, err := r.flusher.Flush(ctx)

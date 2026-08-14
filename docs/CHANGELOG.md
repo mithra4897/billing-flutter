@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-08-14 — Restrict Activity Watch uploads and add macOS USB metadata
+
+- Request: Upload Activity Watch data only at ERP logout to reduce server
+  requests, and add macOS USB monitoring.
+- Specification: Records remain encrypted locally until native ERP logout
+  drains the outbox; no upload occurs at agent start, on a timer, after summary
+  generation, or at shutdown. macOS reports consented USB device topology only;
+  Windows retains removable-drive and bounded file-change metadata.
+- Implementation: Removed startup, interval, summary, and shutdown flushes;
+  added `system_profiler SPUSBDataType -json` parsing for bounded macOS USB
+  device observations; added non-Windows fallbacks so macOS builds do not link
+  Windows-only collector APIs.
+- Files changed: Activity Watch agent runner, collector, command wiring,
+  tests, specifications, architecture, decisions, service guide, testing notes,
+  and changelog.
+- Database/API impact: No schema or endpoint change. Pending outbox items can
+  remain across shutdown until ERP logout.
+- Security impact: Local SQLCipher/AES-GCM protection remains in force. macOS
+  collection does not enumerate mounted files or read file contents.
+- Tests added or updated: Logout-only runner coverage and macOS USB parser
+  coverage.
+- Tests executed and results: `go test ./...`, `go vet ./...`, and
+  `go build ./cmd/activity-watch-agent` passed.
+- Documentation updated: Specifications, architecture, ADRs, service guide,
+  testing notes, and changelog.
+- Known limitations: Real macOS USB-device connection/disconnection and
+  permission behavior require hardware verification. macOS does not report USB
+  port totals or removable-drive file changes.
+- Follow-up work: None.
+
 ## 2026-08-14 — Refine Activity Watch browser-title tiles
 
 - Request: Improve the Browser tab titles section UI.

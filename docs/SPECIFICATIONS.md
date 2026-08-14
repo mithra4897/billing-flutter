@@ -188,8 +188,8 @@ the ERP.
    offline duration, and application duration grouped by executable
    name/category. Segments spanning local midnight are clipped to each local
    date. Summaries are regenerated on a separate bounded interval (default 15
-   minutes) and immediately before logout and shutdown synchronization; network
-   retry frequency cannot create extra summary revisions.
+   minutes) and immediately before logout; network retry frequency cannot
+   create extra summary revisions.
 6. Local synchronized detail older than 90 days is deleted in bounded indexed
    operations. Pending/retry/permanently-failed records are retained for human
    resolution and are never silently discarded.
@@ -216,7 +216,8 @@ the ERP.
   category. Inventory is limited to process/service names and states.
 - Detailed local payloads remain AES-GCM encrypted and the database remains
   SQLCipher encrypted. Only an explicit, bounded summary metadata projection is
-  sent for server reporting over HTTPS (loopback HTTP is development-only).
+  sent for server reporting over HTTPS (loopback HTTP is development-only),
+  and only when ERP logout requests an outbox flush.
 - Collection errors log operation names only, never observed content or secret
   material.
 
@@ -317,7 +318,7 @@ used for interactive collection.
 - Bounded `sync_outbox` batch selection with idempotent HTTP upload.
 - Exponential retry with a maximum delay and server `Retry-After` support.
 - Logout-triggered sync flush while the machine service remains alive.
-- Graceful shutdown with a bounded final flush.
+- Graceful shutdown that finalizes local encrypted records without uploading.
 - Interfaces for later native session collectors and secure secret providers.
 - Unit tests with in-memory fakes and HTTP test servers.
 
@@ -343,10 +344,10 @@ used for interactive collection.
    corresponding upload item (or the reverse).
 4. Native Flutter logout finalizes user activity collection, regenerates the
    daily summary, and requests an immediate outbox flush.
-5. Pending sync continues until success, service shutdown, permanent rejection,
-   or policy/device revocation.
-6. Shutdown cancels collection, closes open work, attempts a bounded final
-   upload, and closes SQLCipher.
+5. Pending sync remains encrypted locally until a later ERP logout, permanent
+   rejection, or policy/device revocation.
+6. Shutdown cancels collection, closes open work, and closes SQLCipher without
+   an upload attempt.
 7. Upload batches are ordered by next-attempt time and creation time and are
    limited by configured batch size. Selection uses the approved dispatch
    index, making each batch `O(B)` after indexed lookup where `B` is batch size.
@@ -401,9 +402,10 @@ pending records without data loss for a later retry.
 - Service commands are wired through the native service manager abstraction.
 - Native Flutter logout notifies a configured service, while web and
   non-enrolled installations remain safe no-ops.
-- The worker starts collector/sync loops and stops them with bounded cleanup.
-- Logout stops session collection but triggers synchronization without stopping
-  the machine worker.
+- The worker starts collector and logout-control loops and stops them with
+  bounded cleanup.
+- Logout stops session collection but triggers the only synchronization attempt
+  without stopping the machine worker.
 - Outbox upload handles success, retryable failure, permanent rejection, batch
   limits, and cancellation.
 - Retry delay is capped and deterministic under injected randomness.
@@ -716,18 +718,20 @@ Acceptance criteria:
 
 Status: Approved for implementation (2026-08-12)
 
-Objective: Extend consented Windows Activity Watch monitoring with bounded USB
-device and removable-drive audit metadata without reading file contents.
+Objective: Extend consented Windows and macOS Activity Watch monitoring with
+bounded USB device metadata without reading file contents.
 
 Requirements:
 
 - USB monitoring starts only for a paired agent whose employee accepted consent
   policy version 3 or later. Existing version-2 devices continue activity
   monitoring with USB collection disabled until they are paired again.
-- Report best-effort total and occupied USB port counts, connected USB device
-  name/manufacturer, removable volume label/drive, capacity/free bytes, first
-  observed connection time, last observation time, and observed duration.
-- Report bounded removable-drive file metadata changes as `added` or `deleted`:
+- Report best-effort connected USB device name/manufacturer, first observed
+  connection time, last observation time, and observed duration on Windows and
+  macOS. Windows additionally reports total/occupied port counts, removable
+  volume label/drive, and capacity/free bytes.
+- Windows reports bounded removable-drive file metadata changes as `added` or
+  `deleted`:
   relative path, file name, extension, byte size when known, and observation
   time. Do not claim that an added file was copied because a polling observer
   cannot prove its source.
@@ -738,8 +742,7 @@ Requirements:
   tells the UI when the boundary was reached.
 - USB payloads reuse encrypted `system_events` metadata and the existing daily
   summary/outbox pipeline; no additional local table is introduced.
-- Non-Windows agents and older summaries remain valid with zero/empty USB
-  defaults.
+- Linux agents and older summaries remain valid with zero/empty USB defaults.
 
 Limitations and error handling:
 
@@ -756,16 +759,22 @@ Limitations and error handling:
   before JSON projection for Windows PowerShell 5.1 compatibility. A command-
   transport or projection failure is logged as a USB scan failure and remains
   isolated from ordinary activity collection.
+- The macOS collector reads bounded USB topology from
+  `system_profiler SPUSBDataType -json`. It does not enumerate mounted files,
+  does not report physical port totals, and remains isolated from ordinary
+  activity collection if the command is unavailable.
 
 Acceptance criteria:
 
 1. A newly paired consent-v3 Windows agent records connected USB/removable
    device metadata and updates observed duration.
-2. Adding or deleting a file on a removable drive produces metadata-only audit
+2. A newly paired consent-v3 macOS agent records connected/disconnected USB
+   device metadata and updates observed duration without removable-file data.
+3. Adding or deleting a file on a removable drive produces metadata-only audit
    entries without reading the file.
-3. The daily Activity Watch detail shows port counts, connected devices, drive
+4. The daily Activity Watch detail shows port counts, connected devices, drive
    capacity usage, observed durations, file changes, and truncation notices.
-4. Existing consent-v2 devices, agents, and summaries continue to work with USB
+5. Existing consent-v2 devices, agents, and summaries continue to work with USB
    fields absent or empty.
 
 ## Activity Watch super-admin company scope and employee labels

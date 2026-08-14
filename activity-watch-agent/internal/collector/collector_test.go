@@ -187,3 +187,22 @@ func TestObserveUSBBaselinesThenReportsAddedMetadata(t *testing.T) {
 		t.Fatalf("USB collector PowerShell arguments = %#v", runner.args)
 	}
 }
+
+func TestObserveMacOSUSBReportsDeviceMetadata(t *testing.T) {
+	output := []byte(`{"SPUSBDataType":[{"_name":"USB 3.1 Bus","_items":[{"_name":"Office USB Drive","serial_num":"DRIVE-42","manufacturer":"Example Corp"},{"_name":"Nested hub","location_id":"0x00100000","_items":[{"_name":"USB Keyboard","product_id":"0x1234","manufacturer":"Example Corp"}]}]}]}`)
+	runner := &sequenceCommandRunner{outputs: [][]byte{output}}
+	observer := &OSObserver{goos: "darwin", runner: runner}
+	observed, err := observer.ObserveUSB(context.Background(), time.Date(2026, 8, 14, 9, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if observed.TotalPorts != 0 || observed.UsedPorts != 3 || len(observed.Devices) != 3 {
+		t.Fatalf("macOS USB observation = %#v", observed)
+	}
+	if observed.Devices[0].Name != "Nested hub" || observed.Devices[1].Name != "Office USB Drive" || observed.Devices[2].Name != "USB Keyboard" {
+		t.Fatalf("macOS USB devices = %#v", observed.Devices)
+	}
+	if len(runner.args) != 1 || len(runner.args[0]) != 2 || runner.args[0][0] != "SPUSBDataType" || runner.args[0][1] != "-json" {
+		t.Fatalf("system_profiler arguments = %#v", runner.args)
+	}
+}

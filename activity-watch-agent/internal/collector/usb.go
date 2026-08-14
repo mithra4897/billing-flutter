@@ -89,23 +89,39 @@ type rawUSBObservation struct {
 // sizes but never opens a removable-drive file or computes a content hash.
 func (o *OSObserver) ObserveUSB(ctx context.Context, at time.Time) (USBObservation, error) {
 	result := USBObservation{Devices: []USBDevice{}, FileEvents: []USBFileEvent{}, ObservedAtUTC: at.UTC().Format(time.RFC3339Nano)}
-	if o.goos != "windows" {
-		return result, nil
-	}
 	var output []byte
 	var err error
-	encodedScript := encodePowerShellCommand(windowsUSBScript)
-	if runner, ok := o.runner.(timeoutCommandRunner); ok {
-		output, err = runner.OutputWithTimeout(ctx, 20*time.Second, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
-	} else {
-		output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
-	}
-	if err != nil {
-		return result, err
-	}
 	var raw rawUSBObservation
-	if err := json.Unmarshal(output, &raw); err != nil {
-		return result, errors.New("decode Windows USB metadata")
+	switch o.goos {
+	case "windows":
+		encodedScript := encodePowerShellCommand(windowsUSBScript)
+		if runner, ok := o.runner.(timeoutCommandRunner); ok {
+			output, err = runner.OutputWithTimeout(ctx, 20*time.Second, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
+		} else {
+			output, err = o.runner.Output(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript)
+		}
+		if err != nil {
+			return result, err
+		}
+		if err := json.Unmarshal(output, &raw); err != nil {
+			return result, errors.New("decode Windows USB metadata")
+		}
+	case "darwin":
+		if runner, ok := o.runner.(timeoutCommandRunner); ok {
+			output, err = runner.OutputWithTimeout(ctx, 20*time.Second, "system_profiler", "SPUSBDataType", "-json")
+		} else {
+			output, err = o.runner.Output(ctx, "system_profiler", "SPUSBDataType", "-json")
+		}
+		if err != nil {
+			return result, err
+		}
+		var parseErr error
+		raw, parseErr = macOSUSBObservation(output)
+		if parseErr != nil {
+			return result, parseErr
+		}
+	default:
+		return result, nil
 	}
 	result.TotalPorts = max(raw.TotalPorts, 0)
 	result.UsedPorts = max(raw.UsedPorts, 0)
@@ -217,6 +233,86 @@ func (o *OSObserver) ObserveUSB(ctx context.Context, at time.Time) (USBObservati
 	}
 	o.usbFiles, o.usbDevices, o.hasUSBBaseline = currentFiles, currentDevices, true
 	return result, nil
+}
+
+// macOSUSBObservation reads the bounded USB topology emitted by
+// system_profiler. It intentionally does not enumerate mounted-volume files,
+// which would broaden filesystem access beyond device metadata.
+func macOSUSBObservation(output []byte) (rawUSBObservation, error) {
+	var document map[string]any
+	if err := json.Unmarshal(output, &document); err != nil {
+		return rawUSBObservation{}, errors.New("decode macOS USB metadata")
+	}
+	items, ok := document["SPUSBDataType"].([]any)
+	if !ok {
+		return rawUSBObservation{}, errors.New("decode macOS USB metadata")
+	}
+	devices := make(map[string]struct {
+		ID           string
+		Name         string
+		Manufacturer string
+	})
+	var visit func(any)
+	visit = func(value any) {
+		entry, ok := value.(map[string]any)
+		if !ok {
+			return
+		}
+		name := boundedText(stringValue(entry["_name"]), 160)
+		identifier := boundedText(firstString(entry, "serial_num", "location_id", "vendor_id", "product_id"), 160)
+		if name != "" && identifier != "" && !isMacUSBController(name) {
+			key := strings.ToLower(identifier + "|" + name)
+			devices[key] = struct {
+				ID           string
+				Name         string
+				Manufacturer string
+			}{ID: identifier, Name: name, Manufacturer: boundedText(firstString(entry, "manufacturer", "vendor_name"), 120)}
+		}
+		if children, ok := entry["_items"].([]any); ok {
+			for _, child := range children {
+				visit(child)
+			}
+		}
+	}
+	for _, item := range items {
+		visit(item)
+	}
+	result := rawUSBObservation{Devices: make([]struct {
+		ID           string `json:"id"`
+		Name         string `json:"name"`
+		Manufacturer string `json:"manufacturer"`
+	}, 0, len(devices))}
+	for _, device := range devices {
+		result.Devices = append(result.Devices, struct {
+			ID           string `json:"id"`
+			Name         string `json:"name"`
+			Manufacturer string `json:"manufacturer"`
+		}{ID: device.ID, Name: device.Name, Manufacturer: device.Manufacturer})
+	}
+	sort.Slice(result.Devices, func(i, j int) bool {
+		return result.Devices[i].Name < result.Devices[j].Name
+	})
+	result.UsedPorts = len(result.Devices)
+	return result, nil
+}
+
+func firstString(values map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value := stringValue(values[key]); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func stringValue(value any) string {
+	text, _ := value.(string)
+	return strings.TrimSpace(text)
+}
+
+func isMacUSBController(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	return strings.Contains(name, "usb bus") || strings.Contains(name, "usb controller")
 }
 
 // encodePowerShellCommand uses PowerShell's UTF-16LE EncodedCommand contract.

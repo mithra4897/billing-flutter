@@ -13,12 +13,13 @@ rather than stopping the service.
 `activity-watch-agent` runs in the enrolled desktop user's session so native
 idle and foreground-application APIs see the correct interactive desktop. The
 service manager starts it automatically when that user's desktop session
-loads and keeps it alive until shutdown. ERP logout closes the
-current local collection session, prepares the daily summary, drains every
-pending outbox batch, and then starts a fresh local session so collection
-continues while the service remains alive. At OS/service shutdown it uses a
-bounded final summary/flush (including all pending batches) and then closes
-the encrypted database.
+loads and keeps it alive until shutdown. ERP logout closes the current local
+collection session, prepares the daily summary, drains every pending outbox
+batch, and then starts a fresh local session so collection continues while the
+service remains alive. The agent does not upload at startup, on a timer, after
+a summary revision, or at shutdown. At OS/service shutdown it finalizes local
+records and closes the encrypted database; pending outbox records wait for a
+later ERP logout.
 
 After enrollment, the native Flutter page updates the conventional protected
 credential/configuration files automatically when they exist. It also stores
@@ -64,6 +65,9 @@ Before enrollment use `collection.disabled: true` and `sync.enabled: false`.
 After enrollment the Flutter desktop page sets the server-issued `device_id`,
 writes the one-time credential to `sync.credential_file`, enables sync, and
 sets `collection.disabled: false` when the conventional service files exist.
+The retained `sync.interval` configuration property is accepted for existing
+configuration-file compatibility but is not used: ERP logout is the only upload
+trigger.
 
 Collection defaults are:
 

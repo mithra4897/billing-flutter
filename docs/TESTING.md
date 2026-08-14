@@ -1,5 +1,19 @@
 # Testing
 
+## Activity Watch logout-only upload and macOS USB monitoring — 2026-08-14
+
+- `gofmt -w internal/agent/runner.go internal/agent/runner_test.go
+  internal/collector/usb.go internal/collector/collector_test.go
+  internal/collector/windows_api_nonwindows.go
+  cmd/activity-watch-agent/main.go`: passed.
+- `go test ./...`: passed.
+- `go vet ./...`: passed.
+- `go build ./cmd/activity-watch-agent`: passed on macOS.
+- Unit coverage confirms startup does not flush; ERP logout is the flush
+  boundary. macOS USB parsing coverage verifies bounded `system_profiler`
+  device metadata discovery. Real macOS USB hardware verification remains
+  manual.
+
 ## Activity Watch browser-title tiles — 2026-08-14
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart

@@ -175,7 +175,6 @@ func (p *serviceProgram) Start(service.Service) error {
 		control.NewLogoutMarker(p.config.Control.LogoutRequestPath),
 		agent.Config{
 			HeartbeatInterval:   p.config.Collection.HeartbeatInterval.Duration,
-			SyncInterval:        p.config.Sync.Interval.Duration,
 			ControlPollInterval: p.config.Control.PollInterval.Duration,
 			ShutdownTimeout:     p.config.ShutdownFlushTimeout.Duration,
 		},

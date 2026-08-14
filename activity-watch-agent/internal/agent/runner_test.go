@@ -12,10 +12,9 @@ import (
 func TestRunnerFlushesLogoutWithoutStoppingService(t *testing.T) {
 	repository := &runnerRepository{}
 	flusher := &runnerFlusher{called: make(chan struct{}, 10)}
-	control := &runnerControl{logout: true}
+	control := &runnerControl{}
 	runner := NewRunner(repository, flusher, control, Config{
 		HeartbeatInterval:   time.Hour,
-		SyncInterval:        time.Hour,
 		ControlPollInterval: 5 * time.Millisecond,
 		ShutdownTimeout:     time.Second,
 	})
@@ -23,13 +22,19 @@ func TestRunnerFlushesLogoutWithoutStoppingService(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- runner.Run(ctx) }()
 
-	// Initial synchronization and logout synchronization must both run.
-	for index := 0; index < 2; index++ {
-		select {
-		case <-flusher.called:
-		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for synchronization")
-		}
+	// ERP logout is the sole upload boundary; startup must not flush.
+	select {
+	case <-flusher.called:
+		t.Fatal("runner synchronized before logout")
+	case <-time.After(20 * time.Millisecond):
+	}
+	control.mu.Lock()
+	control.logout = true
+	control.mu.Unlock()
+	select {
+	case <-flusher.called:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for logout synchronization")
 	}
 	select {
 	case err := <-done:
