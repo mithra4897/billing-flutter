@@ -1,5 +1,15 @@
 # Testing
 
+## Activity Watch release-operations documentation — 2026-08-14
+
+- Static review confirms the guide uses the filenames resolved by the backend
+  controller: `BillingActivityWatch-windows.exe` and
+  `BillingActivityWatch-macos.pkg`.
+- `git diff --check`: passed.
+- Commands requiring Windows tooling, real Developer ID signing/notarization,
+  or a production API deployment remain operator-run procedures and were not
+  executed from this macOS development workspace.
+
 ## Activity Watch logout-only upload and macOS USB monitoring — 2026-08-14
 
 - `gofmt -w internal/agent/runner.go internal/agent/runner_test.go

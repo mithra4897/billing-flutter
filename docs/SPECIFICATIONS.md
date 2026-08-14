@@ -714,6 +714,17 @@ Acceptance criteria:
 - Old agents continue syncing and the API accepts summaries without new fields.
 - Employee/API viewer scoping remains unchanged.
 
+## Activity Watch release and agent operations
+
+The approved Windows/macOS build, API publication, development-installation,
+agent-removal, and command procedures are maintained in
+[`activity-watch-release-operations.md`](activity-watch-release-operations.md).
+They must retain the backend's stable installer filenames, publish to
+`billing-api/public/downloads/activity-watch`, limit unsigned macOS handling to
+a hash-verified package-specific quarantine removal, and warn that removing an
+agent's application-data directory permanently removes its local encrypted
+queue.
+
 ## Activity Watch USB audit metadata
 
 Status: Approved for implementation (2026-08-12)

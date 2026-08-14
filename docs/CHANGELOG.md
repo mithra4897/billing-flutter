@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-14 — Document Activity Watch release and agent operations
+
+- Request: Provide proper Windows/macOS build, API download publication,
+  unsigned macOS development installation, existing-agent removal, and command
+  reference documentation.
+- Implementation: Added a single operations guide with exact stable artifacts,
+  backend download-folder copy commands, scoped Gatekeeper quarantine removal,
+  and destructive-removal warnings.
+- Database/API impact: None; documents the existing installer URL contract.
+- Security impact: Explicitly limits unsigned macOS bypass to a verified,
+  internally approved package and never disables Gatekeeper globally.
+- Documentation updated: Documentation index, frontend changelog, and backend
+  changelog.
+- Known limitations: Production macOS packaging still requires organization
+  Developer ID signing and notarization.
+- Follow-up work: None.
+
 ## 2026-08-14 — Restrict Activity Watch uploads and add macOS USB metadata
 
 - Request: Upload Activity Watch data only at ERP logout to reduce server
