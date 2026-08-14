@@ -32,6 +32,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   compact month/day labels along the bottom, and show the selected day and
   duration values in an on-screen, high-contrast tooltip when the user hovers
   a graph.
+- When the selected date range contains only one daily point, render its value
+  as a full-width horizontal duration line so the graph remains visible.
 - Do not wrap the graph set in an additional outlined container or show an
   `Activity duration trends` heading; only the individual graph cards remain.
 - When an overview supplies only a primary activity list, it must use the full

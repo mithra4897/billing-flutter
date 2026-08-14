@@ -1,5 +1,16 @@
 # Testing
 
+## Activity Watch single-day graph line — 2026-08-14
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `git diff --check`: passed.
+- Manual authenticated verification remains required for the single-day line
+  placement and tooltip against real report data.
+
 ## Activity Watch details background restoration — 2026-08-14
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart

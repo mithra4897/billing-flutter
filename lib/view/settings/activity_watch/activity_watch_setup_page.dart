@@ -374,16 +374,26 @@ class _ActivityGraphPainter extends CustomPainter {
   }) {
     const horizontalPadding = 12.0;
     const verticalPadding = 16.0;
-    final offsets = List<Offset>.generate(points.length, (index) {
-      final ratio = points.length == 1 ? 0.5 : index / (points.length - 1);
-      final seconds = isActive
-          ? points[index].activeSeconds
-          : points[index].idleSeconds;
-      return Offset(
-        horizontalPadding + (width * ratio),
-        verticalPadding + height - ((seconds / scale) * height),
-      );
-    });
+    final singlePointSeconds = points.length == 1
+        ? (isActive ? points.first.activeSeconds : points.first.idleSeconds)
+        : null;
+    final singlePointY = singlePointSeconds == null
+        ? null
+        : verticalPadding + height - ((singlePointSeconds / scale) * height);
+    final offsets = singlePointY == null
+        ? List<Offset>.generate(points.length, (index) {
+            final seconds = isActive
+                ? points[index].activeSeconds
+                : points[index].idleSeconds;
+            return Offset(
+              horizontalPadding + (width * (index / (points.length - 1))),
+              verticalPadding + height - ((seconds / scale) * height),
+            );
+          })
+        : <Offset>[
+            Offset(horizontalPadding, singlePointY),
+            Offset(horizontalPadding + width, singlePointY),
+          ];
     final path = Path();
     for (var index = 0; index < offsets.length; index += 1) {
       final offset = offsets[index];

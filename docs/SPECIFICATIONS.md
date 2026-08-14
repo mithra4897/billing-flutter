@@ -629,6 +629,8 @@ series and red for the companion idle series. Graph cards omit redundant
 legends and point markers, show a duration timeline at the left and compact
 month/day labels along the bottom, and reveal the selected day's duration
 values in a visible, on-screen hover tooltip.
+For a single-day range, each series draws a full-width horizontal value line
+instead of leaving its one-point path invisible.
 The expanded view has no enclosing
 outlined duration-trends container or supporting label. Input is an aggregate
 keyboard/mouse duration; raw input and background-process data are not part of

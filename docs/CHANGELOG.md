@@ -67,6 +67,26 @@
 - Tests executed and results: Recorded in `TESTING.md`.
 
 
+## 2026-08-14 — Render single-day Activity Watch graph lines
+
+- Request: Fix invisible graph lines in the Activity Watch report.
+- Specification: Render a full-width horizontal duration line when the selected
+  date range yields only one daily point.
+- Implementation: Expanded one-point painter offsets to the left and right
+  chart boundaries, allowing the existing filled path and stroke to render.
+- Files changed: Activity Watch setup page, specifications, testing notes, and
+  changelog.
+- Database/API impact: None.
+- Security impact: Aggregate durations only.
+- Tests added or updated: Existing model parsing coverage remains applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, testing notes, and
+  changelog.
+- Known limitations: Authenticated visual verification with real report data
+  remains manual.
+- Follow-up work: None.
+
 ## 2026-08-14 — Restore Full activity details background
 
 - Request: Undo the removal of the Full activity details background color.
