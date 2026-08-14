@@ -1,5 +1,26 @@
 # Testing
 
+## Activity Watch macOS direct-pairing recovery — 2026-08-14
+
+- Manual macOS verification: the installed agent successfully paired with a
+  fresh downloaded bundle using the documented direct `pair` command.
+- The command consumed the one-time bundle and returned a connected result.
+
+## Activity Watch macOS packaged executable permissions — 2026-08-14
+
+- Inspection of the installed development package found its launcher and bundled
+  agent owned by `root` with mode `700`, preventing the enrolled macOS user
+  from launching the application after installation.
+- The documented app-bundle command now uses mode `755` for both executable
+  files. Rebuilding and launch verification remain required.
+
+## Activity Watch macOS pairing-launcher compile — 2026-08-14
+
+- `swiftc -parse-as-library -framework AppKit
+  packaging/macos/PairingLauncher.swift -o <temporary-output>`: passed on
+  macOS; the temporary output was removed after verification.
+- `git diff --check`: passed.
+
 ## Activity Watch release-operations documentation — 2026-08-14
 
 - Static review confirms the guide uses the filenames resolved by the backend

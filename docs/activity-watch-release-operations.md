@@ -69,9 +69,9 @@ app="$stage_dir/BillingActivityWatch.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 
 go build -o "$app/Contents/Resources/activity-watch-agent" ./cmd/activity-watch-agent
-swiftc -framework AppKit packaging/macos/PairingLauncher.swift \
+swiftc -parse-as-library -framework AppKit packaging/macos/PairingLauncher.swift \
   -o "$app/Contents/MacOS/BillingActivityWatch"
-chmod 700 "$app/Contents/Resources/activity-watch-agent" \
+chmod 755 "$app/Contents/Resources/activity-watch-agent" \
   "$app/Contents/MacOS/BillingActivityWatch"
 ```
 
@@ -99,6 +99,10 @@ plutil -create xml1 "$plist"
 
 The pairing launcher requires the Go binary to remain at
 `BillingActivityWatch.app/Contents/Resources/activity-watch-agent`.
+Both bundled executables must be mode `755`: `pkgbuild` installs the app as
+`root`, and the enrolled desktop user must be able to start the launcher and
+read the bundled agent before it is copied into that user's protected
+Application Support directory.
 
 Package the app for the backend's required macOS filename:
 
@@ -136,6 +140,26 @@ This does not bypass signing for other applications. It only removes the
 download-quarantine attribute from the exact package path provided. After
 installation, open ERP, create a fresh pairing file, and open that file before
 it expires.
+
+## macOS pairing recovery when file association fails
+
+If Finder reports that the pairing-file format cannot be opened, or the app
+opens without pairing, do not reveal the pairing-file contents. Use the
+installed agent directly with the fresh downloaded file:
+
+```bash
+agent="$HOME/Library/Application Support/BillingActivityWatch/activity-watch-agent"
+config="$HOME/Library/Application Support/BillingActivityWatch/activity-watch-agent.config.json"
+bundle="$HOME/Downloads/<fresh-pairing-file>.billingawpair"
+
+"$agent" pair --config "$config" --bundle "$bundle"
+"$agent" status --config "$config"
+```
+
+On success, the command prints `Activity Watch connected: <device-id>` and
+removes the one-time pairing file. If it returns an error, share only the error
+message with support—never the pairing file or configuration file. This command
+is a pairing fallback, not a security bypass.
 
 ## Backend download configuration and verification
 

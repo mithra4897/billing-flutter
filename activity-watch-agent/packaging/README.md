@@ -45,6 +45,6 @@ Release signing and native installer construction must run on the target OS:
 For macOS, compile the document handler before packaging:
 
 ```bash
-swiftc -framework AppKit macos/PairingLauncher.swift \
+swiftc -parse-as-library -framework AppKit macos/PairingLauncher.swift \
   -o macos/BillingActivityWatchPair
 ```

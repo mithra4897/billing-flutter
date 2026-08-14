@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026-08-14 — Document macOS direct-pairing recovery
+
+- Request: Document the successful recovery for macOS pairing-file association
+  failures.
+- Implementation: Added a direct installed-agent pairing command and status
+  check that use the downloaded one-time file without exposing its contents.
+- Security impact: The documented recovery keeps pairing tokens and credentials
+  out of terminal output and support messages.
+- Tests executed and results: Manual macOS pairing succeeded with the direct
+  command; the one-time bundle was consumed as expected.
+- Documentation updated: Release operations guide and changelog.
+- Follow-up work: None.
+
+## 2026-08-14 — Fix macOS packaged-agent executable permissions
+
+- Request: Diagnose the installed macOS app's `incorrect executable format`
+  launch error.
+- Implementation: Corrected the release command to package both executable
+  files as mode `755`, rather than root-only `700` files after `pkgbuild`
+  installs the app in `/Applications`.
+- Tests executed and results: Inspection of the failed installed package found
+  both executable files owned by `root` with mode `700`; the corrected package
+  command is documented for the next build.
+- Documentation updated: Release operations guide and changelog.
+- Follow-up work: Rebuild the package after applying the corrected mode.
+
+## 2026-08-14 — Fix macOS Activity Watch launcher build command
+
+- Request: Resolve the Swift `@main` compilation error in the documented macOS
+  release command.
+- Implementation: Added `-parse-as-library` to both macOS pairing-launcher
+  `swiftc` commands, which is required when compiling the `@main` launcher.
+- Tests executed and results: The corrected launcher compilation command passed
+  on macOS.
+- Documentation updated: Release operations guide, packaging README, and
+  changelog.
+- Follow-up work: None.
+
 ## 2026-08-14 — Document Activity Watch release and agent operations
 
 - Request: Provide proper Windows/macOS build, API download publication,
