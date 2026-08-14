@@ -657,9 +657,10 @@ classification formatting must preserve a single unclassified word.
 
 Browser tab titles remain limited to existing foreground titles; URLs and page
 content are never shown. The details view de-duplicates and ranks those titles
-by duration and presents them in a compact activity list with an icon, duration
-badge, and subtle row dividers. The section heading does not repeat a
-supporting privacy sentence.
+by duration and presents them as compact title tiles with a browser icon and
+duration badge. The tiles use two columns where space permits and stack on
+narrow layouts; the section heading does not repeat a supporting privacy
+sentence.
 
 Background application inventory uses the existing bounded process name and
 state fields. The UI de-duplicates and orders the entries deterministically,

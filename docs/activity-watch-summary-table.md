@@ -80,10 +80,10 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   cards by duration descending and show readable category labels and duration.
   Reuse only the existing privacy-safe application name, classification, and
   duration fields; do not add an API request or expose additional process data.
-- Present browser tab titles as a separate privacy-safe compact activity list,
-  not a table or card grid. Retain the foreground-title-only and no-URL notice,
-  rank the existing de-duplicated titles by duration, show an icon and duration
-  badge on each row, and separate rows with subtle dividers.
+- Present browser tab titles as privacy-safe compact title tiles, not a table.
+  Retain the foreground-title-only and no-URL notice, rank the existing
+  de-duplicated titles by duration, show an icon and duration badge, use two
+  columns where space permits, and stack them on narrow layouts.
 - Present background applications as a responsive four-column process grid,
   not chips or an enclosing outer card. Each card displays only the existing
   process name and state; stack cards when the panel is narrow.

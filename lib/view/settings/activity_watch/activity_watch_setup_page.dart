@@ -1594,21 +1594,29 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
         child: Text('No browser tab titles reported for this day.'),
       );
     }
-    return Column(
-      children: List<Widget>.generate(
-        titles.length,
-        (index) => _buildBrowserTitleListItem(
-          title: titles[index],
-          showDivider: index != titles.length - 1,
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 760;
+        final tileWidth = twoColumns
+            ? (constraints.maxWidth - AppUiConstants.spacingSm) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: titles
+              .map(
+                (title) => SizedBox(
+                  width: tileWidth,
+                  child: _buildBrowserTitleTile(title),
+                ),
+              )
+              .toList(growable: false),
+        );
+      },
     );
   }
 
-  Widget _buildBrowserTitleListItem({
-    required ActivityWatchBrowserTitleTotal title,
-    required bool showDivider,
-  }) {
+  Widget _buildBrowserTitleTile(ActivityWatchBrowserTitleTotal title) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
     final label = title.title.trim().isEmpty
@@ -1618,53 +1626,70 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
 
     return Semantics(
       label: '$label, $duration',
-      child: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppUiConstants.spacingSm,
-            ),
-            child: Row(
-              children: <Widget>[
-                Icon(Icons.tab_outlined, color: appTheme.tableLinkText),
-                const SizedBox(width: AppUiConstants.spacingSm),
-                Expanded(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: appTheme.cardBackground,
+          border: Border.all(color: appTheme.tableBorder),
+          borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusSm),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Icon(
+                    Icons.language_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppUiConstants.spacingXs),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppUiConstants.spacingSm,
+                    vertical: AppUiConstants.spacingXxs,
+                  ),
                   child: Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    duration,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const SizedBox(width: AppUiConstants.spacingSm),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(
-                      AppUiConstants.buttonRadius,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppUiConstants.spacingSm,
-                      vertical: AppUiConstants.spacingXxs,
-                    ),
-                    child: Text(
-                      duration,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          if (showDivider) Divider(height: 1, color: appTheme.tableBorder),
-        ],
+        ),
       ),
     );
   }

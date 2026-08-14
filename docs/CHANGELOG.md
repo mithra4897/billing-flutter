@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-14 — Refine Activity Watch browser-title tiles
+
+- Request: Improve the Browser tab titles section UI.
+- Specification: Present existing privacy-safe foreground titles as compact,
+  responsive title tiles with a browser icon and duration badge.
+- Implementation: Replaced divider rows with bordered two-column title tiles
+  that stack at narrow widths; title aggregation and privacy boundaries remain
+  unchanged.
+- Files changed: Activity Watch setup page, specifications, summary-table
+  requirements, testing notes, and changelog.
+- Database/API impact: None.
+- Security impact: None; URLs and page content remain absent.
+- Tests added or updated: Existing Activity Watch parsing coverage remains
+  applicable.
+- Tests executed and results: Focused Flutter test and analyzer passed; details
+  are recorded in `TESTING.md`.
+- Documentation updated: Activity Watch specifications, summary-table
+  requirements, testing notes, and changelog.
+- Known limitations: Authenticated visual verification remains manual.
+- Follow-up work: None.
+
 ## 2026-08-14 — Fold Activity Watch detail sections
 
 - Request: Keep graphs visible and make each non-graph detail section foldable.
