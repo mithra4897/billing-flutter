@@ -1,5 +1,18 @@
 # Testing
 
+## Activity Watch super-admin disconnect access — 2026-08-14
+
+- `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter test test/model/activity_watch_enrollment_test.dart`: passed.
+- `flutter analyze lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  lib/service/activity_watch/activity_watch_service.dart
+  test/model/activity_watch_enrollment_test.dart`: passed with no issues.
+- `php -l app/Http/Controllers/ActivityWatchController.php`: passed in the
+  backend repository.
+- Manual authenticated verification remains required for regular-user 403
+  responses and super-admin disconnect confirmation.
+
 ## Activity Watch macOS direct-pairing recovery — 2026-08-14
 
 - Manual macOS verification: the installed agent successfully paired with a

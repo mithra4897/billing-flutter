@@ -725,6 +725,23 @@ a hash-verified package-specific quarantine removal, and warn that removing an
 agent's application-data directory permanently removes its local encrypted
 queue.
 
+## Activity Watch device-management access
+
+Only a super administrator may revoke (disconnect) an Activity Watch device.
+The disconnect action is not rendered for other users, and the authenticated
+revoke endpoint rejects their direct requests. A non-super-admin Activity Watch
+request remains limited by the server to devices and summaries whose `user_id`
+matches the signed-in user; it must not request or render another employee's
+activity. Super-admin company scope and the employee filter remain unchanged.
+
+Acceptance criteria:
+
+1. A super administrator can see and use Disconnect for an active device.
+2. A regular user cannot see Disconnect, and a direct revoke request returns
+   HTTP 403 without changing the device.
+3. A regular user's devices and summaries remain limited to that user's
+   employee activity.
+
 ## Activity Watch USB audit metadata
 
 Status: Approved for implementation (2026-08-12)

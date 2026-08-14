@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-14 — Restrict Activity Watch disconnect to super admins
+
+- Request: Show Disconnect only to super admins and keep ordinary users limited
+  to their own employee activity.
+- Specification: The page hides Disconnect for non-super-admins; the backend
+  rejects their direct revoke requests with HTTP 403. Existing user-scoped
+  device and summary queries remain unchanged.
+- Implementation: Added the UI eligibility guard and replaced owner/HR revoke
+  authorization with an explicit super-admin requirement at the API boundary.
+- Database/API impact: The revoke endpoint's authorization is intentionally
+  stricter; its response shape is unchanged.
+- Security impact: Prevents a regular user from disconnecting any device,
+  including their own, through either the UI or direct API call.
+- Tests executed and results: Focused Flutter test/analyzer and backend PHP
+  syntax check passed; details are in `TESTING.md`.
+- Documentation updated: Specifications, testing notes, frontend changelog,
+  and backend Activity Watch documentation/changelog.
+- Known limitations: Authenticated role-based API verification remains manual.
+- Follow-up work: None.
+
 ## 2026-08-14 — Document macOS direct-pairing recovery
 
 - Request: Document the successful recovery for macOS pairing-file association

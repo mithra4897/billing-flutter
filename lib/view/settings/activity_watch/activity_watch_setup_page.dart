@@ -705,6 +705,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Future<void> _revoke(ActivityWatchDevice device) async {
+    if (!_isSuperAdmin) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1021,7 +1022,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                   ),
                   title: Text(device.label),
                   subtitle: Text(device.connectionStatus),
-                  trailing: device.isActive
+                  trailing: _isSuperAdmin && device.isActive
                       ? TextButton(
                           onPressed: () => _revoke(device),
                           child: const Text('Disconnect'),
