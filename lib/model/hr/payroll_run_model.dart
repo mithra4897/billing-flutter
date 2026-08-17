@@ -155,6 +155,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
     this.reason,
     this.salaryStructureId,
     this.grossSalary,
+    this.workingDays,
+    this.presentDays,
+    this.leaveDays,
+    this.paidDays,
+    this.lopDays,
   });
 
   final int? employeeId;
@@ -164,6 +169,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
   final String? reason;
   final int? salaryStructureId;
   final double? grossSalary;
+  final int? workingDays;
+  final double? presentDays;
+  final double? leaveDays;
+  final double? paidDays;
+  final double? lopDays;
 
   factory PayrollEmployeePreviewModel.fromJson(Map<String, dynamic> json) {
     return PayrollEmployeePreviewModel(
@@ -174,6 +184,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
       reason: json['reason']?.toString(),
       salaryStructureId: JsonModel.nullableInt(json['salary_structure_id']),
       grossSalary: JsonModel.nullableDouble(json['gross_salary']),
+      workingDays: JsonModel.nullableInt(json['working_days']),
+      presentDays: JsonModel.nullableDouble(json['present_days']),
+      leaveDays: JsonModel.nullableDouble(json['leave_days']),
+      paidDays: JsonModel.nullableDouble(json['paid_days']),
+      lopDays: JsonModel.nullableDouble(json['lop_days']),
     );
   }
 
@@ -186,6 +201,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
     if (reason != null) 'reason': reason,
     if (salaryStructureId != null) 'salary_structure_id': salaryStructureId,
     if (grossSalary != null) 'gross_salary': grossSalary,
+    if (workingDays != null) 'working_days': workingDays,
+    if (presentDays != null) 'present_days': presentDays,
+    if (leaveDays != null) 'leave_days': leaveDays,
+    if (paidDays != null) 'paid_days': paidDays,
+    if (lopDays != null) 'lop_days': lopDays,
   };
 }
 

@@ -49,8 +49,8 @@ class PayslipModel extends JsonModel {
   final String? payrollYear;
   final String? runDate;
   final int? workingDays;
-  final int? presentDays;
-  final int? leaveDays;
+  final double? presentDays;
+  final double? leaveDays;
   final double? paidDays;
   final double? lopDays;
   final double? basicSalary;
@@ -135,8 +135,8 @@ class PayslipModel extends JsonModel {
       runDate:
           payrollRun['run_date']?.toString() ?? json['run_date']?.toString(),
       workingDays: JsonModel.nullableInt(json['working_days']),
-      presentDays: JsonModel.nullableInt(json['present_days']),
-      leaveDays: JsonModel.nullableInt(json['leave_days']),
+      presentDays: JsonModel.nullableDouble(json['present_days']),
+      leaveDays: JsonModel.nullableDouble(json['leave_days']),
       paidDays: JsonModel.nullableDouble(json['paid_days']),
       lopDays: JsonModel.nullableDouble(json['lop_days']),
       basicSalary: JsonModel.nullableDouble(json['basic_salary']),

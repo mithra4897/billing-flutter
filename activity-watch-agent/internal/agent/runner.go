@@ -18,6 +18,11 @@ type LogoutControl interface {
 	Consume() (bool, error)
 }
 
+type AttendanceReporter interface {
+	CheckIn(context.Context, time.Time) error
+	CheckOut(context.Context, time.Time) error
+}
+
 type Config struct {
 	HeartbeatInterval   time.Duration
 	ControlPollInterval time.Duration
@@ -61,6 +66,9 @@ type Runner struct {
 	lastState        string
 	lastTimezone     string
 	lastUTCOffset    int
+	attendance       AttendanceReporter
+	pendingCheckIn   time.Time
+	checkedInDate    string
 }
 
 func (r *Runner) ConfigureCollection(observer collector.Observer, recorder ActivityRecorder, config CollectionConfig) {
@@ -68,6 +76,8 @@ func (r *Runner) ConfigureCollection(observer collector.Observer, recorder Activ
 	r.recorder = recorder
 	r.collection = config
 }
+
+func (r *Runner) ConfigureAttendance(reporter AttendanceReporter) { r.attendance = reporter }
 
 func NewRunner(repository store.Repository, flusher Flusher, control LogoutControl, config Config) *Runner {
 	return &Runner{
@@ -104,6 +114,7 @@ func (r *Runner) Run(ctx context.Context) error {
 			r.logError("purge expired activity", err)
 		}
 		r.sample(ctx, localNow)
+		r.reportAttendance(ctx, localNow)
 		r.inventory(ctx, "processes", localNow)
 		r.inventory(ctx, "system-services", localNow)
 		if r.collection.USBEnabled {
@@ -154,6 +165,7 @@ func (r *Runner) Run(ctx context.Context) error {
 			if err := r.record(ctx, "agent-heartbeat", at.UTC()); err != nil {
 				r.logError("record heartbeat", err)
 			}
+			r.reportAttendance(ctx, at)
 		case <-controlTicker.C:
 			if err := r.consumeControl(ctx); err != nil {
 				r.logError("consume service control", err)
@@ -192,6 +204,11 @@ func (r *Runner) consumeControl(ctx context.Context) error {
 	if err := r.record(ctx, "user-logout", r.now().UTC()); err != nil {
 		return err
 	}
+	if r.attendance != nil {
+		if err := r.attendance.CheckOut(ctx, r.now()); err != nil {
+			r.logError("report attendance check-out", err)
+		}
+	}
 	if r.collectionActive {
 		now := r.now()
 		if err := r.recorder.PrepareDailySummary(ctx, now); err != nil {
@@ -212,6 +229,24 @@ func (r *Runner) consumeControl(ctx context.Context) error {
 		return fmt.Errorf("logout synchronization: %w", err)
 	}
 	return nil
+}
+
+func (r *Runner) reportAttendance(ctx context.Context, at time.Time) {
+	if r.attendance == nil {
+		return
+	}
+	date := at.Format("2006-01-02")
+	if r.checkedInDate == date {
+		return
+	}
+	if r.pendingCheckIn.IsZero() || r.pendingCheckIn.Format("2006-01-02") != date {
+		r.pendingCheckIn = at
+	}
+	if err := r.attendance.CheckIn(ctx, r.pendingCheckIn); err != nil {
+		r.logError("report attendance check-in", err)
+		return
+	}
+	r.checkedInDate, r.pendingCheckIn = date, time.Time{}
 }
 
 func (r *Runner) shutdown() error {

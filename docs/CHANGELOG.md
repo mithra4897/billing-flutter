@@ -1,5 +1,61 @@
 # Changelog
 
+## 2026-08-17 — Activity Watch and manual attendance
+
+- Request: Replace ERP-login attendance with Activity Watch agent attendance
+  while retaining manual attendance for departments without computer access.
+- Implementation: Removed the authentication attendance hook; added a
+  device-authenticated attendance endpoint, company-local employee/day upsert,
+  manual-row protection, earliest check-in/latest check-out handling, and a
+  restart-safe agent retry file. The register labels the new source.
+- Database/API impact: Adds `POST /api/v1/activity-watch/attendance`; reuses
+  existing attendance columns and uniqueness, so no SQL patch is required.
+- Security impact: The API resolves employee identity from the paired device
+  and never accepts a client-supplied employee ID.
+- Tests: Backend, Go agent, and focused Flutter checks are recorded in
+  `TESTING.md`.
+
+## 2026-08-14 — Restore processed payroll-run deletion control
+
+- Request: Make the Delete option available in the processed payroll-run
+  detail dialog.
+- Implementation: Reused the existing DELETE API action for both draft and
+  processed runs, added a permanent-lines-and-payslips warning for processed
+  runs, and display API failures without closing the dialog. Posted runs remain
+  protected.
+- Database/API impact: None; the backend remains the lifecycle and
+  voucher-link authority.
+- Tests: Focused formatter and static analysis are recorded in `TESTING.md`.
+
+## 2026-08-14 — Keep payroll process validation failures recoverable
+
+- Request: Display the payroll validation message instead of leaving the app
+  stuck when processing is rejected.
+- Implementation: The payroll detail dialog catches typed API failures from
+  Process, keeps the draft dialog open, and shows the backend message. A
+  successful process retains the existing close-and-refresh flow.
+- Database/API impact: None. Existing HTTP 422 payloads are now handled in the
+  UI.
+- Tests: Focused formatting and static analysis are recorded in `TESTING.md`.
+
+## 2026-08-14 — Login attendance and attendance-based payroll
+
+- Request: Generate attendance from successful login without duplicates,
+  calculate payroll from attendance, and verify salary structure/components.
+- Implementation: Extended existing HR models and UI for source, decimal
+  attendance, readiness, paid days, earned gross, and LOP. Backend calculations
+  are stored as immutable snapshots.
+- Database/API impact: New optional response fields are Flutter-compatible;
+  existing databases must apply the backend SQL patch before enabling login
+  attendance. New databases receive the schema from `install.sql`; no framework
+  migration is used.
+- Security impact: No credential or token is stored in attendance; HR scoping
+  remains unchanged.
+- Tests: Focused Flutter test/analysis and backend suite passed; see `TESTING.md`.
+- Known limitations: Sunday is the fixed first-release weekly off. Company
+  holiday/shift editors and individual statutory liability accounts are future
+  work; deductions post to combined `SALPAY001`.
+
 ## 2026-08-14 — Restrict Activity Watch disconnect to super admins
 
 - Request: Show Disconnect only to super admins and keep ordinary users limited

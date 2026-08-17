@@ -7,12 +7,19 @@ class PayrollLineModel extends JsonModel {
     this.employeeId,
     this.employeeName,
     this.employeeCode,
+    this.salaryStructureId,
+    this.monthlyGrossSalary,
+    this.basicSalary,
+    this.ctcMonthly,
     this.grossSalary,
     this.totalDeductions,
     this.netSalary,
     this.workingDays,
     this.presentDays,
     this.leaveDays,
+    this.paidDays,
+    this.attendanceLopDays,
+    this.leaveLopDays,
     this.lopDays,
     this.payslipId,
     this.payslipDate,
@@ -23,12 +30,19 @@ class PayrollLineModel extends JsonModel {
   final int? employeeId;
   final String? employeeName;
   final String? employeeCode;
+  final int? salaryStructureId;
+  final double? monthlyGrossSalary;
+  final double? basicSalary;
+  final double? ctcMonthly;
   final double? grossSalary;
   final double? totalDeductions;
   final double? netSalary;
   final int? workingDays;
-  final int? presentDays;
-  final int? leaveDays;
+  final double? presentDays;
+  final double? leaveDays;
+  final double? paidDays;
+  final double? attendanceLopDays;
+  final double? leaveLopDays;
   final double? lopDays;
   final int? payslipId;
   final String? payslipDate;
@@ -44,12 +58,21 @@ class PayrollLineModel extends JsonModel {
       employeeId: JsonModel.nullableInt(json['employee_id'] ?? employee['id']),
       employeeName: employee['employee_name']?.toString(),
       employeeCode: employee['employee_code']?.toString(),
+      salaryStructureId: JsonModel.nullableInt(json['salary_structure_id']),
+      monthlyGrossSalary: JsonModel.nullableDouble(
+        json['monthly_gross_salary'],
+      ),
+      basicSalary: JsonModel.nullableDouble(json['basic_salary']),
+      ctcMonthly: JsonModel.nullableDouble(json['ctc_monthly']),
       grossSalary: JsonModel.nullableDouble(json['gross_salary']),
       totalDeductions: JsonModel.nullableDouble(json['total_deductions']),
       netSalary: JsonModel.nullableDouble(json['net_salary']),
       workingDays: JsonModel.nullableInt(json['working_days']),
-      presentDays: JsonModel.nullableInt(json['present_days']),
-      leaveDays: JsonModel.nullableInt(json['leave_days']),
+      presentDays: JsonModel.nullableDouble(json['present_days']),
+      leaveDays: JsonModel.nullableDouble(json['leave_days']),
+      paidDays: JsonModel.nullableDouble(json['paid_days']),
+      attendanceLopDays: JsonModel.nullableDouble(json['attendance_lop_days']),
+      leaveLopDays: JsonModel.nullableDouble(json['leave_lop_days']),
       lopDays: JsonModel.nullableDouble(json['lop_days']),
       payslipId: JsonModel.nullableInt(json['payslip_id'] ?? payslip['id']),
       payslipDate:
@@ -69,12 +92,19 @@ class PayrollLineModel extends JsonModel {
     if (employeeId != null) 'employee_id': employeeId,
     if (employeeName != null) 'employee_name': employeeName,
     if (employeeCode != null) 'employee_code': employeeCode,
+    if (salaryStructureId != null) 'salary_structure_id': salaryStructureId,
+    if (monthlyGrossSalary != null) 'monthly_gross_salary': monthlyGrossSalary,
+    if (basicSalary != null) 'basic_salary': basicSalary,
+    if (ctcMonthly != null) 'ctc_monthly': ctcMonthly,
     if (grossSalary != null) 'gross_salary': grossSalary,
     if (totalDeductions != null) 'total_deductions': totalDeductions,
     if (netSalary != null) 'net_salary': netSalary,
     if (workingDays != null) 'working_days': workingDays,
     if (presentDays != null) 'present_days': presentDays,
     if (leaveDays != null) 'leave_days': leaveDays,
+    if (paidDays != null) 'paid_days': paidDays,
+    if (attendanceLopDays != null) 'attendance_lop_days': attendanceLopDays,
+    if (leaveLopDays != null) 'leave_lop_days': leaveLopDays,
     if (lopDays != null) 'lop_days': lopDays,
     if (payslipId != null) 'payslip_id': payslipId,
     if (payslipDate != null) 'payslip_date': payslipDate,

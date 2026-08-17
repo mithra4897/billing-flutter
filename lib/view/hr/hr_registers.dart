@@ -11,24 +11,6 @@ void _showNeedCompanySnack(BuildContext context) {
   );
 }
 
-Map<String, dynamic>? _asJsonMap(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return Map<String, dynamic>.from(value);
-  }
-  return null;
-}
-
-String _nestedEmployeeName(Map<String, dynamic> data) {
-  final employee = _asJsonMap(data['employee']);
-  if (employee == null) {
-    return '';
-  }
-  return stringValue(employee, 'employee_name');
-}
-
 class _HrCompanyContextFilters extends StatelessWidget {
   const _HrCompanyContextFilters({
     required this.companyBanner,
@@ -253,9 +235,8 @@ class AttendanceRegisterController extends GetxController {
           if (q.isEmpty) {
             return true;
           }
-          final emp = _asJsonMap(data['employee']);
-          final code = emp != null ? stringValue(emp, 'employee_code') : '';
-          final name = emp != null ? stringValue(emp, 'employee_name') : '';
+          final code = row.employeeCode ?? '';
+          final name = row.employeeName ?? '';
           if (canViewAllHr &&
               filterEmployeeIds.isNotEmpty &&
               !filterEmployeeIds.contains(intValue(data, 'employee_id'))) {
@@ -790,7 +771,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
           columns: [
             PurchaseRegisterColumn<AttendanceRecordModel>(
               label: 'Employee',
-              valueBuilder: (row) => _nestedEmployeeName(row.toJson()),
+              valueBuilder: (row) => row.employeeName ?? row.employeeCode ?? '',
             ),
             PurchaseRegisterColumn<AttendanceRecordModel>(
               label: 'Date',
@@ -801,6 +782,15 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
             PurchaseRegisterColumn<AttendanceRecordModel>(
               label: 'Status',
               valueBuilder: (row) => stringValue(row.toJson(), 'status'),
+            ),
+            PurchaseRegisterColumn<AttendanceRecordModel>(
+              label: 'Source',
+              valueBuilder: (row) {
+                final source = stringValue(row.toJson(), 'source', 'manual');
+                if (source == 'activity_watch') return 'Activity Watch';
+                if (source == 'login') return 'Legacy ERP Login';
+                return 'Manual';
+              },
             ),
             PurchaseRegisterColumn<AttendanceRecordModel>(
               label: 'Check in',

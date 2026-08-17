@@ -1,5 +1,47 @@
 # Specifications
 
+## Activity Watch/manual attendance and attendance-based payroll
+
+- Date: 2026-08-17
+- Status: Implemented
+
+### Objective and rules
+
+- ERP login does not create attendance. A paired Activity Watch agent creates
+  at most one `activity_watch` record for its linked active employee on the
+  company-local date; manual status rows retain authority.
+- The first check-in is queued locally before transmission and retried across
+  network failures or service restarts. Detailed monitoring uploads remain
+  restricted to ERP logout.
+- Employees and departments without system access continue using the existing
+  manual attendance create/edit workflow.
+- Attendance list responses retain the API's nested employee name/code in the
+  typed Flutter model. The register displays the employee name, falling back to
+  employee code only when the name is absent; it must not issue a per-row
+  employee request.
+- Payroll preview reports scheduled, present, paid, and LOP units. Monday
+  through Saturday are scheduled and Sunday is a paid weekly off requiring no
+  login in this first release.
+- Processed payroll lines display earned gross, deductions, net pay, paid days,
+  present units, and total LOP. Half-days remain decimal.
+- Processing blocks structures whose components belong elsewhere, contain
+  duplicate names, or whose earning total differs from gross by over INR 0.01.
+- A rejected Process request (including HTTP 422 salary validation) keeps the
+  payroll detail dialog usable and displays the API validation message. Only a
+  successful process closes the dialog and refreshes the payroll register.
+- The API owns timezone, idempotency, proration, snapshots, lifecycle, and
+  accounting balance.
+
+### Acceptance criteria
+
+- Attendance register identifies Activity Watch versus manual source.
+- Attendance register displays the employee returned by the existing API
+  relation for both Activity Watch and manual rows.
+- Draft preview identifies ready employees and paid/scheduled/LOP units.
+- Processed lines show earned gross and preserve decimal attendance.
+- Later salary edits do not change processed payslip snapshot values.
+- Focused Flutter and backend validation passes.
+
 ## Payslip gross and net salary summary fallback
 
 - Date: 2026-08-13
@@ -35,7 +77,7 @@ including older saved templates that lack a salary summary.
 ## Payroll run deletion from processed state
 
 - Date: 2026-08-13
-- Status: Approved for implementation
+- Status: Implemented
 
 ### Objective
 

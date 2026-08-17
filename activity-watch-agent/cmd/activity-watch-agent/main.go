@@ -17,6 +17,7 @@ import (
 	"github.com/kardianos/service"
 
 	"billing/activity-watch-agent/internal/agent"
+	"billing/activity-watch-agent/internal/attendance"
 	"billing/activity-watch-agent/internal/collector"
 	"billing/activity-watch-agent/internal/config"
 	"billing/activity-watch-agent/internal/control"
@@ -183,6 +184,8 @@ func (p *serviceProgram) Start(service.Service) error {
 		log.Printf("activity-watch service: %s failed: %v", operation, err)
 	})
 	if !p.config.Collection.Disabled && p.config.Sync.Enabled {
+		pendingAttendancePath := filepath.Join(filepath.Dir(p.config.Database.Path), "attendance-check-in.pending")
+		runner.ConfigureAttendance(attendance.New(httpClient, p.config.Sync.URL, p.config.Sync.DeviceID, credential, pendingAttendancePath))
 		database.SetConsentVersion(p.config.Collection.ConsentVersion)
 		runner.ConfigureCollection(collector.NewOSObserver(), database, agent.CollectionConfig{
 			DeviceID:                 p.config.Sync.DeviceID,

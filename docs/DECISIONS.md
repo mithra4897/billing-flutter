@@ -1,5 +1,41 @@
 # Architecture decisions
 
+## ADR-0023: Use Activity Watch prompt events alongside manual attendance
+
+- Date: 2026-08-17
+- Status: Accepted
+- Context: ERP login is not the approved attendance signal, and employees in
+  non-computer departments still require HR-entered attendance.
+- Decision: Send a minimal device-authenticated check-in promptly from the Go
+  agent, persist unsent check-ins across restarts, and keep detailed Activity
+  Watch batches logout-only. Preserve manual attendance as authoritative.
+- Reason: This separates work-device presence from ERP authentication without
+  creating a second attendance ledger or excluding non-system employees.
+- Alternatives considered: ERP login attendance; logout-only attendance;
+  mandatory device enrollment for all departments.
+- Consequences: ADR-0022 is superseded only for its login capture signal. The
+  existing attendance/payroll calculations and uniqueness rules remain.
+- Related files: Activity Watch agent attendance client/runner, backend
+  Activity Watch attendance endpoint, HR attendance register.
+
+## ADR-0022: Use login-idempotent attendance and immutable payroll snapshots
+
+- Date: 2026-08-14
+- Status: Superseded for attendance capture by ADR-0023; payroll snapshots remain accepted
+- Context: Attendance allowed duplicate employee/day rows, payroll did not
+  prorate salary, and payslips could resolve a later salary structure.
+- Decision: Upsert successful login by employee/date, calculate scheduled units
+  in a locked payroll transaction, reconcile structure/components, and persist
+  run/line snapshots.
+- Reason: Natural keys handle concurrency, bulk maps avoid N+1 queries, and
+  snapshots preserve historical payroll evidence.
+- Alternatives considered: Count login history; application-only duplicate
+  checks; background attendance generation; render current salary settings.
+- Consequences: Sunday is the paid weekly-off default until a company calendar
+  editor is approved. Existing endpoints remain compatible with added fields.
+- Related files: HR attendance/payroll/payslip models, services, registers, and
+  workflow dialogs in Flutter and the backend.
+
 ## ADR-0020: Upload Activity Watch outbox only on ERP logout
 
 - Date: 2026-08-14

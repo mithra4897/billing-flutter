@@ -1777,8 +1777,10 @@ Future<void> showPayrollRunDetailDialog(
                                 ),
                                 subtitle: Text(
                                   employee.eligible
-                                      ? 'Ready • Gross '
-                                            '${formatAmount(employee.grossSalary ?? 0)}'
+                                      ? 'Ready • Gross ${formatAmount(employee.grossSalary ?? 0)} • '
+                                            'Paid ${formatAmount(employee.paidDays ?? 0)}/'
+                                            '${employee.workingDays ?? 0} • '
+                                            'LOP ${formatAmount(employee.lopDays ?? 0)}'
                                       : employee.reason ??
                                             'Payroll setup is incomplete.',
                                 ),
@@ -1816,9 +1818,12 @@ Future<void> showPayrollRunDetailDialog(
                                     .join(' • '),
                               ),
                               subtitle: Text(
-                                'Gross ${formatAmount(line.grossSalary ?? 0)}  '
+                                'Earned ${formatAmount(line.grossSalary ?? 0)}  '
                                 'Ded ${formatAmount(line.totalDeductions ?? 0)}  '
-                                'Net ${formatAmount(line.netSalary ?? 0)}',
+                                'Net ${formatAmount(line.netSalary ?? 0)}\n'
+                                'Paid ${formatAmount(line.paidDays ?? 0)}/'
+                                '${line.workingDays ?? 0}  '
+                                'Present ${formatAmount(line.presentDays ?? 0)}',
                               ),
                               trailing: Text(
                                 'LOP ${formatAmount(line.lopDays ?? 0)}',
@@ -1874,51 +1879,96 @@ Future<void> showPayrollRunDetailDialog(
                         )) {
                           return;
                         }
-                        final res = await hr.processPayrollRun(
-                          id,
-                          PayrollRunModel.fromJson(<String, dynamic>{}),
-                        );
-                        if (!ctx.mounted) {
-                          return;
-                        }
-                        ScaffoldMessenger.of(
-                          ctx,
-                        ).showSnackBar(SnackBar(content: Text(res.message)));
-                        if (res.success == true) {
-                          Navigator.pop(ctx);
-                          onChanged();
+                        try {
+                          final res = await hr.processPayrollRun(
+                            id,
+                            PayrollRunModel.fromJson(<String, dynamic>{}),
+                          );
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(
+                            ctx,
+                          ).showSnackBar(SnackBar(content: Text(res.message)));
+                          if (res.success == true) {
+                            Navigator.pop(ctx);
+                            onChanged();
+                          }
+                        } on ApiException catch (error) {
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(error.displayMessage)),
+                          );
+                        } catch (_) {
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Unable to process payroll. Please try again.',
+                              ),
+                            ),
+                          );
                         }
                       },
                       child: const Text('Process'),
                     ),
+                  ],
+                  if (st == 'draft' || st == 'processed')
                     FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: Theme.of(ctx).colorScheme.error,
                         foregroundColor: Theme.of(ctx).colorScheme.onError,
                       ),
                       onPressed: () async {
+                        final isProcessed = st == 'processed';
                         if (!await _confirm(
                           ctx,
                           'Delete payroll run',
-                          'Delete this draft payroll run?',
+                          isProcessed
+                              ? 'Delete this processed payroll run? Its payroll '
+                                    'lines and payslips will be permanently removed.'
+                              : 'Delete this draft payroll run?',
                         )) {
                           return;
                         }
-                        final del = await hr.deletePayrollRun(id);
-                        if (!ctx.mounted) {
-                          return;
-                        }
-                        ScaffoldMessenger.of(
-                          ctx,
-                        ).showSnackBar(SnackBar(content: Text(del.message)));
-                        if (del.success == true) {
-                          Navigator.pop(ctx);
-                          onChanged();
+                        try {
+                          final del = await hr.deletePayrollRun(id);
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(
+                            ctx,
+                          ).showSnackBar(SnackBar(content: Text(del.message)));
+                          if (del.success == true) {
+                            Navigator.pop(ctx);
+                            onChanged();
+                          }
+                        } on ApiException catch (error) {
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(error.displayMessage)),
+                          );
+                        } catch (_) {
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Unable to delete payroll run. Please try again.',
+                              ),
+                            ),
+                          );
                         }
                       },
                       child: const Text('Delete'),
                     ),
-                  ],
                   if (st == 'processed')
                     FilledButton(
                       onPressed: () async {

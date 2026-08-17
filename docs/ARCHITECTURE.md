@@ -1,5 +1,27 @@
 # Architecture
 
+## Activity Watch/manual attendance and payroll snapshots
+
+ERP authentication does not write attendance. The paired Go agent sends a
+minimal device-authenticated attendance event independently of the detailed
+logout-only outbox. Device middleware resolves the employee; the backend
+converts the UTC event to company-local time and insert-ignores a row protected
+by `(employee_id, attendance_date)` uniqueness. Manual attendance is preserved
+and remains available for employees without computers. The agent persists
+unsent first check-ins locally and retries them after network or service
+recovery.
+
+Payroll processing locks the draft run, bulk-loads attendance and approved LOP
+requests, and converts them into decimal scheduled/payable units. Existing
+salary, statutory, payslip, accounting, permission, register, and dialog
+components are reused. Run and line JSON snapshots preserve the selected policy,
+structure, components, statutory result, and earned values. Payslips prefer the
+snapshot and use current salary settings only for legacy rows.
+
+The period algorithm is `O(E + A + L + D)` for employees, attendance, leave,
+and bounded dates. Employee/date maps avoid repeated database queries and
+duplicate counting.
+
 ## Activity Watch viewer scope
 
 The Flutter Activity Watch page resolves the session's super-admin flag and
@@ -128,6 +150,11 @@ draft and processed records. The backend enforces lifecycle and voucher checks;
 on deletion, database foreign keys cascade from the run to payroll lines and
 their payslips. Processed runs deliberately expose only this delete action;
 posted runs remain undeletable and are not offered a client action.
+
+The same dialog catches `ApiException` from the Process action. A backend
+validation rejection, such as a salary-component reconciliation mismatch,
+remains a draft-run state: the dialog stays open and displays the API message.
+Only a successful process closes the dialog and refreshes the register.
 
 ### Payslip salary totals
 

@@ -1,5 +1,60 @@
 # Testing
 
+## Activity Watch and manual attendance — 2026-08-17
+
+- Backend focused PHPUnit passed: 6 tests and 22 assertions, including
+  company-timezone deduplication, earliest check-in/latest check-out, manual
+  precedence, payroll proration, and salary component reconciliation.
+- PHP syntax checks passed for the changed Activity Watch controller,
+  authentication service, and attendance service. PHP 8.5 emitted existing
+  Lumen vendor nullable-parameter deprecation notices.
+- `go test ./...` passed for the Activity Watch agent. New coverage simulates a
+  failed request, service restart, retry with the original event time, and
+  removal of the protected pending file after acceptance.
+- Focused Flutter model tests passed (3 tests); focused attendance-register
+  analysis passed with no issues.
+- Manual integration check remains: pair an employee device, start the agent,
+  verify one company-local `Activity Watch` attendance row, then create/edit a
+  manual attendance row for an employee without a device.
+
+## Processed payroll-run deletion control — 2026-08-14
+
+- `dart format lib/view/hr/hr_workflow_dialogs.dart`: passed.
+- `flutter analyze lib/view/hr/hr_workflow_dialogs.dart`: passed with no
+  issues.
+- Manual check required: open an unposted processed run, confirm the warning,
+  then verify successful deletion refreshes the register. Voucher-linked and
+  posted runs must remain rejected or unavailable.
+
+## Login attendance and attendance-based payroll — 2026-08-14
+
+- Backend focused PHPUnit: passed, 5 tests and 18 assertions. PHP 8.5 emitted
+  existing Lumen vendor nullable-parameter deprecation notices.
+- PHP syntax checks passed for changed services, controller, and models.
+- `dart format` passed for changed Flutter files.
+- `flutter test test/model/hr_attendance_payroll_model_test.dart`: passed,
+  3 tests.
+- Focused Flutter analysis: passed with no issues.
+- Full `flutter test`: passed, 7 tests.
+- Full `flutter analyze`: completed with two pre-existing unrelated warnings in
+  `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`; changed HR files have no issues.
+- Full backend PHPUnit ran 27 tests: 19 passed and 8 existing Auth feature tests
+  errored because their SQLite fixtures omit `user_roles` and the test
+  environment has no JWT secret. The focused payroll suite remains green and
+  none of the full-suite errors reference changed attendance/payroll code.
+- Production SQL-patch execution and authenticated login/process/post
+  verification remain deployment-time checks against a database backup.
+
+## Payroll process validation feedback — 2026-08-14
+
+- `dart format lib/view/hr/hr_workflow_dialogs.dart`: passed.
+- `flutter analyze lib/view/hr/hr_workflow_dialogs.dart`: passed with no
+  issues.
+- Manual check required: submit a draft payroll run with a known salary
+  reconciliation mismatch, confirm the dialog stays open, and verify the API
+  message is shown.
+
 ## Activity Watch super-admin disconnect access — 2026-08-14
 
 - `dart format lib/view/settings/activity_watch/activity_watch_setup_page.dart
