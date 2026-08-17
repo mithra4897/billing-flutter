@@ -8,43 +8,44 @@ class HrInlineFilterBar extends StatelessWidget {
   const HrInlineFilterBar({
     required this.filterFields,
     required this.onClear,
+    this.wrapInCard = true,
     this.header,
     super.key,
   });
 
   final List<Widget> filterFields;
   final VoidCallback onClear;
+  final bool wrapInCard;
   final Widget? header;
 
   @override
   Widget build(BuildContext context) {
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (header != null) ...[
-            header!,
-            const SizedBox(height: AppUiConstants.spacingMd),
-          ],
-          Wrap(
-            spacing: AppUiConstants.spacingMd,
-            runSpacing: AppUiConstants.spacingMd,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
-              ...filterFields,
-              hrListFilterBox(
-                child: AppActionButton(
-                  icon: Icons.clear_outlined,
-                  label: 'Clear',
-                  filled: false,
-                  onPressed: onClear,
-                ),
-              ),
-            ],
-          ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (header != null) ...[
+          header!,
+          const SizedBox(height: AppUiConstants.spacingMd),
         ],
-      ),
+        Wrap(
+          spacing: AppUiConstants.spacingMd,
+          runSpacing: AppUiConstants.spacingMd,
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: [
+            ...filterFields,
+            hrListFilterBox(
+              child: AppActionButton(
+                icon: Icons.clear_outlined,
+                label: 'Clear',
+                filled: false,
+                onPressed: onClear,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
+    return wrapInCard ? AppSectionCard(child: content) : content;
   }
 }
 

@@ -16,10 +16,11 @@
 - The report Filter action toggles the shared full-width HR filter bar for
   search, employee, status, source, month, and year. It does not use a popup
   or a separate inline Month/Year/Load toolbar.
-- All live HR list filters (Attendance, Leave Requests, Expense Claims, and
-  Payslips) use the same toggleable `HrInlineFilterBar`; filters are no longer
-  presented in popups. Each page keeps its existing fields, clear behavior,
-  and load request.
+- All live HR list filters (Attendance, Leave Requests, Expense Claims,
+  Payroll Runs, and Payslips) use the same toggleable `HrInlineFilterBar`;
+  filters are no longer presented in popups. Each page keeps its existing
+  fields, clear behavior, and load request. Payroll Runs includes From date and
+  To date, which filter the persisted run date alongside search and status.
 - On `SettingsWorkspace` HR pages, the bar uses the workspace-level full-width
   header slot so it spans the list and editor area rather than the list pane.
 - The inline bar follows the Sales filter action pattern: it has no Apply

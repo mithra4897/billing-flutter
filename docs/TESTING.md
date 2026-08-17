@@ -54,6 +54,9 @@
 - Sales-style HR filter actions: focused analysis passed after removing Apply
   and reusing the shared Clear action; focused attendance/payroll model tests
   passed (4 tests).
+- Payroll Run date filters: focused analysis passed after adding From date and
+  To date to the shared Payroll Runs filter bar; focused attendance/payroll
+  model tests passed (4 tests).
 - Navigation coverage verifies Monthly Attendance is absent from the drawer
   while `/hr/monthly-attendance` remains accessible with `hr.create`.
 - Authenticated browser verification remains manual because the isolated test

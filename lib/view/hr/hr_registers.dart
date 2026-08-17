@@ -20,81 +20,6 @@ void openHrShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
-class _HrCompanyContextFilters extends StatelessWidget {
-  const _HrCompanyContextFilters({
-    required this.companyBanner,
-    this.searchController,
-    this.searchHint,
-  });
-
-  final String? companyBanner;
-  final TextEditingController? searchController;
-  final String? searchHint;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (companyBanner != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.apartment_outlined,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: AppUiConstants.spacingSm),
-                Expanded(
-                  child: Text(
-                    'Session company: $companyBanner. Change via the header '
-                    'session button.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 20,
-                  color: theme.colorScheme.error,
-                ),
-                const SizedBox(width: AppUiConstants.spacingSm),
-                Expanded(
-                  child: Text(
-                    'No company in session. Open the header session menu and '
-                    'select a company. Lists below show all companies until then.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (searchController != null &&
-            (searchHint != null && searchHint!.trim().isNotEmpty))
-          AppFormTextField(
-            labelText: 'Search',
-            controller: searchController!,
-            hintText: searchHint,
-          ),
-      ],
-    );
-  }
-}
-
 class AttendanceRegisterController extends GetxController {
   final HrService _service = HrService();
   final HrModuleRefreshController _refreshController =
@@ -119,6 +44,8 @@ class AttendanceRegisterController extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(update);
+    dateFromController.addListener(update);
+    dateToController.addListener(update);
     _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
       event,
     ) {
@@ -137,8 +64,12 @@ class AttendanceRegisterController extends GetxController {
     searchController
       ..removeListener(update)
       ..dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
+    dateFromController
+      ..removeListener(update)
+      ..dispose();
+    dateToController
+      ..removeListener(update)
+      ..dispose();
     super.onClose();
   }
 
@@ -316,6 +247,8 @@ class PayrollRunRegisterController extends GetxController {
   final HrModuleRefreshController _refreshController =
       HrModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   String statusFilter = '';
 
   static const List<AppDropdownItem<String>> statusItems =
@@ -338,6 +271,8 @@ class PayrollRunRegisterController extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(update);
+    dateFromController.addListener(update);
+    dateToController.addListener(update);
     _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
       event,
     ) {
@@ -354,6 +289,12 @@ class PayrollRunRegisterController extends GetxController {
     _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
+      ..removeListener(update)
+      ..dispose();
+    dateFromController
+      ..removeListener(update)
+      ..dispose();
+    dateToController
       ..removeListener(update)
       ..dispose();
     super.onClose();
@@ -387,11 +328,21 @@ class PayrollRunRegisterController extends GetxController {
 
   List<PayrollRunModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
+    final fromDate = parseNormalizedDateValue(dateFromController.text);
+    final toDate = parseNormalizedDateValue(dateToController.text);
     return rows
         .where((PayrollRunModel row) {
           final status = row.status?.trim().toLowerCase() ?? '';
           final statusMatches = statusFilter.isEmpty || status == statusFilter;
           if (!statusMatches) {
+            return false;
+          }
+          final runDate = parseNormalizedDateValue(row.runDate);
+          if (fromDate != null &&
+              (runDate == null || runDate.isBefore(fromDate))) {
+            return false;
+          }
+          if (toDate != null && (runDate == null || runDate.isAfter(toDate))) {
             return false;
           }
           if (q.isEmpty) {
@@ -411,6 +362,13 @@ class PayrollRunRegisterController extends GetxController {
   void setStatusFilter(String value) {
     statusFilter = value;
     update();
+  }
+
+  void clearFilters() {
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    setStatusFilter('');
   }
 }
 
@@ -765,6 +723,7 @@ class PayrollRunRegisterPage extends StatefulWidget {
 
 class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -789,6 +748,13 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
           emptyMessage: 'No payroll runs found.',
           actions: [
             AdaptiveShellActionButton(
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+              onPressed: () =>
+                  setState(() => _filtersVisible = !_filtersVisible),
+            ),
+            AdaptiveShellActionButton(
               icon: Icons.add_outlined,
               label: 'New payroll run',
               onPressed: () async {
@@ -809,23 +775,48 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
               },
             ),
           ],
-          filters: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HrCompanyContextFilters(
-                companyBanner: controller.companyBanner,
-                searchController: controller.searchController,
-                searchHint: 'Period, status, run date…',
-              ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              AppDropdownField<String>.fromMapped(
-                labelText: 'Status',
-                mappedItems: PayrollRunRegisterController.statusItems,
-                initialValue: controller.statusFilter,
-                onChanged: (value) => controller.setStatusFilter(value ?? ''),
-              ),
-            ],
-          ),
+          filters: _filtersVisible
+              ? HrInlineFilterBar(
+                  wrapInCard: false,
+                  filterFields: [
+                    hrListFilterBox(
+                      child: AppFormTextField(
+                        controller: controller.searchController,
+                        labelText: 'Search',
+                        hintText: 'Period, status, run date…',
+                      ),
+                    ),
+                    hrListFilterBox(
+                      child: AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: PayrollRunRegisterController.statusItems,
+                        initialValue: controller.statusFilter,
+                        onChanged: (value) =>
+                            controller.setStatusFilter(value ?? ''),
+                      ),
+                    ),
+                    hrListFilterBox(
+                      child: AppFormTextField(
+                        controller: controller.dateFromController,
+                        labelText: 'From date',
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                      ),
+                    ),
+                    hrListFilterBox(
+                      child: AppFormTextField(
+                        controller: controller.dateToController,
+                        labelText: 'To date',
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                      ),
+                    ),
+                  ],
+                  onClear: () {
+                    controller.clearFilters();
+                  },
+                )
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<PayrollRunModel>(
@@ -938,6 +929,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
 
   Widget _buildInlinePayslipFilters(PayslipRegisterController controller) {
     return HrInlineFilterBar(
+      wrapInCard: false,
       filterFields: [
         hrListFilterBox(
           child: AppFormTextField(
