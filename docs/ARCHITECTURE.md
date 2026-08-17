@@ -11,16 +11,19 @@ and remains available for employees without computers. The agent persists
 unsent first check-ins locally and retries them after network or service
 recovery.
 
-Monthly manual attendance reuses the same `attendance_records` ledger. Flutter
-loads one month of non-system employees and existing rows from
-`GET /hr/attendance-monthly-sheet`, then submits at most 15,000 new
-employee/date decisions to the matching POST endpoint without per-cell network
-calls. The backend revalidates company, user-link, employment-period, weekly
-off, future-date, and unique-key rules before one transactional bulk insert.
-Existing Activity Watch and HR decisions remain authoritative. Manual monthly
-rows store `draft` or `submitted` state in the same ledger; the API updates
-only drafts, and payroll stops before calculation when a selected period has
-unsubmitted manual drafts.
+Monthly attendance reuses the same `attendance_records` ledger. The Attendance
+screen renders the all-employee response as a read-only monthly report filtered
+to employees with persisted rows; a cell exists only when the ledger contains
+that employee/date. Existing cells reuse the single-record attendance detail
+and editor flow. The separate Bulk Attendance variation scopes the same API to
+non-system employees and submits at most 15,000 employee/date decisions to
+`POST /hr/attendance-monthly-sheet` without per-cell network calls. The backend revalidates company, user-link,
+employment-period, weekly-off, future-date, and unique-key rules before one
+transaction. A separately edited Activity Watch day is updated to a manual HR
+decision, retaining its check timestamps; subsequent agent events preserve
+that manual decision. Manual monthly rows store `draft` or
+`submitted` state in the same ledger; payroll stops before calculation when a
+selected period has unsubmitted manual drafts.
 The monthly route remains registered for permission and refresh handling but is
 hidden from drawer rendering; the Attendance register opens it through its
 authorized Bulk Attendance page action.

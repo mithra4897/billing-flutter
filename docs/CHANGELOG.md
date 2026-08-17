@@ -22,6 +22,23 @@
   input. Submit locks them; payroll processing reports a clear error until all
   manual drafts for its period are submitted. Existing databases apply
   `doc/sql/patch_monthly_attendance_draft_submit.sql`.
+- Attendance-sheet refinement: The Attendance route now reuses the monthly
+  calendar for all employees. HR can change an Activity Watch day to a manual
+  LOP, half-day, leave, absence, or present decision; the Bulk Attendance
+  action retains its non-system-only scope.
+- Compatibility fix: Send the all-employee flag as `1`/`0`, because the
+  production Lumen query validator rejects the string form of `true`.
+- Report-only refinement: Attendance now uses the monthly calendar only for
+  persisted records. It removes bulk selection and draft/submit controls,
+  leaves missing dates blank, labels saved cells by source, and reuses the
+  single-record detail/editor when a saved cell is selected.
+- Filter refinement: Removed the Attendance report's inline Month/Year/Load
+  toolbar and reused the standard HR Filter dialog for period selection. Bulk
+  Attendance retains its month controls for its separate preparation workflow.
+- Filter completion: Restored report search, employee, status, and source
+  options alongside month/year. After a successful Bulk Attendance submit, the
+  app opens Attendance on that submitted period so persisted manual rows are
+  shown immediately.
 
 ## 2026-08-17 — Activity Watch and manual attendance
 

@@ -11,7 +11,7 @@ void _showNeedCompanySnack(BuildContext context) {
   );
 }
 
-void _openHrShellRoute(BuildContext context, String route) {
+void openHrShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
   if (navigate != null) {
     navigate(route);
@@ -638,17 +638,12 @@ class AttendanceRegisterPage extends StatefulWidget {
 }
 
 class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
-  late final String _controllerTag;
-
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('AttendanceRegisterController');
-    if (!Get.isRegistered<AttendanceRegisterController>(tag: _controllerTag)) {
-      Get.put(AttendanceRegisterController(), tag: _controllerTag);
-    }
   }
 
+  // ignore: unused_element
   Future<void> _openAttendanceFilterPanel(
     BuildContext context,
     AttendanceRegisterController controller,
@@ -735,6 +730,8 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    return MonthlyAttendancePage(embedded: widget.embedded, manualOnly: false);
+    /*
     return GetBuilder<AttendanceRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
@@ -848,6 +845,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         );
       },
     );
+    */
   }
 }
 

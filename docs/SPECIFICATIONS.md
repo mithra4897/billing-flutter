@@ -7,17 +7,35 @@
 
 ### Objective and rules
 
-- A separate Monthly Attendance screen lists active employees without an active
-  ERP user and displays one employee-by-day calendar for the selected month.
+- The Attendance screen uses the shared employee-by-day calendar as a monthly
+  report. It lists only employees with persisted attendance in that month and
+  displays only saved Activity Watch or manual records; blank days stay `—`.
+- The report has no employee selection, default-Present generation,
+  draft/submit actions, or multi-record save. Selecting an existing saved cell
+  opens the existing single attendance detail/editor flow.
+- The report uses the standard HR Filter dialog for search, employee, status,
+  source, month, and year. It does not render a separate inline
+  Month/Year/Load toolbar.
+- Successfully submitted Bulk Attendance is persisted in `attendance_records`,
+  then opens the Attendance report on the submitted company/month so the new
+  manual rows are visible immediately.
+- Its Bulk Attendance action opens the separate editable calendar scoped to
+  employees without an active ERP user.
 - Eligible Monday-through-Saturday dates through company-local today default to
   Present. HR marks exceptions as Half day, Paid leave, LOP, or Absent.
-- Sunday, future dates, dates outside employment, and existing Activity Watch
-  or manual records are locked. Existing records are never overwritten.
+- Sunday, future dates, and dates outside employment are non-editable report
+  cells. HR may open a saved Activity Watch record individually and change it
+  through the established editor; the resulting manual decision becomes the
+  payroll source and later agent events cannot replace it.
+- In Bulk Attendance, Activity Watch and submitted manual rows remain locked;
+  the flow only prepares non-system employees.
 - Selected employee rows are saved in one bounded transaction. The request is
   capped at 15,000 employee/date cells and reports created/skipped counts.
 - Paid leave is one payable unit, Half day is 0.5, and LOP/Absent are unpaid.
 - User linkage is schema-compatible: installations with `users.employee_id`
   use the direct relation; legacy installations use matching employee codes.
+- The all-employee request sends `include_system_employees` as numeric `1` or
+  `0`, compatible with the existing Lumen boolean query validator.
 - Monthly attendance has two actions: Draft saves editable manual cells without
   making them payroll-ready; Submit locks those cells as payroll-ready.
 - Activity Watch and earlier submitted/manual attendance remain locked. Payroll
@@ -25,12 +43,14 @@
 
 ### Acceptance criteria
 
-- The drawer contains one Attendance entry. Authorized HR users open the
-  monthly calendar through the Attendance screen's Bulk Attendance action.
+- The drawer contains one Attendance entry, which opens the saved-record-only
+  monthly report. Authorized HR users can open the non-system Bulk Attendance
+  workflow through the Bulk Attendance action.
 - HR can select employee rows, review the full calendar, mark exceptions, save
   a draft, then explicitly submit the selected attendance.
 - Existing attendance remains unchanged and is counted as skipped.
 - The monthly sheet reloads after save and displays created rows as locked.
+- Submitted bulk rows appear in Attendance with source `M` for the same month.
 
 ## Activity Watch/manual attendance and attendance-based payroll
 

@@ -56,6 +56,7 @@ class MonthlyAttendanceEmployeeModel {
     this.employeeCode,
     this.joiningDate,
     this.relievingDate,
+    required this.hasSystemAccess,
   });
 
   final int id;
@@ -63,6 +64,7 @@ class MonthlyAttendanceEmployeeModel {
   final String? employeeCode;
   final String? joiningDate;
   final String? relievingDate;
+  final bool hasSystemAccess;
 
   factory MonthlyAttendanceEmployeeModel.fromJson(Map<String, dynamic> json) {
     return MonthlyAttendanceEmployeeModel(
@@ -71,6 +73,8 @@ class MonthlyAttendanceEmployeeModel {
       employeeCode: json['employee_code']?.toString(),
       joiningDate: json['joining_date']?.toString(),
       relievingDate: json['relieving_date']?.toString(),
+      hasSystemAccess:
+          json['has_system_access'] == true || json['has_system_access'] == 1,
     );
   }
 }

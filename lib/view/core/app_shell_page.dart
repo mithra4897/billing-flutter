@@ -499,7 +499,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/attendance':
         return AttendanceRegisterPage(key: routeKey, embedded: true);
       case '/hr/monthly-attendance':
-        return MonthlyAttendancePage(key: routeKey, embedded: true);
+        return MonthlyAttendancePage(
+          key: routeKey,
+          embedded: true,
+          manualOnly: true,
+        );
       case '/hr/expense-claims':
         return ExpenseClaimsManagementPage(key: routeKey, embedded: true);
       case '/hr/payroll-runs':

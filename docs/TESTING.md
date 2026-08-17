@@ -2,11 +2,13 @@
 
 ## Monthly manual attendance and employee display — 2026-08-17
 
-- Backend focused PHPUnit passed: 11 tests and 43 assertions. Monthly coverage
+- Backend focused PHPUnit passed: 12 tests and 53 assertions. Monthly coverage
   verifies that a system-linked employee is excluded and a non-system employee
   receives Present, Half day, and LOP rows. A legacy-schema case verifies the
   employee-code fallback when `users.employee_id` is absent. Draft attendance
   can be edited then submitted, and payroll processing is blocked for drafts.
+- Full-sheet coverage verifies that an Activity Watch Present row can be
+  submitted as a manual LOP override while retaining its original check-in.
 - PHP syntax checks passed for the attendance controller, service, and HR route
   file; `git diff --check` passed in the backend repository.
 - `dart format` passed for the changed model, service, screen, navigation,
@@ -14,6 +16,20 @@
 - Focused Flutter model tests passed. Coverage includes monthly sheet parsing,
   LOP status, and nested employee name/code retention.
 - Focused Flutter analysis passed with no issues.
+- Focused Flutter model tests passed after adding the system-access marker used
+  by the all-employee Attendance sheet.
+- Saved-record report refinement: focused analysis of the monthly sheet,
+  Attendance wrapper, and shell route passed with no issues; focused HR model
+  tests passed (4 tests). Missing dates are now presentation-only blanks, while
+  saved cells retain their typed record for the single-record detail flow.
+- Period-filter refinement: focused analysis passed after replacing the inline
+  report toolbar with the shared HR filter dialog; focused HR model tests still
+  passed (4 tests).
+- Restored-filter/post-submit verification: focused Flutter analysis passed for
+  Search, Employee, Status, Source, Month, and Year filters; focused HR model
+  tests passed (4 tests). Backend coverage now verifies that a submitted bulk
+  manual row is returned by the all-employee monthly report with its submitted
+  state and manual source.
 - Navigation coverage verifies Monthly Attendance is absent from the drawer
   while `/hr/monthly-attendance` remains accessible with `hr.create`.
 - Authenticated browser verification remains manual because the isolated test

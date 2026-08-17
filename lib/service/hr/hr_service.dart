@@ -182,12 +182,14 @@ class HrService extends ErpModuleService {
     required int companyId,
     required int year,
     required int month,
+    bool includeSystemEmployees = false,
   }) => client.get<MonthlyAttendanceSheetModel>(
     '/hr/attendance-monthly-sheet',
     queryParameters: <String, dynamic>{
       'company_id': companyId,
       'year': year,
       'month': month,
+      'include_system_employees': includeSystemEmployees ? 1 : 0,
     },
     fromData: (dynamic json) => MonthlyAttendanceSheetModel.fromJson(
       Map<String, dynamic>.from(json as Map),
@@ -200,6 +202,7 @@ class HrService extends ErpModuleService {
     required int month,
     required List<Map<String, dynamic>> records,
     required String saveMode,
+    bool includeSystemEmployees = false,
   }) => client.post<dynamic>(
     '/hr/attendance-monthly-sheet',
     body: <String, dynamic>{
@@ -208,6 +211,7 @@ class HrService extends ErpModuleService {
       'month': month,
       'records': records,
       'save_mode': saveMode,
+      'include_system_employees': includeSystemEmployees ? 1 : 0,
     },
   );
 

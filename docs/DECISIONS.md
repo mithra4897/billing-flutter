@@ -37,6 +37,41 @@
 - Consequences: Existing rows default to submitted after the SQL patch. Users
   must submit drafts before processing payroll.
 
+## ADR-0026: Use the shared monthly sheet for agent exception overrides
+
+- Date: 2026-08-17
+- Status: Accepted
+- Context: A row-by-row attendance register makes it impractical for HR to
+  review agent attendance and enter LOP, half-day, leave, or absence exceptions.
+- Decision: The main Attendance route uses the monthly calendar for every
+  active employee. Bulk Attendance reuses that calendar but stays restricted to
+  non-system employees. In the main sheet, a changed Activity Watch record is
+  converted to a manual record in the same ledger row.
+- Reason: Retains one employee/date payroll input, preserves the agent's
+  check-in/out audit timestamps, and avoids separate override tables.
+- Alternatives considered: Keep the row register as the editor; add a second
+  exception table; let the agent calculate HR absence decisions.
+- Consequences: HR explicitly changes only exception cells. The API exposes
+  `include_system_employees` only to privileged HR monthly-sheet calls.
+
+## ADR-0027: Attendance is a persisted-record monthly report
+
+- Date: 2026-08-17
+- Status: Accepted; refines ADR-0026 UI behavior
+- Context: Reusing the editable bulk sheet on Attendance made unsaved default
+  Present cells and bulk controls look like actual attendance records.
+- Decision: Attendance reuses the calendar layout only as a saved-record
+  report. It filters out employees without records, renders missing days as
+  blank, removes selection and batch-save controls, and opens only an existing
+  record through the established single-record editor. Bulk Attendance remains
+  a separate route and workflow.
+- Reason: The report must never imply that an unsaved default is payroll input.
+- Alternatives considered: Keep default Present cells; retain batch editing in
+  both routes; restore the old row-per-record table.
+- Consequences: Report indexing uses employee/date maps and sets in O(E + A)
+  preparation time. Creating a full manual month remains exclusive to Bulk
+  Attendance.
+
 ## ADR-0023: Use Activity Watch prompt events alongside manual attendance
 
 - Date: 2026-08-17
