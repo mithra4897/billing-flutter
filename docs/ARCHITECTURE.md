@@ -15,7 +15,12 @@ Monthly attendance reuses the same `attendance_records` ledger. The Attendance
 screen renders the all-employee response as a read-only monthly report filtered
 to employees with persisted rows; a cell exists only when the ledger contains
 that employee/date. Existing cells reuse the single-record attendance detail
-and editor flow. The separate Bulk Attendance variation scopes the same API to
+and editor flow. Employee report metadata (department and active employment
+status) travels in the same monthly response, so the grid does not issue
+per-row lookups. The report paginates the already bounded monthly employee set
+client-side after filter indexing. The report query includes inactive or
+terminated employees eligible during the selected period, while write queries
+remain active-only. The separate Bulk Attendance variation scopes the same API to
 non-system employees and submits at most 15,000 employee/date decisions to
 `POST /hr/attendance-monthly-sheet` without per-cell network calls. The backend revalidates company, user-link,
 employment-period, weekly-off, future-date, and unique-key rules before one

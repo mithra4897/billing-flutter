@@ -39,6 +39,20 @@
   options alongside month/year. After a successful Bulk Attendance submit, the
   app opens Attendance on that submitted period so persisted manual rows are
   shown immediately.
+- Visual refinement: Removed the separate Monthly Attendance Report bar and
+  status legend. The bordered employee/day grid, metadata, status pills, and
+  pagination remain; Filter, Reload, and Bulk Attendance use the page actions.
+- Table refinement: Replaced single-letter weekday headers with Mon–Sun labels
+  and removed the Employee Status column.
+- Grid refinement: Removed vertical daily-column lines while keeping horizontal
+  row separation.
+- Reuse refinement: Extracted the shared employee/day DataTable into
+  `MonthlyAttendanceCalendarGrid`, used by both saved Attendance and Bulk
+  Attendance while retaining their separate state and actions.
+- Bulk visual alignment: Bulk Attendance now uses the same calendar layout as
+  the saved report, including serial number, employee avatar, department, day
+  headers, and horizontal row separators; its selection checkbox and editable
+  attendance cells remain specific to bulk preparation.
 
 ## 2026-08-17 — Activity Watch and manual attendance
 

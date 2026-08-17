@@ -2,7 +2,7 @@
 
 ## Monthly manual attendance and employee display — 2026-08-17
 
-- Backend focused PHPUnit passed: 12 tests and 53 assertions. Monthly coverage
+- Backend focused PHPUnit passed: 12 tests and 56 assertions. Monthly coverage
   verifies that a system-linked employee is excluded and a non-system employee
   receives Present, Half day, and LOP rows. A legacy-schema case verifies the
   employee-code fallback when `users.employee_id` is absent. Draft attendance
@@ -30,6 +30,18 @@
   tests passed (4 tests). Backend coverage now verifies that a submitted bulk
   manual row is returned by the all-employee monthly report with its submitted
   state and manual source.
+- Monthly-report visual verification: focused Flutter analysis passed with no
+  issues after adding metadata columns, bordered grid, and client-side
+  pagination; focused HR model tests passed (4 tests). The separate report bar
+  and status legend were intentionally removed, with controls retained in page
+  actions. Backend coverage verifies Department and Employee Status metadata
+  in the monthly response.
+- Report metadata coverage also verifies that an inactive employee whose
+  employment overlaps the month remains available to the saved-record report.
+- Agent-browser verification: the current local Flutter build served
+  `/hr/attendance` successfully, then correctly redirected its isolated,
+  unauthenticated browser session to login. Calendar rendering in an
+  authenticated HR session remains manual.
 - Navigation coverage verifies Monthly Attendance is absent from the drawer
   while `/hr/monthly-attendance` remains accessible with `hr.create`.
 - Authenticated browser verification remains manual because the isolated test

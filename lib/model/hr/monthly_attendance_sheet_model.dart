@@ -54,6 +54,8 @@ class MonthlyAttendanceEmployeeModel {
     required this.id,
     required this.employeeName,
     this.employeeCode,
+    this.departmentName,
+    this.employeeStatus,
     this.joiningDate,
     this.relievingDate,
     required this.hasSystemAccess,
@@ -62,6 +64,8 @@ class MonthlyAttendanceEmployeeModel {
   final int id;
   final String employeeName;
   final String? employeeCode;
+  final String? departmentName;
+  final String? employeeStatus;
   final String? joiningDate;
   final String? relievingDate;
   final bool hasSystemAccess;
@@ -71,6 +75,8 @@ class MonthlyAttendanceEmployeeModel {
       id: JsonModel.nullableInt(json['id']) ?? 0,
       employeeName: json['employee_name']?.toString() ?? 'Employee',
       employeeCode: json['employee_code']?.toString(),
+      departmentName: json['department_name']?.toString(),
+      employeeStatus: json['employee_status']?.toString(),
       joiningDate: json['joining_date']?.toString(),
       relievingDate: json['relieving_date']?.toString(),
       hasSystemAccess:

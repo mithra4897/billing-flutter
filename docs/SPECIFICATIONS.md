@@ -19,6 +19,23 @@
 - Successfully submitted Bulk Attendance is persisted in `attendance_records`,
   then opens the Attendance report on the submitted company/month so the new
   manual rows are visible immediately.
+- The saved-record report is a clean, horizontally scrollable grid
+  with serial number, employee identity, department, numbered day headers with
+  three-letter weekday labels, daily status pills, horizontal row separators,
+  and pagination. It intentionally omits vertical daily-column lines. Filter,
+  Reload, and Bulk Attendance remain in the page action area; the report does
+  not render a separate title/control bar, Employee Status column, or
+  status-legend card.
+- `MonthlyAttendanceCalendarGrid` owns the shared employee/day table layout;
+  the report and Bulk Attendance use the same serial, employee avatar,
+  department, day-header, and row-separator presentation. Their distinct cell
+  actions and Bulk Attendance selection state do not duplicate the calendar
+  structure.
+- Report rows may include inactive or terminated employees when they have
+  attendance inside the selected employment period; Bulk Attendance remains
+  restricted to active eligible employees.
+- Unsupported reference actions such as Export, Import, Template, and Summary
+  are not displayed until their workflows exist.
 - Its Bulk Attendance action opens the separate editable calendar scoped to
   employees without an active ERP user.
 - Eligible Monday-through-Saturday dates through company-local today default to

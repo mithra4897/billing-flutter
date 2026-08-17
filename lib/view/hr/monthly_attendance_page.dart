@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'widgets/monthly_attendance_calendar_grid.dart';
 
 const List<AppDropdownItem<String>> _monthlyAttendanceStatuses =
     <AppDropdownItem<String>>[
@@ -51,6 +52,8 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   late int _year;
   late int _month;
   int? _companyId;
+  int _page = 1;
+  int _perPage = 20;
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -120,6 +123,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       final sheet = response.data!;
       _companyId = companyId;
       _sheet = sheet;
+      if (!widget.manualOnly) _page = 1;
       _selectedEmployees
         ..clear()
         ..addAll(sheet.employees.map((employee) => employee.id));
@@ -398,6 +402,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       _filterEmployeeIds = nextEmployeeIds;
       _filterStatuses = nextStatuses;
       _filterSources = nextSources;
+      _page = 1;
     });
     nextSearchController.dispose();
     if (periodChanged) {
@@ -410,20 +415,34 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
-      if (!widget.manualOnly)
+      if (!widget.manualOnly) ...[
         AdaptiveShellActionButton(
           icon: Icons.filter_alt_outlined,
           label: 'Filter',
           filled: false,
-          onPressed: _loading || _saving ? null : _openPeriodFilter,
+          onPressed: _loading ? null : _openPeriodFilter,
         ),
-      AdaptiveShellActionButton(
-        icon: Icons.refresh_outlined,
-        label: 'Reload',
-        filled: false,
-        onPressed: _loading || _saving ? null : _load,
-      ),
+        AdaptiveShellActionButton(
+          icon: Icons.refresh_outlined,
+          label: 'Reload',
+          filled: false,
+          onPressed: _loading ? null : _load,
+        ),
+        AdaptiveShellActionButton(
+          icon: Icons.groups_outlined,
+          label: 'Bulk attendance',
+          onPressed: _loading
+              ? null
+              : () => openHrShellRoute(context, '/hr/monthly-attendance'),
+        ),
+      ],
       if (widget.manualOnly) ...[
+        AdaptiveShellActionButton(
+          icon: Icons.refresh_outlined,
+          label: 'Reload',
+          filled: false,
+          onPressed: _loading || _saving ? null : _load,
+        ),
         AdaptiveShellActionButton(
           icon: Icons.save_outlined,
           label: _saving ? 'Saving…' : 'Save draft',
@@ -436,15 +455,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
           onPressed: _loading || _saving ? null : () => _save(submit: true),
         ),
       ],
-      if (!widget.manualOnly)
-        AdaptiveShellActionButton(
-          icon: Icons.groups_outlined,
-          label: 'Bulk attendance',
-          filled: false,
-          onPressed: _loading || _saving
-              ? null
-              : () => openHrShellRoute(context, '/hr/monthly-attendance'),
-        ),
     ];
     final content = _buildContent();
     if (widget.embedded) {
@@ -516,8 +526,11 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-          ] else ...[
-            hrListAppliedFiltersCard(context, _appliedFilterChips()),
+          ] else if (_appliedFilterChips().length > 1) ...[
+            hrListAppliedFiltersCard(
+              context,
+              _appliedFilterChips().skip(1).toList(growable: false),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           if (_loading)
@@ -537,108 +550,37 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               ),
             )
           else ...[
-            _buildLegend(),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            _buildGrid(_sheet!),
+            MonthlyAttendanceCalendarGrid(
+              sheet: _sheet!,
+              employees: widget.manualOnly
+                  ? _visibleEmployees(_sheet)
+                  : _pagedEmployees(_sheet!),
+              year: _year,
+              month: _month,
+              scrollController: _gridScrollController,
+              cellBuilder: _buildAttendanceCell,
+              manualOnly: widget.manualOnly,
+              page: _page,
+              perPage: _perPage,
+              selectedEmployeeIds: _selectedEmployees,
+              onEmployeeSelected: widget.manualOnly
+                  ? (employeeId, selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedEmployees.add(employeeId);
+                        } else {
+                          _selectedEmployees.remove(employeeId);
+                        }
+                      });
+                    }
+                  : null,
+            ),
+            if (!widget.manualOnly) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              _buildPagination(_sheet!),
+            ],
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildLegend() => AppSectionCard(
-    child: Wrap(
-      spacing: AppUiConstants.spacingMd,
-      runSpacing: AppUiConstants.spacingXs,
-      children: const [
-        Text('P = Present'),
-        Text('HD = Half day (0.5 payable)'),
-        Text('PL = Paid leave'),
-        Text('LOP = Unpaid leave'),
-        Text('A = Absent'),
-        Text('AW = Activity Watch'),
-        Text('M = Manual'),
-        Text('• = Draft (not in payroll)'),
-      ],
-    ),
-  );
-
-  Widget _buildGrid(MonthlyAttendanceSheetModel sheet) {
-    final employees = _visibleEmployees(sheet);
-    return AppSectionCard(
-      child: Scrollbar(
-        controller: _gridScrollController,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          controller: _gridScrollController,
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            showCheckboxColumn: widget.manualOnly,
-            headingRowHeight: 56,
-            dataRowMinHeight: 54,
-            dataRowMaxHeight: 54,
-            columnSpacing: 12,
-            columns: <DataColumn>[
-              const DataColumn(
-                label: SizedBox(width: 190, child: Text('Employee')),
-              ),
-              for (var day = 1; day <= sheet.daysInMonth; day++)
-                DataColumn(
-                  label: SizedBox(
-                    width: 38,
-                    child: Text(
-                      '$day\n${_weekdayLetter(day)}',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-            rows: employees
-                .map((employee) {
-                  return DataRow(
-                    selected:
-                        widget.manualOnly &&
-                        _selectedEmployees.contains(employee.id),
-                    onSelectChanged: widget.manualOnly
-                        ? (selected) {
-                            setState(() {
-                              if (selected == true) {
-                                _selectedEmployees.add(employee.id);
-                              } else {
-                                _selectedEmployees.remove(employee.id);
-                              }
-                            });
-                          }
-                        : null,
-                    cells: <DataCell>[
-                      DataCell(
-                        SizedBox(
-                          width: 190,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                employee.employeeName,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if ((employee.employeeCode ?? '').isNotEmpty)
-                                Text(
-                                  employee.employeeCode!,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      for (var day = 1; day <= sheet.daysInMonth; day++)
-                        DataCell(_buildAttendanceCell(employee, day, sheet)),
-                    ],
-                  );
-                })
-                .toList(growable: false),
-          ),
-        ),
       ),
     );
   }
@@ -660,13 +602,28 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       if (record == null) {
         final date = DateTime(_year, _month, day);
         final isOff = sheet.weeklyOffDays.contains(date.weekday % 7);
+        final joining = DateTime.tryParse(employee.joiningDate ?? '');
+        final relieving = DateTime.tryParse(employee.relievingDate ?? '');
+        final notApplicable =
+            (joining != null && date.isBefore(joining)) ||
+            (relieving != null && date.isAfter(relieving));
         return Tooltip(
-          message: isOff
+          message: notApplicable
+              ? 'Not applicable for employment period'
+              : isOff
               ? 'Weekly off — no attendance record'
               : 'No saved attendance record',
-          child: SizedBox(
-            width: 42,
-            child: Center(child: Text(isOff ? 'WO' : '—')),
+          child: _emptyStatusBadge(
+            notApplicable
+                ? 'NA'
+                : isOff
+                ? 'WO'
+                : '—',
+            notApplicable
+                ? Colors.blueGrey
+                : isOff
+                ? Colors.purple
+                : Colors.grey,
           ),
         );
       }
@@ -752,7 +709,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         border: Border.all(color: color.withValues(alpha: 0.55)),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(13),
       ),
       child: Text(
         locked
@@ -764,6 +721,26 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         style: TextStyle(
           color: color,
           fontSize: locked || sourceLabel != null ? 9 : 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyStatusBadge(String label, Color color) {
+    return Container(
+      width: 42,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -792,6 +769,42 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
                   (employee.employeeCode ?? '').toLowerCase().contains(query)),
         )
         .toList(growable: false);
+  }
+
+  List<MonthlyAttendanceEmployeeModel> _pagedEmployees(
+    MonthlyAttendanceSheetModel sheet,
+  ) {
+    final employees = _visibleEmployees(sheet);
+    if (employees.isEmpty) return employees;
+    final start = (_page - 1) * _perPage;
+    if (start >= employees.length) {
+      return const <MonthlyAttendanceEmployeeModel>[];
+    }
+    final end = (start + _perPage) > employees.length
+        ? employees.length
+        : start + _perPage;
+    return employees.sublist(start, end);
+  }
+
+  Widget _buildPagination(MonthlyAttendanceSheetModel sheet) {
+    final total = _visibleEmployees(sheet).length;
+    final lastPage = total == 0 ? 1 : (total + _perPage - 1) ~/ _perPage;
+    return ReportPaginationBar(
+      meta: PaginationMeta(
+        currentPage: _page,
+        lastPage: lastPage,
+        perPage: _perPage,
+        total: total,
+      ),
+      perPageOptions: const <int>[10, 20, 50],
+      onPerPageChanged: (value) {
+        setState(() {
+          _perPage = value;
+          _page = 1;
+        });
+      },
+      onPageChanged: (value) => setState(() => _page = value),
+    );
   }
 
   bool _recordMatchesFilters(AttendanceRecordModel record) {
@@ -836,18 +849,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       companyId: companyId,
       onChanged: _load,
     );
-  }
-
-  String _weekdayLetter(int day) {
-    return const <String>[
-      'M',
-      'T',
-      'W',
-      'T',
-      'F',
-      'S',
-      'S',
-    ][DateTime(_year, _month, day).weekday - 1];
   }
 
   String _monthName(int month) => const <String>[
