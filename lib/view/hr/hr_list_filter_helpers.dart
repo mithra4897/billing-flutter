@@ -4,91 +4,48 @@ Widget hrListFilterBox({required Widget child}) {
   return SizedBox(width: 240, child: child);
 }
 
-Future<bool?> showHrListFilterDialog({
-  required BuildContext context,
-  required String title,
-  Widget? header,
-  required List<Widget> filterFields,
-  required VoidCallback onClear,
-}) async {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
-  final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+class HrInlineFilterBar extends StatelessWidget {
+  const HrInlineFilterBar({
+    required this.filterFields,
+    required this.onClear,
+    this.header,
+    super.key,
+  });
 
-  return showDialog<bool>(
-    context: context,
-    barrierDismissible: true,
-    builder: (dialogContext) {
-      final appTheme = Theme.of(dialogContext).extension<AppThemeExtension>()!;
+  final List<Widget> filterFields;
+  final VoidCallback onClear;
+  final Widget? header;
 
-      return Dialog(
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
-          vertical: 20,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              dialogPadding,
-              dialogPadding,
-              dialogPadding,
-              MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(dialogContext).textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(false),
-                      tooltip: 'Close',
-                      icon: const Icon(Icons.close),
-                      color: appTheme.mutedText,
-                    ),
-                  ],
+  @override
+  Widget build(BuildContext context) {
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (header != null) ...[
+            header!,
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
+          Wrap(
+            spacing: AppUiConstants.spacingMd,
+            runSpacing: AppUiConstants.spacingMd,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            children: [
+              ...filterFields,
+              hrListFilterBox(
+                child: AppActionButton(
+                  icon: Icons.clear_outlined,
+                  label: 'Clear',
+                  filled: false,
+                  onPressed: onClear,
                 ),
-                const SizedBox(height: 12),
-                if (header != null) ...[header, const SizedBox(height: 12)],
-                Wrap(spacing: 16, runSpacing: 16, children: filterFields),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(dialogContext).pop(true),
-                      icon: const Icon(Icons.search),
-                      label: const Text('Apply Filters'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        onClear();
-                        Navigator.of(dialogContext).pop(true);
-                      },
-                      icon: const Icon(Icons.clear),
-                      label: const Text('Clear'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
-      );
-    },
-  );
+        ],
+      ),
+    );
+  }
 }
 
 Widget hrListAppliedFiltersCard(BuildContext context, List<String> chips) {

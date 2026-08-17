@@ -13,9 +13,17 @@
 - The report has no employee selection, default-Present generation,
   draft/submit actions, or multi-record save. Selecting an existing saved cell
   opens the existing single attendance detail/editor flow.
-- The report uses the standard HR Filter dialog for search, employee, status,
-  source, month, and year. It does not render a separate inline
-  Month/Year/Load toolbar.
+- The report Filter action toggles the shared full-width HR filter bar for
+  search, employee, status, source, month, and year. It does not use a popup
+  or a separate inline Month/Year/Load toolbar.
+- All live HR list filters (Attendance, Leave Requests, Expense Claims, and
+  Payslips) use the same toggleable `HrInlineFilterBar`; filters are no longer
+  presented in popups. Each page keeps its existing fields, clear behavior,
+  and load request.
+- On `SettingsWorkspace` HR pages, the bar uses the workspace-level full-width
+  header slot so it spans the list and editor area rather than the list pane.
+- The inline bar follows the Sales filter action pattern: it has no Apply
+  button and uses the shared Clear action at the end of the filter row.
 - Successfully submitted Bulk Attendance is persisted in `attendance_records`,
   then opens the Attendance report on the submitted company/month so the new
   manual rows are visible immediately.

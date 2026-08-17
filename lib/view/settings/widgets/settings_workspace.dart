@@ -45,6 +45,7 @@ class SettingsWorkspace extends StatefulWidget {
     this.controller,
     this.editorOnly = false,
     this.wrapEditorInCard = true,
+    this.fullWidthHeader,
   }) : assert(
          editor != null || editorBuilder != null,
          'Either editor or editorBuilder must be provided.',
@@ -61,6 +62,7 @@ class SettingsWorkspace extends StatefulWidget {
   final SettingsWorkspaceController? controller;
   final bool editorOnly;
   final bool wrapEditorInCard;
+  final Widget? fullWidthHeader;
 
   @override
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
@@ -173,19 +175,40 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                   ? SingleChildScrollView(
                       controller: widget.scrollController,
                       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          SizedBox(width: widget.listWidth, child: widget.list),
-                          const SizedBox(width: AppUiConstants.spacingXl),
-                          Expanded(child: editorContent),
+                          if (widget.fullWidthHeader != null) ...[
+                            widget.fullWidthHeader!,
+                            const SizedBox(height: AppUiConstants.spacingMd),
+                          ],
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: widget.listWidth,
+                                child: widget.list,
+                              ),
+                              const SizedBox(width: AppUiConstants.spacingXl),
+                              Expanded(child: editorContent),
+                            ],
+                          ),
                         ],
                       ),
                     )
                   : SingleChildScrollView(
                       controller: widget.scrollController,
                       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                      child: widget.list,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (widget.fullWidthHeader != null) ...[
+                            widget.fullWidthHeader!,
+                            const SizedBox(height: AppUiConstants.spacingMd),
+                          ],
+                          widget.list,
+                        ],
+                      ),
                     ),
             );
           },

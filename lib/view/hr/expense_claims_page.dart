@@ -25,6 +25,7 @@ class _ExpenseClaimsManagementPageState
     extends State<ExpenseClaimsManagementPage> {
   late final String _controllerTag;
   final GlobalKey<FormState> _expenseClaimFormKey = GlobalKey<FormState>();
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -42,18 +43,9 @@ class _ExpenseClaimsManagementPageState
   ExpenseClaimsManagementController get _controller =>
       Get.find<ExpenseClaimsManagementController>(tag: _controllerTag);
 
-  Future<void> _openExpenseFilterPanel() async {
+  Widget _buildInlineExpenseFilters() {
     final controller = _controller;
-    final applied = await showHrListFilterDialog(
-      context: context,
-      title: 'Filter Expense Claims',
-      header: controller.companyBanner == null
-          ? null
-          : Text(
-              'Session company: ${controller.companyBanner}. Change via the header '
-              'session button.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+    return HrInlineFilterBar(
       filterFields: [
         hrListFilterBox(
           child: AppFormTextField(
@@ -65,20 +57,20 @@ class _ExpenseClaimsManagementPageState
         if (controller.canViewAllClaims)
           hrListFilterBox(
             child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee filter',
+              labelText: 'Employee',
               mappedItems: controller.employees
-                    .where(
-                      (employee) =>
-                          employee.companyId == controller.companyId &&
-                          employee.id != null,
-                    )
-                    .map(
-                      (employee) => AppDropdownItem<int>(
-                        value: employee.id!,
-                        label: employee.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
+                  .where(
+                    (employee) =>
+                        employee.companyId == controller.companyId &&
+                        employee.id != null,
+                  )
+                  .map(
+                    (employee) => AppDropdownItem<int>(
+                      value: employee.id!,
+                      label: employee.toString(),
+                    ),
+                  )
+                  .toList(growable: false),
               multiInitialValues: controller.filterEmployeeIds,
               multiHintText: 'Select employees',
               onMultiChanged: controller.setFilterEmployeeIds,
@@ -118,12 +110,38 @@ class _ExpenseClaimsManagementPageState
             onMultiChanged: controller.setFilterClaimStatuses,
           ),
         ),
+        hrListFilterBox(
+          child: AppFormTextField(
+            controller: controller.filterDateFromController,
+            labelText: 'From date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            onChanged: (value) {
+              if (normalizeDateForApi(value).isNotEmpty) {
+                unawaited(controller.loadPage());
+              }
+            },
+          ),
+        ),
+        hrListFilterBox(
+          child: AppFormTextField(
+            controller: controller.filterDateToController,
+            labelText: 'To date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            onChanged: (value) {
+              if (normalizeDateForApi(value).isNotEmpty) {
+                unawaited(controller.loadPage());
+              }
+            },
+          ),
+        ),
       ],
-      onClear: controller.clearExpenseFilters,
+      onClear: () {
+        controller.clearExpenseFilters();
+        unawaited(controller.loadPage());
+      },
     );
-    if (applied == true && mounted) {
-      await controller.loadPage();
-    }
   }
 
   Future<void> _submitClaim({
@@ -281,8 +299,8 @@ class _ExpenseClaimsManagementPageState
           AdaptiveShellActionButton(
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
-            onPressed: _openExpenseFilterPanel,
+            filled: _filtersVisible,
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
           ),
           if (controller.isSelfServiceUser)
             AdaptiveShellActionButton(
@@ -336,14 +354,10 @@ class _ExpenseClaimsManagementPageState
       title: 'Expense claims',
       editorTitle: controller.editorTitle,
       scrollController: controller.pageScrollController,
+      fullWidthHeader: _filtersVisible ? _buildInlineExpenseFilters() : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          hrListAppliedFiltersCard(
-            context,
-            controller.expenseAppliedFilterChips(),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<ExpenseClaimModel>(
             searchController: controller.searchController,
             searchHint: 'Search claims…',

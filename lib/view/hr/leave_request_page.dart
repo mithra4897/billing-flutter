@@ -15,6 +15,7 @@ class _LeaveRequestManagementPageState
     extends State<LeaveRequestManagementPage> {
   late final String _controllerTag;
   final GlobalKey<FormState> _leaveRequestFormKey = GlobalKey<FormState>();
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -120,20 +121,8 @@ class _LeaveRequestManagementPageState
     }
   }
 
-  Future<void> _openLeaveListFilterPanel() async {
-    final controller = Get.find<LeaveRequestManagementController>(
-      tag: _controllerTag,
-    );
-    final applied = await showHrListFilterDialog(
-      context: context,
-      title: 'Filter Leave Requests',
-      header: controller.companyBanner == null
-          ? null
-          : Text(
-              'Session company: ${controller.companyBanner}. Change via the header '
-              'session button.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+  Widget _buildInlineLeaveFilters(LeaveRequestManagementController controller) {
+    return HrInlineFilterBar(
       filterFields: [
         hrListFilterBox(
           child: AppFormTextField(
@@ -145,20 +134,18 @@ class _LeaveRequestManagementPageState
         if (controller.canViewAllHr) ...[
           hrListFilterBox(
             child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee filter',
+              labelText: 'Employee',
               mappedItems: controller.employees
-                    .where(
-                      (e) =>
-                          e.companyId == controller.sessionCompanyId &&
-                          e.id != null,
-                    )
-                    .map(
-                      (e) => AppDropdownItem<int>(
-                        value: e.id!,
-                        label: e.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
+                  .where(
+                    (e) =>
+                        e.companyId == controller.sessionCompanyId &&
+                        e.id != null,
+                  )
+                  .map(
+                    (e) =>
+                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
+                  )
+                  .toList(growable: false),
               multiInitialValues: controller.listFilterEmployeeIds,
               multiHintText: 'Select employees',
               onMultiChanged: controller.setListFilterEmployeeIds,
@@ -166,8 +153,9 @@ class _LeaveRequestManagementPageState
           ),
           hrListFilterBox(
             child: AppDropdownField<String>.fromMapped(
-              labelText: 'Status filter',
-              mappedItems: LeaveRequestManagementController.listStatusFilterItems
+              labelText: 'Status',
+              mappedItems: LeaveRequestManagementController
+                  .listStatusFilterItems
                   .where((item) => item.value != null)
                   .map(
                     (item) => AppDropdownItem<String>(
@@ -185,8 +173,7 @@ class _LeaveRequestManagementPageState
         hrListFilterBox(
           child: AppFormTextField(
             controller: controller.listDateFromController,
-            labelText: 'List from date',
-            hintText: 'Filter overlapping from…',
+            labelText: 'From date',
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),
@@ -194,18 +181,17 @@ class _LeaveRequestManagementPageState
         hrListFilterBox(
           child: AppFormTextField(
             controller: controller.listDateToController,
-            labelText: 'List to date',
-            hintText: 'Filter overlapping to…',
+            labelText: 'To date',
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),
         ),
       ],
-      onClear: controller.clearLeaveListFilters,
+      onClear: () {
+        controller.clearLeaveListFilters();
+        unawaited(controller.loadData());
+      },
     );
-    if (applied == true && mounted) {
-      await controller.loadData();
-    }
   }
 
   @override
@@ -218,8 +204,8 @@ class _LeaveRequestManagementPageState
           AdaptiveShellActionButton(
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
-            onPressed: _openLeaveListFilterPanel,
+            filled: _filtersVisible,
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
           ),
           AdaptiveShellActionButton(
             onPressed: () =>
@@ -261,14 +247,12 @@ class _LeaveRequestManagementPageState
       title: 'Leave Requests',
       editorTitle: controller.selectedLeaveRequest?.toString(),
       scrollController: controller.pageScrollController,
+      fullWidthHeader: _filtersVisible
+          ? _buildInlineLeaveFilters(controller)
+          : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          hrListAppliedFiltersCard(
-            context,
-            controller.leaveListAppliedFilterChips(),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<LeaveRequestModel>(
             searchController: controller.searchController,
             searchHint: 'Search leave requests',

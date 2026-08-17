@@ -206,6 +206,9 @@ class ExpenseClaimsManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController filterDateFromController =
+      TextEditingController();
+  final TextEditingController filterDateToController = TextEditingController();
   final TextEditingController claimNoController = TextEditingController();
   final TextEditingController claimDateController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
@@ -270,6 +273,8 @@ class ExpenseClaimsManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController.dispose();
+    filterDateFromController.dispose();
+    filterDateToController.dispose();
     claimNoController.dispose();
     claimDateController.dispose();
     notesController.dispose();
@@ -313,9 +318,10 @@ class ExpenseClaimsManagementController extends GetxController {
               !filterEmployeeIds.contains(intValue(data, 'employee_id'))) {
             return false;
           }
-          final paymentStatus = stringValue(data, 'payment_status')
-              .trim()
-              .toLowerCase();
+          final paymentStatus = stringValue(
+            data,
+            'payment_status',
+          ).trim().toLowerCase();
           if (filterPaymentStatuses.isNotEmpty &&
               !filterPaymentStatuses.contains(paymentStatus)) {
             return false;
@@ -404,6 +410,10 @@ class ExpenseClaimsManagementController extends GetxController {
         'company_id': sessionCompanyId,
         'per_page': 200,
       };
+      final dateFrom = normalizeDateForApi(filterDateFromController.text);
+      final dateTo = normalizeDateForApi(filterDateToController.text);
+      if (dateFrom.isNotEmpty) filters['date_from'] = dateFrom;
+      if (dateTo.isNotEmpty) filters['date_to'] = dateTo;
       final listResponse = await hrService.expenseClaims(filters: filters);
       final nextRows = listResponse.data ?? const <ExpenseClaimModel>[];
 
@@ -710,6 +720,8 @@ class ExpenseClaimsManagementController extends GetxController {
 
   void clearExpenseFilters() {
     searchController.clear();
+    filterDateFromController.clear();
+    filterDateToController.clear();
     filterEmployeeIds = <int>{};
     filterPaymentStatuses = <String>{};
     filterClaimStatuses = <String>{};

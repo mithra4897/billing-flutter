@@ -42,6 +42,18 @@
   `/hr/attendance` successfully, then correctly redirected its isolated,
   unauthenticated browser session to login. Calendar rendering in an
   authenticated HR session remains manual.
+- Attendance inline-filter verification: focused Flutter analysis passed after
+  replacing the popup with the shared toggleable HR filter bar; focused
+  attendance/payroll model tests passed (4 tests).
+- HR inline-filter migration: focused analysis passed for Attendance, Leave
+  Requests, Expense Claims, Payslips, the HR register, and shared filter
+  helper; no live HR filter page uses the popup helper.
+- Full-width HR filter layout: focused analysis passed after placing
+  `SettingsWorkspace` filters above both the list and editor panels; focused
+  attendance/payroll model tests passed (4 tests).
+- Sales-style HR filter actions: focused analysis passed after removing Apply
+  and reusing the shared Clear action; focused attendance/payroll model tests
+  passed (4 tests).
 - Navigation coverage verifies Monthly Attendance is absent from the drawer
   while `/hr/monthly-attendance` remains accessible with `hr.create`.
 - Authenticated browser verification remains manual because the isolated test

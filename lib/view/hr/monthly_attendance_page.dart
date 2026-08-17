@@ -49,6 +49,8 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _gridScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
   late int _year;
   late int _month;
   int? _companyId;
@@ -56,6 +58,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   int _perPage = 20;
   bool _loading = true;
   bool _saving = false;
+  bool _filtersVisible = false;
   String? _error;
   MonthlyAttendanceSheetModel? _sheet;
   final Set<int> _selectedEmployees = <int>{};
@@ -77,6 +80,10 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     _month = widget.manualOnly
         ? now.month
         : _attendanceReportMonth ?? now.month;
+    _setDateRangeForPeriod();
+    _searchController.addListener(_onSearchChanged);
+    _dateFromController.addListener(_onDateRangeChanged);
+    _dateToController.addListener(_onDateRangeChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -84,7 +91,10 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   void dispose() {
     _pageScrollController.dispose();
     _gridScrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _dateFromController.dispose();
+    _dateToController.dispose();
     super.dispose();
   }
 
@@ -290,126 +300,125 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     }
   }
 
-  Future<void> _openPeriodFilter() async {
-    var nextMonth = _month;
-    var nextYear = _year;
-    var nextEmployeeIds = Set<int>.from(_filterEmployeeIds);
-    var nextStatuses = Set<String>.from(_filterStatuses);
-    var nextSources = Set<String>.from(_filterSources);
-    final nextSearchController = TextEditingController(
-      text: _searchController.text,
-    );
-    final applied = await showHrListFilterDialog(
-      context: context,
-      title: 'Filter Attendance',
-      filterFields: [
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: nextSearchController,
-            labelText: 'Search',
-            hintText: 'Employee name or code',
-          ),
+  Widget _buildInlineFilterBar() => HrInlineFilterBar(
+    filterFields: [
+      hrListFilterBox(
+        child: AppFormTextField(
+          controller: _searchController,
+          labelText: 'Search',
+          hintText: 'Employee name or code',
         ),
-        hrListFilterBox(
-          child: AppDropdownField<int>.fromMapped(
-            labelText: 'Employee',
-            mappedItems: (_sheet?.employees ?? const [])
-                .map(
-                  (employee) => AppDropdownItem<int>(
-                    value: employee.id,
-                    label: employee.employeeName,
-                  ),
-                )
-                .toList(growable: false),
-            multiInitialValues: nextEmployeeIds,
-            multiHintText: 'Select employees',
-            onMultiChanged: (values) {
-              nextEmployeeIds = Set<int>.from(values);
-            },
-          ),
+      ),
+      hrListFilterBox(
+        child: AppDropdownField<int>.fromMapped(
+          labelText: 'Employee',
+          mappedItems: (_sheet?.employees ?? const [])
+              .map(
+                (employee) => AppDropdownItem<int>(
+                  value: employee.id,
+                  label: employee.employeeName,
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: _filterEmployeeIds,
+          multiHintText: 'Select employees',
+          onMultiChanged: (values) {
+            setState(() => _filterEmployeeIds = Set<int>.from(values));
+          },
         ),
-        hrListFilterBox(
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Status',
-            mappedItems: _attendanceStatusFilters,
-            multiInitialValues: nextStatuses,
-            multiHintText: 'Select statuses',
-            onMultiChanged: (values) {
-              nextStatuses = Set<String>.from(values);
-            },
-          ),
+      ),
+      hrListFilterBox(
+        child: AppDropdownField<String>.fromMapped(
+          labelText: 'Status',
+          mappedItems: _attendanceStatusFilters,
+          multiInitialValues: _filterStatuses,
+          multiHintText: 'Select statuses',
+          onMultiChanged: (values) {
+            setState(() => _filterStatuses = Set<String>.from(values));
+          },
         ),
-        hrListFilterBox(
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Source',
-            mappedItems: _attendanceSourceFilters,
-            multiInitialValues: nextSources,
-            multiHintText: 'Select sources',
-            onMultiChanged: (values) {
-              nextSources = Set<String>.from(values);
-            },
-          ),
+      ),
+      hrListFilterBox(
+        child: AppDropdownField<String>.fromMapped(
+          labelText: 'Source',
+          mappedItems: _attendanceSourceFilters,
+          multiInitialValues: _filterSources,
+          multiHintText: 'Select sources',
+          onMultiChanged: (values) {
+            setState(() => _filterSources = Set<String>.from(values));
+          },
         ),
-        hrListFilterBox(
-          child: AppDropdownField<int>.fromMapped(
-            labelText: 'Month',
-            initialValue: nextMonth,
-            mappedItems: List<AppDropdownItem<int>>.generate(
-              12,
-              (index) => AppDropdownItem<int>(
-                value: index + 1,
-                label: _monthName(index + 1),
-              ),
-            ),
-            onChanged: (value) {
-              if (value != null) nextMonth = value;
-            },
-          ),
+      ),
+      hrListFilterBox(
+        child: AppFormTextField(
+          controller: _dateFromController,
+          labelText: 'From date',
+          keyboardType: TextInputType.datetime,
+          inputFormatters: const [DateInputFormatter()],
         ),
-        hrListFilterBox(
-          child: AppDropdownField<int>.fromMapped(
-            labelText: 'Year',
-            initialValue: nextYear,
-            mappedItems: List<AppDropdownItem<int>>.generate(7, (index) {
-              final value = DateTime.now().year - 4 + index;
-              return AppDropdownItem<int>(value: value, label: '$value');
-            }),
-            onChanged: (value) {
-              if (value != null) nextYear = value;
-            },
-          ),
+      ),
+      hrListFilterBox(
+        child: AppFormTextField(
+          controller: _dateToController,
+          labelText: 'To date',
+          keyboardType: TextInputType.datetime,
+          inputFormatters: const [DateInputFormatter()],
         ),
-      ],
-      onClear: () {
-        final now = DateTime.now();
-        nextMonth = now.month;
-        nextYear = now.year;
-        nextSearchController.clear();
-        nextEmployeeIds = <int>{};
-        nextStatuses = <String>{};
-        nextSources = <String>{};
-      },
-    );
-    if (applied != true || !mounted) {
-      nextSearchController.dispose();
+      ),
+    ],
+    onClear: () {
+      _clearFilters();
+      unawaited(_applyFilters());
+    },
+  );
+
+  void _onSearchChanged() => setState(() {});
+
+  void _onDateRangeChanged() {
+    final from = parseNormalizedDateValue(_dateFromController.text);
+    final to = parseNormalizedDateValue(_dateToController.text);
+    if (from == null ||
+        to == null ||
+        from.year != to.year ||
+        from.month != to.month) {
       return;
     }
-    final periodChanged = nextMonth != _month || nextYear != _year;
+    if (from.year == _year && from.month == _month) return;
     setState(() {
-      _month = nextMonth;
-      _year = nextYear;
-      _searchController.text = nextSearchController.text;
-      _filterEmployeeIds = nextEmployeeIds;
-      _filterStatuses = nextStatuses;
-      _filterSources = nextSources;
+      _year = from.year;
+      _month = from.month;
+    });
+    unawaited(_applyFilters());
+  }
+
+  void _setDateRangeForPeriod() {
+    _dateFromController.text = displayDate(
+      DateTime(_year, _month, 1).toIso8601String(),
+    );
+    _dateToController.text = displayDate(
+      DateTime(_year, _month + 1, 0).toIso8601String(),
+    );
+  }
+
+  void _clearFilters() {
+    final now = DateTime.now();
+    setState(() {
+      _month = now.month;
+      _year = now.year;
+      _setDateRangeForPeriod();
+      _searchController.clear();
+      _filterEmployeeIds = <int>{};
+      _filterStatuses = <String>{};
+      _filterSources = <String>{};
       _page = 1;
     });
-    nextSearchController.dispose();
-    if (periodChanged) {
-      _attendanceReportYear = _year;
-      _attendanceReportMonth = _month;
-      await _load();
-    }
+  }
+
+  Future<void> _applyFilters() async {
+    _attendanceReportYear = _year;
+    _attendanceReportMonth = _month;
+    setState(() => _page = 1);
+    await _load();
   }
 
   @override
@@ -420,7 +429,9 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
           icon: Icons.filter_alt_outlined,
           label: 'Filter',
           filled: false,
-          onPressed: _loading ? null : _openPeriodFilter,
+          onPressed: _loading
+              ? null
+              : () => setState(() => _filtersVisible = !_filtersVisible),
         ),
         AdaptiveShellActionButton(
           icon: Icons.refresh_outlined,
@@ -526,11 +537,8 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-          ] else if (_appliedFilterChips().length > 1) ...[
-            hrListAppliedFiltersCard(
-              context,
-              _appliedFilterChips().skip(1).toList(growable: false),
-            ),
+          ] else if (_filtersVisible) ...[
+            _buildInlineFilterBar(),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           if (_loading)
@@ -813,30 +821,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     return (_filterStatuses.isEmpty || _filterStatuses.contains(status)) &&
         (_filterSources.isEmpty || _filterSources.contains(source));
   }
-
-  List<String> _appliedFilterChips() {
-    final employeeNames = <int, String>{
-      for (final employee in _sheet?.employees ?? const [])
-        employee.id: employee.employeeName,
-    };
-    return <String>[
-      'Period: ${_monthName(_month)} $_year',
-      if (_searchController.text.trim().isNotEmpty)
-        'Search: ${_searchController.text.trim()}',
-      if (_filterEmployeeIds.isNotEmpty)
-        'Employee: ${_filterEmployeeIds.map((id) => employeeNames[id] ?? id).join(', ')}',
-      if (_filterStatuses.isNotEmpty)
-        'Status: ${_filterStatuses.map(_attendanceStatusLabel).join(', ')}',
-      if (_filterSources.isNotEmpty)
-        'Source: ${_filterSources.map(_attendanceSourceLabel).join(', ')}',
-    ];
-  }
-
-  String _attendanceStatusLabel(String value) =>
-      hrDropdownLabel(_attendanceStatusFilters, value);
-
-  String _attendanceSourceLabel(String value) =>
-      hrDropdownLabel(_attendanceSourceFilters, value);
 
   Future<void> _openSavedRecord(AttendanceRecordModel record) async {
     final id = record.id;

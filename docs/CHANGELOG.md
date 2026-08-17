@@ -53,6 +53,15 @@
   the saved report, including serial number, employee avatar, department, day
   headers, and horizontal row separators; its selection checkbox and editable
   attendance cells remain specific to bulk preparation.
+- Attendance filter refinement: Replaced the popup filter with the shared,
+  full-width, toggleable HR filter bar used as the Sales-style filter surface.
+- HR filter completion: Migrated Leave Requests, Expense Claims, and Payslips
+  to the same reusable inline filter bar and removed the unused popup helper.
+- HR filter layout: Added a reusable full-width workspace-header slot so Leave
+  Requests and Expense Claims display the filter bar across the full HR page,
+  matching Attendance.
+- HR filter actions: Removed Apply from the shared bar and reused the Sales
+  Clear action layout; Attendance refreshes on period selection.
 
 ## 2026-08-17 — Activity Watch and manual attendance
 

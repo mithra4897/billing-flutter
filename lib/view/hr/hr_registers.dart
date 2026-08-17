@@ -95,16 +95,6 @@ class _HrCompanyContextFilters extends StatelessWidget {
   }
 }
 
-const List<AppDropdownItem<String?>> _hrAttendanceStatusFilterItems =
-    <AppDropdownItem<String?>>[
-      AppDropdownItem<String?>(value: null, label: 'All statuses'),
-      AppDropdownItem<String?>(value: 'present', label: 'Present'),
-      AppDropdownItem<String?>(value: 'absent', label: 'Absent'),
-      AppDropdownItem<String?>(value: 'leave', label: 'Leave'),
-      AppDropdownItem<String?>(value: 'half_day', label: 'Half day'),
-      AppDropdownItem<String?>(value: 'holiday', label: 'Holiday'),
-    ];
-
 class AttendanceRegisterController extends GetxController {
   final HrService _service = HrService();
   final HrModuleRefreshController _refreshController =
@@ -643,91 +633,6 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
     super.initState();
   }
 
-  // ignore: unused_element
-  Future<void> _openAttendanceFilterPanel(
-    BuildContext context,
-    AttendanceRegisterController controller,
-  ) async {
-    final applied = await showHrListFilterDialog(
-      context: context,
-      title: 'Filter Attendance',
-      header: controller.companyBanner == null
-          ? null
-          : Text(
-              'Session company: ${controller.companyBanner}. Change via the '
-              'header session button.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-      filterFields: [
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.searchController,
-            labelText: 'Search',
-            hintText: 'Employee, date, status…',
-          ),
-        ),
-        if (controller.canViewAllHr) ...[
-          hrListFilterBox(
-            child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee filter',
-              mappedItems: controller.employees
-                  .where(
-                    (EmployeeModel e) =>
-                        e.companyId == controller.sessionCompanyId &&
-                        e.id != null,
-                  )
-                  .map(
-                    (EmployeeModel e) =>
-                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.filterEmployeeIds,
-              multiHintText: 'Select employees',
-              onMultiChanged: controller.setEmployeeFilters,
-            ),
-          ),
-          hrListFilterBox(
-            child: AppDropdownField<String>.fromMapped(
-              labelText: 'Status',
-              mappedItems: _hrAttendanceStatusFilterItems
-                  .where((item) => item.value != null)
-                  .map(
-                    (item) => AppDropdownItem<String>(
-                      value: item.value!,
-                      label: item.label,
-                    ),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.filterAttendanceStatuses,
-              multiHintText: 'Select statuses',
-              onMultiChanged: controller.setAttendanceStatusFilters,
-            ),
-          ),
-        ],
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.dateFromController,
-            labelText: 'From date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.dateToController,
-            labelText: 'To date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-      ],
-      onClear: controller.clearFilters,
-    );
-    if (applied == true && context.mounted) {
-      await controller.load();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return MonthlyAttendancePage(embedded: widget.embedded, manualOnly: false);
@@ -983,6 +888,7 @@ class PayslipRegisterPage extends StatefulWidget {
 
 class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -1030,20 +936,8 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
     }
   }
 
-  Future<void> _openPayslipFilterPanel(
-    BuildContext context,
-    PayslipRegisterController controller,
-  ) async {
-    final applied = await showHrListFilterDialog(
-      context: context,
-      title: 'Filter Payslips',
-      header: controller.companyBanner == null
-          ? null
-          : Text(
-              'Session company: ${controller.companyBanner}. Change via the '
-              'header session button.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+  Widget _buildInlinePayslipFilters(PayslipRegisterController controller) {
+    return HrInlineFilterBar(
       filterFields: [
         hrListFilterBox(
           child: AppFormTextField(
@@ -1055,7 +949,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         if (controller.canViewAllHr)
           hrListFilterBox(
             child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee filter',
+              labelText: 'Employee',
               mappedItems: controller.employees
                   .where(
                     (EmployeeModel e) =>
@@ -1075,7 +969,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         hrListFilterBox(
           child: AppFormTextField(
             controller: controller.dateFromController,
-            labelText: 'Payslip from date',
+            labelText: 'From date',
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),
@@ -1083,17 +977,17 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         hrListFilterBox(
           child: AppFormTextField(
             controller: controller.dateToController,
-            labelText: 'Payslip to date',
+            labelText: 'To date',
             keyboardType: TextInputType.datetime,
             inputFormatters: const [DateInputFormatter()],
           ),
         ),
       ],
-      onClear: controller.clearFilters,
+      onClear: () {
+        controller.clearFilters();
+        unawaited(controller.load());
+      },
     );
-    if (applied == true && context.mounted) {
-      await controller.load();
-    }
   }
 
   @override
@@ -1120,8 +1014,9 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
             AdaptiveShellActionButton(
               icon: Icons.filter_alt_outlined,
               label: 'Filter',
-              filled: false,
-              onPressed: () => _openPayslipFilterPanel(context, controller),
+              filled: _filtersVisible,
+              onPressed: () =>
+                  setState(() => _filtersVisible = !_filtersVisible),
             ),
             AdaptiveShellActionButton(
               icon: Icons.refresh,
@@ -1129,10 +1024,9 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
               onPressed: controller.load,
             ),
           ],
-          filters: hrListAppliedFiltersCard(
-            context,
-            controller.appliedFilterChips,
-          ),
+          filters: _filtersVisible
+              ? _buildInlinePayslipFilters(controller)
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<PayslipModel>(
