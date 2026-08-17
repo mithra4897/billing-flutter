@@ -19,6 +19,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
     required this.page,
     required this.perPage,
     required this.selectedEmployeeIds,
+    this.visibleDays,
     this.onEmployeeSelected,
     super.key,
   });
@@ -33,11 +34,15 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
   final int page;
   final int perPage;
   final Set<int> selectedEmployeeIds;
+  final List<int>? visibleDays;
   final void Function(int employeeId, bool selected)? onEmployeeSelected;
 
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final days =
+        visibleDays ??
+        List<int>.generate(sheet.daysInMonth, (index) => index + 1);
     return AppSectionCard(
       padding: EdgeInsets.zero,
       child: Scrollbar(
@@ -74,7 +79,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
               const DataColumn(
                 label: SizedBox(width: 150, child: Text('Department')),
               ),
-              for (var day = 1; day <= sheet.daysInMonth; day++)
+              for (final day in days)
                 DataColumn(
                   label: SizedBox(
                     width: 38,
@@ -86,7 +91,9 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
                 ),
             ],
             rows: employees.indexed
-                .map((entry) => _row(context, entry.$1, entry.$2, appTheme))
+                .map(
+                  (entry) => _row(context, entry.$1, entry.$2, appTheme, days),
+                )
                 .toList(growable: false),
           ),
         ),
@@ -99,6 +106,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
     int rowIndex,
     MonthlyAttendanceEmployeeModel employee,
     AppThemeExtension appTheme,
+    List<int> days,
   ) {
     return DataRow(
       selected: manualOnly && selectedEmployeeIds.contains(employee.id),
@@ -142,8 +150,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
             ),
           ),
         ),
-        for (var day = 1; day <= sheet.daysInMonth; day++)
-          DataCell(cellBuilder(employee, day, sheet)),
+        for (final day in days) DataCell(cellBuilder(employee, day, sheet)),
       ],
     );
   }

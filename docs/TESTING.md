@@ -1,5 +1,14 @@
 # Testing
 
+## Attendance date-range filtering correction — 2026-08-17
+
+- Focused analysis passed for the monthly Attendance report.
+- Date helper coverage passed for inclusive From/To boundaries, an excluded
+  date outside the range, and the exact calendar day columns for a selected
+  range.
+- Authenticated UI verification should confirm changing From/To within one
+  month immediately hides and restores matching calendar cells.
+
 ## Monthly manual attendance and employee display — 2026-08-17
 
 - Backend focused PHPUnit passed: 12 tests and 56 assertions. Monthly coverage

@@ -30,6 +30,29 @@ const List<AppDropdownItem<String>> _attendanceStatusFilters =
 int? _attendanceReportYear;
 int? _attendanceReportMonth;
 
+List<int> monthlyAttendanceVisibleDays({
+  required int year,
+  required int month,
+  required int daysInMonth,
+  String? fromValue,
+  String? toValue,
+}) {
+  final from = parseNormalizedDateValue(fromValue);
+  final to = parseNormalizedDateValue(toValue);
+  if (from == null || to == null || from.isAfter(to)) {
+    return List<int>.generate(daysInMonth, (index) => index + 1);
+  }
+  return List<int>.generate(daysInMonth, (index) => index + 1)
+      .where(
+        (day) => matchesDateValueRange(
+          DateTime(year, month, day).toIso8601String(),
+          fromValue: fromValue,
+          toValue: toValue,
+        ),
+      )
+      .toList(growable: false);
+}
+
 class MonthlyAttendancePage extends StatefulWidget {
   const MonthlyAttendancePage({
     super.key,
@@ -377,13 +400,18 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   void _onDateRangeChanged() {
     final from = parseNormalizedDateValue(_dateFromController.text);
     final to = parseNormalizedDateValue(_dateToController.text);
-    if (from == null ||
-        to == null ||
-        from.year != to.year ||
-        from.month != to.month) {
+    if (from == null || to == null || from.isAfter(to)) {
+      setState(() {});
       return;
     }
-    if (from.year == _year && from.month == _month) return;
+    if (from.year != to.year || from.month != to.month) {
+      setState(() {});
+      return;
+    }
+    if (from.year == _year && from.month == _month) {
+      setState(() => _page = 1);
+      return;
+    }
     setState(() {
       _year = from.year;
       _month = from.month;
@@ -563,6 +591,15 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               employees: widget.manualOnly
                   ? _visibleEmployees(_sheet)
                   : _pagedEmployees(_sheet!),
+              visibleDays: widget.manualOnly
+                  ? null
+                  : monthlyAttendanceVisibleDays(
+                      year: _year,
+                      month: _month,
+                      daysInMonth: _sheet!.daysInMonth,
+                      fromValue: _dateFromController.text,
+                      toValue: _dateToController.text,
+                    ),
               year: _year,
               month: _month,
               scrollController: _gridScrollController,
@@ -818,7 +855,12 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   bool _recordMatchesFilters(AttendanceRecordModel record) {
     final status = record.status ?? '';
     final source = record.source ?? 'manual';
-    return (_filterStatuses.isEmpty || _filterStatuses.contains(status)) &&
+    return matchesDateValueRange(
+          record.attendanceDate,
+          fromValue: _dateFromController.text,
+          toValue: _dateToController.text,
+        ) &&
+        (_filterStatuses.isEmpty || _filterStatuses.contains(status)) &&
         (_filterSources.isEmpty || _filterSources.contains(source));
   }
 

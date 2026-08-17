@@ -1,5 +1,20 @@
 # Specifications
 
+## Attendance date-range filtering correction
+
+- Date: 2026-08-17
+- Status: Implemented
+
+- The saved Attendance report applies From date and To date inclusively to
+  persisted attendance cells, in addition to employee, status, source, and
+  search filters.
+- Editing a valid range within the current month immediately rebuilds the
+  report and displays only date columns inside the inclusive range; changing
+  the period continues to reload the monthly API sheet.
+- Empty or temporarily invalid input remains non-destructive while the user is
+  typing; the existing monthly report stays available until a valid range is
+  entered.
+
 ## Monthly manual attendance
 
 - Date: 2026-08-17
