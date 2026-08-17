@@ -30,29 +30,6 @@ const List<AppDropdownItem<String>> _attendanceStatusFilters =
 int? _attendanceReportYear;
 int? _attendanceReportMonth;
 
-List<int> monthlyAttendanceVisibleDays({
-  required int year,
-  required int month,
-  required int daysInMonth,
-  String? fromValue,
-  String? toValue,
-}) {
-  final from = parseNormalizedDateValue(fromValue);
-  final to = parseNormalizedDateValue(toValue);
-  if (from == null || to == null || from.isAfter(to)) {
-    return List<int>.generate(daysInMonth, (index) => index + 1);
-  }
-  return List<int>.generate(daysInMonth, (index) => index + 1)
-      .where(
-        (day) => matchesDateValueRange(
-          DateTime(year, month, day).toIso8601String(),
-          fromValue: fromValue,
-          toValue: toValue,
-        ),
-      )
-      .toList(growable: false);
-}
-
 class MonthlyAttendancePage extends StatefulWidget {
   const MonthlyAttendancePage({
     super.key,
@@ -72,8 +49,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _gridScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _dateFromController = TextEditingController();
-  final TextEditingController _dateToController = TextEditingController();
   late int _year;
   late int _month;
   int? _companyId;
@@ -103,10 +78,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     _month = widget.manualOnly
         ? now.month
         : _attendanceReportMonth ?? now.month;
-    _setDateRangeForPeriod();
     _searchController.addListener(_onSearchChanged);
-    _dateFromController.addListener(_onDateRangeChanged);
-    _dateToController.addListener(_onDateRangeChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -116,8 +88,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     _gridScrollController.dispose();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
-    _dateFromController.dispose();
-    _dateToController.dispose();
     super.dispose();
   }
 
@@ -373,19 +343,28 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         ),
       ),
       hrListFilterBox(
-        child: AppFormTextField(
-          controller: _dateFromController,
-          labelText: 'From date',
-          keyboardType: TextInputType.datetime,
-          inputFormatters: const [DateInputFormatter()],
+        child: AppDropdownField<int>.fromMapped(
+          labelText: 'Month',
+          initialValue: _month,
+          mappedItems: List<AppDropdownItem<int>>.generate(
+            12,
+            (index) => AppDropdownItem<int>(
+              value: index + 1,
+              label: _monthName(index + 1),
+            ),
+          ),
+          onChanged: (value) => _selectReportPeriod(month: value),
         ),
       ),
       hrListFilterBox(
-        child: AppFormTextField(
-          controller: _dateToController,
-          labelText: 'To date',
-          keyboardType: TextInputType.datetime,
-          inputFormatters: const [DateInputFormatter()],
+        child: AppDropdownField<int>.fromMapped(
+          labelText: 'Year',
+          initialValue: _year,
+          mappedItems: List<AppDropdownItem<int>>.generate(7, (index) {
+            final value = DateTime.now().year - 4 + index;
+            return AppDropdownItem<int>(value: value, label: '$value');
+          }),
+          onChanged: (value) => _selectReportPeriod(year: value),
         ),
       ),
     ],
@@ -397,35 +376,27 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
 
   void _onSearchChanged() => setState(() {});
 
-  void _onDateRangeChanged() {
-    final from = parseNormalizedDateValue(_dateFromController.text);
-    final to = parseNormalizedDateValue(_dateToController.text);
-    if (from == null || to == null || from.isAfter(to)) {
-      setState(() {});
-      return;
-    }
-    if (from.year != to.year || from.month != to.month) {
-      setState(() {});
-      return;
-    }
-    if (from.year == _year && from.month == _month) {
-      setState(() => _page = 1);
+  void _selectReportPeriod({int? year, int? month}) {
+    final nextYear = year ?? _year;
+    final nextMonth = month ?? _month;
+    if (nextYear == _year && nextMonth == _month) {
       return;
     }
     setState(() {
-      _year = from.year;
-      _month = from.month;
+      _year = nextYear;
+      _month = nextMonth;
+      _page = 1;
     });
+    _resetGridScroll();
     unawaited(_applyFilters());
   }
 
-  void _setDateRangeForPeriod() {
-    _dateFromController.text = displayDate(
-      DateTime(_year, _month, 1).toIso8601String(),
-    );
-    _dateToController.text = displayDate(
-      DateTime(_year, _month + 1, 0).toIso8601String(),
-    );
+  void _resetGridScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_gridScrollController.hasClients) {
+        _gridScrollController.jumpTo(0);
+      }
+    });
   }
 
   void _clearFilters() {
@@ -433,7 +404,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     setState(() {
       _month = now.month;
       _year = now.year;
-      _setDateRangeForPeriod();
       _searchController.clear();
       _filterEmployeeIds = <int>{};
       _filterStatuses = <String>{};
@@ -591,15 +561,6 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               employees: widget.manualOnly
                   ? _visibleEmployees(_sheet)
                   : _pagedEmployees(_sheet!),
-              visibleDays: widget.manualOnly
-                  ? null
-                  : monthlyAttendanceVisibleDays(
-                      year: _year,
-                      month: _month,
-                      daysInMonth: _sheet!.daysInMonth,
-                      fromValue: _dateFromController.text,
-                      toValue: _dateToController.text,
-                    ),
               year: _year,
               month: _month,
               scrollController: _gridScrollController,
@@ -677,7 +638,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         onTap: () => _openSavedRecord(record),
         child: Tooltip(
           message:
-              '${record.source == 'activity_watch' ? 'Activity Watch' : 'Manual'} attendance — open record',
+              '${record.source == 'activity_watch' ? 'Activity Watch' : 'Manual'} attendance — edit record',
           child: _statusBadge(
             record.status ?? 'present',
             locked: false,
@@ -855,12 +816,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   bool _recordMatchesFilters(AttendanceRecordModel record) {
     final status = record.status ?? '';
     final source = record.source ?? 'manual';
-    return matchesDateValueRange(
-          record.attendanceDate,
-          fromValue: _dateFromController.text,
-          toValue: _dateToController.text,
-        ) &&
-        (_filterStatuses.isEmpty || _filterStatuses.contains(status)) &&
+    return (_filterStatuses.isEmpty || _filterStatuses.contains(status)) &&
         (_filterSources.isEmpty || _filterSources.contains(source));
   }
 
@@ -868,12 +824,12 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     final id = record.id;
     final companyId = _companyId;
     if (id == null || companyId == null) return;
-    await showAttendanceRecordDetailDialog(
+    await openAttendanceRecordEditor(
       context,
       hr: _service,
-      id: id,
       companyId: companyId,
-      onChanged: _load,
+      recordId: id,
+      onSaved: _load,
     );
   }
 

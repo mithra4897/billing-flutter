@@ -1,15 +1,16 @@
 # Changelog
 
-## 2026-08-17 — Fix Attendance From/To date filtering
+## 2026-08-17 — Use Month and Year filters for Attendance
 
-- Request: Make the Attendance screen's From date and To date filters work.
-- Implementation: Reused `matchesDateValueRange` for persisted monthly records,
-  rebuilt the report when a valid same-month range changes, and limited the
-  calendar itself to the inclusive From/To day columns.
+- Request: Use the previous Month and Year filter behavior because the
+  Attendance From/To combination was unreliable for a monthly calendar.
+- Implementation: Replaced From and To inputs with Month and Year selectors
+  that reload the selected attendance month directly.
 - Database/API impact: None.
-- Tests: Added inclusive date-range helper coverage; focused analysis passed.
-- Known limitation: The Attendance screen remains a monthly report, so a range
-  spanning multiple months is not rendered as one combined calendar.
+- Tests: Focused analysis and existing HR model tests passed.
+- Saved-cell interaction: Removed the intermediate raw JSON detail popup from
+  the Attendance calendar; selecting a persisted cell now opens Edit attendance
+  directly and reloads the report after a successful save.
 
 ## 2026-08-17 — Monthly manual attendance and employee display
 

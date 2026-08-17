@@ -1,19 +1,15 @@
 # Specifications
 
-## Attendance date-range filtering correction
+## Attendance month and year filtering
 
 - Date: 2026-08-17
 - Status: Implemented
 
-- The saved Attendance report applies From date and To date inclusively to
-  persisted attendance cells, in addition to employee, status, source, and
-  search filters.
-- Editing a valid range within the current month immediately rebuilds the
-  report and displays only date columns inside the inclusive range; changing
-  the period continues to reload the monthly API sheet.
-- Empty or temporarily invalid input remains non-destructive while the user is
-  typing; the existing monthly report stays available until a valid range is
-  entered.
+- The saved Attendance report uses Month and Year selectors instead of a From
+  date / To date combination. Selecting either value immediately reloads the
+  matching monthly attendance sheet and resets the horizontal calendar scroll.
+- Employee, status, source, and search filters remain client-side filters on
+  the loaded month.
 
 ## Monthly manual attendance
 
@@ -27,7 +23,8 @@
   displays only saved Activity Watch or manual records; blank days stay `—`.
 - The report has no employee selection, default-Present generation,
   draft/submit actions, or multi-record save. Selecting an existing saved cell
-  opens the existing single attendance detail/editor flow.
+  opens the existing attendance editor directly, without an intermediate JSON
+  detail dialog.
 - The report Filter action toggles the shared full-width HR filter bar for
   search, employee, status, source, month, and year. It does not use a popup
   or a separate inline Month/Year/Load toolbar.

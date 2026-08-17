@@ -1,13 +1,12 @@
 # Testing
 
-## Attendance date-range filtering correction — 2026-08-17
+## Attendance month and year filtering — 2026-08-17
 
 - Focused analysis passed for the monthly Attendance report.
-- Date helper coverage passed for inclusive From/To boundaries, an excluded
-  date outside the range, and the exact calendar day columns for a selected
-  range.
-- Authenticated UI verification should confirm changing From/To within one
-  month immediately hides and restores matching calendar cells.
+- Manual visual check: changing Month or Year reloads that full calendar month
+  and resets the horizontal scroll to its first day.
+- Saved-cell interaction now opens the existing attendance editor directly;
+  focused analysis verifies the editor call and refresh callback.
 
 ## Monthly manual attendance and employee display — 2026-08-17
 
