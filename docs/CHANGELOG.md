@@ -62,6 +62,12 @@
   matching Attendance.
 - HR filter actions: Removed Apply from the shared bar and reused the Sales
   Clear action layout; Attendance refreshes on period selection.
+- Payroll Run filters: Added From date and To date to the existing toggleable
+  Payroll Runs filter bar; both constrain displayed runs by their run date.
+- Payroll Run filter layout: Removed the inner filter card so the shared bar
+  uses the page's existing outer card, matching Payslips.
+- HR filter action sizing: Reused the Sales filter Clear action dimensions and
+  styling (160px wide, 48px high, left aligned) across all shared HR bars.
 
 ## 2026-08-17 — Activity Watch and manual attendance
 

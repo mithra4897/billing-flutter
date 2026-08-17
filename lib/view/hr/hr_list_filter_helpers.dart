@@ -33,12 +33,29 @@ class HrInlineFilterBar extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.end,
           children: [
             ...filterFields,
-            hrListFilterBox(
-              child: AppActionButton(
-                icon: Icons.clear_outlined,
-                label: 'Clear',
-                filled: false,
-                onPressed: onClear,
+            SizedBox(
+              width: 160,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: onClear,
+                      icon: const Icon(Icons.clear_outlined),
+                      label: const Text('Clear'),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppUiConstants.buttonRadius,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
