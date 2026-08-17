@@ -11,6 +11,20 @@ and remains available for employees without computers. The agent persists
 unsent first check-ins locally and retries them after network or service
 recovery.
 
+Monthly manual attendance reuses the same `attendance_records` ledger. Flutter
+loads one month of non-system employees and existing rows from
+`GET /hr/attendance-monthly-sheet`, then submits at most 15,000 new
+employee/date decisions to the matching POST endpoint without per-cell network
+calls. The backend revalidates company, user-link, employment-period, weekly
+off, future-date, and unique-key rules before one transactional bulk insert.
+Existing Activity Watch and HR decisions remain authoritative. Manual monthly
+rows store `draft` or `submitted` state in the same ledger; the API updates
+only drafts, and payroll stops before calculation when a selected period has
+unsubmitted manual drafts.
+The monthly route remains registered for permission and refresh handling but is
+hidden from drawer rendering; the Attendance register opens it through its
+authorized Bulk Attendance page action.
+
 Payroll processing locks the draft run, bulk-loads attendance and approved LOP
 requests, and converts them into decimal scheduled/payable units. Existing
 salary, statutory, payslip, accounting, permission, register, and dialog

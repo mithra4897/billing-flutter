@@ -1,5 +1,37 @@
 # Specifications
 
+## Monthly manual attendance
+
+- Date: 2026-08-17
+- Status: Implemented
+
+### Objective and rules
+
+- A separate Monthly Attendance screen lists active employees without an active
+  ERP user and displays one employee-by-day calendar for the selected month.
+- Eligible Monday-through-Saturday dates through company-local today default to
+  Present. HR marks exceptions as Half day, Paid leave, LOP, or Absent.
+- Sunday, future dates, dates outside employment, and existing Activity Watch
+  or manual records are locked. Existing records are never overwritten.
+- Selected employee rows are saved in one bounded transaction. The request is
+  capped at 15,000 employee/date cells and reports created/skipped counts.
+- Paid leave is one payable unit, Half day is 0.5, and LOP/Absent are unpaid.
+- User linkage is schema-compatible: installations with `users.employee_id`
+  use the direct relation; legacy installations use matching employee codes.
+- Monthly attendance has two actions: Draft saves editable manual cells without
+  making them payroll-ready; Submit locks those cells as payroll-ready.
+- Activity Watch and earlier submitted/manual attendance remain locked. Payroll
+  processing is rejected while any manual draft attendance exists in its period.
+
+### Acceptance criteria
+
+- The drawer contains one Attendance entry. Authorized HR users open the
+  monthly calendar through the Attendance screen's Bulk Attendance action.
+- HR can select employee rows, review the full calendar, mark exceptions, save
+  a draft, then explicitly submit the selected attendance.
+- Existing attendance remains unchanged and is counted as skipped.
+- The monthly sheet reloads after save and displays created rows as locked.
+
 ## Activity Watch/manual attendance and attendance-based payroll
 
 - Date: 2026-08-17

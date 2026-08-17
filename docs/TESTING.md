@@ -1,5 +1,24 @@
 # Testing
 
+## Monthly manual attendance and employee display — 2026-08-17
+
+- Backend focused PHPUnit passed: 11 tests and 43 assertions. Monthly coverage
+  verifies that a system-linked employee is excluded and a non-system employee
+  receives Present, Half day, and LOP rows. A legacy-schema case verifies the
+  employee-code fallback when `users.employee_id` is absent. Draft attendance
+  can be edited then submitted, and payroll processing is blocked for drafts.
+- PHP syntax checks passed for the attendance controller, service, and HR route
+  file; `git diff --check` passed in the backend repository.
+- `dart format` passed for the changed model, service, screen, navigation,
+  register, dialog, and focused test.
+- Focused Flutter model tests passed. Coverage includes monthly sheet parsing,
+  LOP status, and nested employee name/code retention.
+- Focused Flutter analysis passed with no issues.
+- Navigation coverage verifies Monthly Attendance is absent from the drawer
+  while `/hr/monthly-attendance` remains accessible with `hr.create`.
+- Authenticated browser verification remains manual because the isolated test
+  browser did not have the user's ERP session.
+
 ## Activity Watch and manual attendance — 2026-08-17
 
 - Backend focused PHPUnit passed: 6 tests and 22 assertions, including

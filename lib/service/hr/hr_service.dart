@@ -178,6 +178,39 @@ class HrService extends ErpModuleService {
     fromJson: AttendanceRecordModel.fromJson,
   );
 
+  Future<ApiResponse<MonthlyAttendanceSheetModel>> monthlyAttendanceSheet({
+    required int companyId,
+    required int year,
+    required int month,
+  }) => client.get<MonthlyAttendanceSheetModel>(
+    '/hr/attendance-monthly-sheet',
+    queryParameters: <String, dynamic>{
+      'company_id': companyId,
+      'year': year,
+      'month': month,
+    },
+    fromData: (dynamic json) => MonthlyAttendanceSheetModel.fromJson(
+      Map<String, dynamic>.from(json as Map),
+    ),
+  );
+
+  Future<ApiResponse<dynamic>> saveMonthlyAttendance({
+    required int companyId,
+    required int year,
+    required int month,
+    required List<Map<String, dynamic>> records,
+    required String saveMode,
+  }) => client.post<dynamic>(
+    '/hr/attendance-monthly-sheet',
+    body: <String, dynamic>{
+      'company_id': companyId,
+      'year': year,
+      'month': month,
+      'records': records,
+      'save_mode': saveMode,
+    },
+  );
+
   Future<ApiResponse<AttendanceRecordModel>> updateAttendance(
     int id,
     AttendanceRecordModel body,
@@ -203,6 +236,21 @@ class HrService extends ErpModuleService {
         '/hr/leave-types/$id',
         fromJson: LeaveTypeModel.fromJson,
       );
+
+  // Retained for compatibility with older callers; the HR navigation now uses
+  // the dedicated monthly attendance sheet.
+  Future<ApiResponse<dynamic>> createBulkAttendance({
+    required int companyId,
+    required String attendanceDate,
+    required List<Map<String, dynamic>> records,
+  }) => client.post<dynamic>(
+    '/hr/attendance/bulk',
+    body: <String, dynamic>{
+      'company_id': companyId,
+      'attendance_date': attendanceDate,
+      'records': records,
+    },
+  );
 
   Future<ApiResponse<LeaveTypeModel>> createLeaveType(LeaveTypeModel body) =>
       createModel<LeaveTypeModel>(

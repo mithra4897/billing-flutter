@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-08-17 — Monthly manual attendance and employee display
+
+- Request: Let HR complete a full month for employees without system access.
+- Implementation: Added a separate Monthly Attendance calendar with employee
+  selection, default Present days, exception marking, locked weekly-off/future/
+  existing cells, and one transactional save. The typed attendance model also
+  retains employee names/codes, fixing the blank register column.
+- API/database impact: Adds GET/POST `/hr/attendance-monthly-sheet` and the
+  `lop` enum value. Existing installations apply
+  `doc/sql/patch_monthly_manual_attendance_lop.sql`; new installs use
+  `install.sql`.
+- Security impact: Requires `hr.create` plus permission to manage all HR
+  records; employees must be active and belong to the selected company.
+- Tests: Focused Flutter and backend checks are recorded in `TESTING.md`.
+- Compatibility fix: Monthly employee selection now uses `users.employee_code`
+  when an existing production database does not have `users.employee_id`.
+- Navigation refinement: Removed the duplicate Monthly Attendance drawer item;
+  authorized HR users now open it from Bulk Attendance on the Attendance page.
+- Draft/submit workflow: Draft saves remain editable and do not become payroll
+  input. Submit locks them; payroll processing reports a clear error until all
+  manual drafts for its period are submitted. Existing databases apply
+  `doc/sql/patch_monthly_attendance_draft_submit.sql`.
+
 ## 2026-08-17 — Activity Watch and manual attendance
 
 - Request: Replace ERP-login attendance with Activity Watch agent attendance

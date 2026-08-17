@@ -471,7 +471,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final width = MediaQuery.of(context).size.width;
     final showPermanentDrawer = width >= 768;
     final currentPath = _currentPath;
-    final visibleMenu = AppNavigation.visibleMenu(
+    final visibleMenu = AppNavigation.drawerMenu(
       permissionCodes: _permissionCodes,
       isSuperAdmin: _isSuperAdmin,
       orderedModules: _orderedModules,

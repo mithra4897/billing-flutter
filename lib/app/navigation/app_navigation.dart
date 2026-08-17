@@ -8,6 +8,7 @@ class AppNavigationItem {
     this.path,
     this.requiredPermissions = const <String>[],
     this.adminOnly = false,
+    this.showInDrawer = true,
     this.children = const <AppNavigationItem>[],
   });
 
@@ -17,6 +18,7 @@ class AppNavigationItem {
   final String? path;
   final List<String> requiredPermissions;
   final bool adminOnly;
+  final bool showInDrawer;
   final List<AppNavigationItem> children;
 
   bool get hasChildren => children.isNotEmpty;
@@ -560,6 +562,14 @@ class AppNavigation {
           icon: Icons.fact_check_outlined,
           path: '/hr/attendance',
           requiredPermissions: ['hr.view'],
+        ),
+        AppNavigationItem(
+          key: 'hr-monthly-attendance',
+          title: 'Monthly Attendance',
+          icon: Icons.calendar_month_outlined,
+          path: '/hr/monthly-attendance',
+          requiredPermissions: ['hr.create'],
+          showInDrawer: false,
         ),
         AppNavigationItem(
           key: 'hr-expense-claims',
@@ -1283,6 +1293,20 @@ class AppNavigation {
     return _sortTopLevelItems(visibleItems, orderedModules);
   }
 
+  static List<AppNavigationItem> drawerMenu({
+    required Set<String> permissionCodes,
+    required bool isSuperAdmin,
+    List<ModuleModel> orderedModules = const <ModuleModel>[],
+  }) {
+    return _withoutHiddenDrawerItems(
+      visibleMenu(
+        permissionCodes: permissionCodes,
+        isSuperAdmin: isSuperAdmin,
+        orderedModules: orderedModules,
+      ),
+    );
+  }
+
   static bool canAccessPath({
     required String path,
     required Set<String> permissionCodes,
@@ -1481,6 +1505,7 @@ class AppNavigation {
               path: item.path,
               requiredPermissions: item.requiredPermissions,
               adminOnly: item.adminOnly,
+              showInDrawer: item.showInDrawer,
               children: visibleChildren,
             ),
           );
@@ -1494,6 +1519,28 @@ class AppNavigation {
     }
 
     return visible;
+  }
+
+  static List<AppNavigationItem> _withoutHiddenDrawerItems(
+    List<AppNavigationItem> items,
+  ) {
+    return items
+        .where((item) => item.showInDrawer)
+        .map((item) {
+          if (!item.hasChildren) return item;
+          return AppNavigationItem(
+            key: item.key,
+            title: item.title,
+            icon: item.icon,
+            path: item.path,
+            requiredPermissions: item.requiredPermissions,
+            adminOnly: item.adminOnly,
+            showInDrawer: item.showInDrawer,
+            children: _withoutHiddenDrawerItems(item.children),
+          );
+        })
+        .where((item) => item.path != null || item.children.isNotEmpty)
+        .toList(growable: false);
   }
 
   static bool _canViewAdminSettings({

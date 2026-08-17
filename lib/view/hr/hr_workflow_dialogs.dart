@@ -146,6 +146,7 @@ const List<AppDropdownItem<String>> _attendanceStatusItems =
       AppDropdownItem(value: 'leave', label: 'Leave'),
       AppDropdownItem(value: 'half_day', label: 'Half day'),
       AppDropdownItem(value: 'holiday', label: 'Holiday'),
+      AppDropdownItem(value: 'lop', label: 'LOP'),
     ];
 
 /// Resolves working-context company. Uses session storage, or auto-selects when
@@ -443,6 +444,266 @@ Future<void> openAttendanceRecordEditor(
   WidgetsBinding.instance.addPostFrameCallback((_) {
     disposeControllers();
   });
+}
+
+Future<void> openBulkAttendanceEditor(
+  BuildContext context, {
+  required HrService hr,
+  required int companyId,
+  required List<EmployeeModel> employees,
+  required VoidCallback onSaved,
+}) async {
+  final activeEmployees = employees
+      .where(
+        (employee) =>
+            employee.id != null &&
+            (employee.status ?? '').trim().toLowerCase() == 'active',
+      )
+      .toList(growable: false);
+  if (activeEmployees.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No active employees are available.')),
+    );
+    return;
+  }
+
+  final formKey = GlobalKey<FormState>();
+  final dateController = TextEditingController(text: displayTodayDate());
+  final selectedIds = activeEmployees.map((employee) => employee.id!).toSet();
+  final statuses = <int, String>{
+    for (final employee in activeEmployees) employee.id!: 'present',
+  };
+  var commonStatus = 'present';
+  var saving = false;
+  String? formError;
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final allSelected = selectedIds.length == activeEmployees.length;
+        return AlertDialog(
+          title: const Text('Bulk manual attendance'),
+          content: SizedBox(
+            width: 760,
+            height: 580,
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (formError != null) ...[
+                    Text(
+                      formError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                  ],
+                  Wrap(
+                    spacing: AppUiConstants.spacingMd,
+                    runSpacing: AppUiConstants.spacingSm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 220,
+                        child: AppFormTextField(
+                          controller: dateController,
+                          labelText: 'Attendance date',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
+                          validator: Validators.compose([
+                            Validators.required('Attendance date'),
+                            Validators.date('Attendance date'),
+                          ]),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 220,
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: 'Apply status to selected',
+                          mappedItems: _attendanceStatusItems,
+                          initialValue: commonStatus,
+                          onChanged: saving
+                              ? null
+                              : (value) {
+                                  final next = value ?? 'present';
+                                  setDialogState(() {
+                                    commonStatus = next;
+                                    for (final id in selectedIds) {
+                                      statuses[id] = next;
+                                    }
+                                  });
+                                },
+                        ),
+                      ),
+                      Text('${selectedIds.length} selected'),
+                    ],
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    tristate: true,
+                    value: allSelected
+                        ? true
+                        : selectedIds.isEmpty
+                        ? false
+                        : null,
+                    onChanged: saving
+                        ? null
+                        : (value) => setDialogState(() {
+                            selectedIds.clear();
+                            if (value == true) {
+                              selectedIds.addAll(
+                                activeEmployees.map((employee) => employee.id!),
+                              );
+                            }
+                          }),
+                    title: const Text('Select all active employees'),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: activeEmployees.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final employee = activeEmployees[index];
+                        final employeeId = employee.id!;
+                        final selected = selectedIds.contains(employeeId);
+                        return Row(
+                          children: [
+                            Checkbox(
+                              value: selected,
+                              onChanged: saving
+                                  ? null
+                                  : (value) => setDialogState(() {
+                                      if (value == true) {
+                                        selectedIds.add(employeeId);
+                                      } else {
+                                        selectedIds.remove(employeeId);
+                                      }
+                                    }),
+                            ),
+                            Expanded(
+                              child: Text(
+                                [employee.employeeName, employee.employeeCode]
+                                    .whereType<String>()
+                                    .where((v) => v.isNotEmpty)
+                                    .join(' · '),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 170,
+                              child: DropdownButton<String>(
+                                value: statuses[employeeId] ?? 'present',
+                                isExpanded: true,
+                                onChanged: saving || !selected
+                                    ? null
+                                    : (value) => setDialogState(
+                                        () => statuses[employeeId] =
+                                            value ?? 'present',
+                                      ),
+                                items: _attendanceStatusItems
+                                    .map(
+                                      (item) => DropdownMenuItem<String>(
+                                        value: item.value,
+                                        child: Text(item.label),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              icon: saving
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.playlist_add_check_outlined),
+              label: Text(saving ? 'Saving…' : 'Create attendance'),
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (formKey.currentState?.validate() != true) return;
+                      if (selectedIds.isEmpty) {
+                        setDialogState(
+                          () => formError = 'Select at least one employee.',
+                        );
+                        return;
+                      }
+                      setDialogState(() {
+                        saving = true;
+                        formError = null;
+                      });
+                      try {
+                        final response = await hr.createBulkAttendance(
+                          companyId: companyId,
+                          attendanceDate: dateController.text.trim(),
+                          records: activeEmployees
+                              .where(
+                                (employee) => selectedIds.contains(employee.id),
+                              )
+                              .map(
+                                (employee) => <String, dynamic>{
+                                  'employee_id': employee.id,
+                                  'status': statuses[employee.id] ?? 'present',
+                                },
+                              )
+                              .toList(growable: false),
+                        );
+                        if (!dialogContext.mounted) return;
+                        if (response.success != true) {
+                          setDialogState(() {
+                            saving = false;
+                            formError = response.message;
+                          });
+                          return;
+                        }
+                        final result = response.data is Map
+                            ? Map<String, dynamic>.from(response.data as Map)
+                            : const <String, dynamic>{};
+                        final created = intValue(result, 'created_count') ?? 0;
+                        final skipped = intValue(result, 'skipped_count') ?? 0;
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Created $created attendance record(s); '
+                              'skipped $skipped existing record(s).',
+                            ),
+                          ),
+                        );
+                        if (created > 0) onSaved();
+                      } catch (error) {
+                        if (!dialogContext.mounted) return;
+                        setDialogState(() {
+                          saving = false;
+                          formError = error.toString();
+                        });
+                      }
+                    },
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  dateController.dispose();
 }
 
 Future<void> showAttendanceRecordDetailDialog(

@@ -11,6 +11,15 @@ void _showNeedCompanySnack(BuildContext context) {
   );
 }
 
+void _openHrShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
 class _HrCompanyContextFilters extends StatelessWidget {
   const _HrCompanyContextFilters({
     required this.companyBanner,
@@ -194,6 +203,7 @@ class AttendanceRegisterController extends GetxController {
         final empResp = await _service.employees(
           filters: <String, dynamic>{
             'company_id': cid,
+            'status': 'active',
             'per_page': 500,
             'sort_by': 'employee_name',
           },
@@ -742,6 +752,21 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
               filled: false,
               onPressed: () => _openAttendanceFilterPanel(context, controller),
             ),
+            if (controller.canViewAllHr)
+              AdaptiveShellActionButton(
+                icon: Icons.calendar_month_outlined,
+                label: 'Bulk attendance',
+                filled: false,
+                onPressed: () async {
+                  final companyId = await hrResolveCompanyId(context);
+                  if (!context.mounted) return;
+                  if (companyId == null) {
+                    _showNeedCompanySnack(context);
+                    return;
+                  }
+                  _openHrShellRoute(context, '/hr/monthly-attendance');
+                },
+              ),
             AdaptiveShellActionButton(
               icon: Icons.add_outlined,
               label: 'New attendance',

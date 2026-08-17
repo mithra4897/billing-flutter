@@ -11,6 +11,7 @@ class AttendanceRecordModel extends JsonModel {
     this.checkOut,
     this.status,
     this.source,
+    this.submissionStatus,
     this.sourceUserId,
     this.createdAt,
     this.updatedAt,
@@ -23,6 +24,7 @@ class AttendanceRecordModel extends JsonModel {
   final String? checkOut;
   final String? status;
   final String? source;
+  final String? submissionStatus;
   final int? sourceUserId;
   final String? createdAt;
   final String? updatedAt;
@@ -45,6 +47,7 @@ class AttendanceRecordModel extends JsonModel {
       checkOut: json['check_out']?.toString(),
       status: json['status']?.toString(),
       source: json['source']?.toString(),
+      submissionStatus: json['submission_status']?.toString(),
       sourceUserId: JsonModel.nullableInt(json['source_user_id']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
@@ -66,6 +69,7 @@ class AttendanceRecordModel extends JsonModel {
     if (checkOut != null) 'check_out': checkOut,
     if (status != null) 'status': status,
     if (source != null) 'source': source,
+    if (submissionStatus != null) 'submission_status': submissionStatus,
     if (sourceUserId != null) 'source_user_id': sourceUserId,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,

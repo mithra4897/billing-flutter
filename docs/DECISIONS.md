@@ -1,5 +1,42 @@
 # Architecture decisions
 
+## ADR-0024: Month-end manual attendance uses the shared attendance ledger
+
+- Date: 2026-08-17
+- Status: Accepted
+- Context: Departments without computers cannot practically create attendance
+  one employee at a time, while Activity Watch rows must not be overwritten.
+- Decision: Add a separate monthly calendar for employees without active ERP
+  users and one bounded API accepting employee/date/status entries. Validate
+  the full month before inserting only rows that do not already exist.
+- Reason: One request avoids partial frontend loops and reuses payroll's single
+  attendance source of truth and unique key.
+- Alternatives considered: One API request per employee; overwrite existing
+  rows; create a separate manual-attendance table; assign one status without
+  per-employee adjustment.
+- Consequences: Up to 15,000 cells can be processed in O(n) application work
+  plus indexed operations. Sundays and existing rows remain locked. The route
+  is opened from Attendance rather than duplicated in the HR drawer.
+- Related files: HR attendance controller/service/routes, Flutter HR service,
+  monthly attendance page/navigation, SQL patch, and focused payroll tests.
+
+## ADR-0025: Draft monthly attendance stays in the attendance ledger
+
+- Date: 2026-08-17
+- Status: Accepted
+- Context: HR needs to prepare a full manual month before it becomes payroll
+  input, without a second attendance data source.
+- Decision: Store `draft` or `submitted` state on manual attendance records.
+  Draft cells remain editable in the monthly calendar; submitted cells and
+  Activity Watch rows are locked. Payroll blocks when any manual draft exists
+  in the selected period.
+- Reason: Preserves the employee/date unique key and avoids synchronizing a
+  staging table with the actual payroll ledger.
+- Alternatives considered: A separate monthly batch table; treating draft rows
+  as payroll input; allowing payroll to silently ignore drafts.
+- Consequences: Existing rows default to submitted after the SQL patch. Users
+  must submit drafts before processing payroll.
+
 ## ADR-0023: Use Activity Watch prompt events alongside manual attendance
 
 - Date: 2026-08-17
