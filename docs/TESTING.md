@@ -1,5 +1,19 @@
 # Testing
 
+## Windows Activity Watch installer build — 2026-08-19
+
+- `go test ./internal/collector`: passed.
+- `go vet ./internal/collector`: passed.
+- `packaging/windows/build-exe.ps1`: passed and created the installer.
+- `go test ./...`: all packages passed except the existing Windows pairing-file
+  permission assertion, which expects Unix owner-only mode bits but observes
+  Windows mode `-rw-rw-rw-`.
+- The installer copied to the API public download path is 21,471,232 bytes;
+  source and published SHA-256 hashes match:
+  `275C3E4F7E5BCFE495D73B866872D6CBC604C0B34AE243AC4FCAD98CBC5F222D`.
+- Authenticode verification reports `NotSigned`; code signing is still required
+  before production employee distribution.
+
 ## Attendance month and year filtering — 2026-08-17
 
 - Focused analysis passed for the monthly Attendance report.

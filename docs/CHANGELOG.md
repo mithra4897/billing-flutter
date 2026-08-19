@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-19 — Build and publish the Windows Activity Watch installer
+
+- Request: Build the Windows Activity Watch agent and move it to the API
+  download path.
+- Implementation: Restored the missing Windows-only collector API adapter,
+  rebuilt the SQLCipher-enabled installer, and replaced the public API download
+  artifact.
+- Database/API impact: The existing public installer filename is updated; no
+  endpoint or payload contract changed.
+- Security impact: The adapter reports only aggregate presence, foreground app,
+  inventory, and lock information. It does not capture keystrokes, clicks,
+  persisted coordinates, URLs, or process command lines.
+
 ## 2026-08-17 — Use Month and Year filters for Attendance
 
 - Request: Use the previous Month and Year filter behavior because the
