@@ -70,6 +70,34 @@ func TestRunnerFlushPendingDrainsEveryBatch(t *testing.T) {
 	}
 }
 
+func TestRunnerAcknowledgesAfterEmptyAndFullBatchDrains(t *testing.T) {
+	tests := []struct {
+		name   string
+		counts []int
+	}{
+		{name: "empty", counts: []int{0}},
+		{name: "one full batch", counts: []int{100, 0}},
+		{name: "multiple full batches", counts: []int{100, 100, 0}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			control := &runnerControl{logout: true}
+			flusher := &countingFlusher{counts: test.counts}
+			runner := NewRunner(&runnerRepository{}, flusher, control, Config{})
+
+			if err := runner.consumeControl(context.Background()); err != nil {
+				t.Fatalf("consumeControl() error = %v", err)
+			}
+			if flusher.calls != len(test.counts) {
+				t.Fatalf("Flush() calls = %d, want %d", flusher.calls, len(test.counts))
+			}
+			if control.acknowledgements != 1 {
+				t.Fatalf("acknowledgements = %d, want 1", control.acknowledgements)
+			}
+		})
+	}
+}
+
 type runnerRepository struct {
 	mu     sync.Mutex
 	events []store.SystemEvent
@@ -124,8 +152,16 @@ func (f *countingFlusher) Flush(context.Context) (int, error) {
 }
 
 type runnerControl struct {
-	mu     sync.Mutex
-	logout bool
+	mu               sync.Mutex
+	logout           bool
+	acknowledgements int
+}
+
+func (f *runnerControl) Acknowledge(context.Context) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.acknowledgements++
+	return nil
 }
 
 func (f *runnerControl) Consume() (bool, error) {

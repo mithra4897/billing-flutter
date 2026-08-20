@@ -32,7 +32,7 @@ func TestFlushUploadsBoundedBatchAndMarksSynced(t *testing.T) {
 		if len(body.Items) != 2 {
 			t.Errorf("items = %d, want 2", len(body.Items))
 		}
-		return response(http.StatusAccepted, nil), nil
+		return response(http.StatusAccepted, nil, `{"success":true,"data":{"accepted":2,"duplicate":false}}`), nil
 	})}
 
 	synchronizer := testSynchronizer(repository, client)
@@ -52,7 +52,7 @@ func TestFlushUploadsBoundedBatchAndMarksSynced(t *testing.T) {
 func TestFlushSchedulesRetryFromServerHeader(t *testing.T) {
 	repository := &fakeRepository{items: []store.OutboxItem{{ID: "1", IdempotencyKey: "key-1"}}}
 	client := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
-		return response(http.StatusTooManyRequests, http.Header{"Retry-After": []string{"120"}}), nil
+		return response(http.StatusTooManyRequests, http.Header{"Retry-After": []string{"120"}}, ""), nil
 	})}
 
 	synchronizer := testSynchronizer(repository, client)
@@ -69,7 +69,7 @@ func TestFlushSchedulesRetryFromServerHeader(t *testing.T) {
 func TestFlushMarksAuthenticationFailurePermanent(t *testing.T) {
 	repository := &fakeRepository{items: []store.OutboxItem{{ID: "1", IdempotencyKey: "key-1"}}}
 	client := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
-		return response(http.StatusUnauthorized, nil), nil
+		return response(http.StatusUnauthorized, nil, ""), nil
 	})}
 
 	synchronizer := testSynchronizer(repository, client)
@@ -79,6 +79,57 @@ func TestFlushMarksAuthenticationFailurePermanent(t *testing.T) {
 	}
 	if repository.permanentCode != "http-401" {
 		t.Fatalf("permanent code = %q", repository.permanentCode)
+	}
+}
+
+func TestFlushDoesNotTreatConflictAsAcknowledgement(t *testing.T) {
+	repository := &fakeRepository{items: []store.OutboxItem{{ID: "1", IdempotencyKey: "key-1"}}}
+	client := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return response(http.StatusConflict, nil, `{"success":false}`), nil
+	})}
+
+	synchronizer := testSynchronizer(repository, client)
+	_, err := synchronizer.Flush(context.Background())
+	if err == nil {
+		t.Fatal("Flush() expected conflict error")
+	}
+	if len(repository.synced) != 0 || repository.permanentCode != "http-409" {
+		t.Fatalf("synced/permanent = %v/%q", repository.synced, repository.permanentCode)
+	}
+}
+
+func TestFlushRetriesHTTP200HTMLWithoutMarkingSynced(t *testing.T) {
+	repository := &fakeRepository{items: []store.OutboxItem{{ID: "1", IdempotencyKey: "key-1"}}}
+	client := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return response(http.StatusOK, http.Header{"Content-Type": []string{"text/html"}}, "<html>frontend</html>"), nil
+	})}
+
+	synchronizer := testSynchronizer(repository, client)
+	_, err := synchronizer.Flush(context.Background())
+	if err == nil {
+		t.Fatal("Flush() expected invalid response error")
+	}
+	if len(repository.synced) != 0 {
+		t.Fatalf("synced = %v, want none", repository.synced)
+	}
+	if repository.retryCode != "invalid-success-response" {
+		t.Fatalf("retry code = %q, want invalid-success-response", repository.retryCode)
+	}
+}
+
+func TestFlushRetriesMismatchedAcceptedCount(t *testing.T) {
+	repository := &fakeRepository{items: []store.OutboxItem{{ID: "1", IdempotencyKey: "key-1"}}}
+	client := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return response(http.StatusOK, nil, `{"success":true,"data":{"accepted":0}}`), nil
+	})}
+
+	synchronizer := testSynchronizer(repository, client)
+	_, err := synchronizer.Flush(context.Background())
+	if err == nil {
+		t.Fatal("Flush() expected accepted-count error")
+	}
+	if len(repository.synced) != 0 || repository.retryCode != "invalid-success-response" {
+		t.Fatalf("synced/retry = %v/%q", repository.synced, repository.retryCode)
 	}
 }
 
@@ -114,14 +165,14 @@ func (function roundTripFunc) RoundTrip(request *http.Request) (*http.Response, 
 	return function(request)
 }
 
-func response(status int, headers http.Header) *http.Response {
+func response(status int, headers http.Header, body string) *http.Response {
 	if headers == nil {
 		headers = make(http.Header)
 	}
 	return &http.Response{
 		StatusCode: status,
 		Header:     headers,
-		Body:       io.NopCloser(strings.NewReader("")),
+		Body:       io.NopCloser(strings.NewReader(body)),
 	}
 }
 

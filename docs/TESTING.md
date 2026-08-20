@@ -1,5 +1,74 @@
 # Testing
 
+## One Activity Watch card per owner and day — 2026-08-20
+
+- `flutter test test/model/activity_watch_daily_grouping_test.dart
+  test/model/activity_watch_enrollment_test.dart`: passed (4 tests).
+- Coverage verifies that repeated newest-first snapshots for one device/date
+  retain only the newest totals, distinct devices for one owner/date combine
+  their durations and application totals, and different owners/dates remain
+  separate cards.
+- `flutter analyze lib/model/activity_watch_enrollment.dart
+  lib/view/settings/activity_watch/activity_watch_setup_page.dart
+  test/model/activity_watch_daily_grouping_test.dart`: passed with no issues.
+- `flutter test`: passed the complete current suite (15 tests).
+- `flutter analyze`: changed files remain clean; the full project reports two
+  unrelated existing warnings in `lib/app/constants/app_config.dart` and
+  `lib/view/crm/crm_followups_page.dart`.
+- Live authenticated visual verification remains manual.
+
+## Fail-closed logout upload and explicit acknowledgement — 2026-08-20
+
+- `go test ./...`: passed for every Activity Watch agent package.
+- `go vet ./...`: passed.
+- Regression coverage verifies that HTTP 200 HTML and a mismatched accepted
+  count remain retryable and never mark outbox rows synced; an unvalidated HTTP
+  409 is a permanent failure rather than a false acknowledgement.
+- Runner coverage verifies acknowledgement after an empty queue, one exact
+  full batch, and multiple exact full batches. Control coverage verifies the
+  authenticated POST acknowledgement URL and combined-control delegation.
+- `php -l app/Http/Controllers/ActivityWatchController.php`: passed.
+- `php -l routes/activity_watch.php`: passed.
+- `php -l app/Http/Controllers/Auth/AuthController.php`: passed.
+- Rebuilt the ARM64 macOS package. `pkgutil --payload-files` listed the launcher,
+  agent, and `Info.plist`; both executables are mode `755`.
+- macOS Installer's read-only `-showChoicesXML` parse passed for the stable
+  package name. Packaging and API-public copies are 7,974,306 bytes and share
+  SHA-256 `7701e3a9d6b0d3b22acfcdf4dbafa549af65cca62f25ba5c155c6335a7ac6b8f`.
+- Windows packaging was not rebuilt on macOS; rebuild and validate the Windows
+  installer on the approved Windows/SQLCipher toolchain before publishing it.
+- Live end-to-end logout verification remains a post-deployment check because
+  the backend acknowledgement route must be deployed before the updated agent.
+
+## macOS Activity Watch package repair — 2026-08-20
+
+- Reproduced the screenshot failure against the published artifact:
+  `file` identified `BillingActivityWatch-macos.pkg` as an ARM64 Mach-O
+  executable and `pkgutil --payload-files` could not open it.
+- The mislabeled published file's SHA-256 matched the current raw Go agent,
+  confirming that the agent binary had been copied over the package filename.
+- `go test ./...`: passed for all Activity Watch agent packages.
+- `go vet ./...`: passed.
+- Rebuilt the current ARM64 Go agent and AppKit pairing launcher, then created a
+  fresh component package with `pkgbuild`.
+- `pkgutil --payload-files`: passed and listed the app, launcher, Go agent, and
+  `Info.plist`; both executables have mode `755`.
+- `installer -pkg <published-package> -target / -showChoicesXML`: passed and
+  returned the `BillingActivityWatch-macos` install choice without installing.
+- Packaging and API-public copies are 7,972,209 bytes and share SHA-256
+  `c1766b6eb7da024224e5039549e396cec4f5679f51ca5ffe378f2bf3eb3d1f65`.
+- The development package remains unsigned. Signing, notarization, and a manual
+  employee install/pairing check remain required for general distribution.
+
+## Activity Watch installer download path — 2026-08-20
+
+- Reproduced the production failure: the unprefixed installer URL returned a
+  `200 text/html` response of 1,502 bytes instead of the installer.
+- Corrected the configured installer base to the deployed API public path.
+- `curl -I` verification passed for the corrected Windows URL with executable
+  content type and a 10,769,920-byte payload, and for the corrected macOS URL
+  with a 13,105,986-byte payload.
+
 ## Windows Activity Watch installer update repair — 2026-08-20
 
 - `go test ./internal/collector`: passed.

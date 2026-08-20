@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -170,10 +171,18 @@ func (p *serviceProgram) Start(service.Service) error {
 		BaseRetryDelay: p.config.Sync.BaseRetryDelay.Duration,
 		MaxRetryDelay:  p.config.Sync.MaxRetryDelay.Duration,
 	})
+	// Use a combined control so both the local signal-logout command (desktop ERP)
+	// and the server-driven flush signal (web ERP) trigger the logout flush.
+	var logoutControl control.LogoutControl = control.NewLogoutMarker(p.config.Control.LogoutRequestPath)
+	if p.config.Sync.Enabled {
+		controlURL := strings.TrimSuffix(p.config.Sync.URL, "/batches") + "/control"
+		serverControl := control.NewServerLogoutControl(httpClient, controlURL, p.config.Sync.DeviceID, credential)
+		logoutControl = control.NewCombinedLogoutControl(logoutControl, serverControl)
+	}
 	runner := agent.NewRunner(
 		database,
 		uploader,
-		control.NewLogoutMarker(p.config.Control.LogoutRequestPath),
+		logoutControl,
 		agent.Config{
 			HeartbeatInterval:   p.config.Collection.HeartbeatInterval.Duration,
 			ControlPollInterval: p.config.Control.PollInterval.Duration,

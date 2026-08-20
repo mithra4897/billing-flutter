@@ -110,10 +110,22 @@ Package the app for the backend's required macOS filename:
 package="$(pwd)/packaging/macos/BillingActivityWatch-macos.pkg"
 pkgbuild --install-location /Applications --component "$app" "$package"
 
+file "$package"
+pkgutil --payload-files "$package"
+installer -pkg "$package" -target / -showChoicesXML
+
 mkdir -p ../../billing-api/public/downloads/activity-watch
 cp "$package" ../../billing-api/public/downloads/activity-watch/BillingActivityWatch-macos.pkg
 shasum -a 256 ../../billing-api/public/downloads/activity-watch/BillingActivityWatch-macos.pkg
 ```
+
+Do not publish based on the `.pkg` filename alone. `file` must identify a XAR
+archive, `pkgutil` must list the app launcher, bundled Go agent, and
+`Info.plist`, and Installer's read-only choices check must return the package
+choice XML. A Mach-O result means the raw agent or launcher was accidentally
+copied under the package filename and macOS Installer will fail with a
+page-controller error. Confirm that the source and published SHA-256 hashes
+match after copying.
 
 For production, sign the app with a Developer ID Application certificate, sign
 the package with a Developer ID Installer certificate, notarize it, and staple
@@ -170,6 +182,11 @@ ACTIVITY_WATCH_AGENT_API_BASE_URL=https://erp.example.com/api/v1
 ACTIVITY_WATCH_INSTALLER_BASE_URL=https://erp.example.com/downloads/activity-watch
 ```
 
+The URL must match the deployment's public document-root mapping. If the API's
+`public` directory is exposed below a path such as `/api/public`, include that
+prefix in the configured URL. A successful response that serves the frontend
+HTML is not a valid installer response.
+
 The backend adds a file-modification-time `v` parameter to the returned
 installer URL. Verify both published artifacts after every release:
 
@@ -177,6 +194,27 @@ installer URL. Verify both published artifacts after every release:
 curl -I "https://erp.example.com/downloads/activity-watch/BillingActivityWatch-windows.exe"
 curl -I "https://erp.example.com/downloads/activity-watch/BillingActivityWatch-macos.pkg"
 ```
+
+Verify both the status and payload metadata: Windows should return an
+executable content type and the expected multi-megabyte size; macOS should
+return the published package size. Treat `text/html` or a small response as a
+wrong public path even when its HTTP status is `200`.
+
+## Logout-flush deployment order
+
+Deploy the backend before installing the updated agent. The backend deployment
+must include the authenticated
+`POST /api/v1/activity-watch/control/acknowledge` route and the
+`flush_requested` database patch. Set `ACTIVITY_WATCH_AGENT_API_BASE_URL` to
+the deployment's real API public path before creating pairing sessions; the
+returned `batch_url` is persisted in each paired agent configuration.
+
+After the backend route is live, publish and install the updated agent package.
+Verify that `GET /activity-watch/control` returns the JSON success envelope,
+then test one confirmed ERP logout. A frontend HTML response is a routing
+failure even when its status is HTTP 200. Do not install the updated agent
+against an older backend: it can upload batches, but it cannot clear the flush
+flag without the explicit acknowledgement endpoint.
 
 ## Agent command reference
 

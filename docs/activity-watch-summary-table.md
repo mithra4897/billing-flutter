@@ -19,6 +19,13 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
 - Show recent daily activity records from the already-loaded summaries. Omit
   the active-time trend, keyboard activity graph, and separate distribution
   card.
+- Show exactly one recent-activity card per owner and local work date. Resolve
+  the owner by linked employee, then owning user, and use the device only as a
+  fallback for legacy unassigned data.
+- Treat repeated rows for the same device and date as cumulative snapshots and
+  retain only the newest API-ordered row. When one owner used multiple devices
+  on the same date, combine those distinct-device daily totals and detail lists
+  into the single owner/date card.
 - Show a trailing down chevron for a closed recent activity record and an up
   chevron for the record whose inline details are open, so users can identify
   the expanded record at a glance.
@@ -27,7 +34,7 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   be independently expanded from initially folded headers.
 - When a recent activity record is expanded, replace its daily metric tiles
   with active/idle, keyboard active/idle, mouse active/idle, browser-time,
-  locked-time, and untracked-time graphs for that device in the
+  locked-time, and untracked-time graphs for that owner in the
   selected date range. Untracked time is the existing API
   `unknown_seconds` duration; it does not infer time that was not reported by
   the device. Each active series uses a strong color and the companion idle
@@ -55,8 +62,8 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   its paged content vertically scrollable so device rows and navigation remain
   reachable without a RenderFlex overflow.
 - Do not issue another API request for dashboard data.
-- Display one row per returned daily device summary with date, device, active,
-  idle, input, browser, locked, offline, unknown, and tracked durations.
+- Display one card per resolved owner and date with date, device count/label,
+  active, idle, input, browser, locked, offline, unknown, and tracked durations.
 - Make Recent daily activity records the entry point to full details. Selecting
   a record opens a dialog with its activity metrics and application totals.
   Remove the duplicate bottom activity table.
@@ -129,6 +136,9 @@ shared ERP dashboard pattern, while retaining a complete daily device table.
   behaviour.
 - The change is presentation-only: no Activity Watch API, storage, consent, or
   data-collection behaviour changes.
+- Daily grouping uses keyed maps in one pass over the loaded summaries. It is
+  linear in the number of summaries plus their bounded detail items and does
+  not issue another API request.
 
 ## Verification
 

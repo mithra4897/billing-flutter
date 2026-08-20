@@ -503,9 +503,12 @@ used for interactive collection.
 8. Upload batches are ordered by next-attempt time and creation time and are
    limited by configured batch size. Selection uses the approved dispatch
    index, making each batch `O(B)` after indexed lookup where `B` is batch size.
-9. HTTP 2xx acknowledges the batch. Authentication/authorization rejection is
-   permanent until re-enrollment. Timeouts, network errors, 408, 429, and 5xx
-   use bounded exponential retry.
+9. A batch is acknowledged only when the server returns HTTP 2xx with a JSON
+   success envelope whose accepted count matches the uploaded batch. HTML,
+   malformed JSON, a false success flag, or a mismatched accepted count is a
+   retryable invalid response and must never mark local outbox rows as synced.
+   Authentication/authorization rejection is permanent until re-enrollment.
+   Timeouts, network errors, 408, 429, and 5xx use bounded exponential retry.
 10. Logs must never contain database keys, device credentials, decrypted
    payloads, window titles, URLs, or personal activity content.
 11. A plaintext SQLite runtime, missing key, wrong key, unsupported schema,
@@ -535,6 +538,15 @@ The implemented endpoint is `POST /api/v1/activity-watch/batches` with:
 - `X-Device-Id` and `Idempotency-Key` headers; and
 - a JSON body containing an ordered batch of opaque encrypted outbox payloads.
 
+Web logout uses device-authenticated control endpoints derived from the batch
+URL: `GET /activity-watch/control` reads the server flush flag and
+`POST /activity-watch/control/acknowledge` clears it only after the agent has
+successfully drained the complete local outbox. Acknowledgement is a separate
+request so an initially empty outbox and a final batch exactly equal to the
+configured batch size both complete correctly. The existing final-batch header
+remains backend-compatible during agent rollout but is not the new agent's
+source of completion truth.
+
 When sync is disabled or the endpoint is unavailable, the service retains
 pending records without data loss for a later retry.
 
@@ -560,6 +572,11 @@ pending records without data loss for a later retry.
   without stopping the machine worker.
 - Outbox upload handles success, retryable failure, permanent rejection, batch
   limits, and cancellation.
+- An HTTP 200 HTML response and malformed/mismatched JSON remain retryable and
+  do not mark any outbox item synced.
+- Server-driven logout acknowledgement occurs after zero, partial, one-full,
+  and multiple-full-batch drains, and acknowledgement failure leaves the server
+  flush flag set for retry.
 - Retry delay is capped and deterministic under injected randomness.
 - Configuration rejects unsafe or missing required values.
 - Provisioning creates an encrypted database that passes the store's schema
@@ -767,6 +784,25 @@ Acceptance criteria:
 
 Status: Implemented (2026-08-10)
 
+### One owner card per day
+
+- Date: 2026-08-20
+- Status: Implemented
+- Recent daily activity shows at most one card for an owner on a local work
+  date, even when logout produces several uploaded summary snapshots.
+- Owner identity is the linked employee ID, otherwise the owning user ID, and
+  otherwise the device ID for unassigned legacy data.
+- For the same device and date, the first row in the newest-first API response
+  is retained and older cumulative snapshots are discarded rather than added.
+- Distinct devices belonging to that owner on the same date are combined into
+  the one card. Duration totals and application/browser totals are additive;
+  bounded process, USB-device, and USB-file details are de-duplicated.
+- The existing API, viewer scope, date filters, privacy rules, and empty/error
+  behavior remain unchanged.
+- Acceptance: five same-day logout snapshots for one user render one card with
+  the newest daily values; two distinct devices for that user/date also render
+  one card with combined values; different users or dates remain separate.
+
 The Activity report reuses `ErpModuleDashboard` to present recent daily
 activity from the already-loaded report rows. The active-time trend, keyboard
 activity graph, separate distribution card, and duplicate bottom table are
@@ -775,7 +811,7 @@ inline with active/idle, keyboard active/idle, mouse active/idle, browser,
 locked, and untracked-time graphs in place of the metric-tile grid.
 Untracked time is displayed from the existing `unknown_seconds` response field;
 it does not estimate unreported device time. Each graph uses only the selected
-device's already-loaded daily summaries in the current date range. The dashboard
+owner's already-loaded daily summaries in the current date range. The dashboard
 overview must not reserve an empty analytics column or show a `No analytics
 configured` card when it contains no insight cards. Each duration graph is a
 separate borderless rounded surface with smooth filled mountain curves: green for the main
@@ -876,6 +912,19 @@ They must retain the backend's stable installer filenames, publish to
 a hash-verified package-specific quarantine removal, and warn that removing an
 agent's application-data directory permanently removes its local encrypted
 queue.
+
+The configured public installer base URL must include any deployment-specific
+path prefix between the hostname and the API `public` directory. Release
+verification must reject frontend HTML, error documents, and unexpectedly small
+payloads even when the server reports HTTP 200. An accepted Windows response
+has the executable content type and expected published size; macOS has the
+expected published package size.
+
+The macOS stable `.pkg` filename must contain a valid XAR installer archive,
+never the raw Go agent or launcher Mach-O binary. Before publication,
+`pkgutil --payload-files` must parse the package and list the application
+bundle, launcher, agent, and `Info.plist`; both bundled executables must retain
+mode `755`. The published file's SHA-256 hash must match the validated package.
 
 ## Activity Watch device-management access
 

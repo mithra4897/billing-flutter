@@ -185,23 +185,20 @@ final class ActivityWatchUsbDevice {
   final int observedDurationSeconds;
   final bool connected;
 
-  factory ActivityWatchUsbDevice.fromJson(Map<String, dynamic> json) =>
-      ActivityWatchUsbDevice(
-        fingerprint: json['fingerprint']?.toString() ?? '',
-        name: json['name']?.toString() ?? '',
-        manufacturer: json['manufacturer']?.toString(),
-        driveLetter: json['drive_letter']?.toString(),
-        volumeLabel: json['volume_label']?.toString(),
-        capacityBytes: JsonModel.intOf(json['capacity_bytes']),
-        freeBytes: JsonModel.intOf(json['free_bytes']),
-        connectedAt: DateTime.tryParse(
-          json['connected_at_utc']?.toString() ?? '',
-        ),
-        observedDurationSeconds: JsonModel.intOf(
-          json['observed_duration_seconds'],
-        ),
-        connected: json['connected'] == true,
-      );
+  factory ActivityWatchUsbDevice.fromJson(
+    Map<String, dynamic> json,
+  ) => ActivityWatchUsbDevice(
+    fingerprint: json['fingerprint']?.toString() ?? '',
+    name: json['name']?.toString() ?? '',
+    manufacturer: json['manufacturer']?.toString(),
+    driveLetter: json['drive_letter']?.toString(),
+    volumeLabel: json['volume_label']?.toString(),
+    capacityBytes: JsonModel.intOf(json['capacity_bytes']),
+    freeBytes: JsonModel.intOf(json['free_bytes']),
+    connectedAt: DateTime.tryParse(json['connected_at_utc']?.toString() ?? ''),
+    observedDurationSeconds: JsonModel.intOf(json['observed_duration_seconds']),
+    connected: json['connected'] == true,
+  );
 }
 
 final class ActivityWatchUsbFileEvent {
@@ -380,6 +377,214 @@ final class ActivityWatchSummary {
     );
   }
 }
+
+String activityWatchSummaryOwnerKey(ActivityWatchSummary summary) {
+  final employeeId = summary.employeeId;
+  if (employeeId != null) return 'employee:$employeeId';
+  final ownerUserId = summary.ownerUserId;
+  if (ownerUserId != null) return 'user:$ownerUserId';
+  return 'device:${summary.deviceId}';
+}
+
+String activityWatchSummaryOwnerDateKey(ActivityWatchSummary summary) =>
+    '${activityWatchSummaryOwnerKey(summary)}:${_activityWatchDate(summary.workDate)}';
+
+/// Returns one newest, combined daily summary for each resolved owner.
+///
+/// The summaries API orders rows newest first. A repeated device/date row is a
+/// cumulative snapshot, so the first occurrence is retained. Daily rows from
+/// distinct devices for the same owner are additive.
+List<ActivityWatchSummary> groupActivityWatchSummariesByOwnerDate(
+  Iterable<ActivityWatchSummary> summaries,
+) {
+  final latestByDeviceDate = <String, ActivityWatchSummary>{};
+  for (final summary in summaries) {
+    final key = '${summary.deviceId}:${_activityWatchDate(summary.workDate)}';
+    latestByDeviceDate.putIfAbsent(key, () => summary);
+  }
+
+  final builders = <String, _ActivityWatchDailySummaryBuilder>{};
+  for (final summary in latestByDeviceDate.values) {
+    builders
+        .putIfAbsent(
+          activityWatchSummaryOwnerDateKey(summary),
+          () => _ActivityWatchDailySummaryBuilder(summary),
+        )
+        .add(summary);
+  }
+
+  final grouped = builders.values
+      .map((builder) => builder.build())
+      .toList(growable: false);
+  grouped.sort((left, right) {
+    final date = right.workDate.compareTo(left.workDate);
+    if (date != 0) return date;
+    final leftLabel = left.employeeName ?? left.deviceLabel;
+    final rightLabel = right.employeeName ?? right.deviceLabel;
+    return leftLabel.toLowerCase().compareTo(rightLabel.toLowerCase());
+  });
+  return grouped;
+}
+
+final class _ActivityWatchDailySummaryBuilder {
+  _ActivityWatchDailySummaryBuilder(this.first);
+
+  final ActivityWatchSummary first;
+  final Set<String> _deviceIds = <String>{};
+  final Set<String> _deviceLabels = <String>{};
+  final Map<String, ActivityWatchApplicationTotal> _applications =
+      <String, ActivityWatchApplicationTotal>{};
+  final Map<String, ActivityWatchBrowserTitleTotal> _browserTitles =
+      <String, ActivityWatchBrowserTitleTotal>{};
+  final Map<String, ActivityWatchBackgroundApplication>
+  _backgroundApplications = <String, ActivityWatchBackgroundApplication>{};
+  final Map<String, ActivityWatchUsbDevice> _usbDevices =
+      <String, ActivityWatchUsbDevice>{};
+  final Map<String, ActivityWatchUsbFileEvent> _usbFileEvents =
+      <String, ActivityWatchUsbFileEvent>{};
+
+  int activeSeconds = 0;
+  int idleSeconds = 0;
+  int lockedSeconds = 0;
+  int offlineSeconds = 0;
+  int unknownSeconds = 0;
+  int inputSeconds = 0;
+  int browserSeconds = 0;
+  int trackedSeconds = 0;
+  int keyboardActiveSeconds = 0;
+  int keyboardIdleSeconds = 0;
+  int mouseActiveSeconds = 0;
+  int mouseIdleSeconds = 0;
+  int usbTotalPorts = 0;
+  int usbUsedPorts = 0;
+  bool usbFilesTruncated = false;
+
+  void add(ActivityWatchSummary summary) {
+    if (!_deviceIds.add(summary.deviceId)) return;
+    final deviceLabel = summary.deviceLabel.trim();
+    if (deviceLabel.isNotEmpty) _deviceLabels.add(deviceLabel);
+    activeSeconds += summary.activeSeconds;
+    idleSeconds += summary.idleSeconds;
+    lockedSeconds += summary.lockedSeconds;
+    offlineSeconds += summary.offlineSeconds;
+    unknownSeconds += summary.unknownSeconds;
+    inputSeconds += summary.inputSeconds;
+    browserSeconds += summary.browserSeconds;
+    trackedSeconds += summary.trackedSeconds;
+    keyboardActiveSeconds += summary.keyboardActiveSeconds;
+    keyboardIdleSeconds += summary.keyboardIdleSeconds;
+    mouseActiveSeconds += summary.mouseActiveSeconds;
+    mouseIdleSeconds += summary.mouseIdleSeconds;
+    usbTotalPorts += summary.usbTotalPorts;
+    usbUsedPorts += summary.usbUsedPorts;
+    usbFilesTruncated = usbFilesTruncated || summary.usbFilesTruncated;
+
+    for (final application in summary.applications) {
+      final key =
+          '${application.name.trim().toLowerCase()}|'
+          '${application.classification.trim().toLowerCase()}';
+      final previous = _applications[key];
+      _applications[key] = previous == null
+          ? application
+          : ActivityWatchApplicationTotal(
+              name: previous.name,
+              classification: previous.classification,
+              seconds: previous.seconds + application.seconds,
+            );
+    }
+    for (final title in summary.browserTitles) {
+      final key = title.title.trim().toLowerCase();
+      final previous = _browserTitles[key];
+      _browserTitles[key] = previous == null
+          ? title
+          : ActivityWatchBrowserTitleTotal(
+              title: previous.title,
+              seconds: previous.seconds + title.seconds,
+            );
+    }
+    for (final application in summary.backgroundApplications) {
+      final key =
+          '${application.name.trim().toLowerCase()}|'
+          '${(application.state ?? '').trim().toLowerCase()}';
+      _backgroundApplications.putIfAbsent(key, () => application);
+    }
+    for (final device in summary.usbDevices) {
+      final key = device.fingerprint.trim().isNotEmpty
+          ? device.fingerprint.trim().toLowerCase()
+          : '${device.name.trim().toLowerCase()}|${device.driveLetter ?? ''}';
+      final previous = _usbDevices[key];
+      if (previous == null ||
+          device.observedDurationSeconds > previous.observedDurationSeconds) {
+        _usbDevices[key] = device;
+      }
+    }
+    for (final event in summary.usbFileEvents) {
+      final key =
+          '${event.operation}|${event.driveLetter}|${event.relativePath}|'
+          '${event.observedAt?.toUtc().toIso8601String() ?? ''}';
+      _usbFileEvents.putIfAbsent(key, () => event);
+    }
+  }
+
+  ActivityWatchSummary build() {
+    final labels = _deviceLabels.toList(growable: false)..sort();
+    final applications = _applications.values.toList(growable: false)
+      ..sort((left, right) => right.seconds.compareTo(left.seconds));
+    final browserTitles = _browserTitles.values.toList(growable: false)
+      ..sort((left, right) => right.seconds.compareTo(left.seconds));
+    final backgroundApplications = _backgroundApplications.values.toList(
+      growable: false,
+    )..sort((left, right) => left.name.compareTo(right.name));
+    final usbDevices = _usbDevices.values.toList(growable: false)
+      ..sort((left, right) => left.name.compareTo(right.name));
+    final usbFileEvents = _usbFileEvents.values.toList(growable: false)
+      ..sort(
+        (left, right) => (right.observedAt ?? DateTime(0)).compareTo(
+          left.observedAt ?? DateTime(0),
+        ),
+      );
+    return ActivityWatchSummary(
+      deviceId: first.deviceId,
+      deviceLabel: labels.length <= 1
+          ? (labels.isEmpty ? first.deviceLabel : labels.single)
+          : '${labels.length} devices',
+      ownerUserId: first.ownerUserId,
+      employeeId: first.employeeId,
+      employeeName: first.employeeName,
+      employeeCode: first.employeeCode,
+      workDate: DateTime(
+        first.workDate.year,
+        first.workDate.month,
+        first.workDate.day,
+      ),
+      activeSeconds: activeSeconds,
+      idleSeconds: idleSeconds,
+      lockedSeconds: lockedSeconds,
+      offlineSeconds: offlineSeconds,
+      unknownSeconds: unknownSeconds,
+      inputSeconds: inputSeconds,
+      browserSeconds: browserSeconds,
+      trackedSeconds: trackedSeconds,
+      applications: applications,
+      keyboardActiveSeconds: keyboardActiveSeconds,
+      keyboardIdleSeconds: keyboardIdleSeconds,
+      mouseActiveSeconds: mouseActiveSeconds,
+      mouseIdleSeconds: mouseIdleSeconds,
+      browserTitles: browserTitles,
+      backgroundApplications: backgroundApplications,
+      usbTotalPorts: usbTotalPorts,
+      usbUsedPorts: usbUsedPorts,
+      usbDevices: usbDevices,
+      usbFileEvents: usbFileEvents,
+      usbFilesTruncated: usbFilesTruncated,
+    );
+  }
+}
+
+String _activityWatchDate(DateTime value) =>
+    '${value.year.toString().padLeft(4, '0')}-'
+    '${value.month.toString().padLeft(2, '0')}-'
+    '${value.day.toString().padLeft(2, '0')}';
 
 final class ActivityWatchSummaryPage {
   const ActivityWatchSummaryPage({

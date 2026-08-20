@@ -1,5 +1,91 @@
 # Changelog
 
+## 2026-08-20 — Group Activity Watch cards by owner and day
+
+- Request: Show one Activity Watch card per user/date when the user logs out
+  several times in the same day.
+- Specification: Retain the newest cumulative snapshot per device/date, then
+  combine distinct devices under the linked employee/user and local work date.
+- Implementation: Reused the typed Activity Watch summary model and dashboard;
+  added a map-based daily aggregator and changed expansion/trend keys from
+  device/date to owner/date.
+- Files changed: Activity Watch model, setup/report page, focused model tests,
+  feature specification, architecture, testing notes, and changelog.
+- API/database/security impact: None. Existing viewer scope and privacy-safe
+  response fields are unchanged.
+- Tests: Focused grouping/parsing tests passed (4 tests), the complete Flutter
+  suite passed (15 tests), and focused Flutter analysis passed with no issues.
+  Full-project analysis retains two unrelated existing warnings.
+- Complexity: Expected `O(n + d)` time and `O(n + d)` space for loaded
+  summaries and bounded detail items.
+- Remaining verification: Confirm the grouped card visually in an
+  authenticated production UI after multiple same-day logout uploads.
+
+## 2026-08-20 — Make web-logout uploads fail closed
+
+- Request: Verify and correct Activity Watch data not reaching the server after
+  ERP web logout.
+- Specification: A batch requires a valid JSON accepted-count acknowledgement;
+  logout completion uses a separate device-authenticated control acknowledgement.
+- Implementation: Added bounded batch-response validation, retry handling for
+  invalid HTTP 2xx responses, explicit post-drain acknowledgement, backend
+  route/controller support, and preserved the legacy header for older agents.
+- Files changed: Agent syncer/control/runner and tests, backend Activity Watch
+  controller/routes, macOS package/public artifact, specifications,
+  architecture, ADR, operations, testing, and changelogs.
+- Database/API impact: Adds authenticated
+  `POST /activity-watch/control/acknowledge`; no new table or column. The
+  existing `flush_requested` patch is still required.
+- Security impact: Reuses device authentication and prevents misrouted HTML
+  responses from falsely acknowledging encrypted activity data.
+- Tests added or updated: HTML 200, accepted-count mismatch, empty/full queue
+  acknowledgement, combined-control delegation, and server acknowledgement.
+- Tests executed and results: Full Go tests and vet passed; changed PHP files
+  passed syntax checks; rebuilt macOS package passed payload, mode, hash, and
+  Installer parse validation.
+- Documentation updated: Specification, architecture, replacement ADR,
+  release/deployment operations, testing, frontend/backend/root changelogs.
+- Known limitations: Rebuild Windows on its approved toolchain. Deploy backend
+  before updated agents and complete one live logout test after deployment.
+
+## 2026-08-20 — Repair invalid macOS Activity Watch package
+
+- Request: Fix the macOS Installer page-controller error shown when opening the
+  downloaded Activity Watch package.
+- Specification: The stable `.pkg` must contain a parseable XAR installer with
+  the app launcher, agent, and `Info.plist`, and the published hash must match
+  the validated build.
+- Implementation: Rebuilt the current ARM64 agent and AppKit launcher into a
+  valid component package, replaced the mislabeled raw executable in the API
+  download folder, and added pre-publication package validation steps.
+- Files changed: macOS packaging artifact, API-public macOS artifact, release
+  specification, operations guide, testing record, and changelogs.
+- Database/API impact: No database, endpoint, or payload-shape change; the
+  stable installer filename is retained.
+- Security impact: The internal development package is still unsigned and must
+  be signed and notarized before general distribution.
+- Tests executed and results: Agent tests and vet passed; `pkgutil` payload
+  validation, executable-mode checks, hash comparison, and macOS Installer's
+  read-only choices parse passed.
+- Known limitations: The corrected API-public file must be deployed to the live
+  server, then manually installed and paired on a test Mac.
+
+## 2026-08-20 — Fix Activity Watch agent download path
+
+- Request: Fix the Activity Watch agent download.
+- Specification: The installer URL must include the deployment's API public-path
+  prefix and return an installer-sized payload rather than HTML.
+- Implementation: Pointed the production installer base URL at the API's
+  deployed public directory; no Flutter widget or API contract changed.
+- Database/API impact: No database or response-shape change.
+- Security impact: None; installer and pairing security behavior is unchanged.
+- Tests executed and results: Production `curl -I` checks returned the Windows
+  executable (10,769,920 bytes) and macOS package (13,105,986 bytes).
+- Documentation updated: Specification, release operations, testing, frontend
+  changelog, and backend changelog.
+- Known limitations: The corrected environment value must be present on the
+  deployed backend if this workspace is not the live server filesystem.
+
 ## 2026-08-20 — Repair Windows Activity Watch installer updates
 
 - Request: Fix the installer failure when `activity-watch-agent.exe` is in use.

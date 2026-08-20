@@ -1173,7 +1173,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
       .toList(growable: false);
 
   Widget _buildSelectedMetrics(ActivityWatchSummary summary) {
-    final timeline = _deviceActivityTrend(summary.deviceId);
+    final timeline = _ownerActivityTrend(summary);
     final graphs = <Widget>[
       _ActivityGraph(
         title: 'Active and idle time',
@@ -1248,7 +1248,9 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     );
   }
 
-  List<_DeviceActivityPoint> _deviceActivityTrend(String deviceId) {
+  List<_DeviceActivityPoint> _ownerActivityTrend(
+    ActivityWatchSummary selected,
+  ) {
     final byDate =
         <
           DateTime,
@@ -1265,7 +1267,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           )
         >{};
     for (final item in _summaries) {
-      if (item.deviceId != deviceId) continue;
+      if (activityWatchSummaryOwnerKey(item) !=
+          activityWatchSummaryOwnerKey(selected)) {
+        continue;
+      }
       final date = DateUtils.dateOnly(item.workDate);
       final totals = byDate[date] ?? (0, 0, 0, 0, 0, 0, 0, 0, 0);
       byDate[date] = (
@@ -2043,19 +2048,11 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   static String _summaryKey(ActivityWatchSummary summary) =>
-      '${summary.deviceId}:${_date(summary.workDate)}';
+      activityWatchSummaryOwnerDateKey(summary);
 
   List<ActivityWatchSummary> _uniqueSummaries(
     List<ActivityWatchSummary> summaries,
-  ) {
-    final byKey = <String, ActivityWatchSummary>{};
-    for (final summary in summaries) {
-      byKey[_summaryKey(summary)] = summary;
-    }
-    final unique = byKey.values.toList(growable: false);
-    return unique
-      ..sort((left, right) => right.workDate.compareTo(left.workDate));
-  }
+  ) => groupActivityWatchSummariesByOwnerDate(summaries);
 
   List<ActivityWatchDevice> _uniqueDevices(List<ActivityWatchDevice> devices) {
     final byKey = <String, ActivityWatchDevice>{};

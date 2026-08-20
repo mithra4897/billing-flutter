@@ -63,6 +63,10 @@ by device owner.
 Company summary pagination is consumed in 100-row batches. Summary ownership
 uses a linked employee where available and otherwise a distinct user fallback,
 so employee filters and labels do not collapse legacy devices into one name.
+The Flutter report first retains the newest API-ordered cumulative snapshot for
+each device/date, then uses an owner/date map to combine distinct devices into
+one daily card. This is presentation-only, runs in expected linear time over
+the bounded response/details, and does not alter API authorization or storage.
 
 ## Activity Watch self-service pairing
 
@@ -145,7 +149,14 @@ flowchart LR
   titles and inventory payloads, produce bounded daily title/process projections,
   generate revisioned summaries, and purge synchronized data after 90 days.
 - Syncer: select bounded indexed batches, upload encrypted payloads plus their
-  approved reporting projection, acknowledge successes, and schedule retries.
+  approved reporting projection, and schedule retries. A row becomes synced
+  only after a bounded JSON success envelope confirms the complete accepted
+  count; an HTML/malformed/mismatched HTTP 2xx response remains retryable.
+- Server logout control: poll the device-authenticated control flag, drain the
+  complete indexed outbox, then send a separate authenticated acknowledgement.
+  Separating completion from the final batch handles empty queues and exact
+  batch-size multiples. The server retains the flag when upload or
+  acknowledgement fails, so the next poll retries safely.
 - Secret provider: supply database and device credentials without placing them
   in configuration or logs.
 - Provisioner: generate and publish a new encrypted database/key pair only

@@ -18,6 +18,10 @@ type LogoutControl interface {
 	Consume() (bool, error)
 }
 
+type LogoutAcknowledger interface {
+	Acknowledge(context.Context) error
+}
+
 type AttendanceReporter interface {
 	CheckIn(context.Context, time.Time) error
 	CheckOut(context.Context, time.Time) error
@@ -227,6 +231,11 @@ func (r *Runner) consumeControl(ctx context.Context) error {
 	}
 	if err := r.flushPending(ctx); err != nil {
 		return fmt.Errorf("logout synchronization: %w", err)
+	}
+	if acknowledger, ok := r.control.(LogoutAcknowledger); ok {
+		if err := acknowledger.Acknowledge(ctx); err != nil {
+			return fmt.Errorf("acknowledge logout synchronization: %w", err)
+		}
 	}
 	return nil
 }

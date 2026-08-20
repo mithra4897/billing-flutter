@@ -41,6 +41,13 @@ type batchRequest struct {
 	Items    []store.OutboxItem `json:"items"`
 }
 
+type batchResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Accepted int `json:"accepted"`
+	} `json:"data"`
+}
+
 func New(repository store.Repository, httpClient *http.Client, config Config) *Synchronizer {
 	return &Synchronizer{
 		repository: repository,
@@ -83,7 +90,10 @@ func (s *Synchronizer) Flush(ctx context.Context) (int, error) {
 		return 0, s.markRetry(ctx, items, ids, "network-error", 0, err)
 	}
 	defer response.Body.Close()
-	responseBody, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, 4097))
+	if readErr != nil {
+		return 0, s.markRetry(ctx, items, ids, "response-read-failed", 0, readErr)
+	}
 	responseDetail := strings.TrimSpace(string(responseBody))
 	if len(responseDetail) > 1000 {
 		responseDetail = responseDetail[:1000]
@@ -91,11 +101,9 @@ func (s *Synchronizer) Flush(ctx context.Context) (int, error) {
 
 	switch {
 	case response.StatusCode >= 200 && response.StatusCode < 300:
-		if err := s.repository.MarkSynced(ctx, ids, now); err != nil {
-			return 0, err
+		if err := validateBatchResponse(responseBody, len(items)); err != nil {
+			return 0, s.markRetry(ctx, items, ids, "invalid-success-response", 0, err)
 		}
-		return len(items), nil
-	case response.StatusCode == http.StatusConflict:
 		if err := s.repository.MarkSynced(ctx, ids, now); err != nil {
 			return 0, err
 		}
@@ -116,6 +124,23 @@ func (s *Synchronizer) Flush(ctx context.Context) (int, error) {
 		}
 		return 0, fmt.Errorf("permanent upload response %d", response.StatusCode)
 	}
+}
+
+func validateBatchResponse(body []byte, expected int) error {
+	if len(body) > 4096 {
+		return errors.New("batch response exceeds 4096 bytes")
+	}
+	var parsed batchResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return fmt.Errorf("decode batch response: %w", err)
+	}
+	if !parsed.Success {
+		return errors.New("batch response did not report success")
+	}
+	if parsed.Data.Accepted != expected {
+		return fmt.Errorf("batch response accepted %d items, expected %d", parsed.Data.Accepted, expected)
+	}
+	return nil
 }
 
 func (s *Synchronizer) markRetry(
