@@ -649,7 +649,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                               context,
                               allowPrint: status != 'draft',
                               allowDownload: status != 'draft',
-                              allowTemplateEditing: status != 'draft',
+                              allowTemplateEditing: true,
                             ),
                           ),
                         if (!controller.isSelectedOrderReadOnly)

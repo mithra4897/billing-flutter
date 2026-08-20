@@ -663,7 +663,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       context,
                       allowPrint: controller.status != 'draft',
                       allowDownload: controller.status != 'draft',
-                      allowTemplateEditing: controller.status != 'draft',
+                      allowTemplateEditing: true,
                     ),
                   ),
                 if (controller.selectedItem != null &&

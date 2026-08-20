@@ -802,7 +802,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                       context,
                       allowPrint: status != 'draft',
                       allowDownload: status != 'draft',
-                      allowTemplateEditing: status != 'draft',
+                      allowTemplateEditing: true,
                     ),
                   ),
                 AppActionButton(
