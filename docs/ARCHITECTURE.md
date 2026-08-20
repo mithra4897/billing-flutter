@@ -1,5 +1,13 @@
 # Architecture
 
+## Browser session restoration
+
+The existing shared-preference session store remains the single source of truth
+for a browser refresh. App bootstrap restores any unexpired token, then keeps
+the existing background `/auth/me` validation; only manual logout, expiry, or a
+401/403 response clears the session. The legacy remember-me preference remains
+cleared on logout for compatibility but no longer controls restoration.
+
 ## Activity Watch/manual attendance and payroll snapshots
 
 ERP authentication does not write attendance. The paired Go agent sends a
@@ -86,8 +94,10 @@ the installed Go agent without a console window and displays either successful
 connection or a safe pairing failure, without exposing a token or credential.
 If Windows denies creation of the user Scheduled Task after a successful
 exchange, the paired configuration remains valid and the launcher reports the
-separate startup limitation. An installer update starts the replaced agent
-immediately when an existing paired configuration is present.
+separate startup limitation. A Windows installer update requests elevation,
+stops and waits for the existing service/process, replaces the executable, then
+restarts the already-installed service (or starts a direct paired process only
+when no service exists).
 
 ## Activity Watch desktop runtime
 

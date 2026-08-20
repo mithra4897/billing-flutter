@@ -24,9 +24,7 @@ class AppBootstrapController extends GetxController {
 
     try {
       final brandingFuture = _brandingService.fetchBranding();
-      final sessionFuture = AppSessionService.instance.bootstrap(
-        requireRememberMe: true,
-      );
+      final sessionFuture = AppSessionService.instance.bootstrap();
       await brandingFuture;
       final restoredSession = await sessionFuture;
 

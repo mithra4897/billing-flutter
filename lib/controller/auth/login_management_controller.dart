@@ -13,7 +13,7 @@ class LoginManagementController extends GetxController {
 
   PublicBrandingModel? branding;
   bool obscurePassword = true;
-  bool rememberMe = false;
+  bool rememberMe = true;
   bool isLoading = false;
   bool isBootstrapping = true;
   String? brandingErrorMessage;
@@ -22,7 +22,6 @@ class LoginManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restoreRememberMe());
     unawaited(loadBranding());
   }
 
@@ -37,11 +36,6 @@ class LoginManagementController extends GetxController {
     final message = actionMessage;
     actionMessage = null;
     return message;
-  }
-
-  Future<void> _restoreRememberMe() async {
-    rememberMe = await SessionStorage.shouldAutoLogin();
-    update();
   }
 
   Future<void> loadBranding() async {
@@ -71,11 +65,6 @@ class LoginManagementController extends GetxController {
 
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
-    update();
-  }
-
-  void setRememberMe(bool value) {
-    rememberMe = value;
     update();
   }
 

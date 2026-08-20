@@ -1,5 +1,15 @@
 # Testing
 
+## Windows Activity Watch installer update repair — 2026-08-20
+
+- `go test ./internal/collector`: passed.
+- `packaging/windows/build-exe.ps1`: passed and created the repaired installer.
+- The published installer is 21,472,256 bytes; source and API-download hashes
+  match: `5378FF4E8E7B4137C6AC79C24CE0BCDDCA4D4DD06CAB81677D29EC6E4DDBEED2`.
+- Manual verification remains: run the new installer over an existing running
+  Activity Watch Windows service, approve UAC, and confirm the service returns
+  to `running` without a copy failure.
+
 ## Windows Activity Watch installer build — 2026-08-19
 
 - `go test ./internal/collector`: passed.
@@ -747,3 +757,16 @@ been packaged successfully.
   `3FCF8A38E63EE85E6B7C42E20FF4BA087DE2D3664096F46DB0B7642922F2A8DE`.
 - Manual verification with an attached removable drive is still required to
   confirm real device/file metadata reaches the ERP daily detail.
+## ERP logout confirmation — 2026-08-20
+
+- The shell logout action must first show `Log out?`; `Cancel` keeps the ERP
+  session intact and `Log out` continues the existing session-clear flow.
+- The dialog explicitly distinguishes browser logout from the local native
+  Activity Watch agent signal so it does not imply an immediate upload.
+## Persistent browser login session — 2026-08-20
+
+- A valid token now reaches the existing active-session bootstrap path without
+  a remember-me gate; logout, expiry, and 401/403 handling are unchanged.
+- Focused Dart analysis of the three changed Flutter files passed. The focused
+  Flutter session-storage test command was started but returned no result from
+  this environment, so its outcome is not claimed.

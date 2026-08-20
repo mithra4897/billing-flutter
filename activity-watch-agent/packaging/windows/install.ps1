@@ -1,10 +1,11 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$LauncherPath
+    [string]$LauncherPath,
+    [Parameter(Mandatory = $true)]
+    [string]$InstallRoot
 )
 
 $ErrorActionPreference = 'Stop'
-$installRoot = Join-Path $env:LOCALAPPDATA 'BillingActivityWatch'
 $agentPath = Join-Path $installRoot 'activity-watch-agent.exe'
 $configPath = Join-Path $installRoot 'activity-watch-agent.config.json'
 $launcherTargetPath = Join-Path $installRoot 'BillingActivityWatch.exe'
@@ -14,13 +15,24 @@ if (-not (Test-Path -LiteralPath $LauncherPath -PathType Leaf)) {
 }
 
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
+$service = Get-Service -Name 'BillingActivityWatch' -ErrorAction SilentlyContinue
+if ($service -and $service.Status -ne 'Stopped') {
+    Stop-Service -Name $service.Name -Force -ErrorAction Stop
+    $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped, [TimeSpan]::FromSeconds(15))
+}
 $runningAgents = @(Get-CimInstance Win32_Process -Filter "Name='activity-watch-agent.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $agentPath, [System.StringComparison]::OrdinalIgnoreCase) })
 foreach ($process in $runningAgents) {
-    Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
 }
 if ($runningAgents.Count -gt 0) {
-    Start-Sleep -Milliseconds 500
+    $deadline = (Get-Date).AddSeconds(15)
+    while ((Test-Path -LiteralPath $agentPath) -and (Get-Process -Name 'activity-watch-agent' -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 250
+    }
+    if (Get-Process -Name 'activity-watch-agent' -ErrorAction SilentlyContinue) {
+        throw 'The existing Activity Watch process did not stop, so the update cannot safely replace its executable.'
+    }
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'activity-watch-agent.exe') -Destination $agentPath -Force
 Copy-Item -LiteralPath $LauncherPath -Destination $launcherTargetPath -Force
@@ -43,7 +55,9 @@ foreach ($entry in $registryValues) {
 # Updating stops the installed process before replacing its executable. Resume
 # an already-paired installation immediately instead of waiting for a new logon
 # or requiring the Scheduled Task to be restarted manually.
-if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+if ($service) {
+    Start-Service -Name $service.Name -ErrorAction Stop
+} elseif (Test-Path -LiteralPath $configPath -PathType Leaf) {
     Start-Process -FilePath $agentPath `
         -ArgumentList @('run', '--config', ('"{0}"' -f $configPath)) `
         -WindowStyle Hidden

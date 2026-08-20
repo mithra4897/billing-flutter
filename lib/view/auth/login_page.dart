@@ -176,48 +176,27 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Flexible(
-                                        child: Row(
-                                          children: [
-                                            Checkbox(
-                                              value: controller.rememberMe,
-                                              onChanged: (value) {
-                                                controller.setRememberMe(
-                                                  value ?? false,
-                                                );
-                                              },
-                                            ),
-                                            const Flexible(
-                                              child: Text('Remember me'),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: controller.isLoading
-                                            ? null
-                                            : () {
-                                                Navigator.of(context).pushNamed(
-                                                  Uri(
-                                                    path: '/forgot-password',
-                                                    queryParameters:
-                                                        widget.redirectTo ==
-                                                            null
-                                                        ? null
-                                                        : <String, String>{
-                                                            'redirect': widget
-                                                                .redirectTo!,
-                                                          },
-                                                  ).toString(),
-                                                );
-                                              },
-                                        child: const Text('Forgot?'),
-                                      ),
-                                    ],
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: controller.isLoading
+                                          ? null
+                                          : () {
+                                              Navigator.of(context).pushNamed(
+                                                Uri(
+                                                  path: '/forgot-password',
+                                                  queryParameters:
+                                                      widget.redirectTo == null
+                                                      ? null
+                                                      : <String, String>{
+                                                          'redirect': widget
+                                                              .redirectTo!,
+                                                        },
+                                                ).toString(),
+                                              );
+                                            },
+                                      child: const Text('Forgot?'),
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   SizedBox(

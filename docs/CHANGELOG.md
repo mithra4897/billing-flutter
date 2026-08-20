@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-20 — Repair Windows Activity Watch installer updates
+
+- Request: Fix the installer failure when `activity-watch-agent.exe` is in use.
+- Implementation: Windows updates now request elevation, stop and wait for the
+  existing service/process, replace the executable, and restart the existing
+  service without launching a duplicate foreground process.
+- Database/API impact: None.
+- Security impact: The original user's local install root is passed explicitly
+  through elevation; credentials and pairing data remain unread and unlogged.
+
 ## 2026-08-19 — Build and publish the Windows Activity Watch installer
 
 - Request: Build the Windows Activity Watch agent and move it to the API
@@ -1124,3 +1134,29 @@
   integration, and native packaging verification outside macOS remain outside
   this change.
 - Follow-up work: Add authorized Activity Watch runtime and platform adapters.
+## 2026-08-20 — Confirm ERP logout before clearing the session
+
+- Request: Show a confirmation dialog when the user logs out manually.
+- Specification: Browser logout must not imply it can trigger the local Windows
+  Activity Watch agent.
+- Implementation: Added a cancelable shell-level logout confirmation that
+  explains the browser/native-agent boundary before the existing logout flow.
+- Files changed: `lib/components/adaptive_shell.dart`, `docs/SPECIFICATIONS.md`,
+  `docs/TESTING.md`, `docs/CHANGELOG.md`.
+- Database/API impact: None.
+- Security impact: Does not expose credentials or add browser-to-agent access.
+- Tests added or updated: Manual dialog acceptance criteria documented.
+- Tests executed and results: Pending focused Flutter analysis.
+- Known limitations: Browser logout still cannot directly execute a local
+  Windows agent command.
+## 2026-08-20 — Keep valid browser sessions through refresh
+
+- Request: Keep the ERP login active until manual logout instead of returning
+  to login on every browser refresh.
+- Implementation: Bootstrap restores every valid stored session and the login
+  page removes the obsolete remember-me control.
+- Database/API impact: None.
+- Security impact: Explicit logout, expiry, and server rejection continue to
+  clear the stored session.
+- Tests: Focused Dart analysis passed. The focused Flutter session-storage test
+  returned no result from this environment.

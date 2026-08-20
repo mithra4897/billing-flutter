@@ -920,6 +920,30 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text(
+          'Are you sure you want to end this ERP session? Activity Watch data '
+          'is saved by the connected desktop agent. Browser logout cannot '
+          'directly trigger a local Windows-agent upload.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
     final navigator = appNavigatorKey.currentState;
     await AppSessionService.instance.logout();
     if (navigator != null && navigator.mounted) {

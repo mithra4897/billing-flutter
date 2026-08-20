@@ -32,6 +32,8 @@ For a backend and frontend change that belongs to one feature, use the same deci
   Backup Database in the super-admin system page.
 - [Restore last Billing page after refresh](last-page-restore.md) — reopen the
   last authenticated shell route for a remembered session.
+- [Keep Billing ERP login until logout](persistent-login-session.md) — restore
+  a valid session after browser refresh without requiring a remember-me choice.
 - [Sales Quotation print discount summary](sales-quotation-print-discount-summary.md) — expose conditional discount label and amount placeholders in quotation print templates.
 - [Sales Quotation tax exclusion](sales-quotation-tax-exclusion.md) — keep quotations tax-free in entry, storage, totals, and print data.
 - [Print PDF rupee font asset](print-pdf-rupee-font-asset.md) — package the Poppins fallback font used by web PDF generation.

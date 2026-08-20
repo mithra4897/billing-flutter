@@ -1,5 +1,16 @@
 # Specifications
 
+## Persistent authenticated browser session
+
+- Date: 2026-08-20
+- Status: Implemented
+- A valid stored authentication token restores the ERP session after a browser
+  refresh regardless of the legacy remember-me preference.
+- Manual logout, token expiry, and a server 401/403 remain the only reasons to
+  clear the persisted session and route the user to login.
+- The login form does not offer a remember-me checkbox because it no longer
+  changes refresh behavior.
+
 ## Attendance month and year filtering
 
 - Date: 2026-08-17
@@ -219,6 +230,11 @@ desktop operating systems.
    the user service.
 5. The ERP page shows pending, connected, last-seen, revoked, or expired state.
    Normal ERP logins and computer restarts require no reconfiguration.
+
+Windows installer updates must stop an existing Activity Watch service/process,
+wait until the installed executable is unlocked, replace it, and restart the
+same service. The launcher requests elevation for this service-aware update so
+an in-use agent executable never causes an opaque copy failure.
 
 ### API, storage, and security requirements
 
@@ -476,25 +492,29 @@ used for interactive collection.
    corresponding upload item (or the reverse).
 4. Native Flutter logout finalizes user activity collection, regenerates the
    daily summary, and requests an immediate outbox flush.
-5. Pending sync remains encrypted locally until a later ERP logout, permanent
+5. Every ERP logout action must require an explicit user confirmation before
+   ending the session. The confirmation explains that a browser session cannot
+   invoke the local Windows agent; only a native Flutter session can issue its
+   local logout signal.
+6. Pending sync remains encrypted locally until a later ERP logout, permanent
    rejection, or policy/device revocation.
-6. Shutdown cancels collection, closes open work, and closes SQLCipher without
+7. Shutdown cancels collection, closes open work, and closes SQLCipher without
    an upload attempt.
-7. Upload batches are ordered by next-attempt time and creation time and are
+8. Upload batches are ordered by next-attempt time and creation time and are
    limited by configured batch size. Selection uses the approved dispatch
    index, making each batch `O(B)` after indexed lookup where `B` is batch size.
-8. HTTP 2xx acknowledges the batch. Authentication/authorization rejection is
+9. HTTP 2xx acknowledges the batch. Authentication/authorization rejection is
    permanent until re-enrollment. Timeouts, network errors, 408, 429, and 5xx
    use bounded exponential retry.
-9. Logs must never contain database keys, device credentials, decrypted
+10. Logs must never contain database keys, device credentials, decrypted
    payloads, window titles, URLs, or personal activity content.
-10. A plaintext SQLite runtime, missing key, wrong key, unsupported schema,
-    absent consent, or invalid configuration fails closed.
-11. `provision` must create the exact approved schema version, a cryptographically
+11. A plaintext SQLite runtime, missing key, wrong key, unsupported schema,
+   absent consent, or invalid configuration fails closed.
+12. `provision` must create the exact approved schema version, a cryptographically
     random raw 256-bit key encoded in a mode-`0600` file, and the configured
     control-directory parent. It must refuse to overwrite either an existing
     database or an existing key file.
-12. If provisioning cannot finish, it must remove only temporary artifacts and
+13. If provisioning cannot finish, it must remove only temporary artifacts and
     artifacts it created during that same invocation; it must never modify an
     existing configured path.
 

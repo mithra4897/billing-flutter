@@ -1,5 +1,22 @@
 # Architecture decisions
 
+## ADR-0028: Restore every valid browser session on refresh
+
+- Date: 2026-08-20
+- Status: Accepted
+- Context: The bootstrap route required the optional remember-me preference,
+  so users with a valid token were sent back to login after every refresh.
+- Decision: Restore any unexpired stored session. Remove the checkbox because
+  it no longer has a meaningful security or behavior distinction.
+- Reason: The requested session lifetime is manual logout, token expiry, or
+  server rejection—not browser refresh.
+- Alternatives considered: Require users to tick remember me; persist a second
+  long-lived token; browser-session-only storage.
+- Consequences: A user of a shared browser must use the explicit Logout action
+  when leaving the ERP.
+- Related files: `AppBootstrapController`, login controller/page, and existing
+  `SessionStorage`.
+
 ## ADR-0024: Month-end manual attendance uses the shared attendance ledger
 
 - Date: 2026-08-17

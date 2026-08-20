@@ -62,32 +62,28 @@ internal static class InstallerLauncher
             ExtractResource("BillingActivityWatch.InstallScript", scriptPath);
 
             string systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            string installRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "BillingActivityWatch");
             string powershell = Path.Combine(
                 systemDirectory,
                 @"WindowsPowerShell\v1.0\powershell.exe");
             var startInfo = new ProcessStartInfo
             {
                 FileName = powershell,
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\" -LauncherPath \"" + Assembly.GetExecutingAssembly().Location + "\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\" -LauncherPath \"" + Assembly.GetExecutingAssembly().Location + "\" -InstallRoot \"" + installRoot + "\"",
+                UseShellExecute = true,
+                Verb = "runas",
             };
 
             using (Process process = Process.Start(startInfo))
             {
-                string output = process.StandardOutput.ReadToEnd();
-                string errorOutput = process.StandardError.ReadToEnd();
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    string detail = string.IsNullOrWhiteSpace(errorOutput)
-                        ? output
-                        : errorOutput;
                     throw new InvalidOperationException(
-                        "The installation script failed with exit code " + process.ExitCode + "." +
-                        (string.IsNullOrWhiteSpace(detail) ? "" : Environment.NewLine + detail.Trim()));
+                        "The installation script failed with exit code " + process.ExitCode + ". " +
+                        "Approve the Windows elevation prompt so the installer can update the running Activity Watch service.");
                 }
             }
 
