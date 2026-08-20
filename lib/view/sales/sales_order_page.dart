@@ -773,7 +773,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       context,
                       allowPrint: controller.status != 'draft',
                       allowDownload: controller.status != 'draft',
-                      allowTemplateEditing: controller.status != 'draft',
+                      allowTemplateEditing: true,
                     ),
                   ),
                 AppActionButton(

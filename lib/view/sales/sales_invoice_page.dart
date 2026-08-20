@@ -1101,7 +1101,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       context,
                       allowPrint: controller.status != 'draft',
                       allowDownload: controller.status != 'draft',
-                      allowTemplateEditing: controller.status != 'draft',
+                      allowTemplateEditing: true,
                     ),
                   ),
                 AppActionButton(

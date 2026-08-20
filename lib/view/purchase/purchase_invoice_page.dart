@@ -834,10 +834,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                           (controller.selectedItem?.invoiceStatus ?? '')
                               .toLowerCase() !=
                           'draft',
-                      allowTemplateEditing:
-                          (controller.selectedItem?.invoiceStatus ?? '')
-                              .toLowerCase() !=
-                          'draft',
+                      allowTemplateEditing: true,
                     ),
                   ),
                 if (!controller.isSelectedInvoiceReadOnly)
