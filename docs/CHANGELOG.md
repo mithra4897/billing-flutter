@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-08-21 — Prevent monthly attendance from crossing its month boundary
+
+- The monthly attendance model now derives the number of calendar days from
+  the selected year and month instead of accepting a stale or missing response
+  count. June submissions therefore stop at June 30.
+- API/database impact: none on the Flutter client.
+- Tests: focused analysis and attendance model tests passed.
+
+## 2026-08-21 — Correct Bulk Attendance employee selection
+
+- Bulk Attendance no longer preselects every employee when a month loads.
+  Selecting one employee now submits only that employee's attendance cells.
+- The shared monthly calendar grid now wires its existing header checkbox to
+  select or clear all employees in the loaded bulk sheet.
+- The select-all `Set<int>` operation lives in the shared HR helper layer for
+  reuse by other HR bulk workflows.
+- API/database impact: none.
+- Tests: focused analysis and the monthly attendance selection/model tests
+  passed.
+
+## 2026-08-21 — Add Leave Request approval controls
+
+- Pending Leave Requests now show Approve and Reject actions to Super Admins
+  and users with `hr.approve`.
+- The controls reuse the existing secured HR endpoints, which calculate the
+  paid-leave/LOP split when approval succeeds.
+
+## 2026-08-21 — Calculate leave balance at approval
+
+- Pending leave requests now display a read-only Pending status and do not
+  create paid-leave or LOP values.
+- The server calculates the company-policy paid-leave/LOP split when HR
+  approves the request, using only already-approved leave.
+
+## 2026-08-21 — Use the logged-in employee for Leave Requests
+
+- Removed the all-employee chooser from the Leave Request form.
+- New requests use the active user's linked employee; existing requests retain
+  their recorded employee when opened.
+- HR list filtering and server-side access rules are unchanged.
+
 ## 2026-08-21 — Stabilize Company Settings tab rendering
 
 - Removed form-key reuse between Company Settings and its embedded Financial

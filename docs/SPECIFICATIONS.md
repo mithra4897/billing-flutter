@@ -29,6 +29,31 @@
   records, employment-period, and weekly-off rules still determine whether an
   individual day can be edited.
 
+## Leave Requests use the logged-in employee
+
+- Date: 2026-08-21
+- Status: Implemented
+
+- A new Leave Request automatically uses the logged-in user's employee record
+  for the active company. The form displays that employee as read-only and
+  does not offer an all-employee selector.
+- Existing requests retain their recorded employee when opened. HR users keep
+  their existing request-list filtering and approval access; this UI change
+  does not alter backend authorization.
+- If the user has no employee record linked in the active company, the form
+  cannot submit until HR creates or links that record.
+
+## Leave Request approval actions
+
+- Date: 2026-08-21
+- Status: Implemented
+
+- A selected pending Leave Request shows **Approve** and **Reject** only to a
+  Super Admin or a user with the `hr.approve` permission.
+- Approval and rejection use the existing dedicated HR endpoints. Approving
+  triggers the company-policy paid-leave/LOP allocation; employees cannot
+  change the read-only request status themselves.
+
 ## Company leave policy and LOP configuration
 
 - Date: 2026-08-21
@@ -40,8 +65,10 @@ company LOP deduction multiplier. CL is not fixed at 12 days: the configured
 company entitlement may be higher or lower.
 
 - Supported LOP multipliers are 1, 1.5, and 2; the default is 1.
-- Paid leave consumption is reserved by pending and approved requests in the
-  same leave year. Rejected requests do not consume entitlement.
+- Pending requests do not consume paid leave and do not create LOP. At
+  approval, the paid-leave/LOP split uses the company policy and only the
+  employee's already-approved leave in the same leave year. Rejected requests
+  do not consume entitlement.
 - Annual-upfront policies expose the complete annual entitlement. Monthly
   policies accrue annual entitlement / 12 through the application month.
 - When a paid entitlement is exhausted, `convert_to_lop` allocates the excess
@@ -126,6 +153,18 @@ company entitlement may be higher or lower.
   the flow only prepares non-system employees.
 - Selected employee rows are saved in one bounded transaction. The request is
   capped at 15,000 employee/date cells and reports created/skipped counts.
+
+### Bulk Attendance employee selection
+
+- Bulk Attendance starts with no employee rows selected. Selecting one row
+  submits attendance only for that employee; it must not silently submit other
+  employees.
+- The existing shared calendar table header checkbox explicitly selects or
+  clears every employee row currently loaded in the bulk sheet. Its checked and
+  indeterminate states reflect the selected employee IDs.
+- The calendar derives its final day from the selected year and month, rather
+  than trusting an optional API day count. A June sheet can never create or
+  submit a July 1 record.
 - Paid leave is one payable unit, Half day is 0.5, and LOP/Absent are unpaid.
 - User linkage is schema-compatible: installations with `users.employee_id`
   use the direct relation; legacy installations use matching employee codes.

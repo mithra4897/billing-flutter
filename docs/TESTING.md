@@ -1,5 +1,29 @@
 # Testing
 
+## Monthly Attendance month boundary — 2026-08-21
+
+- Focused Flutter analysis passed for the monthly attendance sheet model.
+- The HR attendance model test verifies a June response with an incorrect
+  `days_in_month: 31` still produces exactly 30 June days (5 tests passed).
+
+## Leave Request approval controls — 2026-08-21
+
+- Focused Flutter analysis covers the Leave Request controller and page.
+- The complete Flutter suite is recorded after wiring the existing approval
+  and rejection endpoints into the screen.
+
+## Calculate leave balance at approval — 2026-08-21
+
+- Backend HR PHPUnit coverage verifies that pending leave does not consume a
+  company's available entitlement: 18 tests and 72 assertions passed.
+- Focused Flutter analysis and the complete Flutter test suite are recorded
+  after the request-status UI update.
+
+## Leave Requests use the logged-in employee — 2026-08-21
+
+- Focused Flutter analysis covers the Leave Request page and controller.
+- Full Flutter suite is recorded after the implementation change.
+
 ## Company Settings tab rendering — 2026-08-21
 
 - `flutter analyze` for the Company and Financial Year pages/controllers:
@@ -13,6 +37,14 @@
   mode and uses the same mode when saving records.
 - Verification: focused Flutter analysis and the existing HR attendance model
   coverage; live authenticated employee-count verification remains manual.
+
+## Bulk Attendance selected-employee submission — 2026-08-21
+
+- Single-row selection and header select-all/clear behavior are covered by the
+  monthly attendance selection helper tests.
+- `flutter analyze` for the changed page, grid, helper, and test: passed.
+- `flutter test test/view/hr/monthly_attendance_selection_test.dart
+  test/model/hr_attendance_payroll_model_test.dart`: passed (6 tests).
 
 ## Activity Watch connection setup status — 2026-08-21
 

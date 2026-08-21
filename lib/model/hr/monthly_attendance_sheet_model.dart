@@ -20,10 +20,14 @@ class MonthlyAttendanceSheetModel {
   final List<AttendanceRecordModel> attendance;
 
   factory MonthlyAttendanceSheetModel.fromJson(Map<String, dynamic> json) {
+    final year = JsonModel.nullableInt(json['year']) ?? DateTime.now().year;
+    final month = JsonModel.nullableInt(json['month']) ?? DateTime.now().month;
     return MonthlyAttendanceSheetModel(
-      year: JsonModel.nullableInt(json['year']) ?? DateTime.now().year,
-      month: JsonModel.nullableInt(json['month']) ?? DateTime.now().month,
-      daysInMonth: JsonModel.nullableInt(json['days_in_month']) ?? 31,
+      year: year,
+      month: month,
+      // The selected calendar period is authoritative. This prevents a stale
+      // or omitted API count from adding a next-month attendance date.
+      daysInMonth: DateTime(year, month + 1, 0).day,
       today: json['today']?.toString() ?? '',
       weeklyOffDays: (json['weekly_off_days'] as List? ?? const <dynamic>[])
           .map(JsonModel.nullableInt)

@@ -39,6 +39,7 @@ class LeaveRequestManagementController extends GetxController {
   String? companyBanner;
   int? sessionCompanyId;
   bool canViewAllHr = false;
+  bool canApproveLeaveRequests = false;
   int? linkedEmployeeId;
   Set<int> listFilterEmployeeIds = <int>{};
   Set<String> listFilterStatuses = <String>{};
@@ -85,6 +86,15 @@ class LeaveRequestManagementController extends GetxController {
     update();
 
     try {
+      final currentUser = await SessionStorage.getCurrentUser();
+      final permissionCodes = await SessionStorage.getPermissionCodes();
+      final isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
+      canApproveLeaveRequests =
+          isSuperAdmin || permissionCodes.contains('hr.approve');
+
       final info = await hrSessionCompanyInfo();
       final cid = info.companyId;
       if (cid == null) {
@@ -205,22 +215,17 @@ class LeaveRequestManagementController extends GetxController {
     update();
   }
 
-  List<EmployeeModel> get formEmployees {
-    if (sessionCompanyId == null) {
-      return const <EmployeeModel>[];
+  EmployeeModel? get formEmployee {
+    final id = employeeId;
+    if (id == null) {
+      return null;
     }
-    final base = employees
-        .where((item) => item.companyId == sessionCompanyId && item.id != null)
-        .toList(growable: false);
-    if (canViewAllHr) {
-      return base;
+    for (final employee in employees) {
+      if (employee.id == id) {
+        return employee;
+      }
     }
-    if (linkedEmployeeId == null) {
-      return base;
-    }
-    return base
-        .where((item) => item.id == linkedEmployeeId)
-        .toList(growable: false);
+    return null;
   }
 
   LeaveTypeModel? get activeLeaveType {
@@ -298,9 +303,7 @@ class LeaveRequestManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedLeaveRequest = null;
-    employeeId = (!canViewAllHr && linkedEmployeeId != null)
-        ? linkedEmployeeId
-        : null;
+    employeeId = linkedEmployeeId;
     leaveTypeId = null;
     fromDateController.clear();
     toDateController.clear();
@@ -393,6 +396,75 @@ class LeaveRequestManagementController extends GetxController {
     }
   }
 
+  bool get canApproveSelectedLeaveRequest =>
+      canApproveLeaveRequests &&
+      selectedLeaveRequest?.id != null &&
+      (selectedLeaveRequest?.status ?? '').trim().toLowerCase() == 'pending';
+
+  Future<void> approveSelectedLeaveRequest() async {
+    final id = selectedLeaveRequest?.id;
+    if (id == null || !canApproveSelectedLeaveRequest) {
+      return;
+    }
+
+    saving = true;
+    formError = null;
+    update();
+
+    try {
+      final response = await _hrService.approveLeaveRequest(
+        id,
+        const LeaveRequestModel(),
+      );
+      if (response.success != true) {
+        formError = response.message;
+        return;
+      }
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(response.message)),
+      );
+      await loadData(selectId: id);
+      _refreshController.notifyChanged(source: 'leave_request_management');
+    } catch (errorValue) {
+      formError = errorValue.toString();
+    } finally {
+      saving = false;
+      update();
+    }
+  }
+
+  Future<void> rejectSelectedLeaveRequest() async {
+    final id = selectedLeaveRequest?.id;
+    if (id == null || !canApproveSelectedLeaveRequest) {
+      return;
+    }
+
+    saving = true;
+    formError = null;
+    update();
+
+    try {
+      final response = await _hrService.rejectLeaveRequest(
+        id,
+        const LeaveRequestModel(),
+      );
+      if (response.success != true) {
+        formError = response.message;
+        return;
+      }
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(response.message)),
+      );
+      await loadData(selectId: id);
+      _refreshController.notifyChanged(source: 'leave_request_management');
+    } catch (errorValue) {
+      formError = errorValue.toString();
+    } finally {
+      saving = false;
+      update();
+    }
+  }
+
   String leaveListSelectedEmployeeLabel() {
     if (listFilterEmployeeIds.isEmpty) {
       return '';
@@ -444,11 +516,6 @@ class LeaveRequestManagementController extends GetxController {
         .map((value) => value.trim().toLowerCase())
         .where((value) => value.isNotEmpty)
         .toSet();
-    update();
-  }
-
-  void setEmployeeId(int? value) {
-    employeeId = value;
     update();
   }
 

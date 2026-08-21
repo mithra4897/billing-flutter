@@ -21,6 +21,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
     required this.selectedEmployeeIds,
     this.visibleDays,
     this.onEmployeeSelected,
+    this.onAllEmployeesSelected,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
   final Set<int> selectedEmployeeIds;
   final List<int>? visibleDays;
   final void Function(int employeeId, bool selected)? onEmployeeSelected;
+  final void Function(bool selected)? onAllEmployeesSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +64,9 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
               appTheme.tableHeaderBackground,
             ),
             showCheckboxColumn: manualOnly,
+            onSelectAll: manualOnly && onAllEmployeesSelected != null
+                ? (selected) => onAllEmployeesSelected!(selected ?? false)
+                : null,
             headingRowHeight: 58,
             dataRowMinHeight: 62,
             dataRowMaxHeight: 62,

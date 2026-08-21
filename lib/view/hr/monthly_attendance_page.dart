@@ -131,9 +131,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       _companyId = companyId;
       _sheet = sheet;
       if (!widget.manualOnly) _page = 1;
-      _selectedEmployees
-        ..clear()
-        ..addAll(sheet.employees.map((employee) => employee.id));
+      _selectedEmployees.clear();
       _statuses.clear();
       _lockedCells.clear();
       _draftCells.clear();
@@ -587,6 +585,18 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
                         }
                       });
                     }
+                  : null,
+              onAllEmployeesSelected: widget.manualOnly
+                  ? (selected) => setState(() {
+                      _selectedEmployees
+                        ..clear()
+                        ..addAll(
+                          selectAllHrRecords(
+                            _sheet!.employees.map((employee) => employee.id),
+                            selected: selected,
+                          ),
+                        );
+                    })
                   : null,
             ),
             if (!widget.manualOnly) ...[
