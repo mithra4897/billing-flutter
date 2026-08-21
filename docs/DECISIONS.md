@@ -318,7 +318,7 @@
 - Context: Browsers cannot securely write desktop service configuration or
   credential files. Asking every employee to copy secrets and edit JSON is not
   an acceptable production workflow.
-- Decision: Authenticated ERP users create a ten-minute pairing session in the
+- Decision: Authenticated ERP users create a 30-minute pairing session in the
   existing device table. Flutter Web downloads a versioned `.billingawpair`
   file containing a one-time token but no permanent credential. A signed agent
   installer associates that extension with the Go agent, which exchanges the

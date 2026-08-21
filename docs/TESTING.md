@@ -1,5 +1,13 @@
 # Testing
 
+## Activity Watch connection setup status — 2026-08-21
+
+- Added model coverage for the pending, connected, and post-30-minute pairing
+  statuses.
+- Focused verification: `dart format`, `flutter analyze` for the changed model
+  and setup page, and the Activity Watch enrollment model test.
+- Live authenticated visual verification remains manual.
+
 ## One Activity Watch card per owner and day — 2026-08-20
 
 - `flutter test test/model/activity_watch_daily_grouping_test.dart

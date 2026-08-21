@@ -88,7 +88,7 @@ final class ActivityWatchDevice {
     if (!isActive) return 'Revoked';
     if (isPaired) return 'Connected';
     if (isPairingExpired) return 'Pairing expired';
-    return 'Waiting for agent';
+    return 'Waiting for connection';
   }
 
   factory ActivityWatchDevice.fromJson(Map<String, dynamic> json) {

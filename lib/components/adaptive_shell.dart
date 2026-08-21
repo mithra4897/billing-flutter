@@ -925,9 +925,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Log out?'),
         content: const Text(
-          'Are you sure you want to end this ERP session? Activity Watch data '
-          'is saved by the connected desktop agent. Browser logout cannot '
-          'directly trigger a local Windows-agent upload.',
+          'Are you sure you want to end this ERP session?',
         ),
         actions: [
           TextButton(

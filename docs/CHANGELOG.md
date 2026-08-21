@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-21 — Simplify Activity Watch connection status
+
+- Request: remove revoke wording, hide disconnected devices, and make pending
+  pairing status clear for the full 30-minute download window.
+- Implementation: filtered revoked devices from the setup list, renamed the
+  visible action to Disconnect, changed pending status to Waiting for
+  connection, and reduced the connection card to its title, device label, and
+  connect button. The existing consent payload and 30-minute backend expiry
+  remain unchanged.
+- API/database impact: none.
+- Tests: focused model and widget analysis/tests are recorded in `TESTING.md`.
+
 ## 2026-08-20 — Group Activity Watch cards by owner and day
 
 - Request: Show one Activity Watch card per user/date when the user logs out

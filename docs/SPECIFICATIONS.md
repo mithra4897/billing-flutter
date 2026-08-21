@@ -221,7 +221,7 @@ desktop operating systems.
    once on a Windows, macOS, or Linux computer.
 2. In ERP Settings → Activity Watch, the employee enters a device label,
    accepts consent, and selects **Connect this computer**.
-3. ERP creates a ten-minute, single-use pairing token and downloads a small
+3. ERP creates a 30-minute, single-use pairing token and downloads a small
    `.billingawpair` file. The file contains only the API URL, platform, token,
    and format version; it never contains the permanent device credential.
 4. Opening the pairing file invokes the installed agent. The agent exchanges
@@ -262,6 +262,18 @@ an in-use agent executable never causes an opaque copy failure.
   handler after a successful setup.
 - Existing direct enrollment remains available for native/developer
   compatibility but Flutter Web uses token pairing by default.
+
+### Activity Watch connection setup status and controls
+
+- The connection setup card contains only its title, the device-label field,
+  and the connect button. The existing service request continues to send the
+  consent flag required by the backend contract.
+- A pending pairing shows `Waiting for connection` while its server-issued
+  pairing expiry has not passed. After the 30-minute pairing window passes,
+  it shows `Pairing expired`.
+- Disconnected/revoked devices are not shown in the Activity Watch device list.
+  The list action is labelled `Disconnect`; it uses the existing authenticated
+  revoke endpoint and refreshes the list after success.
 
 ### Failure and recovery
 

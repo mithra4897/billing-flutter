@@ -77,7 +77,7 @@ sequenceDiagram
     participant File as ".billingawpair file"
     participant Agent as "Installed Go agent"
     Employee->>API: Create pairing session (auth + consent)
-    API-->>Employee: 10-minute token + pairing URL
+    API-->>Employee: 30-minute token + pairing URL
     Employee->>File: Download versioned bundle
     Employee->>Agent: Open bundle through OS file association
     Agent->>Agent: Provision encrypted storage if absent

@@ -516,7 +516,6 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   final _deviceLabel = TextEditingController();
   final _scrollController = ScrollController();
   final _service = ActivityWatchService();
-  bool _consented = false;
   bool _submitting = false;
   bool _loading = true;
   String? _credential;
@@ -632,7 +631,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   }
 
   Future<void> _enroll() async {
-    if (!_consented || _deviceLabel.text.trim().isEmpty || _platform.isEmpty) {
+    if (_deviceLabel.text.trim().isEmpty || _platform.isEmpty) {
       return;
     }
     setState(() => _submitting = true);
@@ -704,14 +703,14 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
     }
   }
 
-  Future<void> _revoke(ActivityWatchDevice device) async {
+  Future<void> _disconnect(ActivityWatchDevice device) async {
     if (!_isSuperAdmin) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Revoke Activity Watch device?'),
+        title: const Text('Disconnect Activity Watch device?'),
         content: Text(
-          '${device.label} will stop uploading as soon as its current credential is rejected.',
+          '${device.label} will stop uploading from this computer.',
         ),
         actions: <Widget>[
           TextButton(
@@ -720,7 +719,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Revoke'),
+            child: const Text('Disconnect'),
           ),
         ],
       ),
@@ -875,35 +874,20 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
             'Connect a computer',
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          const Text(
-            'Tracks sampled keyboard/mouse time, foreground app and browser titles, and bounded background process names. No keys, clicks, coordinates, URLs, screenshots, clipboard, or page content are collected.',
-          ),
           const SizedBox(height: AppUiConstants.spacingLg),
           AppFormTextField(controller: _deviceLabel, labelText: 'Device label'),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _consented,
-            onChanged: _submitting
-                ? null
-                : (value) => setState(() => _consented = value ?? false),
-            title: const Text(
-              'I consent to managed office-device monitoring, including USB device and removable-file metadata.',
-            ),
-          ),
+          const SizedBox(height: AppUiConstants.spacingLg),
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton.icon(
-              onPressed: _submitting || !_consented || _platform.isEmpty
-                  ? null
-                  : _enroll,
+              onPressed: _submitting || _platform.isEmpty ? null : _enroll,
               icon: _submitting
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.shield_outlined),
+                  : const Icon(Icons.link_outlined),
               label: Text(
                 _submitting
                     ? 'Preparing…'
@@ -1021,10 +1005,10 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
                         : Icons.desktop_access_disabled_outlined,
                   ),
                   title: Text(device.label),
-                  subtitle: Text(device.connectionStatus),
+                  subtitle: _deviceStatusPill(device),
                   trailing: _isSuperAdmin && device.isActive
                       ? TextButton(
-                          onPressed: () => _revoke(device),
+                          onPressed: () => _disconnect(device),
                           child: const Text('Disconnect'),
                         )
                       : null,
@@ -1039,6 +1023,20 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _deviceStatusPill(ActivityWatchDevice device) {
+    final status = device.connectionStatus;
+    final color = switch (status) {
+      'Connected' => Colors.green.shade600,
+      'Waiting for connection' => Colors.amber.shade700,
+      'Pairing expired' => Theme.of(context).colorScheme.error,
+      _ => Theme.of(context).colorScheme.error,
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[AppStatusBadge(label: status, color: color)],
     );
   }
 
@@ -2057,6 +2055,7 @@ class _ActivityWatchSetupPageState extends State<ActivityWatchSetupPage> {
   List<ActivityWatchDevice> _uniqueDevices(List<ActivityWatchDevice> devices) {
     final byKey = <String, ActivityWatchDevice>{};
     for (final device in devices) {
+      if (!device.isActive) continue;
       final key =
           '${device.label.trim().toLowerCase()}|'
           '${device.platform.trim().toLowerCase()}|${device.connectionStatus}';
