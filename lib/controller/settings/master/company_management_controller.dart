@@ -294,8 +294,10 @@ class CompanyManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      // Update local context cache with newly saved data
-      await AppSessionService.instance.refreshUserAccess();
+      // ApiClient already refreshes the company/master-data cache after a
+      // successful mutation. Avoid refreshing the entire access context here:
+      // that rebuilds the app shell while the web save button is still under
+      // the mouse and can re-enter Flutter's mouse-device update phase.
       await loadCompanies(selectId: saved.id);
     } catch (error) {
       formError = error.toString();

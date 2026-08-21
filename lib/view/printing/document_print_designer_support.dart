@@ -167,11 +167,29 @@ String formatBusinessLocationPrintAddress(
 }
 
 String _formatPrintAddressParts(List<String?> parts) {
-  return parts
-      .whereType<String>()
-      .map((part) => part.trim())
-      .where((part) => part.isNotEmpty)
-      .join(', ');
+  final formatted = <String>[];
+  final normalized = <String>[];
+  for (final part
+      in parts
+          .whereType<String>()
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty)) {
+    final comparable = part
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim();
+    if (comparable.isEmpty ||
+        normalized.any(
+          (existing) =>
+              existing == comparable ||
+              (' $existing ').contains(' $comparable '),
+        )) {
+      continue;
+    }
+    formatted.add(part);
+    normalized.add(comparable);
+  }
+  return formatted.join(', ');
 }
 
 String normalizeDocumentPrintImageFit(String? value) {
