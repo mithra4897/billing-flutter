@@ -68,8 +68,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
         final content = _buildContent(context, controller);
         final actions = [
           AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNewBranch(isDesktop: Responsive.isDesktop(context)),
+            onPressed: () => controller.startNewBranch(
+              isDesktop: Responsive.isDesktop(context),
+            ),
             icon: Icons.add,
             label: 'New Branch',
           ),
@@ -110,97 +111,101 @@ class _BranchManagementPageState extends State<BranchManagementPage>
     }
 
     return SettingsWorkspace(
-        controller: controller.workspaceController,
-        title: 'Branches',
-        editorTitle: controller.selectedBranch?.toString(),
-        scrollController: controller.pageScrollController,
-        list: SettingsListCard<BranchModel>(
-          searchController: controller.searchController,
-          searchHint: 'Search branches',
-          items: controller.filteredBranches,
-          selectedItem: controller.selectedBranch,
-          emptyMessage: 'No branches found.',
-          itemBuilder: (branch, selected) => SettingsListTile(
-            title: branch.name ?? '',
-            subtitle: [
-              branch.code ?? '',
-              companyNameById(controller.companies, branch.companyId),
-              branch.branchType?.replaceAll('_', ' ') ?? '',
-            ].where((item) => item.isNotEmpty).join(' • '),
-            selected: selected,
-            trailing: SettingsStatusPill(
-              label: branch.isActive ? 'Active' : 'Inactive',
-              active: branch.isActive,
-            ),
-            onTap: () => controller.selectBranch(branch),
+      controller: controller.workspaceController,
+      title: 'Branches',
+      editorTitle: controller.selectedBranch?.toString(),
+      scrollController: controller.pageScrollController,
+      list: SettingsListCard<BranchModel>(
+        searchController: controller.searchController,
+        searchHint: 'Search branches',
+        items: controller.filteredBranches,
+        selectedItem: controller.selectedBranch,
+        emptyMessage: 'No branches found.',
+        itemBuilder: (branch, selected) => SettingsListTile(
+          title: branch.name ?? '',
+          subtitle: [
+            branch.code ?? '',
+            companyNameById(controller.companies, branch.companyId),
+            branch.branchType?.replaceAll('_', ' ') ?? '',
+          ].where((item) => item.isNotEmpty).join(' • '),
+          selected: selected,
+          trailing: SettingsStatusPill(
+            label: branch.isActive ? 'Active' : 'Inactive',
+            active: branch.isActive,
           ),
+          onTap: () => controller.selectBranch(branch),
         ),
-        editorBuilder: (_) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TabBar(
-              controller: _tabController,
-              onTap: controller.setActiveTabIndex,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Primary'),
-                Tab(text: 'Branch Location'),
-                Tab(text: 'Warehouse'),
-                Tab(text: 'GST Registrations'),
-              ],
-            ),
-            const SizedBox(height: 20),
-            IndexedStack(
-              index: controller.activeTabIndex,
-              children: [
-                _buildPrimaryTab(context, controller),
-                controller.selectedBranch?.id == null
-                    ? _buildDependentTabPlaceholder(
-                        title: 'Branch Location',
-                        message:
-                            'Select an existing branch or save this branch first to manage business locations.',
-                      )
-                    : BusinessLocationManagementPage(
-                        key: ValueKey<String>(
-                          'branch-location-${controller.selectedBranch!.id}',
-                        ),
-                        embedded: true,
-                        fixedCompanyId: controller.selectedBranch!.companyId,
-                        fixedBranchId: controller.selectedBranch!.id,
-                      ),
-                controller.selectedBranch?.id == null
-                    ? _buildDependentTabPlaceholder(
-                        title: 'Warehouse',
-                        message:
-                            'Select an existing branch or save this branch first to manage warehouses.',
-                      )
-                    : WarehouseManagementPage(
-                        key: ValueKey<String>(
-                          'branch-warehouse-${controller.selectedBranch!.id}',
-                        ),
-                        embedded: true,
-                        fixedCompanyId: controller.selectedBranch!.companyId,
-                        fixedBranchId: controller.selectedBranch!.id,
-                      ),
-                controller.selectedBranch?.id == null
-                    ? _buildDependentTabPlaceholder(
-                        title: 'GST Registrations',
-                        message:
-                            'Select an existing branch or save this branch first to manage GST registrations.',
-                      )
-                    : GstRegistrationManagementPage(
-                        key: ValueKey<String>(
-                          'branch-gst-${controller.selectedBranch!.id}',
-                        ),
-                        embedded: true,
-                        fixedCompanyId: controller.selectedBranch!.companyId,
-                        fixedBranchId: controller.selectedBranch!.id,
-                      ),
-              ],
-            ),
-          ],
-        ),
+      ),
+      editorBuilder: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TabBar(
+            controller: _tabController,
+            onTap: controller.setActiveTabIndex,
+            isScrollable: true,
+            tabs: const [
+              Tab(text: 'Primary'),
+              Tab(text: 'Branch Location'),
+              Tab(text: 'Warehouse'),
+              Tab(text: 'GST Registrations'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildActiveTab(context, controller),
+        ],
+      ),
     );
+  }
+
+  Widget _buildActiveTab(
+    BuildContext context,
+    BranchManagementController controller,
+  ) {
+    final branch = controller.selectedBranch;
+    switch (controller.activeTabIndex) {
+      case 1:
+        return branch?.id == null
+            ? _buildDependentTabPlaceholder(
+                title: 'Branch Location',
+                message:
+                    'Select an existing branch or save this branch first to manage business locations.',
+              )
+            : BusinessLocationManagementPage(
+                key: ValueKey<String>('branch-location-${branch!.id}'),
+                embedded: true,
+                fixedCompanyId: branch.companyId,
+                fixedBranchId: branch.id,
+              );
+      case 2:
+        return branch?.id == null
+            ? _buildDependentTabPlaceholder(
+                title: 'Warehouse',
+                message:
+                    'Select an existing branch or save this branch first to manage warehouses.',
+              )
+            : WarehouseManagementPage(
+                key: ValueKey<String>('branch-warehouse-${branch!.id}'),
+                embedded: true,
+                fixedCompanyId: branch.companyId,
+                fixedBranchId: branch.id,
+              );
+      case 3:
+        return branch?.id == null
+            ? _buildDependentTabPlaceholder(
+                title: 'GST Registrations',
+                message:
+                    'Select an existing branch or save this branch first to manage GST registrations.',
+              )
+            : GstRegistrationManagementPage(
+                key: ValueKey<String>('branch-gst-${branch!.id}'),
+                embedded: true,
+                fixedCompanyId: branch.companyId,
+                fixedBranchId: branch.id,
+              );
+      case 0:
+      default:
+        return _buildPrimaryTab(context, controller);
+    }
   }
 
   Widget _buildPrimaryTab(
@@ -227,20 +232,23 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                     )
                     .toList(growable: false),
                 onChanged: controller.setCompanyId,
-                validator: (value) => value == null ? 'Company is required' : null,
+                validator: (value) =>
+                    value == null ? 'Company is required' : null,
               ),
               AppFormTextField(
                 controller: controller.codeController,
                 labelText: 'Code',
                 readOnly: true,
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty) ? 'Code is required' : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Code is required'
+                    : null,
               ),
               AppFormTextField(
                 controller: controller.nameController,
                 labelText: 'Name',
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty) ? 'Name is required' : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Name is required'
+                    : null,
               ),
               AppDropdownField<String>.fromMapped(
                 initialValue: controller.branchType,
@@ -280,7 +288,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
             children: [
               AppActionButton(
                 onPressed: controller.saving ? null : controller.save,
-                icon: controller.selectedBranch == null ? Icons.add : Icons.save,
+                icon: controller.selectedBranch == null
+                    ? Icons.add
+                    : Icons.save,
                 label: controller.saving ? 'Saving...' : 'Save Branch',
                 busy: controller.saving,
               ),
