@@ -298,6 +298,7 @@ class RoleManagementController extends GetxController {
         allowApprove: field == 'approve' ? enabled : current.allowApprove,
         allowPrint: field == 'print' ? enabled : current.allowPrint,
         allowExport: field == 'export' ? enabled : current.allowExport,
+        rolePermissionIsActive: true,
       );
     update();
   }
