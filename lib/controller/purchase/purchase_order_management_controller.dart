@@ -721,15 +721,16 @@ class PurchaseOrderManagementController extends GetxController {
       shippingAddressId: intValue(selectedData, 'shipping_address_id'),
       billingAddressId: intValue(selectedData, 'billing_address_id'),
     );
-    final billingAddress = _supplierAddressById(
-      supplier,
-      intValue(selectedData, 'billing_address_id'),
-      addressType: 'billing',
-    );
-    final shippingAddress = _supplierAddressById(
-      supplier,
-      intValue(selectedData, 'shipping_address_id'),
-      addressType: 'shipping',
+    final selectedLocation = locations
+        .cast<BusinessLocationModel?>()
+        .firstWhere((item) => item?.id == locationId, orElse: () => null);
+    final companyMasterAddress = formatCompanyPrintAddress(company);
+    final companyBillingAddress = companyMasterAddress.isNotEmpty
+        ? companyMasterAddress
+        : formatBusinessLocationPrintAddress(selectedLocation);
+    final companyShippingAddress = formatBusinessLocationPrintAddress(
+      selectedLocation,
+      fallback: companyBillingAddress,
     );
     final summary = orderTaxSummary();
     final roundOffAmount = applyRoundOff
@@ -804,44 +805,11 @@ class PurchaseOrderManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'taxable_total_amount': roundToDouble(summary.taxable, 2),
-        'billing_address': formatPartyAddress(billingAddress, fallback: ''),
-        'shipping_address': formatPartyAddress(shippingAddress, fallback: ''),
+        'billing_address': companyBillingAddress,
+        'shipping_address': companyShippingAddress,
+        'company_billing_address': companyBillingAddress,
+        'company_shipping_address': companyShippingAddress,
       },
-    );
-  }
-
-  PartyAddressModel? _supplierAddressById(
-    PartyModel? supplier,
-    int? addressId, {
-    required String addressType,
-  }) {
-    if (supplier == null) {
-      return null;
-    }
-    final activeAddresses = supplier.addresses
-        .where((address) => address.isActive)
-        .toList(growable: false);
-    if (addressId != null) {
-      final byId = activeAddresses.cast<PartyAddressModel?>().firstWhere(
-        (address) => address != null && address.id == addressId,
-        orElse: () => null,
-      );
-      if (byId != null) {
-        return byId;
-      }
-    }
-    final typed = activeAddresses
-        .where(
-          (address) =>
-              (address.addressType ?? '').trim().toLowerCase() == addressType,
-        )
-        .toList(growable: false);
-    if (typed.isEmpty) {
-      return null;
-    }
-    return typed.firstWhere(
-      (address) => address.isDefault,
-      orElse: () => typed.first,
     );
   }
 

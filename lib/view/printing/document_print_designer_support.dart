@@ -132,6 +132,48 @@ TextStyle applyDocumentPrintFontStyle(TextStyle style, String? value) {
   return style.copyWith(fontFamily: flutterDocumentPrintFontFamily(value));
 }
 
+String formatCompanyPrintAddress(CompanyModel? company) {
+  if (company == null) {
+    return '';
+  }
+  return _formatPrintAddressParts(<String?>[
+    company.addressLine1,
+    company.addressLine2,
+    company.area,
+    company.city,
+    company.district,
+    company.stateName,
+    company.postalCode,
+  ]);
+}
+
+String formatBusinessLocationPrintAddress(
+  BusinessLocationModel? location, {
+  String fallback = '',
+}) {
+  if (location == null) {
+    return fallback;
+  }
+  final address = _formatPrintAddressParts(<String?>[
+    location.addressLine1,
+    location.addressLine2,
+    location.area,
+    location.city,
+    location.district,
+    location.stateName,
+    location.postalCode,
+  ]);
+  return address.isEmpty ? fallback : address;
+}
+
+String _formatPrintAddressParts(List<String?> parts) {
+  return parts
+      .whereType<String>()
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .join(', ');
+}
+
 String normalizeDocumentPrintImageFit(String? value) {
   switch ((value ?? 'contain').trim().toLowerCase()) {
     case 'cover':
