@@ -26,6 +26,7 @@ class UserManagementController extends GetxController {
   bool initialLoading = true;
   bool savingProfile = false;
   bool savingPermissions = false;
+  bool permissionsDirty = false;
   bool savingAccessScope = false;
   bool uploadingPhoto = false;
   String? pageError;
@@ -246,6 +247,7 @@ class UserManagementController extends GetxController {
     effectivePermissions = mergePermissionSet(
       summary?.effectivePermissions ?? const [],
     );
+    permissionsDirty = false;
     expandedPermissionModules = <String>{};
   }
 
@@ -339,6 +341,7 @@ class UserManagementController extends GetxController {
     displayNameTouched = false;
     rolePermissions = mergePermissionSet(const []);
     effectivePermissions = mergePermissionSet(const []);
+    permissionsDirty = false;
     expandedPermissionModules = <String>{};
     selectedCompanyIds = <int>{};
     selectedBranchIds = <int>{};
@@ -846,6 +849,7 @@ class UserManagementController extends GetxController {
         allowPrint: field == 'print' ? enabled : current.allowPrint,
         allowExport: field == 'export' ? enabled : current.allowExport,
       );
+    permissionsDirty = true;
     update();
   }
 
@@ -967,6 +971,7 @@ class UserManagementController extends GetxController {
     if (selectedRoleId == null) {
       rolePermissions = mergePermissionSet(const []);
       effectivePermissions = mergePermissionSet(const []);
+      permissionsDirty = false;
       update();
       return;
     }
@@ -995,6 +1000,7 @@ class UserManagementController extends GetxController {
 
     rolePermissions = mergePermissionSet(permissionRows);
     effectivePermissions = mergePermissionSet(permissionRows);
+    permissionsDirty = false;
     expandedPermissionModules = <String>{};
     update();
   }

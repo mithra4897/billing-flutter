@@ -548,7 +548,8 @@ class _UserManagementPageState extends State<UserManagementPage>
             children: [
               const Spacer(),
               AppActionButton(
-                onPressed: controller.savingPermissions
+                onPressed:
+                    controller.savingPermissions || !controller.permissionsDirty
                     ? null
                     : controller.savePermissions,
                 icon: Icons.verified_user_outlined,
