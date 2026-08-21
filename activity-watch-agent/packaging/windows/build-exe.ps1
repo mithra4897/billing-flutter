@@ -1,5 +1,6 @@
 param(
-    [string]$OutputPath = (Join-Path $PSScriptRoot 'BillingActivityWatch-windows.exe')
+    [string]$OutputPath = (Join-Path $PSScriptRoot 'BillingActivityWatch-windows.exe'),
+    [switch]$ReuseEmbeddedAgent
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,8 +12,11 @@ $cscCandidates = @(
 )
 $cscPath = $cscCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 
-if ((go env CGO_ENABLED).Trim() -ne '1') {
+if ((go env CGO_ENABLED).Trim() -ne '1' -and -not $ReuseEmbeddedAgent) {
     throw 'A GCC-compatible Windows C toolchain is required for SQLCipher. Set CGO_ENABLED=1 and CC=gcc before running this script.'
+}
+if ($ReuseEmbeddedAgent -and -not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
+    throw 'Cannot reuse the embedded agent because the existing installer was not found. Build with a GCC-compatible Windows C toolchain instead.'
 }
 if (-not $cscPath) {
     throw 'The Windows .NET Framework C# compiler was not found.'
@@ -24,12 +28,30 @@ try {
     $installScript = Join-Path $stage 'install.ps1'
     $launcherSource = Join-Path $stage 'InstallerLauncher.cs'
 
-    Push-Location $agentRoot
-    go build -o $agentBinary .\cmd\activity-watch-agent
-    if ($LASTEXITCODE -ne 0) {
-        throw "Go failed to build the Activity Watch agent (exit code $LASTEXITCODE)."
+    if ($ReuseEmbeddedAgent) {
+        $existingInstaller = [System.Reflection.Assembly]::Load([System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $OutputPath).Path))
+        $embeddedAgent = $existingInstaller.GetManifestResourceStream('BillingActivityWatch.Agent')
+        if ($null -eq $embeddedAgent) {
+            throw 'The existing installer does not contain the Activity Watch agent resource.'
+        }
+        try {
+            $agentOutput = [System.IO.File]::Create($agentBinary)
+            try {
+                $embeddedAgent.CopyTo($agentOutput)
+            } finally {
+                $agentOutput.Dispose()
+            }
+        } finally {
+            $embeddedAgent.Dispose()
+        }
+    } else {
+        Push-Location $agentRoot
+        go build -o $agentBinary .\cmd\activity-watch-agent
+        if ($LASTEXITCODE -ne 0) {
+            throw "Go failed to build the Activity Watch agent (exit code $LASTEXITCODE)."
+        }
+        Pop-Location
     }
-    Pop-Location
 
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install.ps1') -Destination $installScript
     @'
@@ -60,6 +82,7 @@ internal static class InstallerLauncher
             string scriptPath = Path.Combine(stage, "install.ps1");
             ExtractResource("BillingActivityWatch.Agent", agentPath);
             ExtractResource("BillingActivityWatch.InstallScript", scriptPath);
+            string errorPath = Path.Combine(stage, "install-error.txt");
 
             string systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
             string installRoot = Path.Combine(
@@ -71,7 +94,7 @@ internal static class InstallerLauncher
             var startInfo = new ProcessStartInfo
             {
                 FileName = powershell,
-                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\" -LauncherPath \"" + Assembly.GetExecutingAssembly().Location + "\" -InstallRoot \"" + installRoot + "\"",
+                Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + scriptPath + "\" -LauncherPath \"" + Assembly.GetExecutingAssembly().Location + "\" -InstallRoot \"" + installRoot + "\" -ErrorPath \"" + errorPath + "\"",
                 UseShellExecute = true,
                 Verb = "runas",
             };
@@ -81,9 +104,21 @@ internal static class InstallerLauncher
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
+                    string detail = "";
+                    try
+                    {
+                        if (File.Exists(errorPath))
+                        {
+                            detail = File.ReadAllText(errorPath).Trim();
+                        }
+                    }
+                    catch
+                    {
+                        // Preserve the exit code when diagnostic output cannot be read.
+                    }
                     throw new InvalidOperationException(
-                        "The installation script failed with exit code " + process.ExitCode + ". " +
-                        "Approve the Windows elevation prompt so the installer can update the running Activity Watch service.");
+                        "The installation script failed with exit code " + process.ExitCode +
+                        (string.IsNullOrWhiteSpace(detail) ? "." : "." + Environment.NewLine + detail));
                 }
             }
 
@@ -167,7 +202,7 @@ internal static class InstallerLauncher
                 StringComparison.Ordinal) >= 0;
             MessageBox.Show(
                 startupWarning
-                    ? "This computer is connected to Activity Watch, but Windows blocked automatic background startup. An administrator must configure the BillingActivityWatch scheduled task. Return to ERP and refresh Devices."
+                    ? "This computer is connected to Activity Watch, but Windows blocked automatic background startup. Contact your administrator with the message shown above, then return to ERP and refresh Devices."
                     : "This computer is connected to Activity Watch. Return to ERP and refresh Devices.",
                 startupWarning ? "Activity Watch startup needs attention" : "Billing Activity Watch",
                 MessageBoxButtons.OK,

@@ -2,10 +2,22 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LauncherPath,
     [Parameter(Mandatory = $true)]
-    [string]$InstallRoot
+    [string]$InstallRoot,
+    [string]$ErrorPath
 )
 
 $ErrorActionPreference = 'Stop'
+trap {
+    if (-not [string]::IsNullOrWhiteSpace($ErrorPath)) {
+        try {
+            $_ | Out-String | Set-Content -LiteralPath $ErrorPath -Encoding UTF8
+        } catch {
+            # Reporting the original installation error is best effort.
+        }
+    }
+    exit 1
+}
+
 $agentPath = Join-Path $installRoot 'activity-watch-agent.exe'
 $configPath = Join-Path $installRoot 'activity-watch-agent.config.json'
 $launcherTargetPath = Join-Path $installRoot 'BillingActivityWatch.exe'
@@ -27,29 +39,36 @@ foreach ($process in $runningAgents) {
 }
 if ($runningAgents.Count -gt 0) {
     $deadline = (Get-Date).AddSeconds(15)
-    while ((Test-Path -LiteralPath $agentPath) -and (Get-Process -Name 'activity-watch-agent' -ErrorAction SilentlyContinue) -and (Get-Date) -lt $deadline) {
+    $remainingAgents = @()
+    do {
+        $remainingAgents = @(Get-CimInstance Win32_Process -Filter "Name='activity-watch-agent.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.ExecutablePath -and [string]::Equals($_.ExecutablePath, $agentPath, [System.StringComparison]::OrdinalIgnoreCase) })
+        if ($remainingAgents.Count -eq 0) {
+            break
+        }
         Start-Sleep -Milliseconds 250
-    }
-    if (Get-Process -Name 'activity-watch-agent' -ErrorAction SilentlyContinue) {
+    } while ((Get-Date) -lt $deadline)
+    if ($remainingAgents.Count -gt 0) {
         throw 'The existing Activity Watch process did not stop, so the update cannot safely replace its executable.'
     }
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'activity-watch-agent.exe') -Destination $agentPath -Force
 Copy-Item -LiteralPath $LauncherPath -Destination $launcherTargetPath -Force
 
-$regExe = Join-Path $env:SystemRoot 'System32\reg.exe'
 $fileClass = 'BillingActivityWatch.PairingFile'
 $openCommand = '"{0}" "%1"' -f $launcherTargetPath
-$registryValues = @(
-    @('HKCU\Software\Classes\.billingawpair', $fileClass),
-    @('HKCU\Software\Classes\BillingActivityWatch.PairingFile', 'Billing Activity Watch pairing file'),
-    @('HKCU\Software\Classes\BillingActivityWatch.PairingFile\shell\open\command', $openCommand)
-)
-foreach ($entry in $registryValues) {
-    & $regExe ADD $entry[0] /ve /d $entry[1] /f | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not register Activity Watch pairing files (reg.exe exit code $LASTEXITCODE)."
-    }
+$classesKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Software\Classes')
+try {
+    $extensionKey = $classesKey.CreateSubKey('.billingawpair')
+    try { $extensionKey.SetValue('', $fileClass) } finally { $extensionKey.Dispose() }
+
+    $fileClassKey = $classesKey.CreateSubKey($fileClass)
+    try { $fileClassKey.SetValue('', 'Billing Activity Watch pairing file') } finally { $fileClassKey.Dispose() }
+
+    $commandKey = $classesKey.CreateSubKey("$fileClass\shell\open\command")
+    try { $commandKey.SetValue('', $openCommand) } finally { $commandKey.Dispose() }
+} finally {
+    $classesKey.Dispose()
 }
 
 # Updating stops the installed process before replacing its executable. Resume
