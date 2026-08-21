@@ -319,32 +319,6 @@ class LeaveRequestManagementController extends GetxController {
     }
   }
 
-  Future<LeaveTypeModel?> createLeaveType({
-    required String leaveName,
-    required String maxDays,
-    required bool isPaidValue,
-  }) async {
-    final response = await _hrService.createLeaveType(
-      LeaveTypeModel(
-        leaveName: leaveName,
-        maxDaysPerYear: double.tryParse(maxDays.trim()),
-        isPaid: isPaidValue,
-      ),
-    );
-    final created = response.data;
-    if (created?.id == null) {
-      return null;
-    }
-    final refreshed = await _hrService.leaveTypes(
-      filters: const {'per_page': 200, 'sort_by': 'leave_name'},
-    );
-    final createdLeaveType = created!;
-    leaveTypes = refreshed.data ?? <LeaveTypeModel>[createdLeaveType];
-    leaveTypeId = createdLeaveType.id;
-    update();
-    return createdLeaveType;
-  }
-
   Future<void> save({FormState? formState}) async {
     final FormState? form = formState;
     if (form == null || !form.validate()) {

@@ -1,5 +1,45 @@
 # Architecture decisions
 
+## ADR-0030: Keep leave-type creation out of leave requests and company policy
+
+- Date: 2026-08-21
+- Status: Accepted
+- Context: The Leave Request form included an inline leave-type creation
+  dialog, while a dedicated Leave Types master already owns the shared catalog.
+  Company Settings now configures company-specific policies for catalog types.
+- Decision: Remove inline creation from Leave Requests. Retain Leave Types as
+  the sole catalog-management screen and keep Company Settings limited to
+  company policy configuration.
+- Reason: A single catalog workflow prevents duplicate or incomplete leave
+  types and keeps company entitlement changes separate from shared definitions.
+- Alternatives considered: Create leave types in the request form; create
+  leave types inside Company Settings; duplicate types per company.
+- Consequences: Users create a type in Leave Types before configuring it for a
+  company or selecting it in a request. Existing policy rows remain the
+  company-specific source of entitlement and LOP behavior.
+- Related files: Leave Request page/controller, Leave Types page/controller,
+  Company Settings Leave Policy tab.
+
+## ADR-0029: Company-scoped generic leave policies
+
+- Date: 2026-08-21
+- Status: Accepted
+- Context: Leave types are global, CL entitlement is hard-coded to 12 with
+  CL-only overflow handling, and companies require different entitlements and
+  LOP deduction factors.
+- Decision: Keep the shared leave-type catalog and add one policy row per
+  company/leave type. Resolve entitlement and overflow through a generic leave
+  allocation service. Store the LOP multiplier on the company and snapshot it
+  into payroll calculations.
+- Reason: Company policy rows avoid duplicating leave-type names while allowing
+  every company to configure CL and all other leave types independently.
+- Alternatives considered: hard-coded CL/SL/EL columns on companies; duplicating
+  the leave-type catalog for each company; continuing CL-only calculations.
+- Consequences: Existing requests remain compatible, company policy lookups are
+  indexed, and leave allocation becomes policy-driven for every leave type.
+- Related files: company settings/model/service, company leave policy schema,
+  leave request allocation, payroll processing, and focused tests.
+
 ## ADR-0028: Restore every valid browser session on refresh
 
 - Date: 2026-08-20

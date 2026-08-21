@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-08-21 — Stabilize Company Settings tab rendering
+
+- Removed form-key reuse between Company Settings and its embedded Financial
+  Years editors.
+- Company Settings now initializes its tab controller before layout, keeps each
+  tab body keyed, and mounts only the selected tab; persistent controllers are
+  reused rather than registered again when returning to the page.
+- This prevents Flutter from reparenting focused form elements while layout is
+  in progress.
+
+## 2026-08-21 — Clarify leave availability and centralize leave-type creation
+
+- Renamed the Company Settings field from “Accrual method” to “Leave
+  availability schedule” with compact **Yearly** and **Monthly** choices.
+- Removed the inline Leave Type creation dialog from Leave Requests. The
+  existing Leave Types master is now the only catalog create/update/delete
+  workflow; Company Settings continues to configure company-specific policy.
+- API/database impact: none.
+
+## 2026-08-21 — Company-configurable leave entitlement and LOP
+
+- Added a Leave Policy tab to Company Settings with a configurable annual
+  entitlement, annual/monthly accrual, excess handling, and active state for
+  every leave type. Casual Leave is no longer fixed at 12 days.
+- Added a company LOP multiplier restricted to 1, 1.5, or 2 days.
+- Leave requests now display the generic paid-leave/LOP split returned by the
+  server. Excess entitlement can convert to LOP or reject the request according
+  to company policy.
+- Payroll applies the configured multiplier to leave-request LOP, caps total
+  LOP at working days, and stores the multiplier in its calculation snapshot.
+- Database deployment requires the accompanying API migration or SQL patch.
+
 ## 2026-08-21 — Show all active employees in Monthly Attendance
 
 - Request: include all active employees in the Monthly Attendance sheet,

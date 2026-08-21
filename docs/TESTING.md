@@ -1,5 +1,12 @@
 # Testing
 
+## Company Settings tab rendering — 2026-08-21
+
+- `flutter analyze` for the Company and Financial Year pages/controllers:
+  passed with no issues.
+- `flutter test`: passed (18 tests).
+- `git diff --check`: passed.
+
 ## Monthly Attendance includes all active employees — 2026-08-21
 
 - The Monthly Attendance route now requests the existing all-employee sheet
@@ -854,3 +861,35 @@ been packaged successfully.
 - Focused Dart analysis of the three changed Flutter files passed. The focused
   Flutter session-storage test command was started but returned no result from
   this environment, so its outcome is not claimed.
+
+## Company leave policy and LOP — 2026-08-21
+
+- `vendor/bin/phpunit tests/Unit/Hr/LoginAttendancePayrollServiceTest.php`:
+  passed 15 tests and 64 assertions, including configurable CL/all-type entitlement and
+  the company LOP multiplier payroll snapshot.
+- Backend PHP syntax checks cover the policy model/migration, company service
+  and controller, entitlement service, leave request service, and payroll
+  service.
+- Flutter model coverage verifies policy and multiplier parsing/serialization.
+- Full `flutter test`: passed 18 tests.
+- Focused Flutter analysis passed; full analysis reports only the two existing
+  unrelated warnings in `app_config.dart` and `crm_followups_page.dart`.
+- Full backend PHPUnit currently has six unrelated existing fixture/code
+  errors: five access-scope tests omit `user_roles`, and one forgot-password
+  test resolves the missing `App\Services\Auth\Log` class. All 31 remaining
+  tests pass, including the 15 focused HR/payroll tests for this change.
+- Manual deployment verification: migrate the API database, configure two
+  companies with different CL entitlements and LOP multipliers, submit leave
+  beyond each balance, and confirm the paid/LOP split and payroll deduction
+  follow the selected company only.
+
+## Leave availability wording and leave-type workflow — 2026-08-21
+
+- Verify Company Settings shows “Leave availability schedule” with the two
+  compact Yearly and Monthly choices and persists the existing API values.
+- Verify Leave Requests contains no inline create control and Leave Types
+  remains the catalog create/update/delete screen.
+- `flutter analyze` on the three changed page/controller files: passed with no
+  issues. Full `flutter test`: passed 18 tests.
+- After simplifying the schedule choices, focused analysis passed and the
+  company leave-policy model test passed (2 tests).

@@ -233,6 +233,29 @@ saved. Selecting an existing party also compares its generated-code prefix
 with its saved type and prepares a corrected value when legacy data is
 inconsistent.
 
+## Company leave-policy flow
+
+The shared leave-type catalog defines the available leave categories. Each
+company owns one policy row per leave type, so entitlement and accrual rules do
+not leak across tenants. Company Settings reads and writes those policies with
+the company record.
+
+When a leave request is saved or approved, the API locks the matching policy
+inside the request transaction, totals paid days already reserved by pending
+and approved requests, and stores the resulting paid/LOP split. Unpaid leave is
+always LOP. Payroll reconciles leave-request and attendance LOP, applies the
+company multiplier, caps the result at period working days, and stores the raw
+LOP and multiplier in the payroll snapshot for auditability.
+
+Legacy `cl_approved_days` remains populated for Casual Leave while all new
+calculations use generic `paid_leave_days`. Requests spanning calendar years
+are rejected so each year's entitlement is calculated independently.
+
+Leave Types remains the shared catalog-management screen. Leave Request uses
+that catalog as a selector only, and Company Settings owns per-company policy
+configuration. This keeps request entry free of catalog mutations and prevents
+company policy from creating duplicate leave definitions.
+
 ## Activity Watch local persistence
 
 Activity Watch persistence is an opt-in native subsystem under

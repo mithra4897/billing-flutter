@@ -30,14 +30,18 @@ class _FinancialYearManagementPageState
     _controllerTag = persistentControllerTag(
       'FinancialYearManagementController',
     );
-    Get.put(
-      FinancialYearManagementController(
-        embedded: widget.embedded,
-        fixedCompanyId: widget.fixedCompanyId,
-      ),
+    if (!Get.isRegistered<FinancialYearManagementController>(
       tag: _controllerTag,
-      permanent: true,
-    );
+    )) {
+      Get.put(
+        FinancialYearManagementController(
+          embedded: widget.embedded,
+          fixedCompanyId: widget.fixedCompanyId,
+        ),
+        tag: _controllerTag,
+        permanent: true,
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _publishNewFinancialYearAction();
@@ -164,133 +168,136 @@ class _FinancialYearManagementPageState
   ) {
     // Migrated page/form state now lives in FinancialYearManagementController.
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (controller.formError != null) ...[
-            AppErrorStateView.inline(message: controller.formError!),
-            const SizedBox(height: 16),
-          ],
-          SettingsFormWrap(
-            children: [
-              if (widget.fixedCompanyId == null)
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  initialValue: controller.companyId,
-                  mappedItems: controller.companies
-                      .where((company) => company.id != null)
-                      .map(
-                        (company) => AppDropdownItem<int>(
-                          value: company.id!,
-                          label: company.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: controller.setCompanyId,
-                  validator: Validators.requiredSelection('Company'),
-                ),
-              AppFormTextField(
-                controller: controller.fyCodeController,
-                labelText: 'FY Code',
-                readOnly: true,
-                validator: Validators.compose([
-                  Validators.required('FY code'),
-                  Validators.optionalMaxLength(20, 'FY code'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.fyNameController,
-                labelText: 'FY Name',
-                readOnly: true,
-                validator: Validators.compose([
-                  Validators.required('FY name'),
-                  Validators.optionalMaxLength(50, 'FY name'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.startDateController,
-                labelText: 'Start Date',
-                hintText: dateFormatHint(),
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Start date'),
-                  Validators.optionalDate('Start date'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.endDateController,
-                labelText: 'End Date',
-                hintText: dateFormatHint(),
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('End date'),
-                  Validators.optionalDateOnOrAfter(
-                    'End date',
-                    () => controller.startDateController.text,
-                    startFieldName: 'Start date',
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
+              const SizedBox(height: 16),
+            ],
+            SettingsFormWrap(
+              children: [
+                if (widget.fixedCompanyId == null)
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Company',
+                    initialValue: controller.companyId,
+                    mappedItems: controller.companies
+                        .where((company) => company.id != null)
+                        .map(
+                          (company) => AppDropdownItem<int>(
+                            value: company.id!,
+                            label: company.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: controller.setCompanyId,
+                    validator: Validators.requiredSelection('Company'),
                   ),
-                ]),
-              ),
-              AppFormTextField(
-                controller: controller.lockDateController,
-                labelText: 'Lock Date',
-                hintText: dateFormatHint(),
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDate('Lock date'),
-              ),
-              AppFormTextField(
-                controller: controller.remarksController,
-                labelText: 'Remarks',
-                maxLines: 3,
-                validator: Validators.optionalMaxLength(1000, 'Remarks'),
-              ),
-            ],
-          ),
-          AppSwitchTile(
-            label: 'Current Financial Year',
-            subtitle: 'Only one financial year can stay current per company.',
-            value: controller.isCurrent,
-            onChanged: controller.setIsCurrent,
-          ),
-          AppSwitchTile(
-            label: 'Locked',
-            subtitle: 'Use this when entries should no longer be posted.',
-            value: controller.isLocked,
-            onChanged: controller.setIsLocked,
-          ),
-          AppSwitchTile(
-            label: 'Active',
-            value: controller.isCurrent ? true : controller.isActive,
-            onChanged: controller.isCurrent ? null : controller.setIsActive,
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: controller.selectedFinancialYear == null
-                    ? 'Create Financial Year'
-                    : 'Update Financial Year',
-                onPressed: controller.saving ? null : controller.save,
-                busy: controller.saving,
-              ),
-              if (controller.selectedFinancialYear?.id != null &&
-                  controller.selectedFinancialYear?.isCurrent != true)
-                AppActionButton(
-                  icon: Icons.check_circle_outline,
-                  label: 'Set Current',
-                  onPressed: controller.activating
-                      ? null
-                      : controller.setAsCurrent,
-                  busy: controller.activating,
-                  filled: false,
+                AppFormTextField(
+                  controller: controller.fyCodeController,
+                  labelText: 'FY Code',
+                  readOnly: true,
+                  validator: Validators.compose([
+                    Validators.required('FY code'),
+                    Validators.optionalMaxLength(20, 'FY code'),
+                  ]),
                 ),
-            ],
-          ),
-        ],
+                AppFormTextField(
+                  controller: controller.fyNameController,
+                  labelText: 'FY Name',
+                  readOnly: true,
+                  validator: Validators.compose([
+                    Validators.required('FY name'),
+                    Validators.optionalMaxLength(50, 'FY name'),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.startDateController,
+                  labelText: 'Start Date',
+                  hintText: dateFormatHint(),
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Start date'),
+                    Validators.optionalDate('Start date'),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.endDateController,
+                  labelText: 'End Date',
+                  hintText: dateFormatHint(),
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('End date'),
+                    Validators.optionalDateOnOrAfter(
+                      'End date',
+                      () => controller.startDateController.text,
+                      startFieldName: 'Start date',
+                    ),
+                  ]),
+                ),
+                AppFormTextField(
+                  controller: controller.lockDateController,
+                  labelText: 'Lock Date',
+                  hintText: dateFormatHint(),
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.optionalDate('Lock date'),
+                ),
+                AppFormTextField(
+                  controller: controller.remarksController,
+                  labelText: 'Remarks',
+                  maxLines: 3,
+                  validator: Validators.optionalMaxLength(1000, 'Remarks'),
+                ),
+              ],
+            ),
+            AppSwitchTile(
+              label: 'Current Financial Year',
+              subtitle: 'Only one financial year can stay current per company.',
+              value: controller.isCurrent,
+              onChanged: controller.setIsCurrent,
+            ),
+            AppSwitchTile(
+              label: 'Locked',
+              subtitle: 'Use this when entries should no longer be posted.',
+              value: controller.isLocked,
+              onChanged: controller.setIsLocked,
+            ),
+            AppSwitchTile(
+              label: 'Active',
+              value: controller.isCurrent ? true : controller.isActive,
+              onChanged: controller.isCurrent ? null : controller.setIsActive,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: controller.selectedFinancialYear == null
+                      ? 'Create Financial Year'
+                      : 'Update Financial Year',
+                  onPressed: controller.saving
+                      ? null
+                      : () => controller.save(formState: Form.of(formContext)),
+                  busy: controller.saving,
+                ),
+                if (controller.selectedFinancialYear?.id != null &&
+                    controller.selectedFinancialYear?.isCurrent != true)
+                  AppActionButton(
+                    icon: Icons.check_circle_outline,
+                    label: 'Set Current',
+                    onPressed: controller.activating
+                        ? null
+                        : controller.setAsCurrent,
+                    busy: controller.activating,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ class LeaveRequestModel extends JsonModel {
     this.toDate,
     this.reason,
     this.clApprovedDays,
+    this.paidLeaveDays,
     this.lopDays,
     this.status,
     this.approvedBy,
@@ -23,6 +24,7 @@ class LeaveRequestModel extends JsonModel {
   final String? toDate;
   final String? reason;
   final double? clApprovedDays;
+  final double? paidLeaveDays;
   final double? lopDays;
   final String? status;
   final int? approvedBy;
@@ -46,6 +48,7 @@ class LeaveRequestModel extends JsonModel {
       toDate: _dateString(json['to_date']),
       reason: json['reason']?.toString(),
       clApprovedDays: _double(json['cl_approved_days']),
+      paidLeaveDays: _double(json['paid_leave_days']),
       lopDays: _double(json['lop_days']),
       status: json['status']?.toString(),
       approvedBy: _nullableInt(json['approved_by'] ?? approver['id']),

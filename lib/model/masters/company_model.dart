@@ -33,6 +33,8 @@ class CompanyModel extends JsonModel {
     this.dateFormat,
     this.amountGrouping,
     this.decimalPlaces,
+    this.lopMultiplier = 1,
+    this.leavePolicies = const <CompanyLeavePolicyModel>[],
   });
   final String? code;
   final String? legalName;
@@ -65,6 +67,8 @@ class CompanyModel extends JsonModel {
   final String? dateFormat;
   final String? amountGrouping;
   final int? decimalPlaces;
+  final double lopMultiplier;
+  final List<CompanyLeavePolicyModel> leavePolicies;
 
   @override
   String toString() => tradeName ?? legalName ?? code ?? 'New Company';
@@ -104,6 +108,16 @@ class CompanyModel extends JsonModel {
       decimalPlaces: json['decimal_places'] is int
           ? json['decimal_places'] as int
           : int.tryParse(json['decimal_places']?.toString() ?? ''),
+      lopMultiplier:
+          double.tryParse(json['lop_multiplier']?.toString() ?? '') ?? 1,
+      leavePolicies: (json['leave_policies'] as List? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map(
+            (item) => CompanyLeavePolicyModel.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -141,6 +155,11 @@ class CompanyModel extends JsonModel {
       if (dateFormat != null) 'date_format': dateFormat,
       if (amountGrouping != null) 'amount_grouping': amountGrouping,
       if (decimalPlaces != null) 'decimal_places': decimalPlaces,
+      'lop_multiplier': lopMultiplier,
+      if (leavePolicies.isNotEmpty)
+        'leave_policies': leavePolicies
+            .map((policy) => policy.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -150,5 +169,63 @@ class CompanyModel extends JsonModel {
     }
 
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+}
+
+class CompanyLeavePolicyModel extends JsonModel {
+  const CompanyLeavePolicyModel({
+    super.id,
+    required this.leaveTypeId,
+    required this.leaveName,
+    required this.leaveCode,
+    required this.annualEntitlement,
+    required this.accrualMethod,
+    required this.excessAction,
+    required this.isActive,
+    required this.isPaid,
+  });
+
+  final int leaveTypeId;
+  final String leaveName;
+  final String leaveCode;
+  final double annualEntitlement;
+  final String accrualMethod;
+  final String excessAction;
+  final bool isActive;
+  final bool isPaid;
+
+  factory CompanyLeavePolicyModel.fromJson(Map<String, dynamic> json) {
+    final leaveType = json['leave_type'] is Map
+        ? Map<String, dynamic>.from(json['leave_type'] as Map)
+        : const <String, dynamic>{};
+    return CompanyLeavePolicyModel(
+      id: _policyInt(json['id']),
+      leaveTypeId: _policyInt(json['leave_type_id']) ?? 0,
+      leaveName: leaveType['leave_name']?.toString() ?? '',
+      leaveCode: leaveType['leave_code']?.toString() ?? '',
+      annualEntitlement:
+          double.tryParse(json['annual_entitlement']?.toString() ?? '') ?? 0,
+      accrualMethod: json['accrual_method']?.toString() ?? 'annual_upfront',
+      excessAction: json['excess_action']?.toString() ?? 'convert_to_lop',
+      isActive: _policyBool(json['is_active'], fallback: true),
+      isPaid: _policyBool(leaveType['is_paid'], fallback: true),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'leave_type_id': leaveTypeId,
+    'annual_entitlement': annualEntitlement,
+    'accrual_method': accrualMethod,
+    'excess_action': excessAction,
+    'is_active': isActive,
+  };
+
+  static int? _policyInt(dynamic value) =>
+      int.tryParse(value?.toString() ?? '');
+
+  static bool _policyBool(dynamic value, {required bool fallback}) {
+    if (value == null) return fallback;
+    return value == true || value == 1 || value.toString() == '1';
   }
 }

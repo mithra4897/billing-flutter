@@ -13,7 +13,6 @@ class FinancialYearManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController fyCodeController = TextEditingController();
   final TextEditingController fyNameController = TextEditingController();
   final TextEditingController startDateController = TextEditingController();
@@ -230,8 +229,8 @@ class FinancialYearManagementController extends GetxController {
     }
   }
 
-  Future<void> save() async {
-    if (!formKey.currentState!.validate()) {
+  Future<void> save({FormState? formState}) async {
+    if (formState != null && !formState.validate()) {
       return;
     }
 

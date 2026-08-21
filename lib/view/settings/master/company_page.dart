@@ -25,12 +25,21 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('CompanyManagementController');
-    _controller = Get.put(
-      CompanyManagementController(initialTabIndex: widget.initialTabIndex),
-      tag: _controllerTag,
-      permanent: true,
+    _controller =
+        Get.isRegistered<CompanyManagementController>(tag: _controllerTag)
+        ? Get.find<CompanyManagementController>(tag: _controllerTag)
+        : Get.put(
+            CompanyManagementController(
+              initialTabIndex: widget.initialTabIndex,
+            ),
+            tag: _controllerTag,
+            permanent: true,
+          );
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: _controller.activeTabIndex,
     );
-    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         _controller.setActiveTabIndex(_tabController.index);
@@ -107,11 +116,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
       );
     }
 
-    // Migrated page/form state now lives in CompanyManagementController.
-    if (_tabController.index != controller.activeTabIndex) {
-      _tabController.index = controller.activeTabIndex;
-    }
-
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Companies',
@@ -174,32 +178,46 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
               Tab(text: 'Primary'),
               Tab(text: 'Financial Years'),
               Tab(text: 'Formats'),
+              Tab(text: 'Leave Policy'),
             ],
           ),
           const SizedBox(height: 20),
-          IndexedStack(
-            index: controller.activeTabIndex,
-            children: [
-              _buildPrimaryTab(context, controller),
-              controller.selectedCompany?.id == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Financial Years',
-                      message:
-                          'Select an existing company or save this company first to manage financial years.',
-                    )
-                  : FinancialYearManagementPage(
-                      embedded: true,
-                      fixedCompanyId: controller.selectedCompany!.id,
-                      showShellAction: false,
-                      onNewFinancialYearActionChanged:
-                          controller.setNewFinancialYearAction,
-                    ),
-              _buildFormatsTab(context, controller),
-            ],
+          KeyedSubtree(
+            key: ValueKey<int>(controller.activeTabIndex),
+            child: _buildActiveTab(context, controller),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildActiveTab(
+    BuildContext context,
+    CompanyManagementController controller,
+  ) {
+    switch (controller.activeTabIndex) {
+      case 1:
+        return controller.selectedCompany?.id == null
+            ? _buildDependentTabPlaceholder(
+                title: 'Financial Years',
+                message:
+                    'Select an existing company or save this company first to manage financial years.',
+              )
+            : FinancialYearManagementPage(
+                embedded: true,
+                fixedCompanyId: controller.selectedCompany!.id,
+                showShellAction: false,
+                onNewFinancialYearActionChanged:
+                    controller.setNewFinancialYearAction,
+              );
+      case 2:
+        return _buildFormatsTab(context, controller);
+      case 3:
+        return _buildLeavePolicyTab(context, controller);
+      case 0:
+      default:
+        return _buildPrimaryTab(context, controller);
+    }
   }
 
   Widget _buildPrimaryTab(
@@ -207,145 +225,148 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
     CompanyManagementController controller,
   ) {
     return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsFormWrap(
-            children: [
-              AppFormTextField(
-                controller: controller.codeController,
-                labelText: 'Code',
-                readOnly: true,
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Code is required'
-                    : null,
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  controller: controller.codeController,
+                  labelText: 'Code',
+                  readOnly: true,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Code is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: controller.legalNameController,
+                  labelText: 'Legal Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Legal Name is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: controller.tradeNameController,
+                  labelText: 'Trade Name',
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.companyType,
+                  labelText: 'Company Type',
+                  mappedItems: CompanyManagementController.companyTypeItems,
+                  onChanged: controller.setCompanyType,
+                ),
+                AppFormTextField(
+                  controller: controller.gstinController,
+                  labelText: 'GSTIN',
+                ),
+                AppFormTextField(
+                  controller: controller.panController,
+                  labelText: 'PAN',
+                ),
+                AppFormTextField(
+                  controller: controller.phoneController,
+                  labelText: 'Phone',
+                ),
+                AppFormTextField(
+                  controller: controller.emailController,
+                  labelText: 'Email',
+                ),
+                AppFormTextField(
+                  controller: controller.websiteController,
+                  labelText: 'Website',
+                ),
+                AppFormTextField(
+                  controller: controller.addressLine1Controller,
+                  labelText: 'Address Line 1',
+                ),
+                AppFormTextField(
+                  controller: controller.addressLine2Controller,
+                  labelText: 'Address Line 2',
+                ),
+                AppFormTextField(
+                  controller: controller.areaController,
+                  labelText: 'Area',
+                ),
+                AppFormTextField(
+                  controller: controller.cityController,
+                  labelText: 'City',
+                ),
+                AppFormTextField(
+                  controller: controller.districtController,
+                  labelText: 'District',
+                ),
+                AppFormTextField(
+                  controller: controller.stateController,
+                  labelText: 'State Name',
+                ),
+                AppFormTextField(
+                  controller: controller.postalCodeController,
+                  labelText: 'Postal Code',
+                ),
+                AppFormTextField(
+                  controller: controller.currencyController,
+                  labelText: 'Base Currency',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            UploadPathField(
+              controller: controller.logoPathController,
+              labelText: 'Company Logo',
+              isUploading: controller.uploadingLogo,
+              onUpload: () => controller.uploadCompanyLogo(context),
+              previewUrl: AppConfig.resolvePublicFileUrl(
+                controller.logoPathController.text,
               ),
-              AppFormTextField(
-                controller: controller.legalNameController,
-                labelText: 'Legal Name',
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Legal Name is required'
-                    : null,
-              ),
-              AppFormTextField(
-                controller: controller.tradeNameController,
-                labelText: 'Trade Name',
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: controller.companyType,
-                labelText: 'Company Type',
-                mappedItems: CompanyManagementController.companyTypeItems,
-                onChanged: controller.setCompanyType,
-              ),
-              AppFormTextField(
-                controller: controller.gstinController,
-                labelText: 'GSTIN',
-              ),
-              AppFormTextField(
-                controller: controller.panController,
-                labelText: 'PAN',
-              ),
-              AppFormTextField(
-                controller: controller.phoneController,
-                labelText: 'Phone',
-              ),
-              AppFormTextField(
-                controller: controller.emailController,
-                labelText: 'Email',
-              ),
-              AppFormTextField(
-                controller: controller.websiteController,
-                labelText: 'Website',
-              ),
-              AppFormTextField(
-                controller: controller.addressLine1Controller,
-                labelText: 'Address Line 1',
-              ),
-              AppFormTextField(
-                controller: controller.addressLine2Controller,
-                labelText: 'Address Line 2',
-              ),
-              AppFormTextField(
-                controller: controller.areaController,
-                labelText: 'Area',
-              ),
-              AppFormTextField(
-                controller: controller.cityController,
-                labelText: 'City',
-              ),
-              AppFormTextField(
-                controller: controller.districtController,
-                labelText: 'District',
-              ),
-              AppFormTextField(
-                controller: controller.stateController,
-                labelText: 'State Name',
-              ),
-              AppFormTextField(
-                controller: controller.postalCodeController,
-                labelText: 'Postal Code',
-              ),
-              AppFormTextField(
-                controller: controller.currencyController,
-                labelText: 'Base Currency',
+              previewIcon: Icons.business_outlined,
+            ),
+            const SizedBox(height: 16),
+            AppSwitchTile(
+              label: 'Active',
+              subtitle:
+                  'Inactive companies stay visible but should not be used for new work.',
+              value: controller.isActive,
+              onChanged: controller.setIsActive,
+            ),
+            const SizedBox(height: 8),
+            AppFormTextField(
+              controller: controller.remarksController,
+              maxLines: 3,
+              labelText: 'Remarks',
+            ),
+            if ((controller.formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                controller.formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          UploadPathField(
-            controller: controller.logoPathController,
-            labelText: 'Company Logo',
-            isUploading: controller.uploadingLogo,
-            onUpload: () => controller.uploadCompanyLogo(context),
-            previewUrl: AppConfig.resolvePublicFileUrl(
-              controller.logoPathController.text,
-            ),
-            previewIcon: Icons.business_outlined,
-          ),
-          const SizedBox(height: 16),
-          AppSwitchTile(
-            label: 'Active',
-            subtitle:
-                'Inactive companies stay visible but should not be used for new work.',
-            value: controller.isActive,
-            onChanged: controller.setIsActive,
-          ),
-          const SizedBox(height: 8),
-          AppFormTextField(
-            controller: controller.remarksController,
-            maxLines: 3,
-            labelText: 'Remarks',
-          ),
-          if ((controller.formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              controller.formError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  onPressed: controller.saving
+                      ? null
+                      : () => controller.save(formState: Form.of(formContext)),
+                  icon: controller.selectedCompany == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: controller.saving ? 'Saving...' : 'Save Company',
+                  busy: controller.saving,
+                ),
+                AppActionButton(
+                  onPressed: controller.saving ? null : controller.resetForm,
+                  icon: Icons.refresh,
+                  label: 'Reset',
+                  filled: false,
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: controller.saving ? null : controller.save,
-                icon: controller.selectedCompany == null
-                    ? Icons.add
-                    : Icons.save_outlined,
-                label: controller.saving ? 'Saving...' : 'Save Company',
-                busy: controller.saving,
-              ),
-              AppActionButton(
-                onPressed: controller.saving ? null : controller.resetForm,
-                icon: Icons.refresh,
-                label: 'Reset',
-                filled: false,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -422,6 +443,159 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildLeavePolicyTab(
+    BuildContext context,
+    CompanyManagementController controller,
+  ) {
+    final policies =
+        controller.selectedCompany?.leavePolicies ??
+        const <CompanyLeavePolicyModel>[];
+    if (controller.selectedCompany?.id == null || policies.isEmpty) {
+      return _buildDependentTabPlaceholder(
+        title: 'Leave Policy',
+        message:
+            'Save or select a company first. Default policies will be created for every leave type.',
+      );
+    }
+
+    return Form(
+      child: Builder(
+        builder: (formContext) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Configure annual entitlement for every leave type. Paid leave beyond the available balance follows the selected excess action.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(
+                  context,
+                ).extension<AppThemeExtension>()?.mutedText,
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            SettingsFormWrap(
+              children: <Widget>[
+                AppDropdownField<double>.fromMapped(
+                  labelText: 'LOP deduction multiplier',
+                  initialValue: controller.lopMultiplier,
+                  mappedItems: const <AppDropdownItem<double>>[
+                    AppDropdownItem(value: 1, label: '1 day'),
+                    AppDropdownItem(value: 1.5, label: '1.5 days'),
+                    AppDropdownItem(value: 2, label: '2 days'),
+                  ],
+                  onChanged: controller.setLopMultiplier,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            ...policies.map((policy) {
+              final leaveTypeId = policy.leaveTypeId;
+              return Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingMd,
+                ),
+                child: AppSectionCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        policy.leaveCode.isEmpty
+                            ? policy.leaveName
+                            : '${policy.leaveName} (${policy.leaveCode})',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                      SettingsFormWrap(
+                        children: <Widget>[
+                          AppFormTextField(
+                            controller: controller.leaveEntitlementController(
+                              leaveTypeId,
+                            ),
+                            labelText: 'Annual entitlement (days)',
+                            readOnly: !policy.isPaid,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.optionalNonNegativeNumber(
+                              'Annual entitlement',
+                            ),
+                          ),
+                          AppDropdownField<String>.fromMapped(
+                            labelText: 'Leave availability schedule',
+                            initialValue:
+                                controller.leaveAccrualMethods[leaveTypeId],
+                            mappedItems: const <AppDropdownItem<String>>[
+                              AppDropdownItem(
+                                value: 'annual_upfront',
+                                label: 'Yearly',
+                              ),
+                              AppDropdownItem(
+                                value: 'monthly',
+                                label: 'Monthly',
+                              ),
+                            ],
+                            onChanged: (value) => controller
+                                .setLeaveAccrualMethod(leaveTypeId, value),
+                          ),
+                          AppDropdownField<String>.fromMapped(
+                            labelText: 'When balance is exhausted',
+                            initialValue:
+                                controller.leaveExcessActions[leaveTypeId],
+                            mappedItems: const <AppDropdownItem<String>>[
+                              AppDropdownItem(
+                                value: 'convert_to_lop',
+                                label: 'Convert excess to LOP',
+                              ),
+                              AppDropdownItem(
+                                value: 'reject',
+                                label: 'Reject request',
+                              ),
+                            ],
+                            onChanged: (value) => controller
+                                .setLeaveExcessAction(leaveTypeId, value),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                      AppSwitchTile(
+                        label: 'Available for this company',
+                        value: controller.activeLeavePolicyIds.contains(
+                          leaveTypeId,
+                        ),
+                        onChanged: (value) =>
+                            controller.setLeavePolicyActive(leaveTypeId, value),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            if ((controller.formError ?? '').isNotEmpty) ...<Widget>[
+              Text(
+                controller.formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            AppActionButton(
+              onPressed: controller.saving
+                  ? null
+                  : () {
+                      if (Form.of(formContext).validate()) {
+                        controller.save(formState: Form.of(formContext));
+                      }
+                    },
+              icon: Icons.save_outlined,
+              label: controller.saving ? 'Saving...' : 'Save Leave Policy',
+              busy: controller.saving,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

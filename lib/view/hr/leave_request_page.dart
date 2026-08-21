@@ -30,97 +30,6 @@ class _LeaveRequestManagementPageState
     );
   }
 
-  Future<void> _openCreateLeaveTypeDialog() async {
-    final controller = Get.find<LeaveRequestManagementController>(
-      tag: _controllerTag,
-    );
-    final nameController = TextEditingController();
-    final maxDaysController = TextEditingController();
-    var isPaid = true;
-    String? errorText;
-
-    final created = await showDialog<LeaveTypeModel>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Create Leave Type'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppFormTextField(
-                    controller: nameController,
-                    labelText: 'Leave Name',
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  AppFormTextField(
-                    controller: maxDaysController,
-                    labelText: 'Max Days Per Year',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  AppSwitchTile(
-                    label: 'Paid Leave',
-                    value: isPaid,
-                    onChanged: (value) => setDialogState(() => isPaid = value),
-                  ),
-                  if (errorText != null) ...[
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                    Text(
-                      errorText!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    final leaveName = nameController.text.trim();
-                    if (leaveName.isEmpty) {
-                      setDialogState(() {
-                        errorText = 'Leave Name is required.';
-                      });
-                      return;
-                    }
-                    try {
-                      final response = await controller.createLeaveType(
-                        leaveName: leaveName,
-                        maxDays: maxDaysController.text,
-                        isPaidValue: isPaid,
-                      );
-                      if (!dialogContext.mounted) return;
-                      Navigator.of(dialogContext).pop(response);
-                    } catch (error) {
-                      setDialogState(() {
-                        errorText = error.toString();
-                      });
-                    }
-                  },
-                  child: const Text('Create'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (created?.id == null || !mounted) {
-      return;
-    }
-  }
-
   Widget _buildInlineLeaveFilters(LeaveRequestManagementController controller) {
     return HrInlineFilterBar(
       filterFields: [
@@ -302,24 +211,20 @@ class _LeaveRequestManagementPageState
                   onChanged: controller.setEmployeeId,
                   validator: Validators.requiredSelection('Employee'),
                 ),
-                InlineFieldAction(
-                  actionTooltip: 'Create leave type',
-                  onAddNew: _openCreateLeaveTypeDialog,
-                  field: AppDropdownField<int>.fromMapped(
-                    labelText: 'Leave Type',
-                    mappedItems: controller.leaveTypes
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: controller.leaveTypeId,
-                    onChanged: controller.setLeaveTypeId,
-                    validator: Validators.requiredSelection('Leave Type'),
-                  ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Leave Type',
+                  mappedItems: controller.leaveTypes
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: controller.leaveTypeId,
+                  onChanged: controller.setLeaveTypeId,
+                  validator: Validators.requiredSelection('Leave Type'),
                 ),
                 AppFormTextField(
                   controller: controller.fromDateController,
@@ -358,27 +263,28 @@ class _LeaveRequestManagementPageState
                   maxLines: 3,
                   validator: Validators.optionalMaxLength(1000, 'Reason'),
                 ),
-                if (controller.isCasualLeaveType(
-                  controller.activeLeaveType,
-                )) ...[
+                if (controller.activeLeaveType != null) ...[
                   const SizedBox(height: AppUiConstants.spacingSm),
                   Text(
-                    'Casual leave uses 1 accrued CL day per elapsed month in the '
-                    'calendar year (max 12). Any days above your CL balance are '
-                    'recorded as LOP (unpaid). Split is calculated when you save '
-                    'and recalculated again when HR approves (using balances as of '
-                    'that day). Payroll deducts LOP when the monthly run is processed.',
+                    'Paid entitlement and accrual follow your company leave policy. '
+                    'If the balance is insufficient, excess days become LOP or the '
+                    'request is rejected according to that policy. The split is '
+                    'recalculated when HR approves.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
                 if (controller.selectedLeaveRequest != null &&
-                    ((controller.selectedLeaveRequest!.clApprovedDays ?? 0) >
+                    ((controller.selectedLeaveRequest!.paidLeaveDays ??
+                                controller
+                                    .selectedLeaveRequest!
+                                    .clApprovedDays ??
+                                0) >
                             0 ||
                         (controller.selectedLeaveRequest!.lopDays ?? 0) >
                             0)) ...[
                   const SizedBox(height: AppUiConstants.spacingSm),
                   Text(
-                    'CL days (paid): ${controller.selectedLeaveRequest!.clApprovedDays ?? 0} · '
+                    'Paid leave days: ${controller.selectedLeaveRequest!.paidLeaveDays ?? controller.selectedLeaveRequest!.clApprovedDays ?? 0} · '
                     'LOP days (unpaid): ${controller.selectedLeaveRequest!.lopDays ?? 0}',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),

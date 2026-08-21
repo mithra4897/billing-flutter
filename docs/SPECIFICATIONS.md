@@ -29,6 +29,47 @@
   records, employment-period, and weekly-off rules still determine whether an
   individual day can be edited.
 
+## Company leave policy and LOP configuration
+
+- Date: 2026-08-21
+- Status: Approved for implementation
+
+Each company owns a leave policy for every leave type. Company Settings exposes
+the annual entitlement, leave availability schedule, excess action, active state, and the
+company LOP deduction multiplier. CL is not fixed at 12 days: the configured
+company entitlement may be higher or lower.
+
+- Supported LOP multipliers are 1, 1.5, and 2; the default is 1.
+- Paid leave consumption is reserved by pending and approved requests in the
+  same leave year. Rejected requests do not consume entitlement.
+- Annual-upfront policies expose the complete annual entitlement. Monthly
+  policies accrue annual entitlement / 12 through the application month.
+- When a paid entitlement is exhausted, `convert_to_lop` allocates the excess
+  request duration to LOP. A `reject` policy blocks the request instead.
+- Unpaid leave allocates its full duration to LOP.
+- Payroll applies the company multiplier after reconciling attendance and
+  approved leave LOP, caps the result at working days, and snapshots the
+  multiplier used. Existing processed payroll is never recalculated.
+- Existing companies default to multiplier 1. Existing leave-type maximums
+  seed company policies; CL defaults to monthly accrual and excess-to-LOP.
+- The Leave Request screen selects an existing leave type only. The dedicated
+  Leave Types master is the sole create/update/delete workflow for the shared
+  leave-type catalog; Company Settings configures how those types apply to one
+  company and does not create catalog entries.
+- The policy UI labels the schedule dropdown **Leave availability schedule**
+  and keeps its choices compact: **Yearly** and **Monthly**. The stored values
+  and calculation rules remain `annual_upfront` and `monthly` respectively.
+- Company editor forms must not use a shared `GlobalKey`, because the
+  responsive SettingsWorkspace can temporarily mount its editor more than once
+  while changing layouts. The save action validates through its local form
+  context.
+- Company Settings renders only its selected tab body. It does not retain every
+  tab in an `IndexedStack`, because the embedded Financial Years editor has its
+  own stateful form and must not be mounted while hidden.
+- The embedded Financial Years list may build more than one expandable editor,
+  so each editor validates with its own local `Form` context rather than a
+  controller-owned global key.
+
 - Date: 2026-08-17
 - Status: Implemented
 

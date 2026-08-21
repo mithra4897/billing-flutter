@@ -23,7 +23,6 @@ class CompanyManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController legalNameController = TextEditingController();
   final TextEditingController tradeNameController = TextEditingController();
@@ -42,6 +41,11 @@ class CompanyManagementController extends GetxController {
   final TextEditingController currencyController = TextEditingController();
   final TextEditingController logoPathController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  final Map<int, TextEditingController> leaveEntitlementControllers =
+      <int, TextEditingController>{};
+  final Map<int, String> leaveAccrualMethods = <int, String>{};
+  final Map<int, String> leaveExcessActions = <int, String>{};
+  final Set<int> activeLeavePolicyIds = <int>{};
 
   bool initialLoading = true;
   bool saving = false;
@@ -55,6 +59,7 @@ class CompanyManagementController extends GetxController {
   bool isActive = true;
   String companyType = 'private_limited';
   int activeTabIndex = 0;
+  double lopMultiplier = 1;
 
   String formatDate = 'dd/MM/yyyy';
   String formatAmountGrouping = 'indian';
@@ -63,7 +68,7 @@ class CompanyManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    activeTabIndex = initialTabIndex.clamp(0, 2);
+    activeTabIndex = initialTabIndex.clamp(0, 3);
     searchController.addListener(_applySearch);
     loadCompanies();
   }
@@ -93,6 +98,9 @@ class CompanyManagementController extends GetxController {
     currencyController.dispose();
     logoPathController.dispose();
     remarksController.dispose();
+    for (final controller in leaveEntitlementControllers.values) {
+      controller.dispose();
+    }
     super.onClose();
   }
 
@@ -174,6 +182,8 @@ class CompanyManagementController extends GetxController {
     remarksController.text = company.remarks ?? '';
     companyType = company.companyType ?? 'private_limited';
     isActive = company.isActive;
+    lopMultiplier = company.lopMultiplier;
+    _setLeavePolicies(company.leavePolicies);
     // Format settings
     formatDate = company.dateFormat ?? 'dd/MM/yyyy';
     formatAmountGrouping = company.amountGrouping ?? 'indian';
@@ -208,6 +218,8 @@ class CompanyManagementController extends GetxController {
     remarksController.clear();
     companyType = 'private_limited';
     isActive = true;
+    lopMultiplier = 1;
+    _setLeavePolicies(const <CompanyLeavePolicyModel>[]);
     formatDate = 'dd/MM/yyyy';
     formatAmountGrouping = 'indian';
     formatDecimalPlaces = 2;
@@ -244,8 +256,8 @@ class CompanyManagementController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> save() async {
-    if (!formKey.currentState!.validate()) {
+  Future<void> save({FormState? formState}) async {
+    if (formState != null && !formState.validate()) {
       return;
     }
 
@@ -278,6 +290,8 @@ class CompanyManagementController extends GetxController {
       dateFormat: formatDate,
       amountGrouping: formatAmountGrouping,
       decimalPlaces: formatDecimalPlaces,
+      lopMultiplier: lopMultiplier,
+      leavePolicies: _leavePoliciesForSave(),
     );
 
     try {
@@ -349,6 +363,79 @@ class CompanyManagementController extends GetxController {
   void setIsActive(bool value) {
     isActive = value;
     update();
+  }
+
+  void setLopMultiplier(double? value) {
+    if (value != null) lopMultiplier = value;
+    update();
+  }
+
+  TextEditingController leaveEntitlementController(int leaveTypeId) =>
+      leaveEntitlementControllers[leaveTypeId]!;
+
+  void setLeaveAccrualMethod(int leaveTypeId, String? value) {
+    if (value != null) leaveAccrualMethods[leaveTypeId] = value;
+    update();
+  }
+
+  void setLeaveExcessAction(int leaveTypeId, String? value) {
+    if (value != null) leaveExcessActions[leaveTypeId] = value;
+    update();
+  }
+
+  void setLeavePolicyActive(int leaveTypeId, bool value) {
+    if (value) {
+      activeLeavePolicyIds.add(leaveTypeId);
+    } else {
+      activeLeavePolicyIds.remove(leaveTypeId);
+    }
+    update();
+  }
+
+  void _setLeavePolicies(List<CompanyLeavePolicyModel> policies) {
+    for (final controller in leaveEntitlementControllers.values) {
+      controller.dispose();
+    }
+    leaveEntitlementControllers.clear();
+    leaveAccrualMethods.clear();
+    leaveExcessActions.clear();
+    activeLeavePolicyIds.clear();
+    for (final policy in policies) {
+      leaveEntitlementControllers[policy.leaveTypeId] = TextEditingController(
+        text: policy.annualEntitlement % 1 == 0
+            ? policy.annualEntitlement.toStringAsFixed(0)
+            : policy.annualEntitlement.toStringAsFixed(2),
+      );
+      leaveAccrualMethods[policy.leaveTypeId] = policy.accrualMethod;
+      leaveExcessActions[policy.leaveTypeId] = policy.excessAction;
+      if (policy.isActive) activeLeavePolicyIds.add(policy.leaveTypeId);
+    }
+  }
+
+  List<CompanyLeavePolicyModel> _leavePoliciesForSave() {
+    final source =
+        selectedCompany?.leavePolicies ?? const <CompanyLeavePolicyModel>[];
+    return source
+        .map(
+          (policy) => CompanyLeavePolicyModel(
+            id: policy.id,
+            leaveTypeId: policy.leaveTypeId,
+            leaveName: policy.leaveName,
+            leaveCode: policy.leaveCode,
+            annualEntitlement:
+                Validators.parseFlexibleNumber(
+                  leaveEntitlementControllers[policy.leaveTypeId]?.text ?? '',
+                ) ??
+                0,
+            accrualMethod:
+                leaveAccrualMethods[policy.leaveTypeId] ?? 'annual_upfront',
+            excessAction:
+                leaveExcessActions[policy.leaveTypeId] ?? 'convert_to_lop',
+            isActive: activeLeavePolicyIds.contains(policy.leaveTypeId),
+            isPaid: policy.isPaid,
+          ),
+        )
+        .toList(growable: false);
   }
 
   void setActiveTabIndex(int index) {
