@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-21 — Show all active employees in Monthly Attendance
+
+- Request: include all active employees in the Monthly Attendance sheet,
+  matching the Employees screen.
+- Implementation: kept the bulk-attendance UI but enabled the existing backend
+  system-employee path for the Monthly Attendance route and save request.
+- API/database impact: the monthly sheet endpoints now accept the optional
+  `active_employees_only` flag; no database change.
+- Verification: focused Flutter analysis and existing HR attendance tests.
+
 ## 2026-08-21 — Simplify Activity Watch connection status
 
 - Request: remove revoke wording, hide disconnected devices, and make pending

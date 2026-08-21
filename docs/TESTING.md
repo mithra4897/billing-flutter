@@ -1,5 +1,12 @@
 # Testing
 
+## Monthly Attendance includes all active employees — 2026-08-21
+
+- The Monthly Attendance route now requests the existing all-employee sheet
+  mode and uses the same mode when saving records.
+- Verification: focused Flutter analysis and the existing HR attendance model
+  coverage; live authenticated employee-count verification remains manual.
+
 ## Activity Watch connection setup status — 2026-08-21
 
 - Added model coverage for the pending, connected, and post-30-minute pairing

@@ -24,6 +24,11 @@
 
 ## Monthly manual attendance
 
+- Monthly Attendance lists every active employee in the selected company,
+  including employees linked to active ERP users. The existing attendance
+  records, employment-period, and weekly-off rules still determine whether an
+  individual day can be edited.
+
 - Date: 2026-08-17
 - Status: Implemented
 

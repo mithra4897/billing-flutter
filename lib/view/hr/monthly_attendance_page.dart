@@ -35,10 +35,12 @@ class MonthlyAttendancePage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.manualOnly = true,
+    this.includeAllActiveEmployees = false,
   });
 
   final bool embedded;
   final bool manualOnly;
+  final bool includeAllActiveEmployees;
 
   @override
   State<MonthlyAttendancePage> createState() => _MonthlyAttendancePageState();
@@ -114,7 +116,9 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         companyId: companyId,
         year: _year,
         month: _month,
-        includeSystemEmployees: !widget.manualOnly,
+        includeSystemEmployees:
+            widget.includeAllActiveEmployees || !widget.manualOnly,
+        activeEmployeesOnly: widget.includeAllActiveEmployees,
       );
       if (!response.success || response.data == null) {
         throw Exception(
@@ -254,7 +258,9 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         month: _month,
         records: records,
         saveMode: submit ? 'submit' : 'draft',
-        includeSystemEmployees: !widget.manualOnly,
+        includeSystemEmployees:
+            widget.includeAllActiveEmployees || !widget.manualOnly,
+        activeEmployeesOnly: widget.includeAllActiveEmployees,
       );
       if (!response.success) throw Exception(response.message);
       if (!mounted) return;
@@ -550,8 +556,10 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
           else if (_visibleEmployees(_sheet).isEmpty)
             AppSectionCard(
               child: Text(
-                widget.manualOnly
-                    ? 'No eligible manual-attendance employees found. This screen lists employees without an active ERP user.'
+                widget.includeAllActiveEmployees
+                    ? 'No active employees found for this company.'
+                    : widget.manualOnly
+                    ? 'No eligible manual-attendance employees found.'
                     : 'No saved attendance records match the selected filters.',
               ),
             )

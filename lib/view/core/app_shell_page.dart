@@ -503,6 +503,7 @@ class _AppShellPageState extends State<AppShellPage> {
           key: routeKey,
           embedded: true,
           manualOnly: true,
+          includeAllActiveEmployees: true,
         );
       case '/hr/expense-claims':
         return ExpenseClaimsManagementPage(key: routeKey, embedded: true);
