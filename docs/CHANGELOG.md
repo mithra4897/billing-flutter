@@ -9,6 +9,8 @@
   reused rather than registered again when returning to the page.
 - This prevents Flutter from reparenting focused form elements while layout is
   in progress.
+- Clearing the embedded Financial Years action during disposal no longer
+  notifies the Company GetBuilder while Flutter's widget tree is locked.
 
 ## 2026-08-21 — Clarify leave availability and centralize leave-type creation
 

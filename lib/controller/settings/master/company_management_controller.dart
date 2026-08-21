@@ -445,9 +445,11 @@ class CompanyManagementController extends GetxController {
 
   bool get canStartNewFinancialYear => _newFinancialYearAction != null;
 
-  void setNewFinancialYearAction(VoidCallback? action) {
+  void setNewFinancialYearAction(VoidCallback? action, {bool notify = true}) {
     _newFinancialYearAction = action;
-    update();
+    if (notify) {
+      update();
+    }
   }
 
   void startNewFinancialYear() {

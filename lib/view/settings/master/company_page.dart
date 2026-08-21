@@ -207,8 +207,8 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                 embedded: true,
                 fixedCompanyId: controller.selectedCompany!.id,
                 showShellAction: false,
-                onNewFinancialYearActionChanged:
-                    controller.setNewFinancialYearAction,
+                onNewFinancialYearActionChanged: (action) => controller
+                    .setNewFinancialYearAction(action, notify: action != null),
               );
       case 2:
         return _buildFormatsTab(context, controller);
