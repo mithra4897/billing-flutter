@@ -4,7 +4,12 @@ import '../../controller/purchase/purchase_module_refresh_controller.dart';
 typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(PurchaseService service);
 typedef PurchaseRegisterMatcher<T> =
-    bool Function(T row, String query, Set<String> statuses);
+    bool Function(
+      T row,
+      String query,
+      Set<String> statuses,
+      PurchaseListRegisterController<T> controller,
+    );
 typedef PurchaseRegisterDashboardMatcher<T> =
     bool Function(T row, String dashboardFilter);
 typedef PurchaseRegisterDateValue<T> = String? Function(T row);
@@ -134,7 +139,7 @@ class PurchaseListRegisterController<T> extends GetxController {
     final filtered = rows
         .where(
           (row) =>
-              matches(row, query, selectedStatuses) &&
+              matches(row, query, selectedStatuses, this) &&
               dashboardMatches(row, dashboardFilter),
         )
         .toList(growable: false);
@@ -604,13 +609,7 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       dateValueOf: (row) =>
           nullableStringValue(row.toJson(), 'requisition_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'requisition_no'),
-      matches: (row, query, statuses) {
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchaseRequisitionModel>>(
-              tag: persistentControllerTag(
-                'PurchaseRequisitionRegisterController',
-              ),
-            );
+      matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
           stringValue(data, 'requisition_status'),
@@ -767,11 +766,7 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
-      matches: (row, query, statuses) {
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchaseOrderModel>>(
-              tag: persistentControllerTag('PurchaseOrderRegisterController'),
-            );
+      matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
           stringValue(data, 'order_status'),
@@ -917,11 +912,7 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
-      matches: (row, query, statuses) {
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchaseReceiptModel>>(
-              tag: persistentControllerTag('PurchaseReceiptRegisterController'),
-            );
+      matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
           stringValue(data, 'receipt_status'),
@@ -1067,7 +1058,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       dateValueOf: (row) => row.invoiceDate,
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
-      matches: (row, query, statuses) {
+      matches: (row, query, statuses, controller) {
         final statusOk = _purchaseMatchesSelectedStatus(
           row.invoiceStatus,
           statuses,
@@ -1084,11 +1075,6 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
                 'party_name',
               ),
             ].join(' ').toLowerCase().contains(query);
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchaseInvoiceModel>>(
-              tag: persistentControllerTag('PurchaseInvoiceRegisterController'),
-            );
-
         final filterSupplierIds = _purchaseSelectedSet<int>(
           controller.customFilters['supplier_ids'],
         );
@@ -1261,11 +1247,7 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'payment_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'payment_no'),
-      matches: (row, query, statuses) {
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchasePaymentModel>>(
-              tag: persistentControllerTag('PurchasePaymentRegisterController'),
-            );
+      matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
           stringValue(data, 'payment_status'),
@@ -1415,11 +1397,7 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
-      matches: (row, query, statuses) {
-        final controller =
-            Get.find<PurchaseListRegisterController<PurchaseReturnModel>>(
-              tag: persistentControllerTag('PurchaseReturnRegisterController'),
-            );
+      matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
           stringValue(data, 'return_status'),
