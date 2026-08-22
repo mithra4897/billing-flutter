@@ -46,6 +46,7 @@ class UserManagementController extends GetxController {
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<RoleModel> roles = const <RoleModel>[];
   List<UserPermissionModel> rolePermissions = const <UserPermissionModel>[];
+  List<UserPermissionModel> directPermissions = const <UserPermissionModel>[];
   List<PermissionModel> permissions = const <PermissionModel>[];
   List<UserPermissionModel> effectivePermissions =
       const <UserPermissionModel>[];
@@ -68,6 +69,7 @@ class UserManagementController extends GetxController {
   Map<int, Map<String, bool>> warehouseAccessFlags = <int, Map<String, bool>>{};
 
   int? selectedUserId;
+  int? loadedPrimaryRoleId;
   int? selectedEmployeeId;
   int activeTabIndex = 0;
 
@@ -217,6 +219,7 @@ class UserManagementController extends GetxController {
         : user.userRoles.isNotEmpty
         ? user.userRoles.first.roleId
         : firstOrNull(user.roleIds);
+    loadedPrimaryRoleId = selectedRoleId;
 
     await ensureSelectedEmployeeLoaded(user);
     resolveSelectedEmployeeFromFallback();
@@ -244,6 +247,9 @@ class UserManagementController extends GetxController {
 
   void applyPermissionSummary(UserPermissionSummaryModel? summary) {
     rolePermissions = mergePermissionSet(summary?.rolePermissions ?? const []);
+    directPermissions = mergePermissionSet(
+      summary?.directPermissions ?? const [],
+    );
     effectivePermissions = mergePermissionSet(
       summary?.effectivePermissions ?? const [],
     );
@@ -334,12 +340,14 @@ class UserManagementController extends GetxController {
     remarksController.clear();
     gender = null;
     selectedRoleId = null;
+    loadedPrimaryRoleId = null;
     mustChangePassword = true;
     isSystemUser = true;
     isSuperAdmin = false;
     status = 'active';
     displayNameTouched = false;
     rolePermissions = mergePermissionSet(const []);
+    directPermissions = mergePermissionSet(const []);
     effectivePermissions = mergePermissionSet(const []);
     permissionsDirty = false;
     expandedPermissionModules = <String>{};
@@ -627,6 +635,11 @@ class UserManagementController extends GetxController {
         return;
       }
 
+      final roleChanged = !isNewUser && loadedPrimaryRoleId != selectedRoleId;
+      if (roleChanged) {
+        await _authService.syncUserExtraPermissions(saved.id!, const []);
+      }
+
       if (!isNewUser && password.isNotEmpty) {
         await _authService.resetUserPassword(
           saved.id!,
@@ -638,6 +651,7 @@ class UserManagementController extends GetxController {
       }
 
       await AppSessionService.instance.refreshUserAccess();
+      loadedPrimaryRoleId = selectedRoleId;
       await loadInitial();
       await loadUser(saved.id!);
       appScaffoldMessengerKey.currentState?.showSnackBar(
@@ -839,6 +853,8 @@ class UserManagementController extends GetxController {
 
   void togglePermission(int index, String field, bool enabled) {
     final current = effectivePermissions[index];
+    final baseline = _roleActionValue(current.permissionId, field);
+    final overrideValue = enabled == baseline ? null : enabled;
     effectivePermissions = List<UserPermissionModel>.from(effectivePermissions)
       ..[index] = current.copyWith(
         allowView: field == 'view' ? enabled : current.allowView,
@@ -848,9 +864,63 @@ class UserManagementController extends GetxController {
         allowApprove: field == 'approve' ? enabled : current.allowApprove,
         allowPrint: field == 'print' ? enabled : current.allowPrint,
         allowExport: field == 'export' ? enabled : current.allowExport,
+        overrideAllowView: field == 'view'
+            ? overrideValue
+            : current.overrideAllowView,
+        overrideAllowCreate: field == 'create'
+            ? overrideValue
+            : current.overrideAllowCreate,
+        overrideAllowUpdate: field == 'update'
+            ? overrideValue
+            : current.overrideAllowUpdate,
+        overrideAllowDelete: field == 'delete'
+            ? overrideValue
+            : current.overrideAllowDelete,
+        overrideAllowApprove: field == 'approve'
+            ? overrideValue
+            : current.overrideAllowApprove,
+        overrideAllowPrint: field == 'print'
+            ? overrideValue
+            : current.overrideAllowPrint,
+        overrideAllowExport: field == 'export'
+            ? overrideValue
+            : current.overrideAllowExport,
       );
     permissionsDirty = true;
     update();
+  }
+
+  bool _roleActionValue(int? permissionId, String field) {
+    final baseline = rolePermissions.firstWhere(
+      (item) => item.permissionId == permissionId,
+      orElse: () => UserPermissionModel(permissionId: permissionId),
+    );
+
+    return switch (field) {
+      'view' => baseline.allowView ?? false,
+      'create' => baseline.allowCreate ?? false,
+      'update' => baseline.allowUpdate ?? false,
+      'delete' => baseline.allowDelete ?? false,
+      'approve' => baseline.allowApprove ?? false,
+      'print' => baseline.allowPrint ?? false,
+      'export' => baseline.allowExport ?? false,
+      _ => false,
+    };
+  }
+
+  String permissionActionSource(UserPermissionModel permission, String field) {
+    final override = switch (field) {
+      'view' => permission.overrideAllowView,
+      'create' => permission.overrideAllowCreate,
+      'update' => permission.overrideAllowUpdate,
+      'delete' => permission.overrideAllowDelete,
+      'approve' => permission.overrideAllowApprove,
+      'print' => permission.overrideAllowPrint,
+      'export' => permission.overrideAllowExport,
+      _ => null,
+    };
+    if (override == null) return 'Inherited';
+    return override ? 'User allow' : 'User deny';
   }
 
   void togglePermissionByIdentity(
@@ -970,6 +1040,7 @@ class UserManagementController extends GetxController {
   Future<void> resetPermissionsForSelectedRole() async {
     if (selectedRoleId == null) {
       rolePermissions = mergePermissionSet(const []);
+      directPermissions = mergePermissionSet(const []);
       effectivePermissions = mergePermissionSet(const []);
       permissionsDirty = false;
       update();
@@ -999,6 +1070,7 @@ class UserManagementController extends GetxController {
         .toList(growable: false);
 
     rolePermissions = mergePermissionSet(permissionRows);
+    directPermissions = mergePermissionSet(const []);
     effectivePermissions = mergePermissionSet(permissionRows);
     permissionsDirty = false;
     expandedPermissionModules = <String>{};

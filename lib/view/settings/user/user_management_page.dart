@@ -544,19 +544,30 @@ class _UserManagementPageState extends State<UserManagementPage>
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Spacer(),
-              AppActionButton(
-                onPressed:
-                    controller.savingPermissions || !controller.permissionsDirty
-                    ? null
-                    : controller.savePermissions,
-                icon: Icons.verified_user_outlined,
-                label: controller.savingPermissions
-                    ? 'Saving...'
-                    : 'Save Permissions',
-                busy: controller.savingPermissions,
+              Text(
+                'Role permissions are inherited. Turn an action on or off to create a user Allow or Deny override; return it to the role value to inherit again.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Spacer(),
+                  AppActionButton(
+                    onPressed:
+                        controller.savingPermissions ||
+                            !controller.permissionsDirty
+                        ? null
+                        : controller.savePermissions,
+                    icon: Icons.verified_user_outlined,
+                    label: controller.savingPermissions
+                        ? 'Saving...'
+                        : 'Save Permissions',
+                    busy: controller.savingPermissions,
+                  ),
+                ],
               ),
             ],
           ),
@@ -641,7 +652,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                               runSpacing: 8,
                               children: [
                                 _permCheck(
-                                  'View',
+                                  'View (${controller.permissionActionSource(effective, 'view')})',
                                   effective.allowView ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -651,7 +662,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Create',
+                                  'Create (${controller.permissionActionSource(effective, 'create')})',
                                   effective.allowCreate ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -661,7 +672,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Update',
+                                  'Update (${controller.permissionActionSource(effective, 'update')})',
                                   effective.allowUpdate ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -671,7 +682,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Delete',
+                                  'Delete (${controller.permissionActionSource(effective, 'delete')})',
                                   effective.allowDelete ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -681,7 +692,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Approve',
+                                  'Approve (${controller.permissionActionSource(effective, 'approve')})',
                                   effective.allowApprove ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -691,7 +702,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Print',
+                                  'Print (${controller.permissionActionSource(effective, 'print')})',
                                   effective.allowPrint ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(
@@ -701,7 +712,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                                       ),
                                 ),
                                 _permCheck(
-                                  'Export',
+                                  'Export (${controller.permissionActionSource(effective, 'export')})',
                                   effective.allowExport ?? false,
                                   (value) =>
                                       controller.togglePermissionByIdentity(

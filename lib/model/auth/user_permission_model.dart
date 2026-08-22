@@ -1,6 +1,8 @@
 import '../../screen.dart';
 
 class UserPermissionModel extends JsonModel {
+  static const Object _unset = Object();
+
   const UserPermissionModel({
     super.id,
     this.permissionId,
@@ -16,6 +18,13 @@ class UserPermissionModel extends JsonModel {
     this.allowApprove,
     this.allowPrint,
     this.allowExport,
+    this.overrideAllowView,
+    this.overrideAllowCreate,
+    this.overrideAllowUpdate,
+    this.overrideAllowDelete,
+    this.overrideAllowApprove,
+    this.overrideAllowPrint,
+    this.overrideAllowExport,
     this.isActive,
     this.permission,
   });
@@ -32,6 +41,13 @@ class UserPermissionModel extends JsonModel {
   final bool? allowApprove;
   final bool? allowPrint;
   final bool? allowExport;
+  final bool? overrideAllowView;
+  final bool? overrideAllowCreate;
+  final bool? overrideAllowUpdate;
+  final bool? overrideAllowDelete;
+  final bool? overrideAllowApprove;
+  final bool? overrideAllowPrint;
+  final bool? overrideAllowExport;
   final bool? isActive;
   final PermissionModel? permission;
 
@@ -67,6 +83,27 @@ class UserPermissionModel extends JsonModel {
       allowExport: json['allow_export'] == null
           ? null
           : JsonModel.boolOf(json['allow_export']),
+      overrideAllowView: json['override_allow_view'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_view']),
+      overrideAllowCreate: json['override_allow_create'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_create']),
+      overrideAllowUpdate: json['override_allow_update'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_update']),
+      overrideAllowDelete: json['override_allow_delete'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_delete']),
+      overrideAllowApprove: json['override_allow_approve'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_approve']),
+      overrideAllowPrint: json['override_allow_print'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_print']),
+      overrideAllowExport: json['override_allow_export'] == null
+          ? null
+          : JsonModel.boolOf(json['override_allow_export']),
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
@@ -91,6 +128,13 @@ class UserPermissionModel extends JsonModel {
     bool? allowApprove,
     bool? allowPrint,
     bool? allowExport,
+    Object? overrideAllowView = _unset,
+    Object? overrideAllowCreate = _unset,
+    Object? overrideAllowUpdate = _unset,
+    Object? overrideAllowDelete = _unset,
+    Object? overrideAllowApprove = _unset,
+    Object? overrideAllowPrint = _unset,
+    Object? overrideAllowExport = _unset,
     bool? isActive,
     PermissionModel? permission,
   }) {
@@ -109,16 +153,35 @@ class UserPermissionModel extends JsonModel {
       allowApprove: allowApprove ?? this.allowApprove,
       allowPrint: allowPrint ?? this.allowPrint,
       allowExport: allowExport ?? this.allowExport,
+      overrideAllowView: identical(overrideAllowView, _unset)
+          ? this.overrideAllowView
+          : overrideAllowView as bool?,
+      overrideAllowCreate: identical(overrideAllowCreate, _unset)
+          ? this.overrideAllowCreate
+          : overrideAllowCreate as bool?,
+      overrideAllowUpdate: identical(overrideAllowUpdate, _unset)
+          ? this.overrideAllowUpdate
+          : overrideAllowUpdate as bool?,
+      overrideAllowDelete: identical(overrideAllowDelete, _unset)
+          ? this.overrideAllowDelete
+          : overrideAllowDelete as bool?,
+      overrideAllowApprove: identical(overrideAllowApprove, _unset)
+          ? this.overrideAllowApprove
+          : overrideAllowApprove as bool?,
+      overrideAllowPrint: identical(overrideAllowPrint, _unset)
+          ? this.overrideAllowPrint
+          : overrideAllowPrint as bool?,
+      overrideAllowExport: identical(overrideAllowExport, _unset)
+          ? this.overrideAllowExport
+          : overrideAllowExport as bool?,
       isActive: isActive ?? this.isActive,
       permission: permission ?? this.permission,
     );
   }
-  @override
-  String toString() => JsonModel.combineValues([
-    name,
-    code,
-  ], defaultValue: 'User Permission');
 
+  @override
+  String toString() =>
+      JsonModel.combineValues([name, code], defaultValue: 'User Permission');
 
   @override
   Map<String, dynamic> toJson() {
@@ -131,6 +194,19 @@ class UserPermissionModel extends JsonModel {
       'allow_approve': allowApprove ?? false,
       'allow_print': allowPrint ?? false,
       'allow_export': allowExport ?? false,
+      if (overrideAllowView != null) 'override_allow_view': overrideAllowView,
+      if (overrideAllowCreate != null)
+        'override_allow_create': overrideAllowCreate,
+      if (overrideAllowUpdate != null)
+        'override_allow_update': overrideAllowUpdate,
+      if (overrideAllowDelete != null)
+        'override_allow_delete': overrideAllowDelete,
+      if (overrideAllowApprove != null)
+        'override_allow_approve': overrideAllowApprove,
+      if (overrideAllowPrint != null)
+        'override_allow_print': overrideAllowPrint,
+      if (overrideAllowExport != null)
+        'override_allow_export': overrideAllowExport,
       'is_active': isActive ?? true,
     };
   }
