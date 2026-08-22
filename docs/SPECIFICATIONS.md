@@ -170,8 +170,8 @@ company entitlement may be higher or lower.
   use the direct relation; legacy installations use matching employee codes.
 - The all-employee request sends `include_system_employees` as numeric `1` or
   `0`, compatible with the existing Lumen boolean query validator.
-- Monthly attendance has two actions: Draft saves editable manual cells without
-  making them payroll-ready; Submit locks those cells as payroll-ready.
+- Bulk Attendance exposes only Submit attendance. It creates payroll-ready,
+  locked manual attendance; the UI does not offer a draft-save action.
 - Activity Watch and earlier submitted/manual attendance remain locked. Payroll
   processing is rejected while any manual draft attendance exists in its period.
 
@@ -180,8 +180,8 @@ company entitlement may be higher or lower.
 - The drawer contains one Attendance entry, which opens the saved-record-only
   monthly report. Authorized HR users can open the non-system Bulk Attendance
   workflow through the Bulk Attendance action.
-- HR can select employee rows, review the full calendar, mark exceptions, save
-  a draft, then explicitly submit the selected attendance.
+- HR can select employee rows, review the full calendar, mark exceptions, and
+  submit the selected attendance.
 - Existing attendance remains unchanged and is counted as skipped.
 - The monthly sheet reloads after save and displays created rows as locked.
 - Submitted bulk rows appear in Attendance with source `M` for the same month.

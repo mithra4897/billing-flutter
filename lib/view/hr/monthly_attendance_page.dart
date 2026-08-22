@@ -183,7 +183,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     return !sheet.weeklyOffDays.contains(date.weekday % 7);
   }
 
-  Future<void> _save({required bool submit}) async {
+  Future<void> _submit() async {
     final sheet = _sheet;
     final companyId = _companyId;
     if (sheet == null || companyId == null || _selectedEmployees.isEmpty) {
@@ -225,28 +225,26 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       return;
     }
 
-    if (submit) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Submit monthly attendance'),
-          content: const Text(
-            'Submitted cells are locked and payroll can use them. Continue?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Submit'),
-            ),
-          ],
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Submit monthly attendance'),
+        content: const Text(
+          'Submitted cells are locked and payroll can use them. Continue?',
         ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -255,7 +253,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
         year: _year,
         month: _month,
         records: records,
-        saveMode: submit ? 'submit' : 'draft',
+        saveMode: 'submit',
         includeSystemEmployees:
             widget.includeAllActiveEmployees || !widget.manualOnly,
         activeEmployeesOnly: widget.includeAllActiveEmployees,
@@ -272,13 +270,11 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            submit
-                ? 'Submitted $changed monthly attendance record(s) for payroll.'
-                : 'Saved $changed monthly attendance record(s) as draft.',
+            'Submitted $changed monthly attendance record(s) for payroll.',
           ),
         ),
       );
-      if (submit && widget.manualOnly) {
+      if (widget.manualOnly) {
         _attendanceReportYear = _year;
         _attendanceReportMonth = _month;
         openHrShellRoute(context, '/hr/attendance');
@@ -457,15 +453,9 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
           onPressed: _loading || _saving ? null : _load,
         ),
         AdaptiveShellActionButton(
-          icon: Icons.save_outlined,
-          label: _saving ? 'Saving…' : 'Save draft',
-          filled: false,
-          onPressed: _loading || _saving ? null : () => _save(submit: false),
-        ),
-        AdaptiveShellActionButton(
           icon: Icons.task_alt_outlined,
           label: _saving ? 'Submitting…' : 'Submit attendance',
-          onPressed: _loading || _saving ? null : () => _save(submit: true),
+          onPressed: _loading || _saving ? null : _submit,
         ),
       ],
     ];

@@ -1,5 +1,10 @@
 # Testing
 
+## Bulk Attendance submit-only action — 2026-08-22
+
+- Focused Flutter analysis passed for the Bulk Attendance page. Existing
+  selection/model tests passed for the submitted employee/date payload.
+
 ## Monthly Attendance month boundary — 2026-08-21
 
 - Focused Flutter analysis passed for the monthly attendance sheet model.

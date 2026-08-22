@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-22 — Make Bulk Attendance submit-only
+
+- Removed the Bulk Attendance **Save draft** action. The remaining **Submit
+  attendance** action always creates payroll-ready submitted records after
+  confirmation.
+- API/database impact: none; the existing submit endpoint and payload are
+  reused.
+
 ## 2026-08-21 — Prevent monthly attendance from crossing its month boundary
 
 - The monthly attendance model now derives the number of calendar days from
