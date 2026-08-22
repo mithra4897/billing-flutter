@@ -318,8 +318,8 @@ class _CrmOpportunityRegisterPageState
   String _stageLabel(Map<String, dynamic> data) {
     return _crmOpportunityStageLabel(
       stringValue(
-      JsonModel.mapOf(data['stage']) ?? const <String, dynamic>{},
-      'stage_name',
+        JsonModel.mapOf(data['stage']) ?? const <String, dynamic>{},
+        'stage_name',
       ),
     );
   }
@@ -684,19 +684,18 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
                           mappedItems: controller.stages
-                                .where(
-                                  (item) =>
-                                      intValue(item.toJson(), 'id') != null,
-                                )
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item.toJson(), 'id')!,
-                                    label: _crmOpportunityStageLabel(
-                                      item.toString(),
-                                    ),
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem<int>(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: _crmOpportunityStageLabel(
+                                    item.toString(),
                                   ),
-                                )
-                                .toList(growable: false),
+                                ),
+                              )
+                              .toList(growable: false),
                           multiInitialValues: controller.filterStageIds,
                           multiHintText: 'Select stages',
                           onMultiChanged: controller.setFilterStageIds,
@@ -867,8 +866,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         'Search: ${controller.searchController.text.trim()}',
       if (controller.filterStageIds.isNotEmpty || controller.filtersApplied)
         'Stage: ${controller.filterStageIds.isEmpty ? 'All' : controller.filterStageIds.map((id) => _crmOpportunityStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString())).join(', ')}',
-      if (controller.filterStatuses.isNotEmpty ||
-          controller.filtersApplied)
+      if (controller.filterStatuses.isNotEmpty || controller.filtersApplied)
         'Status: ${controller.filterStatuses.isEmpty ? 'All' : controller.filterStatuses.join(', ')}',
       if (controller.filterCloseFromController.text.trim().isNotEmpty)
         'Close From: ${controller.filterCloseFromController.text.trim()}',
@@ -878,17 +876,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     if (chips.isEmpty) return const SizedBox.shrink();
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.cardPadding),
         child: Wrap(

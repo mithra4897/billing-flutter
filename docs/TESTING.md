@@ -885,6 +885,81 @@ been packaged successfully.
   `3FCF8A38E63EE85E6B7C42E20FF4BA087DE2D3664096F46DB0B7642922F2A8DE`.
 - Manual verification with an attached removable drive is still required to
   confirm real device/file metadata reaches the ERP daily detail.
+
+## Global StaffU-inspired theme foundation — 2026-08-22
+
+- `dart format lib/app/theme/app_theme.dart
+  lib/app/theme/app_theme_extension.dart lib/main.dart
+  test/app/theme/app_theme_test.dart`: passed.
+- Focused `flutter analyze` for the two theme files, app root, and new theme
+  test: passed with no issues.
+- `flutter test test/app/theme/app_theme_test.dart`: passed all 5 tests covering
+  light/dark semantic palettes, WCAG 4.5:1 foreground contrast, component
+  states, extension copy/interpolation, and app-root registration.
+- All 24 runnable tests outside the pre-existing incomplete
+  `app_module_theme_test.dart` passed.
+- Full `flutter analyze` remains blocked by the untracked
+  `test/app/theme/app_module_theme_test.dart`, which imports the absent
+  `lib/app/theme/app_module_theme.dart`. It also reports the two existing
+  warnings in `app_config.dart` and `crm_followups_page.dart`. The incomplete
+  test was preserved and is outside this foundation.
+- Manual authenticated visual QA remains required for legacy module pages with
+  hardcoded colors, especially when the operating system selects dark mode.
+
+## Shared bordered cards and module-list tables — 2026-08-22
+
+- Audited the StaffU `data_table` page in both light and dark modes. Browser
+  inspection confirmed a one-pixel card border, 12px card radius, subtle light
+  shadow, 46px-class header row, approximately 60px body rows, 12px cell
+  padding, header bands, row separators, status pills, and grouped pagination.
+- `dart format` completed for all changed Dart files.
+- Focused `flutter analyze` across the theme, shared card/list/pagination
+  components, affected register surfaces, and tests: passed with no issues.
+- `flutter test test/app/theme/app_theme_test.dart`: passed all 8 tests,
+  including semantic card border, DataTable defaults, exact integer pagination
+  boundaries, and compact pagination interaction.
+- All 27 runnable tests outside the preserved incomplete
+  `app_module_theme_test.dart` passed.
+- Expanded focused analysis passed for the shared register renderer,
+  `ErpLineItemTable`, semantic theme extension, and both focused test files.
+- Focused theme/table tests passed 10/10. They verify register header and
+  alternating-row semantics, editable line-item border/header/row semantics,
+  and theme extension copy/interpolation.
+- All 29 runnable tests outside the preserved incomplete
+  `app_module_theme_test.dart` passed after adding the table-surface coverage.
+- The responsive register test exposed and verified a fix for the mobile-card
+  `InkWell` Material ancestor.
+- Full project analysis remains subject to the previously documented missing
+  `AppModuleTheme` implementation referenced by that untracked test.
+- Manual authenticated visual QA remains required for representative desktop
+  and narrow module lists and editable document lines in both brightness modes.
+
+## Light-theme application sidebar — 2026-08-22
+
+- Focused formatting completed for the global theme, shared adaptive shell,
+  and theme contract test.
+- Focused Flutter analysis passed with no issues.
+- `flutter test test/app/theme/app_theme_test.dart`: passed all 8 tests.
+- Coverage verifies the white light-mode desktop-drawer token, dark readable
+  foreground/muted tokens, unchanged dark drawer tokens, and primary selected
+  navigation semantics.
+- Manual authenticated visual QA remains recommended for expanded and collapsed
+  permanent menus at desktop widths.
+
+## Dark-theme visual hierarchy refinement — 2026-08-22
+
+- The supplied screenshot was treated as visual evidence. It confirmed dark
+  mode was active but showed insufficient separation among canvas, card,
+  header, and row layers.
+- Focused formatting completed for the global theme and theme contract test.
+- Focused Flutter analysis passed with no issues.
+- `flutter test test/app/theme/app_theme_test.dart
+  test/components/staffu_table_surfaces_test.dart`: passed all 11 tests.
+- Automated coverage verifies six distinct dark semantic layers, card
+  luminance above the scaffold, and at least 4.5:1 foreground contrast on card
+  and alternating-row surfaces.
+- Manual authenticated visual QA remains recommended for representative cards,
+  tables, dialogs, and forms in dark mode.
 ## ERP logout confirmation — 2026-08-20
 
 - The shell logout action must first show `Log out?`; `Cancel` keeps the ERP

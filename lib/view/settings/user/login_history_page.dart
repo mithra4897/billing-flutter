@@ -290,17 +290,7 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
     final chips = controller.appliedFilterChips();
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.cardPadding),
         child: Wrap(
@@ -411,10 +401,7 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
       return Container(
         constraints: const BoxConstraints(minHeight: 280),
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: appTheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        ),
+        decoration: appTheme.cardDecoration(showShadow: false),
         child: Text(
           'No login history found for the selected filters.',
           style: Theme.of(
@@ -425,17 +412,7 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
     }
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.cardPadding),
         child: useTable

@@ -37,7 +37,14 @@ flutter:
   assets:
     - assets/
     - assets/fonts/Poppins-Regular.ttf
+    - assets/fonts/Nunito-Variable.ttf
+    - assets/fonts/Nunito-Italic-Variable.ttf
   fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Variable.ttf
+        - asset: assets/fonts/Nunito-Italic-Variable.ttf
+          style: italic
     - family: PrintSans
       fonts:
         - asset: assets/fonts/Arial.ttf

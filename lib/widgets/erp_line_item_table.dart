@@ -517,9 +517,10 @@ class ErpLineItemTable extends StatefulWidget {
 }
 
 class _ErpLineItemTableState extends State<ErpLineItemTable> {
-  static const double _tableEdgeWhitespaceHeight =
+  static const double _tableToolbarHeight =
       AppUiConstants.tableCompactFieldHeight +
       (AppUiConstants.tableToolbarHeight * 2);
+  static const double _tableBottomPadding = AppUiConstants.spacingXs;
   static const Map<String, double> _columnWidths = <String, double>{
     'no': 56,
     'source': 184,
@@ -802,8 +803,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       ),
     );
 
-    // Apply a slightly larger radius for a modern curved look
-    final BorderRadius tableCurve = BorderRadius.circular(12.0);
+    final tableCurve = BorderRadius.circular(AppUiConstants.tableRadiusSm);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,29 +817,18 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ),
         const SizedBox(height: AppUiConstants.spacingXs),
         DecoratedBox(
-          decoration: BoxDecoration(
-            color: appTheme.cardBackground,
-            borderRadius: tableCurve,
-            border: Border.all(
-              color: appTheme.tableBorder.withValues(alpha: 0.5),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: appTheme.cardShadow.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+          key: const ValueKey<String>('erp-line-item-table-surface'),
+          decoration: appTheme.cardDecoration(
+            radius: AppUiConstants.tableRadiusSm,
           ),
           child: Theme(
             data: compactTheme,
             child: ClipRRect(
-              borderRadius:
-                  tableCurve, // Clips inner elements to the curved border
+              borderRadius: tableCurve,
               child: Column(
                 children: [
                   Container(
-                    height: _tableEdgeWhitespaceHeight,
+                    height: _tableToolbarHeight,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppUiConstants.tableToolbarPadding,
                     ),
@@ -889,6 +878,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                             child: Column(
                               children: [
                                 DecoratedBox(
+                                  key: const ValueKey<String>(
+                                    'erp-line-item-table-header',
+                                  ),
                                   decoration: BoxDecoration(
                                     color: appTheme.tableHeaderBackground,
                                     border: Border(
@@ -915,9 +907,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                                     appTheme,
                                     extraWidthPerWeight,
                                   ),
-                                const SizedBox(
-                                  height: _tableEdgeWhitespaceHeight,
-                                ),
+                                const SizedBox(height: _tableBottomPadding),
                               ],
                             ),
                           ),
@@ -981,8 +971,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ? appTheme.tableRowSelected
         : hovered
         ? appTheme.tableRowHover
-        : (index % 2 == 1)
-        ? appTheme.subtleFill.withValues(alpha: 0.3)
+        : index.isOdd
+        ? appTheme.tableRowAlternate
         : appTheme.cardBackground;
 
     return MouseRegion(
@@ -1443,6 +1433,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   }) {
     return Container(
       width: width,
+      constraints: const BoxConstraints(minHeight: 46),
       padding: const EdgeInsets.all(AppUiConstants.spacingSm),
       decoration: BoxDecoration(
         color: appTheme.tableHeaderBackground,

@@ -4,6 +4,9 @@ import '../../screen.dart';
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   const AppThemeExtension({
     required this.mutedText,
+    required this.success,
+    required this.warning,
+    required this.info,
     required this.cardBackground,
     required this.cardShadow,
     required this.subtleFill,
@@ -39,6 +42,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     required this.tableTitleText,
     required this.tableMutedText,
     required this.tableLinkText,
+    required this.tableRowAlternate,
     required this.tableRowHover,
     required this.tableRowSelected,
     required this.tableCellText,
@@ -46,6 +50,9 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   });
 
   final Color mutedText;
+  final Color success;
+  final Color warning;
+  final Color info;
   final Color cardBackground;
   final Color cardShadow;
   final Color subtleFill;
@@ -81,14 +88,38 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   final Color tableTitleText;
   final Color tableMutedText;
   final Color tableLinkText;
+  final Color tableRowAlternate;
   final Color tableRowHover;
   final Color tableRowSelected;
   final Color tableCellText;
   final Color tableInputBorder;
 
+  BoxDecoration cardDecoration({
+    bool showShadow = true,
+    double radius = AppUiConstants.cardRadius,
+  }) {
+    return BoxDecoration(
+      color: cardBackground,
+      border: Border.all(color: tableBorder),
+      borderRadius: BorderRadius.circular(radius),
+      boxShadow: showShadow
+          ? <BoxShadow>[
+              BoxShadow(
+                color: cardShadow,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ]
+          : null,
+    );
+  }
+
   @override
   AppThemeExtension copyWith({
     Color? mutedText,
+    Color? success,
+    Color? warning,
+    Color? info,
     Color? cardBackground,
     Color? cardShadow,
     Color? subtleFill,
@@ -124,6 +155,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     Color? tableTitleText,
     Color? tableMutedText,
     Color? tableLinkText,
+    Color? tableRowAlternate,
     Color? tableRowHover,
     Color? tableRowSelected,
     Color? tableCellText,
@@ -131,6 +163,9 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   }) {
     return AppThemeExtension(
       mutedText: mutedText ?? this.mutedText,
+      success: success ?? this.success,
+      warning: warning ?? this.warning,
+      info: info ?? this.info,
       cardBackground: cardBackground ?? this.cardBackground,
       cardShadow: cardShadow ?? this.cardShadow,
       subtleFill: subtleFill ?? this.subtleFill,
@@ -175,6 +210,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       tableTitleText: tableTitleText ?? this.tableTitleText,
       tableMutedText: tableMutedText ?? this.tableMutedText,
       tableLinkText: tableLinkText ?? this.tableLinkText,
+      tableRowAlternate: tableRowAlternate ?? this.tableRowAlternate,
       tableRowHover: tableRowHover ?? this.tableRowHover,
       tableRowSelected: tableRowSelected ?? this.tableRowSelected,
       tableCellText: tableCellText ?? this.tableCellText,
@@ -193,6 +229,9 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
 
     return AppThemeExtension(
       mutedText: Color.lerp(mutedText, other.mutedText, t) ?? mutedText,
+      success: Color.lerp(success, other.success, t) ?? success,
+      warning: Color.lerp(warning, other.warning, t) ?? warning,
+      info: Color.lerp(info, other.info, t) ?? info,
       cardBackground:
           Color.lerp(cardBackground, other.cardBackground, t) ?? cardBackground,
       cardShadow: Color.lerp(cardShadow, other.cardShadow, t) ?? cardShadow,
@@ -281,23 +320,19 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       crmChartMutedText:
           Color.lerp(crmChartMutedText, other.crmChartMutedText, t) ??
           crmChartMutedText,
-      tableBorder:
-          Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
+      tableBorder: Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
       tableHeaderBackground:
-          Color.lerp(
-            tableHeaderBackground,
-            other.tableHeaderBackground,
-            t,
-          ) ??
+          Color.lerp(tableHeaderBackground, other.tableHeaderBackground, t) ??
           tableHeaderBackground,
       tableTitleText:
-          Color.lerp(tableTitleText, other.tableTitleText, t) ??
-          tableTitleText,
+          Color.lerp(tableTitleText, other.tableTitleText, t) ?? tableTitleText,
       tableMutedText:
-          Color.lerp(tableMutedText, other.tableMutedText, t) ??
-          tableMutedText,
+          Color.lerp(tableMutedText, other.tableMutedText, t) ?? tableMutedText,
       tableLinkText:
           Color.lerp(tableLinkText, other.tableLinkText, t) ?? tableLinkText,
+      tableRowAlternate:
+          Color.lerp(tableRowAlternate, other.tableRowAlternate, t) ??
+          tableRowAlternate,
       tableRowHover:
           Color.lerp(tableRowHover, other.tableRowHover, t) ?? tableRowHover,
       tableRowSelected:

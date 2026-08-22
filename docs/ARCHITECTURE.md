@@ -325,3 +325,59 @@ across Windows process argument reconstruction; it does not encrypt or conceal
 the script and does not change the collected data boundary. Its bounded generic
 file list is materialized with `ToArray()` before JSON projection to avoid the
 Windows PowerShell 5.1 dynamic-binder failure for generic collections.
+
+## Global theme foundation
+
+`BillingApp` keeps `MaterialApp` as the single global theme boundary. It
+registers `AppTheme.light()` and `AppTheme.dark()` and follows
+`ThemeMode.system`. `AppTheme` constructs the standard Material `ColorScheme`,
+Nunito text scale, and shared component themes for app bars, cards, dialogs,
+forms, buttons, selection controls, chips, tables, navigation, menus, tabs,
+feedback, progress, expansion, and scrolling.
+
+`AppThemeExtension` remains the ERP compatibility layer used by existing
+shared widgets and pages. Both brightness modes always register the complete
+extension, including muted, success, warning, information, shell, dashboard,
+CRM, and table roles. Existing field names remain stable so module migrations
+can replace hardcoded visual values incrementally instead of requiring a
+whole-application rewrite.
+
+`AdaptiveShell` is the single application-menu renderer. In light mode it
+consumes the white desktop-drawer surface plus dark foreground/muted tokens and
+resolves active entries to the global primary color with a primary tint. In
+dark mode it retains the existing navy surface and light selected treatment.
+This is one O(1) brightness decision at the shared shell boundary; routes,
+permissions, hierarchy, expansion state, and menu ordering are unchanged.
+
+Dark presentation uses an explicit semantic layer stack inside
+`AppTheme.dark()`: near-neutral scaffold, elevated blue-slate surface, table
+header, ordinary/alternating rows, hover, selection, and border/input roles.
+The values remain fixed-size theme data and are consumed by the same shared
+cards and tables as light mode; no module owns a separate dark palette.
+
+Theme construction processes a fixed palette and fixed component inventory in
+O(1) time and O(1) space. Runtime lookups continue through Flutter's inherited
+`Theme` mechanism. No API, database, storage, or background component is
+involved.
+
+Shared module-list presentation builds on that boundary. `CardThemeData` and
+`AppSectionCard` own the one-pixel semantic outline and 12px radius;
+`DataTableThemeData` owns standard header, row, divider, spacing, hover, and
+selection defaults. `SettingsListCard`, `PurchaseListCard`, and module register
+surfaces reuse those primitives rather than maintaining independent table
+palettes. `AppThemeExtension.cardDecoration()` provides the same bordered
+surface to legacy list wrappers that still use `DecoratedBox`.
+
+Sales and purchase register screens converge on `PurchaseRegisterPage<T>`.
+Its desktop table performs one indexed O(n) render pass and resolves header,
+alternating-row, hover, pressed, text, and divider colors from
+`AppThemeExtension`. Editable sales, purchase, inventory, manufacturing, and
+job-work document lines converge on `ErpLineItemTable`; it consumes the same
+semantic roles while retaining its editing controls, validation, calculations,
+horizontal overflow, and O(n) row construction. No module-specific table copy
+is required for either family.
+
+`LocalPageNavigation`, settings lists, and purchase lists share
+`localListTotalPages()`. It uses exact integer ceiling division, runs in O(1)
+time and O(1) space, and prevents exact page-size totals from producing a
+phantom page. Existing page extraction remains bounded to the visible page.

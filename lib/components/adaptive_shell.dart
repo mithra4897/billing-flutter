@@ -468,6 +468,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final appTheme = theme.extension<AppThemeExtension>()!;
+    final useLightDesktopDrawer = theme.brightness == Brightness.light;
     final width = MediaQuery.of(context).size.width;
     final showPermanentDrawer = width >= 768;
     final currentPath = _currentPath;
@@ -518,8 +519,12 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                   backgroundColor: appTheme.desktopDrawerBackground,
                   foregroundColor: appTheme.desktopDrawerForeground,
                   mutedColor: appTheme.desktopDrawerMuted,
-                  selectedBackground: Colors.white.withValues(alpha: 0.12),
-                  selectedForeground: appTheme.desktopDrawerForeground,
+                  selectedBackground: useLightDesktopDrawer
+                      ? colorScheme.primary.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.12),
+                  selectedForeground: useLightDesktopDrawer
+                      ? colorScheme.primary
+                      : appTheme.desktopDrawerForeground,
                 ),
               ),
             ),
@@ -924,9 +929,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Log out?'),
-        content: const Text(
-          'Are you sure you want to end this ERP session?',
-        ),
+        content: const Text('Are you sure you want to end this ERP session?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),

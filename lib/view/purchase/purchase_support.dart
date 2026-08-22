@@ -487,10 +487,7 @@ class _PurchaseListCardController extends GetxController {
   int currentPage = 1;
 
   int totalPages(int itemCount) {
-    if (itemCount <= 0) {
-      return 1;
-    }
-    return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
+    return localListTotalPages(itemCount);
   }
 
   void syncItemCountChange(int itemCount) {

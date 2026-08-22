@@ -1351,3 +1351,95 @@
   clear the stored session.
 - Tests: Focused Dart analysis passed. The focused Flutter session-storage test
   returned no result from this environment.
+
+## 2026-08-22 — Global StaffU-inspired theme foundation
+
+- Request: Implement only the approved global theme foundation before any
+  module-by-module redesign.
+- Specification: Global StaffU-inspired theme foundation in
+  `docs/SPECIFICATIONS.md`.
+- Implementation: Reused `MaterialApp`, `AppTheme`, `AppThemeExtension`, and
+  `AppUiConstants`; added semantic light/dark palettes, system brightness,
+  bundled Nunito typography, status roles, and global Material component
+  defaults. No business-module page was edited.
+- Files changed: Theme files, app root, font assets/license, `pubspec.yaml`,
+  focused tests, and durable frontend documentation.
+- Database/API impact: None.
+- Security impact: None; fonts are bundled locally and no runtime font request
+  is introduced.
+- Tests added or updated: Five global-theme contract tests.
+- Tests executed and results: Focused analysis passed; focused theme tests
+  passed 5/5; all 24 runnable tests outside the incomplete untracked
+  `app_module_theme_test.dart` passed.
+- Documentation updated: Specification, architecture, ADR-0018, testing,
+  changelog, and documentation index.
+- Known limitations: Existing module-local hardcoded colors are not yet fully
+  dark-mode compatible. Full project analysis is blocked by a preserved,
+  pre-existing untracked test for an absent `AppModuleTheme` implementation.
+- Follow-up work: After separate approval, migrate and visually verify one
+  business module at a time against the global foundation.
+
+## 2026-08-22 — Shared bordered cards and module-list tables
+
+- Request: Add visible card borders and update all shared module-list/table UI
+  using StaffU's data-table page as the reference.
+- Specification: Shared bordered cards and module-list tables in
+  `docs/SPECIFICATIONS.md`.
+- Implementation: Added semantic one-pixel borders, 12px card/panel radii,
+  subtle shared depth, StaffU-inspired global DataTable defaults, bordered
+  settings tiles, compact grouped pagination, and a reusable legacy card
+  decoration. Settings, purchase, CRM filter, purchase register, and login
+  history surfaces now consume the shared styling. Sales/purchase register
+  tables and editable document line-item tables now share the same semantic
+  header, border, alternating-row, hover, and selected states in light and dark
+  themes. The responsive register mobile-card path also has a valid local
+  Material ink surface.
+- Files changed: Global constants/theme, shared section card, local/report
+  pagination, shared settings/purchase list components, affected register
+  wrappers, focused tests, and durable documentation.
+- Database/API impact: None.
+- Security impact: None.
+- Tests added or updated: Theme/component tests now cover card border, table
+  sizing/states, pagination boundaries, pagination interaction, shared register
+  rows, and editable line-item surfaces.
+- Tests executed and results: Focused analysis passed; 10/10 focused tests and
+  all 29 runnable tests passed.
+- Performance: Page-count calculation is O(1) time/O(1) space; visible page
+  extraction remains O(k) for bounded page size k. Register and editable-line
+  rendering remain O(n), with no per-row searches or module table copies.
+- Known limitations: Authenticated cross-platform visual QA remains manual.
+- Follow-up work: Continue module-specific content refinements only after
+  separate approval; shared card/table styling is now global.
+
+## 2026-08-22 — White light-theme application sidebar
+
+- Request: Use a white application side menu in the light theme while keeping
+  the established primary active colors.
+- Specification: Light-theme application sidebar in `docs/SPECIFICATIONS.md`.
+- Implementation: Updated the existing light desktop-drawer semantic tokens to
+  a white surface with dark foreground and muted text. The shared
+  `AdaptiveShell` now uses primary foreground and a subtle primary tint for
+  active light-mode entries while preserving the existing dark-mode sidebar.
+- Reuse/performance: No new menu component or module copy was added; the shared
+  shell performs one O(1) brightness decision per build.
+- Database/API/security impact: None.
+- Tests: Focused analysis passed and all 8 global-theme tests passed.
+- Known limitation: Authenticated desktop visual QA remains manual.
+
+## 2026-08-22 — Dark-theme visual hierarchy refinement
+
+- Request: Correct the dark theme because its current presentation was not
+  visually clear in the supplied purchase-invoice screenshot.
+- Specification: Dark-theme visual hierarchy refinement in
+  `docs/SPECIFICATIONS.md`.
+- Implementation: Refined only the shared dark semantic palette with a
+  near-neutral scaffold, lighter blue-slate card, quieter fills, clearer table
+  header/stripe/hover/selection layers, stronger dividers, and readable muted
+  text. The light palette and primary `#4666E1` remain unchanged.
+- Reuse/performance: Existing `AppTheme.dark()` and `AppThemeExtension` remain
+  the only dark-style boundary. Palette creation stays O(1) time/O(1) space.
+- Database/API/security impact: None.
+- Tests: Focused analysis passed; all 11 focused theme/table tests passed,
+  including distinct-layer, luminance, and contrast assertions.
+- Known limitation: Authenticated visual QA across all legacy module-local
+  hardcoded colors remains manual.

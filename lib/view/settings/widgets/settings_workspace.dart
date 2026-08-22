@@ -325,10 +325,7 @@ class _SettingsListCardController extends GetxController {
   int currentPage = 1;
 
   int totalPages(int itemCount) {
-    if (itemCount <= 0) {
-      return 1;
-    }
-    return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
+    return localListTotalPages(itemCount);
   }
 
   void syncItemCountChange(int itemCount) {
@@ -494,6 +491,7 @@ class SettingsListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final appTheme = theme.extension<AppThemeExtension>()!;
     final workspaceController = _SettingsWorkspaceScope.maybeOf(context);
 
     return InkWell(
@@ -512,7 +510,7 @@ class SettingsListTile extends StatelessWidget {
           border: Border.all(
             color: selected
                 ? colorScheme.primary.withValues(alpha: 0.28)
-                : theme.dividerColor.withValues(alpha: 0.2),
+                : appTheme.tableBorder,
           ),
         ),
         child: Row(
@@ -532,7 +530,7 @@ class SettingsListTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.extension<AppThemeExtension>()!.mutedText,
+                        color: appTheme.mutedText,
                       ),
                     ),
                   ],
@@ -541,7 +539,7 @@ class SettingsListTile extends StatelessWidget {
                     Text(
                       detail!,
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.extension<AppThemeExtension>()!.mutedText,
+                        color: appTheme.mutedText,
                       ),
                     ),
                   ],

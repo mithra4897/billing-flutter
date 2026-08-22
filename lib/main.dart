@@ -76,6 +76,8 @@ class BillingApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: AppTheme.defaultMode,
       initialRoute: _initialRouteName(),
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');

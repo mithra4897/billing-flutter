@@ -60,17 +60,7 @@ class _ReportPaginationBarState extends State<ReportPaginationBar> {
         : (widget.meta.currentPage * widget.meta.perPage);
 
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: EdgeInsets.all(widget.minimalIconOnly ? 8 : 16),
         child: widget.minimalIconOnly

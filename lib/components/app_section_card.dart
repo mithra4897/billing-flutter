@@ -22,8 +22,8 @@ class AppSectionCard extends StatelessWidget {
             ? [
                 BoxShadow(
                   color: appTheme.cardShadow,
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ]
             : null,
@@ -32,6 +32,7 @@ class AppSectionCard extends StatelessWidget {
         color: appTheme.cardBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          side: BorderSide(color: appTheme.tableBorder),
         ),
         clipBehavior: Clip.antiAlias,
         child: Padding(padding: padding, child: child),

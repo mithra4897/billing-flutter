@@ -56,3 +56,9 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - [Sales Invoice export GST normalization](sales-invoice-export-persisted-tax-components.md) — correct IGST versus CGST/SGST allocation using normalized place-of-supply data while retaining the document's tax total.
 - [Party code synchronization](party-code-type-sync.md) — regenerate the
   read-only party code when an existing party's type changes.
+- Global StaffU-inspired theme foundation — see `SPECIFICATIONS.md`,
+  `ARCHITECTURE.md`, ADR-0018 in `DECISIONS.md`, and the 2026-08-22 entries in
+  `TESTING.md` and `CHANGELOG.md`.
+- Shared bordered cards, module-list tables, and editable line-item tables —
+  see `SPECIFICATIONS.md`, `ARCHITECTURE.md`, and the 2026-08-22
+  verification/changelog entries.

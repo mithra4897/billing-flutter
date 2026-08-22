@@ -1127,25 +1127,8 @@ class _ReportDataTableState extends State<_ReportDataTable> {
                   child: Theme(
                     data: widget.theme.copyWith(
                       dividerColor: appTheme.tableBorder,
-                      dataTableTheme: DataTableThemeData(
-                        headingRowColor: WidgetStatePropertyAll(
-                          appTheme.tableHeaderBackground,
-                        ),
-                        headingTextStyle: widget.theme.textTheme.titleSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: appTheme.tableTitleText,
-                            ),
-                        dataTextStyle: widget.theme.textTheme.bodySmall
-                            ?.copyWith(color: appTheme.tableCellText),
-                      ),
                     ),
                     child: DataTable(
-                      headingRowHeight: 56,
-                      dataRowMinHeight: 58,
-                      dataRowMaxHeight: 66,
-                      columnSpacing: AppUiConstants.spacingLg,
-                      horizontalMargin: AppUiConstants.spacingMd,
                       columns: widget.headers
                           .map(
                             (header) => DataColumn(

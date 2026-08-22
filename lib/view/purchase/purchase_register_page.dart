@@ -210,11 +210,13 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       children: [
                         _RegisterHeader<T>(columns: widget.columns),
                         const Divider(height: 1),
-                        ...visibleRows.map(
-                          (row) => _RegisterRow<T>(
-                            row: row,
+                        ...List<Widget>.generate(
+                          visibleRows.length,
+                          (index) => _RegisterRow<T>(
+                            row: visibleRows[index],
+                            index: index,
                             columns: widget.columns,
-                            onTap: () => widget.onRowTap(row),
+                            onTap: () => widget.onRowTap(visibleRows[index]),
                           ),
                         ),
                         if (widget.footer != null) widget.footer!,
@@ -283,17 +285,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             Container(
               constraints: const BoxConstraints(minHeight: 280),
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: appTheme.cardBackground,
-                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: appTheme.cardShadow,
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+              decoration: appTheme.cardDecoration(),
               child: Text(
                 widget.emptyMessage,
                 style: Theme.of(
@@ -304,17 +296,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             )
           else
             DecoratedBox(
-              decoration: BoxDecoration(
-                color: appTheme.cardBackground,
-                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: appTheme.cardShadow,
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+              decoration: appTheme.cardDecoration(),
               child: Padding(
                 padding: const EdgeInsets.all(AppUiConstants.cardPadding),
                 child: Column(
@@ -343,14 +325,19 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   }
 
   Widget _buildDesktopTable(BuildContext context, List<T> visibleRows) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
+        Container(
+          key: const ValueKey<String>('register-table-header'),
+          constraints: const BoxConstraints(minHeight: 46),
           padding: const EdgeInsets.symmetric(
             horizontal: AppUiConstants.spacingSm,
             vertical: AppUiConstants.spacingXs,
           ),
+          color: appTheme.tableHeaderBackground,
           child: Row(
             children: widget.columns
                 .map(
@@ -363,9 +350,11 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                         textAlign: column.alignRight
                             ? TextAlign.right
                             : TextAlign.left,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: appTheme.tableTitleText,
+                            ),
                       ),
                     ),
                   ),
@@ -373,30 +362,14 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                 .toList(growable: false),
           ),
         ),
-        const Divider(height: 1),
-        ...visibleRows.map(
-          (row) => InkWell(
-            onTap: () => widget.onRowTap(row),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppUiConstants.spacingSm,
-                vertical: AppUiConstants.spacingMd,
-              ),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0x11000000))),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: widget.columns
-                    .map(
-                      (column) => Expanded(
-                        flex: column.flex,
-                        child: _RegisterCell<T>(column: column, row: row),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
+        Divider(height: 1, color: appTheme.tableBorder),
+        ...List<Widget>.generate(
+          visibleRows.length,
+          (index) => _RegisterRow<T>(
+            row: visibleRows[index],
+            index: index,
+            columns: widget.columns,
+            onTap: () => widget.onRowTap(visibleRows[index]),
           ),
         ),
       ],
@@ -423,33 +396,36 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                   AppUiConstants.buttonRadius,
                 ),
               ),
-              child: InkWell(
-                onTap: () => widget.onRowTap(row),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (primaryText.trim().isNotEmpty)
-                      Text(
-                        primaryText,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    if (primaryText.trim().isNotEmpty)
-                      const SizedBox(height: AppUiConstants.spacingSm),
-                    ...widget.columns
-                        .skip(primaryText.trim().isNotEmpty ? 1 : 0)
-                        .map(
-                          (column) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppUiConstants.spacingXs,
-                            ),
-                            child: _MobileRegisterField<T>(
-                              column: column,
-                              row: row,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => widget.onRowTap(row),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (primaryText.trim().isNotEmpty)
+                        Text(
+                          primaryText,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      if (primaryText.trim().isNotEmpty)
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                      ...widget.columns
+                          .skip(primaryText.trim().isNotEmpty ? 1 : 0)
+                          .map(
+                            (column) => Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppUiConstants.spacingXs,
+                              ),
+                              child: _MobileRegisterField<T>(
+                                column: column,
+                                row: row,
+                              ),
                             ),
                           ),
-                        ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -466,11 +442,16 @@ class _RegisterHeader<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Container(
+      key: const ValueKey<String>('register-table-header'),
+      constraints: const BoxConstraints(minHeight: 46),
       padding: const EdgeInsets.symmetric(
         horizontal: AppUiConstants.spacingSm,
         vertical: AppUiConstants.spacingXs,
       ),
+      color: appTheme.tableHeaderBackground,
       child: Row(
         children: columns
             .map(
@@ -483,8 +464,9 @@ class _RegisterHeader<T> extends StatelessWidget {
                     textAlign: column.alignRight
                         ? TextAlign.right
                         : TextAlign.left,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: appTheme.tableTitleText,
                     ),
                   ),
                 ),
@@ -499,35 +481,55 @@ class _RegisterHeader<T> extends StatelessWidget {
 class _RegisterRow<T> extends StatelessWidget {
   const _RegisterRow({
     required this.row,
+    required this.index,
     required this.columns,
     required this.onTap,
   });
 
   final T row;
+  final int index;
   final List<PurchaseRegisterColumn<T>> columns;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppUiConstants.spacingSm,
-          vertical: AppUiConstants.spacingSm,
-        ),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0x11000000))),
-        ),
-        child: Row(
-          children: columns
-              .map(
-                (column) => Expanded(
-                  flex: column.flex,
-                  child: _RegisterCell<T>(column: column, row: row),
-                ),
-              )
-              .toList(growable: false),
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Material(
+      key: ValueKey<String>('register-table-row-$index'),
+      color: index.isOdd ? appTheme.tableRowAlternate : appTheme.cardBackground,
+      child: InkWell(
+        onTap: onTap,
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused)) {
+            return appTheme.tableRowHover;
+          }
+          if (states.contains(WidgetState.pressed)) {
+            return appTheme.tableRowSelected;
+          }
+          return null;
+        }),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 58),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.spacingSm,
+            vertical: AppUiConstants.spacingSm,
+          ),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: appTheme.tableBorder)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: columns
+                .map(
+                  (column) => Expanded(
+                    flex: column.flex,
+                    child: _RegisterCell<T>(column: column, row: row),
+                  ),
+                )
+                .toList(growable: false),
+          ),
         ),
       ),
     );

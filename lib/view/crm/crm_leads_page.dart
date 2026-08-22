@@ -549,17 +549,17 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Source',
                               mappedItems: controller.sources
-                                    .where(
-                                      (item) =>
-                                          intValue(item.toJson(), 'id') != null,
-                                    )
-                                    .map(
-                                      (item) => AppDropdownItem<int>(
-                                        value: intValue(item.toJson(), 'id')!,
-                                        label: item.toString(),
-                                      ),
-                                    )
-                                    .toList(growable: false),
+                                  .where(
+                                    (item) =>
+                                        intValue(item.toJson(), 'id') != null,
+                                  )
+                                  .map(
+                                    (item) => AppDropdownItem<int>(
+                                      value: intValue(item.toJson(), 'id')!,
+                                      label: item.toString(),
+                                    ),
+                                  )
+                                  .toList(growable: false),
                               multiInitialValues: selectedSourceIds,
                               multiHintText: 'Select sources',
                               onMultiChanged: (values) {
@@ -575,17 +575,17 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             child: AppDropdownField<int>.fromMapped(
                               labelText: 'Assigned To',
                               mappedItems: controller.users
-                                    .where((item) => item.id != null)
-                                    .map(
-                                      (item) => AppDropdownItem<int>(
-                                        value: item.id!,
-                                        label:
-                                            item.displayName ??
-                                            item.username ??
-                                            '',
-                                      ),
-                                    )
-                                    .toList(growable: false),
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppDropdownItem<int>(
+                                      value: item.id!,
+                                      label:
+                                          item.displayName ??
+                                          item.username ??
+                                          '',
+                                    ),
+                                  )
+                                  .toList(growable: false),
                               multiInitialValues: selectedAssignedToIds,
                               multiHintText: 'Select assignees',
                               onMultiChanged: (values) {
@@ -773,7 +773,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         'Company: ${controller.companies.cast<CompanyModel?>().firstWhere((item) => item?.id == controller.filterCompanyId, orElse: () => null)?.toString() ?? controller.filterCompanyId}',
       if (controller.filterSourceIds.isNotEmpty || controller.filtersApplied)
         'Source: ${controller.filterSourceIds.isEmpty ? 'All' : controller.filterSourceIds.map((id) => controller.sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
-      if (controller.filterAssignedToIds.isNotEmpty || controller.filtersApplied)
+      if (controller.filterAssignedToIds.isNotEmpty ||
+          controller.filtersApplied)
         'Assigned: ${controller.filterAssignedToIds.isEmpty ? 'All' : controller.filterAssignedToIds.map((id) => controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.username ?? id.toString()).join(', ')}',
       if (controller.filterLeadStatuses.isNotEmpty || controller.filtersApplied)
         'Status: ${controller.filterLeadStatuses.isEmpty ? 'All' : controller.filterLeadStatuses.map(controller.leadStatusLabel).join(', ')}',
@@ -782,17 +783,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     if (chips.isEmpty) return const SizedBox.shrink();
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.cardPadding),
         child: Wrap(

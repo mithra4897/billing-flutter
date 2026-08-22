@@ -10,9 +10,9 @@ class AppUiConstants {
   static const double pagePaddingLarge = 48;
   static const double formMaxWidth = 460;
   static const double cardPadding = 22;
-  static const double cardRadius = 24;
-  static const double panelRadius = 20;
-  static const double buttonRadius = 12;
+  static const double cardRadius = 12;
+  static const double panelRadius = 12;
+  static const double buttonRadius = 10;
   static const double fieldRadius = 10;
   static const double pillRadius = 999;
   static const double tilePadding = 14;
@@ -25,7 +25,7 @@ class AppUiConstants {
   static const double spacing2xl = 28;
   static const double dashboardSplitBreakpoint = 1060;
   static const double dashboardChartHeight = 220;
-  static const double tableRadiusSm = 16;
+  static const double tableRadiusSm = 12;
   static const double tableRadiusXs = 10;
   static const double tableCellPaddingSm = 10;
   static const double tableCellPaddingXs = 8;

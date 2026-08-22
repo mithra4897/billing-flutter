@@ -203,14 +203,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Customer',
                           mappedItems: controller.customers
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem<int>(
+                                  value: item.id!,
+                                  label: item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
                           multiInitialValues: controller.filterCustomerPartyIds,
                           multiHintText: 'Select customers',
                           onMultiChanged: controller.setFilterCustomerPartyIds,
@@ -220,17 +220,16 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
                           mappedItems: controller.stages
-                                .where(
-                                  (item) =>
-                                      intValue(item.toJson(), 'id') != null,
-                                )
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item.toJson(), 'id')!,
-                                    label: _crmStageLabel(item.toString()),
-                                  ),
-                                )
-                                .toList(growable: false),
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem<int>(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: _crmStageLabel(item.toString()),
+                                ),
+                              )
+                              .toList(growable: false),
                           multiInitialValues: controller.filterStageIds,
                           multiHintText: 'Select stages',
                           onMultiChanged: controller.setFilterStageIds,
@@ -240,15 +239,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
                           mappedItems: controller.users
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: item.id!,
-                                    label:
-                                        item.displayName ?? item.username ?? '',
-                                  ),
-                                )
-                                .toList(growable: false),
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem<int>(
+                                  value: item.id!,
+                                  label:
+                                      item.displayName ?? item.username ?? '',
+                                ),
+                              )
+                              .toList(growable: false),
                           multiInitialValues: controller.filterAssignedToIds,
                           multiHintText: 'Select assignees',
                           onMultiChanged: controller.setFilterAssignedToIds,
@@ -466,11 +465,13 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final chips = <String>[
       if (controller.searchController.text.trim().isNotEmpty)
         'Search: ${controller.searchController.text.trim()}',
-      if (controller.filterCustomerPartyIds.isNotEmpty || controller.filtersApplied)
+      if (controller.filterCustomerPartyIds.isNotEmpty ||
+          controller.filtersApplied)
         'Customer: ${controller.filterCustomerPartyIds.isEmpty ? 'All' : controller.filterCustomerPartyIds.map((id) => controller.customers.cast<PartyModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.toString() ?? id.toString()).join(', ')}',
       if (controller.filterStageIds.isNotEmpty || controller.filtersApplied)
         'Stage: ${controller.filterStageIds.isEmpty ? 'All' : controller.filterStageIds.map((id) => _crmStageLabel(controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == id, orElse: () => null)?.toString())).join(', ')}',
-      if (controller.filterAssignedToIds.isNotEmpty || controller.filtersApplied)
+      if (controller.filterAssignedToIds.isNotEmpty ||
+          controller.filtersApplied)
         'Assigned: ${controller.filterAssignedToIds.isEmpty ? 'All' : controller.filterAssignedToIds.map((id) => controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == id, orElse: () => null)?.username ?? id.toString()).join(', ')}',
       if (controller.filterEnquiryStatuses.isNotEmpty ||
           controller.filtersApplied)
@@ -483,17 +484,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     if (chips.isEmpty) return const SizedBox.shrink();
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: appTheme.cardDecoration(),
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.cardPadding),
         child: Wrap(

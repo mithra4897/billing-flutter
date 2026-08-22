@@ -641,3 +641,34 @@
 - Related files: `activity-watch-agent/internal/collector/`,
   `activity-watch-agent/internal/store/`, Activity Watch API validation, and the
   Flutter Activity Watch summary details.
+
+## ADR-0018: Extend the existing Material theme as the global design boundary
+
+- Date: 2026-08-22
+- Status: Accepted
+- Context: The ERP already applies `AppTheme.light()` at `MaterialApp` and 128
+  source files consume `AppThemeExtension`. The approved StaffU-inspired visual
+  language requires shared light/dark semantics before modules are migrated.
+- Decision: Keep `MaterialApp` as the sole global theme widget, add light and
+  dark builders to `AppTheme`, preserve `AppThemeExtension` as the ERP-specific
+  compatibility contract, and style standard Material components globally.
+  Register both themes at the app root with `ThemeMode.system`.
+- Reason: Extending the established theme avoids a parallel inherited widget,
+  duplicate lookups, broad caller churn, and inconsistent module styling.
+- Alternatives considered: Add a second custom theme scope; copy generated
+  DesignLang Flutter tokens directly; redesign all modules in one change; keep
+  a light-only theme.
+- Consequences: Shared Material controls can adopt the new language
+  immediately, while hardcoded and feature-specific styles remain explicit
+  one-module-at-a-time migration work. Theme construction is fixed-size O(1)
+  time and O(1) space. System dark mode can expose legacy hardcoded light
+  colors until those modules are migrated, so focused visual QA is required at
+  each module boundary.
+- Amendment (2026-08-22): `tableRowAlternate` is part of the semantic extension
+  contract. Shared register lists and `ErpLineItemTable` consume the table roles
+  directly, so standard lists and editable document lines use one light/dark
+  visual language without changing their business behavior.
+- Related files: `lib/app/theme/app_theme.dart`,
+  `lib/app/theme/app_theme_extension.dart`, `lib/main.dart`,
+  `lib/view/purchase/purchase_register_page.dart`,
+  `lib/widgets/erp_line_item_table.dart`, and focused table/theme tests.

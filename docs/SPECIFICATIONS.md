@@ -1210,3 +1210,213 @@ Acceptance criteria:
 3. Existing generated payslips and payroll lines are unchanged.
 4. A new payroll/payslip displays its breakup in the saved applied order.
 5. Users outside the source employee's company cannot be affected.
+
+## Global StaffU-inspired theme foundation
+
+Status: Implemented (2026-08-22)
+
+Objective: Establish one global, accessible Flutter theme foundation derived
+from the StaffU design-language audit so every ERP module can migrate to a
+consistent visual system without introducing module-local theme frameworks.
+
+In scope:
+
+- Preserve `MaterialApp` as the global theme widget boundary.
+- Extend the existing `AppTheme` and `AppThemeExtension` contracts with
+  complete light and dark palettes.
+- Define semantic colors for canvas, surfaces, text, borders, focus, status,
+  navigation, cards, tables, inputs, and charts.
+- Apply shared typography and Material component themes for common controls.
+- Register both themes at the application root and follow the operating-system
+  brightness until a persisted user preference is explicitly approved.
+- Add focused tests for palette roles, theme extensions, component defaults,
+  interpolation, and app-root light/dark registration.
+
+Out of scope:
+
+- Redesigning or migrating any individual business module.
+- Replacing existing reusable forms, tables, shells, or dashboard widgets.
+- Removing feature-specific color fields before their callers are migrated.
+- Adding a persisted theme selector or changing API/database behavior.
+
+Design rules:
+
+- StaffU audit anchors are primary `#4666E1`, dark canvas `#0D2042`, light
+  canvas `#EEF2FA`, light surface `#F8F9FD`, muted text `#65688A`, and a
+  predominantly 10px control/card radius.
+- Dark surfaces must use readable light foregrounds; the extractor's invalid
+  light-scheme/dark-surface combination must not be copied.
+- The local Nunito font asset is the application font; print-only font families
+  remain unchanged.
+- Material `ColorScheme` owns standard semantic roles. `AppThemeExtension`
+  remains the compatibility layer for ERP-specific roles already consumed by
+  the application.
+- Theme creation performs fixed-size, constant-time work and returns immutable
+  theme values. No collection algorithm is required for this bounded palette.
+
+Accessibility and edge cases:
+
+- Focused controls must retain a visible primary-color outline.
+- Disabled, selected, hover, error, and high-contrast text states must remain
+  distinguishable in both brightness modes.
+- Existing pages with hardcoded colors may not be fully dark-mode ready; they
+  remain migration work and must be handled one module at a time.
+- Missing theme-extension values are not silently tolerated by current callers;
+  both global themes must always register `AppThemeExtension`.
+
+Acceptance criteria:
+
+1. `AppTheme.light()` and `AppTheme.dark()` expose matching semantic roles and
+   each contains `AppThemeExtension`.
+2. `BillingApp` registers light and dark themes and uses system theme mode.
+3. Cards, dialogs, form fields, buttons, tables, menus, navigation controls,
+   selection controls, tooltips, and feedback components receive global style
+   defaults without page-level edits.
+4. Existing `AppThemeExtension` field names remain source-compatible.
+5. Focused theme tests pass, formatting succeeds, and static analysis reports
+   no issue caused by the foundation.
+6. No business module, API, database, or persistence behavior changes.
+
+## Shared bordered cards and module-list tables
+
+Status: Implemented (2026-08-22)
+
+Objective: Apply the StaffU data-table visual language consistently to shared
+cards and list/table surfaces used across ERP modules, in both light and dark
+themes, without rebuilding every module list independently.
+
+Reference: `https://staffu.mantrakshdevs.com/data_table`, audited with
+DesignLang and browser inspection on 2026-08-22.
+
+In scope:
+
+- Give globally themed cards and `AppSectionCard` a visible one-pixel semantic
+  border, 12px radius, flat dark-mode depth, and subtle light-mode depth.
+- Configure Flutter `DataTable` defaults for a distinct header band, compact
+  header/body typography, bounded row heights, cell spacing, row dividers,
+  hover state, and selected state.
+- Apply the same table header, row, border, hover, selected, and alternating-row
+  semantics to the shared sales/purchase register renderer and the shared
+  editable `ErpLineItemTable` used by document forms.
+- Apply the same border/radius language to shared settings and purchase list
+  cards, list tiles, local pagination, and report pagination.
+- Keep list and table overflow horizontally scrollable where already supported.
+- Reuse one integer pagination helper across shared local list controllers.
+
+Out of scope:
+
+- Changing module data, filters, sort behavior, API requests, permissions, or
+  business actions.
+- Adding avatars, statuses, columns, or actions that are not already supplied
+  by a module.
+- Page-by-page decorative rewrites where the shared theme/component already
+  controls the visual result.
+
+Design and accessibility rules:
+
+- Light cards use the existing light surface with border near `#DEE1E5`; dark
+  cards use the existing blue-slate surface and `#33405D` border.
+- Table headers use the existing semantic `tableHeaderBackground`; body text,
+  links, alternating rows, selected rows, hover rows, and dividers use
+  `AppThemeExtension` roles.
+- Card and row outlines must remain visible without relying only on shadows.
+- Selected and hovered rows must remain distinguishable in both brightness
+  modes, while ordinary rows keep adequate text contrast.
+- Pagination controls require tooltips and disabled states and must not expose
+  an impossible extra page at exact page-size boundaries.
+
+Performance rules:
+
+- Pagination count is O(1) integer arithmetic; page extraction remains O(k)
+  time and O(k) returned-list space for page size k.
+- Shared style resolution remains O(1); no module list is rescanned to derive
+  visual state.
+- Register and line-item rows are rendered in one O(n) indexed pass without
+  per-row searches or copied module implementations.
+- Existing lazy builders and bounded page sizes remain unchanged.
+
+Acceptance criteria:
+
+1. Light and dark cards show a one-pixel semantic border and 12px radius.
+2. Every standard Flutter `DataTable` receives the shared StaffU-inspired
+   header, row, divider, spacing, hover, selection, and border defaults.
+3. Settings and purchase list cards inherit the bordered surface and shared
+   list tiles use semantic border/selection colors.
+4. Local and report pagination use bordered compact controls and exact integer
+   page counts for empty, partial, exact, and multi-page totals.
+5. No module data/API behavior changes and no business-module list is copied.
+6. Focused formatting, analysis, widget tests, and existing runnable tests pass.
+7. Sales and purchase register lists use the shared StaffU-inspired header and
+   row treatment, including the invoice list shown in the supplied screenshot.
+8. Shared editable document line-item tables use the same bordered surface,
+   header band, alternating rows, hover state, and selected state.
+
+## Light-theme application sidebar
+
+Status: Implemented (2026-08-22)
+
+Objective: Use a white permanent application menu in light mode while keeping
+the established primary-blue active navigation treatment and preserving the
+existing dark-mode sidebar.
+
+Requirements:
+
+- The shared desktop sidebar background is white in light mode.
+- Unselected light-mode labels and icons use dark foreground and muted semantic
+  colors with readable contrast.
+- Active and parent-of-active entries use the existing primary color on a
+  subtle primary-tinted background.
+- Dark mode retains its existing dark sidebar background, foreground, muted,
+  and selected treatment.
+- Mobile drawer behavior remains unchanged because it already uses the light
+  surface and primary active colors.
+- No navigation routes, permissions, expansion behavior, or menu ordering
+  changes.
+
+Performance: Color selection is O(1) per shared shell build and introduces no
+new collections, route scans, or per-module implementation.
+
+Acceptance criteria:
+
+1. Light-mode permanent sidebar background is white.
+2. Light-mode active entries use the global primary color and a primary tint.
+3. Dark-mode sidebar colors remain unchanged.
+4. Focused formatting, analysis, and theme tests pass.
+
+## Dark-theme visual hierarchy refinement
+
+Status: Implemented (2026-08-22)
+
+Problem: The dark theme is active in the supplied purchase-invoice screenshot,
+but its canvas, card, table header, and table rows use similarly saturated blue
+values. The layers therefore merge visually and the page appears flat.
+
+Objective: Improve dark-mode depth and readability through the existing global
+semantic palette without changing the approved light theme, primary color,
+layout, data, or module behavior.
+
+Requirements:
+
+- Use a near-neutral navy scaffold behind a lighter blue-slate card surface.
+- Keep headers, ordinary rows, alternating rows, hover rows, selected rows,
+  dividers, and input fills visually distinct.
+- Preserve the existing primary `#4666E1` for actions, focus, links, and active
+  navigation.
+- Preserve readable light foreground and muted text contrast on dark surfaces.
+- Keep dark navigation recognizable and visually separated from page content.
+- Apply the refinement only through `AppTheme.dark()` and
+  `AppThemeExtension`; do not add module-local dark colors.
+- Do not change the light palette, routes, tables, calculations, APIs, database,
+  persistence, or permissions.
+
+Performance: Palette construction remains fixed O(1) time and O(1) space;
+runtime consumers continue using inherited theme lookups.
+
+Acceptance criteria:
+
+1. Dark scaffold, card, table header, alternate row, hover row, and selected row
+   resolve to distinct semantic colors.
+2. The card surface is visibly lighter than the scaffold and remains outlined.
+3. Dark surface foreground contrast remains at least 4.5:1.
+4. Light theme values and the global primary color remain unchanged.
+5. Focused formatting, analysis, and theme tests pass.
