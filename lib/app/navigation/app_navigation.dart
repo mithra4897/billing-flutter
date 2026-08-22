@@ -92,7 +92,6 @@ class AppNavigation {
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,
-          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'email-settings',
@@ -142,7 +141,6 @@ class AppNavigation {
           key: 'tax',
           title: 'Tax',
           icon: Icons.receipt_long_outlined,
-          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'inventory-tax-codes',
@@ -215,7 +213,6 @@ class AppNavigation {
           key: 'settings-accounts',
           title: "Accounts",
           icon: Icons.account_balance_wallet_outlined,
-          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'settings-account-groups',
@@ -251,7 +248,6 @@ class AppNavigation {
           key: 'settings-hr',
           title: 'HR',
           icon: Icons.badge_outlined,
-          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'hr-departments',
@@ -287,7 +283,6 @@ class AppNavigation {
           key: 'settings-crm',
           title: 'CRM',
           icon: Icons.support_agent_outlined,
-          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'crm-sources',
@@ -310,14 +305,12 @@ class AppNavigation {
           title: 'UOMs',
           icon: Icons.straighten_outlined,
           path: '/inventory/uoms',
-          adminOnly: true,
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
           key: 'settings-media',
           title: 'Media Files',
           path: '/media/files',
-          adminOnly: true,
           requiredPermissions: ['media.view'],
           icon: Icons.perm_media_outlined,
         ),
@@ -326,7 +319,6 @@ class AppNavigation {
           title: 'Companies',
           icon: Icons.apartment_outlined,
           path: '/settings/companies',
-          adminOnly: true,
           requiredPermissions: ['company.view'],
         ),
         AppNavigationItem(
@@ -334,7 +326,6 @@ class AppNavigation {
           title: 'Branches',
           icon: Icons.account_tree_outlined,
           path: '/settings/branches',
-          adminOnly: true,
           requiredPermissions: ['branch.view'],
         ),
         AppNavigationItem(
@@ -342,7 +333,6 @@ class AppNavigation {
           title: 'Document Series',
           icon: Icons.confirmation_number_outlined,
           path: '/settings/document-series',
-          adminOnly: true,
           requiredPermissions: ['document_series.view'],
         ),
       ],
