@@ -331,6 +331,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final Widget Function(
     BuildContext context,
     SalesRegisterController<T> controller,
+    int currentPage,
   )?
   footerBuilder;
   final Color? Function(BuildContext context, T row)? rowColorBuilder;
@@ -467,7 +468,11 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           rowColorBuilder: widget.rowColorBuilder,
           onRowTap: (row) =>
               _openSalesShellRoute(context, widget.rowRoute(row)),
-          footer: widget.footerBuilder?.call(context, controller),
+          footerBuilder: (context, currentPage) => widget.footerBuilder?.call(
+            context,
+            controller,
+            currentPage,
+          ),
         );
       },
     );
@@ -510,22 +515,69 @@ class _SalesRegisterSummaryFooter extends StatelessWidget {
       child: Row(
         children: cells
             .map(
-              (cell) => Expanded(
-                flex: cell.flex,
-                child: Text(
-                  cell.text,
-                  textAlign: cell.alignRight ? TextAlign.right : TextAlign.left,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              (cell) {
+                final textStyle = theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                );
+                final displayText = cell.text == 'Total'
+                    ? 'Page total:\nOverall total:'
+                    : cell.text;
+                final isSummary = displayText.contains('\n');
+                return Expanded(
+                  flex: cell.flex,
+                  child: isSummary
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: displayText
+                              .split('\n')
+                              .expand(
+                                (line) => <Widget>[
+                                  if (line != displayText.split('\n').first)
+                                    Divider(
+                                      height: 8,
+                                      thickness: 1,
+                                      color: theme.dividerColor,
+                                    ),
+                                  Text(
+                                    line,
+                                    textAlign: cell.text.contains('\n')
+                                        ? TextAlign.right
+                                        : TextAlign.left,
+                                    style: textStyle,
+                                  ),
+                                ],
+                              )
+                              .toList(growable: false),
+                        )
+                      : Text(
+                          displayText,
+                          textAlign: cell.alignRight
+                              ? TextAlign.right
+                              : TextAlign.left,
+                          style: textStyle,
+                        ),
+                );
+              },
             )
             .toList(growable: false),
       ),
     );
   }
 }
+
+List<T> _salesCurrentPageRows<T>(List<T> rows, int currentPage) {
+  final start = (currentPage - 1) * kLocalListPageSize;
+  if (start >= rows.length) {
+    return <T>[];
+  }
+  final end = start + kLocalListPageSize > rows.length
+      ? rows.length
+      : start + kLocalListPageSize;
+  return rows.sublist(start, end);
+}
+
+String _salesTotalSummary(double overall, double page) =>
+    '${formatAmount(page)}\n${formatAmount(overall)}';
 
 List<AppDropdownItem<int>> _mappedCustomerItems<T>(
   SalesRegisterController<T> controller,
@@ -864,8 +916,21 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         searchHint: 'Quotation no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
-      footerBuilder: (context, controller) {
-        final totalAmount = controller.filteredRows.fold<double>(
+      footerBuilder: (context, controller, currentPage) {
+        final rows = controller.filteredRows;
+        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) =>
+              sum +
+              ((row.toJson()['total_amount'] is num)
+                  ? (row.toJson()['total_amount'] as num).toDouble()
+                  : (double.tryParse(
+                          row.toJson()['total_amount']?.toString() ?? '',
+                        ) ??
+                        0)),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) =>
               sum +
@@ -885,7 +950,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _salesTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],
@@ -1040,8 +1105,14 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
         searchHint: 'Proforma no, quotation no, or customer',
         customerItemsBuilder: _mappedCustomerItems,
       ),
-      footerBuilder: (context, controller) {
-        final totalAmount = controller.filteredRows.fold<double>(
+      footerBuilder: (context, controller, currentPage) {
+        final rows = controller.filteredRows;
+        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
         );
@@ -1055,7 +1126,7 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _salesTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],
@@ -1235,8 +1306,21 @@ class SalesOrderRegisterPage extends StatelessWidget {
         searchHint: 'Order no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
-      footerBuilder: (context, controller) {
-        final totalAmount = controller.filteredRows.fold<double>(
+      footerBuilder: (context, controller, currentPage) {
+        final rows = controller.filteredRows;
+        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) =>
+              sum +
+              ((row.toJson()['total_amount'] is num)
+                  ? (row.toJson()['total_amount'] as num).toDouble()
+                  : (double.tryParse(
+                          row.toJson()['total_amount']?.toString() ?? '',
+                        ) ??
+                        0)),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) =>
               sum +
@@ -1256,7 +1340,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _salesTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],
@@ -1445,13 +1529,22 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
         sortItems: _salesInvoiceRegisterSortItems,
       ),
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _salesCurrentPageRows(rows, currentPage);
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
         );
         final balanceAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.balanceAmount ?? 0),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final pageBalanceAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.balanceAmount ?? 0),
         );
@@ -1463,12 +1556,12 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _salesTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(balanceAmount),
+              text: _salesTotalSummary(balanceAmount, pageBalanceAmount),
               alignRight: true,
             ),
           ],
@@ -1687,8 +1780,17 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         searchHint: 'Receipt no or customer name',
         customerItemsBuilder: _mappedCustomerItems,
       ),
-      footerBuilder: (context, controller) {
-        final totalAmount = controller.filteredRows.fold<double>(0, (sum, row) {
+      footerBuilder: (context, controller, currentPage) {
+        final rows = controller.filteredRows;
+        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final totalAmount = rows.fold<double>(0, (sum, row) {
+          final raw = row.toJson()['paid_amount'];
+          return sum +
+              (raw is num
+                  ? raw.toDouble()
+                  : double.tryParse(raw?.toString() ?? '') ?? 0);
+        });
+        final pageTotalAmount = pageRows.fold<double>(0, (sum, row) {
           final raw = row.toJson()['paid_amount'];
           return sum +
               (raw is num
@@ -1703,7 +1805,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             _SalesRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _salesTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],

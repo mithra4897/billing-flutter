@@ -349,6 +349,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final Widget Function(
     BuildContext context,
     PurchaseListRegisterController<T> controller,
+    int currentPage,
   )?
   footerBuilder;
 
@@ -492,7 +493,11 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
-          footer: widget.footerBuilder?.call(context, controller),
+          footerBuilder: (context, currentPage) => widget.footerBuilder?.call(
+            context,
+            controller,
+            currentPage,
+          ),
         );
       },
     );
@@ -535,22 +540,69 @@ class _PurchaseRegisterSummaryFooter extends StatelessWidget {
       child: Row(
         children: cells
             .map(
-              (cell) => Expanded(
-                flex: cell.flex,
-                child: Text(
-                  cell.text,
-                  textAlign: cell.alignRight ? TextAlign.right : TextAlign.left,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              (cell) {
+                final textStyle = theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                );
+                final displayText = cell.text == 'Total'
+                    ? 'Page total:\nOverall total:'
+                    : cell.text;
+                final isSummary = displayText.contains('\n');
+                return Expanded(
+                  flex: cell.flex,
+                  child: isSummary
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: displayText
+                              .split('\n')
+                              .expand(
+                                (line) => <Widget>[
+                                  if (line != displayText.split('\n').first)
+                                    Divider(
+                                      height: 8,
+                                      thickness: 1,
+                                      color: theme.dividerColor,
+                                    ),
+                                  Text(
+                                    line,
+                                    textAlign: cell.text.contains('\n')
+                                        ? TextAlign.right
+                                        : TextAlign.left,
+                                    style: textStyle,
+                                  ),
+                                ],
+                              )
+                              .toList(growable: false),
+                        )
+                      : Text(
+                          displayText,
+                          textAlign: cell.alignRight
+                              ? TextAlign.right
+                              : TextAlign.left,
+                          style: textStyle,
+                        ),
+                );
+              },
             )
             .toList(growable: false),
       ),
     );
   }
 }
+
+List<T> _purchaseCurrentPageRows<T>(List<T> rows, int currentPage) {
+  final start = (currentPage - 1) * kLocalListPageSize;
+  if (start >= rows.length) {
+    return <T>[];
+  }
+  final end = start + kLocalListPageSize > rows.length
+      ? rows.length
+      : start + kLocalListPageSize;
+  return rows.sublist(start, end);
+}
+
+String _purchaseTotalSummary(double overall, double page) =>
+    '${formatAmount(page)}\n${formatAmount(overall)}';
 
 double _purchaseRequisitionEstimatedTotal(PurchaseRequisitionModel row) {
   return row.lines.fold<double>(
@@ -693,9 +745,14 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final estimatedTotal = rows.fold<double>(
+          0,
+          (sum, row) => sum + _purchaseRequisitionEstimatedTotal(row),
+        );
+        final pageEstimatedTotal = pageRows.fold<double>(
           0,
           (sum, row) => sum + _purchaseRequisitionEstimatedTotal(row),
         );
@@ -708,7 +765,7 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(estimatedTotal),
+              text: _purchaseTotalSummary(estimatedTotal, pageEstimatedTotal),
               alignRight: true,
             ),
           ],
@@ -860,9 +917,14 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
         );
@@ -875,7 +937,7 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],
@@ -997,9 +1059,14 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + _purchaseReceiptTotal(row),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + _purchaseReceiptTotal(row),
         );
@@ -1012,7 +1079,7 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],
@@ -1186,13 +1253,22 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
         );
         final outstandingAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.balanceAmount ?? 0),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final pageOutstandingAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.balanceAmount ?? 0),
         );
@@ -1205,12 +1281,15 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(outstandingAmount),
+              text: _purchaseTotalSummary(
+                outstandingAmount,
+                pageOutstandingAmount,
+              ),
               alignRight: true,
             ),
           ],
@@ -1338,13 +1417,22 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final paidAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.paidAmount ?? 0),
         );
         final unallocatedAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.unallocatedAmount ?? 0),
+        );
+        final pagePaidAmount = pageRows.fold<double>(
+          0,
+          (sum, row) => sum + (row.paidAmount ?? 0),
+        );
+        final pageUnallocatedAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.unallocatedAmount ?? 0),
         );
@@ -1357,12 +1445,15 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(paidAmount),
+              text: _purchaseTotalSummary(paidAmount, pagePaidAmount),
               alignRight: true,
             ),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(unallocatedAmount),
+              text: _purchaseTotalSummary(
+                unallocatedAmount,
+                pageUnallocatedAmount,
+              ),
               alignRight: true,
             ),
           ],
@@ -1482,9 +1573,14 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
           showPlaceholderWhenEmpty: false,
         ),
       ],
-      footerBuilder: (context, controller) {
+      footerBuilder: (context, controller, currentPage) {
         final rows = controller.filteredRows;
+        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
         final totalAmount = rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.totalAmount ?? 0),
+        );
+        final pageTotalAmount = pageRows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
         );
@@ -1497,7 +1593,7 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 2),
             _PurchaseRegisterFooterCell(
               flex: 2,
-              text: formatAmount(totalAmount),
+              text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
               alignRight: true,
             ),
           ],

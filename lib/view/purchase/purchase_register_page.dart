@@ -39,6 +39,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.embedded = false,
     this.fullPageStyle = false,
     this.footer,
+    this.footerBuilder,
     this.rowColorBuilder,
   });
 
@@ -55,6 +56,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final bool embedded;
   final bool fullPageStyle;
   final Widget? footer;
+  final Widget? Function(BuildContext context, int currentPage)? footerBuilder;
   final Color? Function(BuildContext context, T row)? rowColorBuilder;
 
   @override
@@ -225,7 +227,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             ),
                           ),
                         ),
-                        if (widget.footer != null) widget.footer!,
+                        if (_footerForPage(context, controller.currentPage) !=
+                            null)
+                          _footerForPage(context, controller.currentPage)!,
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppUiConstants.spacingSm,
@@ -312,8 +316,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       _buildDesktopTable(context, visibleRows)
                       else
                       _buildMobileCards(context, visibleRows, appTheme),
-                    if (widget.footer != null) ...[
-                      widget.footer!,
+                    if (_footerForPage(context, controller.currentPage) !=
+                        null) ...[
+                      _footerForPage(context, controller.currentPage)!,
                       const SizedBox(height: AppUiConstants.spacingMd),
                     ],
                     LocalPageNavigation(
@@ -329,6 +334,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       ),
     );
   }
+
+  Widget? _footerForPage(BuildContext context, int currentPage) =>
+      widget.footerBuilder?.call(context, currentPage) ?? widget.footer;
 
   Widget _buildDesktopTable(BuildContext context, List<T> visibleRows) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
