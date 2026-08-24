@@ -27,6 +27,7 @@ class CrmLeadRegisterPage extends StatefulWidget {
 
 class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
   late final String _controllerTag;
+  bool _isSuperAdmin = false;
 
   Set<String> _dashboardStatuses() {
     switch ((widget.queryParameters['dashboard_filter'] ?? '').trim()) {
@@ -59,6 +60,7 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
       CrmLeadRegisterController(instanceTag: _controllerTag),
       tag: _controllerTag,
     );
+    _loadAccess();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
           !Get.isRegistered<CrmLeadRegisterController>(tag: _controllerTag)) {
@@ -67,6 +69,17 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
       _applyDashboardFilters(
         Get.find<CrmLeadRegisterController>(tag: _controllerTag),
       );
+    });
+  }
+
+  Future<void> _loadAccess() async {
+    final currentUser = await SessionStorage.getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
     });
   }
 
@@ -257,6 +270,7 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
             ),
           ],
           rows: controller.filteredRows,
+          rowColorBuilder: _rowColor,
           columns: [
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Lead',
@@ -283,6 +297,11 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
                 stringValue(row.toJson(), 'lead_status'),
               ),
             ),
+            if (_isSuperAdmin)
+              PurchaseRegisterColumn<CrmLeadModel>(
+                label: 'Created by',
+                valueBuilder: (row) => _createdByLabel(row.toJson()),
+              ),
           ],
           onRowTap: (row) => _openCrmShellRoute(
             context,
@@ -291,6 +310,20 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
         );
       },
     );
+  }
+
+  String _createdByLabel(Map<String, dynamic> data) {
+    final creator =
+        JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
+    final displayName = stringValue(creator, 'display_name');
+    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+  }
+
+  Color? _rowColor(CrmLeadModel row) {
+    final status = stringValue(row.toJson(), 'lead_status');
+    return status.trim().isEmpty
+        ? null
+        : appStatusColor(status).withValues(alpha: 0.10);
   }
 }
 

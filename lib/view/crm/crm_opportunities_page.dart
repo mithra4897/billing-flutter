@@ -53,6 +53,7 @@ class _CrmOpportunityRegisterPageState
   final TextEditingController _dateFromController = TextEditingController();
   final TextEditingController _dateToController = TextEditingController();
   bool _loading = true;
+  bool _isSuperAdmin = false;
   String? _error;
   Set<String> _statuses = <String>{'open'};
   List<CrmOpportunityModel> _rows = const <CrmOpportunityModel>[];
@@ -78,7 +79,19 @@ class _CrmOpportunityRegisterPageState
     super.initState();
     _searchController.addListener(() => setState(() {}));
     _applyDashboardFilters();
+    _loadAccess();
     _load();
+  }
+
+  Future<void> _loadAccess() async {
+    final currentUser = await SessionStorage.getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
+    });
   }
 
   @override
@@ -341,6 +354,25 @@ class _CrmOpportunityRegisterPageState
     return stringValue(assigned, 'username');
   }
 
+  String _createdByLabel(Map<String, dynamic> data) {
+    final creator =
+        JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
+    final displayName = stringValue(creator, 'display_name');
+    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+  }
+
+  Color? _rowColor(CrmOpportunityModel row) {
+    final data = row.toJson();
+    final status = stringValue(
+      data,
+      'status',
+      stringValue(data, 'enquiry_status'),
+    );
+    return status.trim().isEmpty
+        ? null
+        : appStatusColor(status).withValues(alpha: 0.10);
+  }
+
   String _statusLabel(String value) {
     switch (value.trim().toLowerCase()) {
       case 'won':
@@ -379,6 +411,7 @@ class _CrmOpportunityRegisterPageState
         ),
       ],
       rows: _filtered,
+      rowColorBuilder: _rowColor,
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Enquiry No',
@@ -415,6 +448,12 @@ class _CrmOpportunityRegisterPageState
           flex: 2,
           valueBuilder: (row) => _ownerLabel(row.toJson()),
         ),
+        if (_isSuperAdmin)
+          PurchaseRegisterColumn<CrmOpportunityModel>(
+            label: 'Created by',
+            flex: 2,
+            valueBuilder: (row) => _createdByLabel(row.toJson()),
+          ),
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Status',
           valueBuilder: (row) =>

@@ -389,6 +389,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         ? 'won'
                         : stringValue(data, 'enquiry_status'),
                   ),
+                  if (_createdByLabel(data).isNotEmpty)
+                    'Created by ${_createdByLabel(data)}',
                 ].where((value) => value.isNotEmpty).join(' • '),
                 selected: selected,
                 onTap: () {
@@ -456,6 +458,13 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         ),
       ),
     );
+  }
+
+  String _createdByLabel(Map<String, dynamic> data) {
+    final creator =
+        JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
+    final displayName = stringValue(creator, 'display_name');
+    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
   }
 
   Widget _buildAppliedFilters(

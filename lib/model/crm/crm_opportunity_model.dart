@@ -19,6 +19,8 @@ class CrmOpportunityModel extends JsonModel {
     this.status,
     this.createdAt,
     this.updatedAt,
+    this.createdBy,
+    this.creator,
     this.lead,
     this.customer,
     this.stage,
@@ -47,6 +49,8 @@ class CrmOpportunityModel extends JsonModel {
   final String? status;
   final String? createdAt;
   final String? updatedAt;
+  final int? createdBy;
+  final Map<String, dynamic>? creator;
   final Map<String, dynamic>? lead;
   final Map<String, dynamic>? customer;
   final Map<String, dynamic>? stage;
@@ -77,6 +81,8 @@ class CrmOpportunityModel extends JsonModel {
       status: json['status']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      creator: JsonModel.mapOf(json['creator']),
       lead: JsonModel.mapOf(json['lead']),
       customer: JsonModel.mapOf(json['customer']),
       stage: JsonModel.mapOf(json['stage']),
@@ -118,6 +124,8 @@ class CrmOpportunityModel extends JsonModel {
     if (status != null) 'status': status,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (createdBy != null) 'created_by': createdBy,
+    if (creator != null) 'creator': creator,
     if (lead != null) 'lead': lead,
     if (customer != null) 'customer': customer,
     if (stage != null) 'stage': stage,
