@@ -298,6 +298,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     return PurchaseRegisterPage<_SalesLedgerRegisterRow>(
       title: 'Sales Ledger',
       embedded: widget.embedded,
+      emphasizeRows: true,
       loading: _loading,
       errorMessage: _errorMessage,
       onRetry: _loadRows,

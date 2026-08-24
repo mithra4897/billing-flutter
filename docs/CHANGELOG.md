@@ -6,6 +6,10 @@
   register, with semantic high/medium/low colors and accessible percentage text.
 - Added model support for `probability_percent` and a status-based fallback for
   legacy lead responses; no backend or database changes are required.
+- Added per-column register text styling so lead-name emphasis does not make all
+  CRM fields bold.
+- Enabled the same controlled row emphasis for Sales and Purchase registers and
+  ledgers on desktop and mobile layouts.
 
 ## 2026-08-24 — Sales outstanding balance drill-down parity
 

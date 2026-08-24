@@ -222,6 +222,7 @@ class _PurchaseLedgerRegisterPageState
     return PurchaseRegisterPage<_PurchaseLedgerRegisterRow>(
       title: 'Purchase Ledger',
       embedded: widget.embedded,
+      emphasizeRows: true,
       loading: _loading,
       errorMessage: _errorMessage,
       onRetry: _loadRows,

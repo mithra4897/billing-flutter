@@ -398,7 +398,10 @@ The timeline switches to a stacked time/detail arrangement below 680 logical
 pixels, while shared theme roles continue to own every surface, border, text,
 and accent color. `CrmService` injection on the page is optional and exists for
 deterministic widget verification; production callers retain the default
-service construction.
+service construction. Register columns can provide an optional `textStyle`,
+keeping shared body typography stable while applying emphasis only where a
+specific CRM column or register family needs it. Sales and Purchase registers
+opt into the shared row emphasis flag; CRM remains scoped to its lead column.
 
 ## Sales outstanding balance parity
 

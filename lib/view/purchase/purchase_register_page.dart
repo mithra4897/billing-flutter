@@ -42,6 +42,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.filters,
     this.embedded = false,
     this.fullPageStyle = false,
+    this.emphasizeRows = false,
     this.footer,
     this.footerBuilder,
     this.rowColorBuilder,
@@ -59,6 +60,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final String emptyMessage;
   final bool embedded;
   final bool fullPageStyle;
+  final bool emphasizeRows;
   final Widget? footer;
   final Widget? Function(BuildContext context, int currentPage)? footerBuilder;
   final Color? Function(BuildContext context, T row)? rowColorBuilder;
@@ -224,6 +226,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             row: visibleRows[index],
                             index: index,
                             columns: widget.columns,
+                            emphasizeRows: widget.emphasizeRows,
                             onTap: () => widget.onRowTap(visibleRows[index]),
                             rowColor: widget.rowColorBuilder?.call(
                               context,
@@ -389,6 +392,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             row: visibleRows[index],
             index: index,
             columns: widget.columns,
+            emphasizeRows: widget.emphasizeRows,
             onTap: () => widget.onRowTap(visibleRows[index]),
             rowColor: widget.rowColorBuilder?.call(context, visibleRows[index]),
           ),
@@ -443,6 +447,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                               child: _MobileRegisterField<T>(
                                 column: column,
                                 row: row,
+                                emphasizeRows: widget.emphasizeRows,
                               ),
                             ),
                           ),
@@ -507,6 +512,7 @@ class _RegisterRow<T> extends StatelessWidget {
     required this.row,
     required this.index,
     required this.columns,
+    required this.emphasizeRows,
     required this.onTap,
     this.rowColor,
   });
@@ -514,6 +520,7 @@ class _RegisterRow<T> extends StatelessWidget {
   final T row;
   final int index;
   final List<PurchaseRegisterColumn<T>> columns;
+  final bool emphasizeRows;
   final VoidCallback onTap;
   final Color? rowColor;
 
@@ -552,7 +559,11 @@ class _RegisterRow<T> extends StatelessWidget {
                 .map(
                   (column) => Expanded(
                     flex: column.flex,
-                    child: _RegisterCell<T>(column: column, row: row),
+                    child: _RegisterCell<T>(
+                      column: column,
+                      row: row,
+                      emphasizeRows: emphasizeRows,
+                    ),
                   ),
                 )
                 .toList(growable: false),
@@ -564,10 +575,15 @@ class _RegisterRow<T> extends StatelessWidget {
 }
 
 class _RegisterCell<T> extends StatelessWidget {
-  const _RegisterCell({required this.column, required this.row});
+  const _RegisterCell({
+    required this.column,
+    required this.row,
+    required this.emphasizeRows,
+  });
 
   final PurchaseRegisterColumn<T> column;
   final T row;
+  final bool emphasizeRows;
 
   @override
   Widget build(BuildContext context) {
@@ -596,7 +612,12 @@ class _RegisterCell<T> extends StatelessWidget {
                 : column.alignRight
                 ? TextAlign.right
                 : TextAlign.left,
-            style: column.textStyle,
+            style: column.textStyle ??
+                (emphasizeRows
+                    ? Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      )
+                    : null),
           );
 
     final paddedPrimaryWidget = Padding(
@@ -621,10 +642,15 @@ class _RegisterCell<T> extends StatelessWidget {
 }
 
 class _MobileRegisterField<T> extends StatelessWidget {
-  const _MobileRegisterField({required this.column, required this.row});
+  const _MobileRegisterField({
+    required this.column,
+    required this.row,
+    required this.emphasizeRows,
+  });
 
   final PurchaseRegisterColumn<T> column;
   final T row;
+  final bool emphasizeRows;
 
   @override
   Widget build(BuildContext context) {
@@ -647,7 +673,12 @@ class _MobileRegisterField<T> extends StatelessWidget {
                 padding: column.padding ?? EdgeInsets.zero,
                 child: Text(
                   '${column.label}: $displayValue',
-                  style: column.textStyle ?? textTheme.bodyMedium,
+                  style: column.textStyle ??
+                      (emphasizeRows
+                          ? textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            )
+                          : textTheme.bodyMedium),
                 ),
               ),
             ),

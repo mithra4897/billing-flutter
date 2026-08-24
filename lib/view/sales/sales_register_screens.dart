@@ -432,6 +432,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
         return PurchaseRegisterPage<T>(
           title: widget.title,
           embedded: widget.embedded,
+          emphasizeRows: true,
           loading: controller.loading,
           errorMessage: controller.error,
           onRetry: controller.load,

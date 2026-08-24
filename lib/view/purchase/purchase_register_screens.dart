@@ -450,6 +450,7 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
         return PurchaseRegisterPage<T>(
           title: widget.title,
           embedded: widget.embedded,
+          emphasizeRows: true,
           loading: controller.loading,
           errorMessage: controller.error,
           onRetry: controller.load,
