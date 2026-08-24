@@ -36,7 +36,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         _controller.setActiveTabIndex(_tabController.index);
       }
     });
-    _syncRouteState();
   }
 
   @override
@@ -66,44 +65,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                 message: controller.pageError!,
                 onRetry: controller.loadInitial,
               )
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final showSideList = constraints.maxWidth >= 1100;
-
-                  return SingleChildScrollView(
-                    controller: controller.pageScrollController,
-                    padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (showSideList)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: AppUiConstants.settingsSidebarWidth,
-                                child: _buildRoleList(context, controller),
-                              ),
-                              const SizedBox(width: AppUiConstants.spacingXl),
-                              Expanded(
-                                child: _buildEditor(context, controller),
-                              ),
-                            ],
-                          )
-                        else
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildRoleList(context, controller),
-                              const SizedBox(height: AppUiConstants.spacingLg),
-                              _buildEditor(context, controller),
-                            ],
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              );
+            : _buildWorkspace(context, controller);
 
         if (widget.embedded) {
           return ShellPageActions(
@@ -141,6 +103,44 @@ class _RoleManagementPageState extends State<RoleManagementPage>
           },
         );
       },
+    );
+  }
+
+  Widget _buildWorkspace(
+    BuildContext context,
+    RoleManagementController controller,
+  ) {
+    final showSideList = MediaQuery.sizeOf(context).width >= 1100;
+
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSideList)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: AppUiConstants.settingsSidebarWidth,
+                  child: _buildRoleList(context, controller),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXl),
+                Expanded(child: _buildEditor(context, controller)),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildRoleList(context, controller),
+                const SizedBox(height: AppUiConstants.spacingLg),
+                _buildEditor(context, controller),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
