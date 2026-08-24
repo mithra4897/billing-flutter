@@ -6,8 +6,8 @@ String salesStatusLabel(String? status) {
     return '';
   }
   final lower = normalized.toLowerCase();
-  if (lower == 'posted') {
-    return 'Submitted';
+  if (lower == 'posted' || lower == 'submitted') {
+    return 'Finished';
   }
   if (lower == 'partially_allocated') {
     return 'Partially Completed';
@@ -61,13 +61,21 @@ Widget salesStatusBadge(
     case 'cancelled':
       color = Theme.of(context).colorScheme.error;
       break;
-    case 'paid':
     case 'completed':
     case 'fully_allocated':
       color = Colors.green.shade600;
       break;
+    case 'paid':
+      color = Colors.teal.shade600;
+      break;
     case 'partially_paid':
     case 'partially_returned':
+    case 'pending':
+    case 'payment_pending':
+    case 'due':
+    case 'due_soon':
+      color = Colors.amber.shade700;
+      break;
     case 'partially_allocated':
       color = Colors.orange.shade600;
       break;
@@ -81,6 +89,10 @@ Widget salesStatusBadge(
           Theme.of(context).extension<AppThemeExtension>()?.mutedText ??
           Colors.grey;
       break;
+  }
+
+  if (displayLabel.toLowerCase().contains('pending')) {
+    color = Colors.amber.shade700;
   }
 
   if (displayLabel.isEmpty) {
