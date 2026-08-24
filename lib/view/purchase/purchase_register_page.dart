@@ -39,6 +39,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.embedded = false,
     this.fullPageStyle = false,
     this.footer,
+    this.rowColorBuilder,
   });
 
   final String title;
@@ -54,6 +55,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final bool embedded;
   final bool fullPageStyle;
   final Widget? footer;
+  final Color? Function(BuildContext context, T row)? rowColorBuilder;
 
   @override
   State<PurchaseRegisterPage<T>> createState() =>
@@ -217,6 +219,10 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             index: index,
                             columns: widget.columns,
                             onTap: () => widget.onRowTap(visibleRows[index]),
+                            rowColor: widget.rowColorBuilder?.call(
+                              context,
+                              visibleRows[index],
+                            ),
                           ),
                         ),
                         if (widget.footer != null) widget.footer!,
@@ -304,7 +310,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                   children: [
                     if (useTable)
                       _buildDesktopTable(context, visibleRows)
-                    else
+                      else
                       _buildMobileCards(context, visibleRows, appTheme),
                     if (widget.footer != null) ...[
                       widget.footer!,
@@ -370,6 +376,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             index: index,
             columns: widget.columns,
             onTap: () => widget.onRowTap(visibleRows[index]),
+            rowColor: widget.rowColorBuilder?.call(context, visibleRows[index]),
           ),
         ),
       ],
@@ -384,6 +391,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
     return Column(
       children: visibleRows
           .map((row) {
+            final rowColor = widget.rowColorBuilder?.call(context, row);
             final primaryText = widget.columns.isEmpty
                 ? ''
                 : widget.columns.first.valueBuilder(row);
@@ -391,7 +399,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: appTheme.subtleFill,
+                color: rowColor ?? appTheme.subtleFill,
                 borderRadius: BorderRadius.circular(
                   AppUiConstants.buttonRadius,
                 ),
@@ -484,12 +492,14 @@ class _RegisterRow<T> extends StatelessWidget {
     required this.index,
     required this.columns,
     required this.onTap,
+    this.rowColor,
   });
 
   final T row;
   final int index;
   final List<PurchaseRegisterColumn<T>> columns;
   final VoidCallback onTap;
+  final Color? rowColor;
 
   @override
   Widget build(BuildContext context) {
@@ -497,7 +507,8 @@ class _RegisterRow<T> extends StatelessWidget {
 
     return Material(
       key: ValueKey<String>('register-table-row-$index'),
-      color: index.isOdd ? appTheme.tableRowAlternate : appTheme.cardBackground,
+      color: rowColor ??
+          (index.isOdd ? appTheme.tableRowAlternate : appTheme.cardBackground),
       child: InkWell(
         onTap: onTap,
         overlayColor: WidgetStateProperty.resolveWith((states) {

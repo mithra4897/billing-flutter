@@ -90,6 +90,27 @@ Widget salesStatusBadge(
   return AppStatusBadge(label: displayLabel, color: color);
 }
 
+Color? salesQuotationAgeZoneColor(String? createdAt) {
+  final parsed = DateTime.tryParse((createdAt ?? '').trim());
+  if (parsed == null) {
+    return null;
+  }
+
+  final today = DateTime.now();
+  final createdDate = DateTime(parsed.year, parsed.month, parsed.day);
+  final todayDate = DateTime(today.year, today.month, today.day);
+  final ageInDays = todayDate.difference(createdDate).inDays;
+  final color = ageInDays <= 7
+      ? appStatusColorSuccess
+      : ageInDays <= 15
+      ? appStatusColorInfo
+      : ageInDays <= 30
+      ? appStatusColorWarning
+      : appStatusColorDanger;
+
+  return color.withValues(alpha: 0.22);
+}
+
 String salesListDetailWithCancelReason(
   Map<String, dynamic> data,
   String baseDetail, {

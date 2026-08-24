@@ -298,6 +298,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     this.extraActionsBuilder,
     this.customFiltersBuilder,
     this.footerBuilder,
+    this.rowColorBuilder,
   });
 
   final String controllerName;
@@ -334,6 +335,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     SalesRegisterController<T> controller,
   )?
   footerBuilder;
+  final Color? Function(BuildContext context, T row)? rowColorBuilder;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -464,6 +466,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
               : null,
           rows: controller.filteredRows,
           columns: widget.columns,
+          rowColorBuilder: widget.rowColorBuilder,
           onRowTap: (row) =>
               _openSalesShellRoute(context, widget.rowRoute(row)),
           footer: widget.footerBuilder?.call(context, controller),
@@ -852,6 +855,9 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         }
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
+      rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(
+        row.createdAt,
+      ),
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
         controller: controller,
