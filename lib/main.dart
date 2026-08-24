@@ -106,7 +106,7 @@ class BillingApp extends StatelessWidget {
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => ResetPasswordPage(
-                token: uri.queryParameters['token'] ?? '',
+                login: uri.queryParameters['login'] ?? '',
                 redirectTo: uri.queryParameters['redirect'],
               ),
             );

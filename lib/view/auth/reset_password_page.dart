@@ -2,9 +2,9 @@ import '../../controller/auth/reset_password_management_controller.dart';
 import '../../screen.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  const ResetPasswordPage({super.key, required this.token, this.redirectTo});
+  const ResetPasswordPage({super.key, required this.login, this.redirectTo});
 
-  final String token;
+  final String login;
   final String? redirectTo;
 
   @override
@@ -23,13 +23,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         'widget': widget.runtimeType,
         'key': widget.key,
         'state': identityHashCode(this),
-        'token': widget.token,
+        'login': widget.login,
         'redirectTo': widget.redirectTo,
       },
     );
     Get.put(
       ResetPasswordManagementController(
-        token: widget.token,
+        login: widget.login,
         redirectTo: widget.redirectTo,
       ),
       tag: _controllerTag,
@@ -92,7 +92,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.token.trim().isEmpty) {
+    if (widget.login.trim().isEmpty) {
       return Scaffold(
         body: SafeArea(
           child: Center(
@@ -101,9 +101,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: AppErrorStateView(
-                  title: 'Invalid Reset Link',
-                  message:
-                      'The reset link is missing its token. Please request a new password reset email.',
+                  title: 'Invalid Password Reset Request',
+                  message: 'Please request a new password reset OTP.',
                   onRetry: _goToLogin,
                   actionLabel: 'Back to sign in',
                 ),
@@ -207,6 +206,21 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                   ),
                                   const SizedBox(height: 28),
                                   if (!controller.resetCompleted) ...[
+                                    AppTextField(
+                                      label: 'Reset OTP',
+                                      hint: 'Enter 6-digit OTP',
+                                      icon: Icons.password_outlined,
+                                      controller: controller.otpController,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      validator: (value) =>
+                                          RegExp(
+                                            r'^\\d{6}$',
+                                          ).hasMatch((value ?? '').trim())
+                                          ? null
+                                          : 'Enter the 6-digit OTP sent to your email',
+                                    ),
+                                    const SizedBox(height: 16),
                                     AppTextField(
                                       label: 'New password',
                                       hint: 'Enter new password',
@@ -372,7 +386,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'This page accepts the reset token from the email link and posts the new password back to the API.',
+                            'Enter the six-digit OTP from your email, then choose a new password.',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: colorScheme.onPrimary.withValues(
                                 alpha: 0.9,
@@ -396,8 +410,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: const [
                                 _ResetPasswordBullet(
-                                  text:
-                                      'Accepts secure token from reset email link',
+                                  text: 'Accepts six-digit OTP from email',
                                 ),
                                 _ResetPasswordBullet(
                                   text:

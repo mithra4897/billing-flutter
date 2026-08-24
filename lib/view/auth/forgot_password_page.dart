@@ -198,9 +198,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                                       color: Colors.white,
                                                     ),
                                               )
-                                            : const Text(
-                                                'Send reset instructions',
-                                              ),
+                                            : const Text('Send reset OTP'),
                                       ),
                                     ),
                                   ] else ...[
@@ -217,12 +215,87 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                         ),
                                       ),
                                       child: Text(
-                                        'We have accepted the request. If the account exists, the reset link will be sent from the configured company email setting to the employee email linked with that user.',
+                                        'We have accepted the request. If the account exists, a six-digit OTP has been sent to the registered email address.',
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(height: 1.5),
                                       ),
                                     ),
                                     const SizedBox(height: 18),
+                                    AppTextField(
+                                      label: 'OTP',
+                                      hint: 'Enter 6-digit OTP',
+                                      icon: Icons.password_outlined,
+                                      controller: controller.otpController,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(6),
+                                      ],
+                                      validator: (value) =>
+                                          RegExp(
+                                            r'^\d{6}$',
+                                          ).hasMatch((value ?? '').trim())
+                                          ? null
+                                          : 'Enter the 6-digit OTP sent to your email',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    AppTextField(
+                                      label: 'New password',
+                                      hint: 'Enter new password',
+                                      icon: Icons.lock_outline,
+                                      controller: controller.passwordController,
+                                      obscureText: true,
+                                      textInputAction: TextInputAction.next,
+                                      validator: (value) =>
+                                          (value ?? '').length < 6
+                                          ? 'New password must be at least 6 characters'
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    AppTextField(
+                                      label: 'Confirm password',
+                                      hint: 'Confirm new password',
+                                      icon: Icons.lock_outline,
+                                      controller:
+                                          controller.confirmPasswordController,
+                                      obscureText: true,
+                                      textInputAction: TextInputAction.done,
+                                      validator: (value) =>
+                                          value !=
+                                              controller.passwordController.text
+                                          ? 'Passwords do not match'
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 18),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        onPressed: controller.isLoading
+                                            ? null
+                                            : () async {
+                                                final success = await controller
+                                                    .submitReset(formContext);
+                                                if (success &&
+                                                    context.mounted) {
+                                                  _goToLogin();
+                                                }
+                                              },
+                                        child: controller.isLoading
+                                            ? const SizedBox(
+                                                height: 22,
+                                                width: 22,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      color: Colors.white,
+                                                    ),
+                                              )
+                                            : const Text('Reset password'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
                                   ],
                                   Align(
                                     alignment: Alignment.centerRight,

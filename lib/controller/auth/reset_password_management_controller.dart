@@ -2,11 +2,12 @@ import '../../screen.dart';
 
 class ResetPasswordManagementController extends GetxController {
   ResetPasswordManagementController({
-    required this.token,
+    required this.login,
     required this.redirectTo,
   });
 
-  final String token;
+  final String login;
+  final TextEditingController otpController = TextEditingController();
   final String? redirectTo;
 
   final TextEditingController passwordController = TextEditingController();
@@ -35,6 +36,7 @@ class ResetPasswordManagementController extends GetxController {
   void onClose() {
     passwordController.dispose();
     confirmPasswordController.dispose();
+    otpController.dispose();
     super.onClose();
   }
 
@@ -90,7 +92,8 @@ class ResetPasswordManagementController extends GetxController {
     try {
       final response = await _authService.resetPassword(
         PublicResetPasswordRequestModel(
-          token: token,
+          login: login,
+          otp: otpController.text.trim(),
           newPassword: passwordController.text,
           confirmPassword: confirmPasswordController.text,
         ),
