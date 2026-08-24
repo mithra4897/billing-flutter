@@ -50,6 +50,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   final HrService _service = HrService();
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _gridScrollController = ScrollController();
+  final GlobalKey _todayColumnKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
   late int _year;
   late int _month;
@@ -164,8 +165,27 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
       _error = error.toString().replaceFirst('Exception: ', '');
       _sheet = null;
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToTodayColumn();
+        });
+      }
     }
+  }
+
+  void _scrollToTodayColumn() {
+    if (!mounted || !_gridScrollController.hasClients) return;
+    final now = DateTime.now();
+    if (_year != now.year || _month != now.month) return;
+    final todayContext = _todayColumnKey.currentContext;
+    if (todayContext == null) return;
+    Scrollable.ensureVisible(
+      todayContext,
+      alignment: 0.5,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   bool _isEditable(
@@ -560,6 +580,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
               year: _year,
               month: _month,
               scrollController: _gridScrollController,
+              todayColumnKey: _todayColumnKey,
               cellBuilder: _buildAttendanceCell,
               manualOnly: widget.manualOnly,
               page: _page,

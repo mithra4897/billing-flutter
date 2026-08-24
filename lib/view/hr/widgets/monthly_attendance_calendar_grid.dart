@@ -19,6 +19,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
     required this.page,
     required this.perPage,
     required this.selectedEmployeeIds,
+    this.todayColumnKey,
     this.visibleDays,
     this.onEmployeeSelected,
     this.onAllEmployeesSelected,
@@ -35,6 +36,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
   final int page;
   final int perPage;
   final Set<int> selectedEmployeeIds;
+  final GlobalKey? todayColumnKey;
   final List<int>? visibleDays;
   final void Function(int employeeId, bool selected)? onEmployeeSelected;
   final void Function(bool selected)? onAllEmployeesSelected;
@@ -45,6 +47,8 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
     final days =
         visibleDays ??
         List<int>.generate(sheet.daysInMonth, (index) => index + 1);
+    final now = DateTime.now();
+    final showToday = year == now.year && month == now.month;
     return AppSectionCard(
       padding: EdgeInsets.zero,
       child: Scrollbar(
@@ -87,6 +91,7 @@ class MonthlyAttendanceCalendarGrid extends StatelessWidget {
               for (final day in days)
                 DataColumn(
                   label: SizedBox(
+                    key: showToday && day == now.day ? todayColumnKey : null,
                     width: 38,
                     child: Text(
                       '$day\n${_weekdayLabel(day)}',
