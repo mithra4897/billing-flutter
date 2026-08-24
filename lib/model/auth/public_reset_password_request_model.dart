@@ -2,18 +2,21 @@ import '../../screen.dart';
 
 class PublicResetPasswordRequestModel extends JsonModel {
   const PublicResetPasswordRequestModel({
-    required this.token,
+    required this.login,
+    required this.otp,
     required this.newPassword,
     required this.confirmPassword,
   }) : super(id: null);
 
-  final String token;
+  final String login;
+  final String otp;
   final String newPassword;
   final String confirmPassword;
 
   factory PublicResetPasswordRequestModel.fromJson(Map<String, dynamic> json) {
     return PublicResetPasswordRequestModel(
-      token: json['token']?.toString() ?? '',
+      login: json['login']?.toString() ?? '',
+      otp: json['otp']?.toString() ?? '',
       newPassword: json['new_password']?.toString() ?? '',
       confirmPassword: json['confirm_password']?.toString() ?? '',
     );
@@ -24,7 +27,8 @@ class PublicResetPasswordRequestModel extends JsonModel {
 
   @override
   Map<String, dynamic> toJson() => {
-    'token': token,
+    'login': login,
+    'otp': otp,
     'new_password': newPassword,
     'confirm_password': confirmPassword,
   };

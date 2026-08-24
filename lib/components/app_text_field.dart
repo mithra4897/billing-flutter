@@ -15,6 +15,7 @@ class AppTextField extends StatefulWidget {
     this.textAlign,
     this.numericDisplayKind,
     this.quantityAllowsFraction,
+    this.inputFormatters,
   });
 
   final String label;
@@ -29,6 +30,7 @@ class AppTextField extends StatefulWidget {
   final TextAlign? textAlign;
   final AppNumericDisplayKind? numericDisplayKind;
   final bool? quantityAllowsFraction;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -218,9 +220,11 @@ class _AppTextFieldState extends State<AppTextField> {
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,
           textAlign: _effectiveTextAlign,
-          inputFormatters: _isNumericField
-              ? const <TextInputFormatter>[NumericInputFormatter()]
-              : null,
+          inputFormatters:
+              widget.inputFormatters ??
+              (_isNumericField
+                  ? const <TextInputFormatter>[NumericInputFormatter()]
+                  : null),
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: Icon(widget.icon),

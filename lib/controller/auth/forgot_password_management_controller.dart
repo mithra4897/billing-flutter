@@ -6,6 +6,10 @@ class ForgotPasswordManagementController extends GetxController {
   final String? redirectTo;
 
   final TextEditingController loginController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   final AuthService _authService = AuthService();
   final PublicBrandingService _brandingService = PublicBrandingService();
@@ -26,6 +30,9 @@ class ForgotPasswordManagementController extends GetxController {
   @override
   void onClose() {
     loginController.dispose();
+    otpController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
     super.onClose();
   }
 
@@ -70,10 +77,7 @@ class ForgotPasswordManagementController extends GetxController {
 
     try {
       final response = await _authService.forgotPassword(
-        ForgotPasswordRequestModel(
-          login: loginController.text.trim(),
-          resetUrl: Uri.base.resolve('/reset-password').toString(),
-        ),
+        ForgotPasswordRequestModel(login: loginController.text.trim()),
       );
 
       if (response.success) {
@@ -105,6 +109,42 @@ class ForgotPasswordManagementController extends GetxController {
       return false;
     } catch (_) {
       actionMessage = 'Unable to submit the reset request right now.';
+      return false;
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
+
+  Future<bool> submitReset(BuildContext formContext) async {
+    if (Form.of(formContext).validate() != true) return false;
+
+    isLoading = true;
+    update();
+    try {
+      final response = await _authService.resetPassword(
+        PublicResetPasswordRequestModel(
+          login: loginController.text.trim(),
+          otp: otpController.text.trim(),
+          newPassword: passwordController.text,
+          confirmPassword: confirmPasswordController.text,
+        ),
+      );
+      if (response.success) {
+        actionMessage = response.message.trim().isEmpty
+            ? 'Password reset successfully. You can sign in now.'
+            : response.message;
+        return true;
+      }
+      actionMessage = response.message;
+      return false;
+    } on ApiException catch (errorValue) {
+      actionMessage = errorValue.isConnectivityIssue
+          ? 'Server is unreachable right now. Please try again.'
+          : errorValue.message;
+      return false;
+    } catch (_) {
+      actionMessage = 'Unable to reset password right now.';
       return false;
     } finally {
       isLoading = false;
