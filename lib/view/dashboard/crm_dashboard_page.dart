@@ -17,7 +17,8 @@ class CrmDashboardPage extends StatelessWidget {
     return ErpModuleDashboardPage(
       moduleKey: 'crm',
       embedded: embedded,
-      shellTitle: 'CRM Dashboard',
+      shellTitle: 'CRM',
+      showDashboardHeader: false,
       loader: (trendFilter) => buildCrmDashboardSnapshot(
         crmService: crmService ?? CrmService(),
         now: now ?? DateTime.now,

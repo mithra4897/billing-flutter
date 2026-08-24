@@ -205,6 +205,11 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       trendFilter ??
       const ErpDashboardTrendFilter(preset: ErpDashboardTrendPreset.monthly);
   final currentDate = now();
+  final currentUser = await SessionStorage.getCurrentUser();
+  final isSuperAdmin =
+      currentUser?['is_super_admin'] == true ||
+      currentUser?['is_super_admin'] == 1 ||
+      currentUser?['is_super_admin'] == '1';
   final pendingLeadResponses = await Future.wait(
     <Future<PaginatedResponse<CrmLeadModel>>>[
       crmService.leads(
@@ -239,6 +244,24 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
             ),
           )
           .toList(growable: false);
+  final dashboardAssignedEmployees = <String, String>{};
+  for (final row in followupBoardRows) {
+    final assignedUser = JsonModel.mapOf(row['assigned_user']);
+    if (assignedUser == null) {
+      continue;
+    }
+    final employeeId = intValue(assignedUser, 'id');
+    if (employeeId == null) {
+      continue;
+    }
+    final employeeName = stringValue(assignedUser, 'display_name').trim();
+    final employeeUsername = stringValue(assignedUser, 'username').trim();
+    dashboardAssignedEmployees['$employeeId'] = employeeName.isNotEmpty
+        ? employeeName
+        : employeeUsername.isNotEmpty
+        ? employeeUsername
+        : 'Employee $employeeId';
+  }
   final completedFollowupRows =
       (followupBoardData['completed_followups'] as List<dynamic>? ??
               const <dynamic>[])
@@ -362,8 +385,24 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     primarySections: <ErpDashboardListSection>[
       ErpDashboardListSection(
         title: 'Pending Follow-ups',
-        subtitle: 'Prioritized from live CRM follow-up records.',
+        subtitle: isSuperAdmin
+            ? 'Prioritized follow-ups across employees.'
+            : 'Prioritized from live CRM follow-up records.',
         icon: Icons.task_alt_outlined,
+        secondaryFilterOptions: isSuperAdmin
+            ? <ErpDashboardListFilterOption>[
+                const ErpDashboardListFilterOption(
+                  value: '',
+                  label: 'All employees',
+                ),
+                ...dashboardAssignedEmployees.entries.map(
+                  (employee) => ErpDashboardListFilterOption(
+                    value: 'employee:${employee.key}',
+                    label: employee.value,
+                  ),
+                ),
+              ]
+            : const <ErpDashboardListFilterOption>[],
         items: pendingItems
             .take(6)
             .map((item) {
@@ -406,6 +445,9 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                 detail: detailParts.isEmpty ? null : detailParts.join(' • '),
                 statusLabel: item.status.toUpperCase(),
                 statusColor: crmPriorityColor(item.priority),
+                secondaryFilterTags: item.assignedUserId == null
+                    ? const <String>[]
+                    : <String>['employee:${item.assignedUserId}'],
                 route: item.enquiryId == null
                     ? '/crm/opportunities'
                     : '/crm/opportunities/${item.enquiryId}',

@@ -15,6 +15,7 @@ class CrmPendingFollowupItem {
     required this.followupDateRaw,
     required this.priority,
     required this.status,
+    required this.assignedUserId,
     required this.assignedUserName,
     required this.summary,
   });
@@ -30,6 +31,7 @@ class CrmPendingFollowupItem {
   final String? followupDateRaw;
   final String priority;
   final String status;
+  final int? assignedUserId;
   final String? assignedUserName;
   final String? summary;
 
@@ -74,6 +76,7 @@ class CrmPendingFollowupItem {
             nullableStringValue(json, 'priority_label'),
       ),
       status: stringValue(json, 'status', 'pending'),
+      assignedUserId: assignedUser == null ? null : intValue(assignedUser, 'id'),
       assignedUserName: assignedDisplayName,
       summary:
           nullIfEmpty(stringValue(json, 'summary')) ??

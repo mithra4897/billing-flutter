@@ -8,6 +8,7 @@ class ErpModuleDashboardPage extends StatefulWidget {
     this.embedded = false,
     this.loader,
     this.shellTitle,
+    this.showDashboardHeader = true,
   });
 
   final String moduleKey;
@@ -15,6 +16,7 @@ class ErpModuleDashboardPage extends StatefulWidget {
   final Future<ErpDashboardSnapshot> Function(ErpDashboardTrendFilter? filter)?
   loader;
   final String? shellTitle;
+  final bool showDashboardHeader;
 
   @override
   State<ErpModuleDashboardPage> createState() => _ErpModuleDashboardPageState();
@@ -136,6 +138,7 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
                   ),
                   onTrendControlChanged: _handleTrendControlChanged,
                   trendLoading: controller.isTrendReloading,
+                  showHeader: widget.showDashboardHeader,
                 ),
               ),
             };
