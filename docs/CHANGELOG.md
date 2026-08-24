@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-24 — CRM lead probability status
+
+- Added a StaffU-inspired circular Probability column to the CRM Leads
+  register, with semantic high/medium/low colors and accessible percentage text.
+- Added model support for `probability_percent` and a status-based fallback for
+  legacy lead responses; no backend or database changes are required.
+
 ## 2026-08-24 — Sales outstanding balance drill-down parity
 
 - Request: Include overdue invoices in the Outstanding Balance pre-filter and

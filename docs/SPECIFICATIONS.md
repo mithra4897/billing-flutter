@@ -1503,3 +1503,22 @@ Acceptance criteria:
 3. Dark surface foreground contrast remains at least 4.5:1.
 4. Light theme values and the global primary color remain unchanged.
 5. Focused formatting, analysis, and theme tests pass.
+
+## CRM lead probability status
+
+Status: Implemented (2026-08-24)
+
+The CRM Leads register includes a StaffU-inspired Probability column rendered
+as a compact circular progress indicator with a centered percentage. Explicit
+`probability_percent` values are clamped to 0–100; legacy leads without that
+field use the existing lead status as a deterministic fallback (Draft 10%, In
+Progress 50%, Own 100%, Lost 0%). Color semantics are high teal, medium amber,
+and low error/red, while the existing status badge and row navigation remain
+unchanged.
+
+Acceptance criteria:
+
+1. Every lead row exposes a readable probability percentage and circular ring.
+2. Explicit API probability values are honored and safely clamped.
+3. Missing values use the documented status fallback without API writes.
+4. The indicator exposes semantic text for assistive technologies.

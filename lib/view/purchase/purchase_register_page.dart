@@ -9,6 +9,8 @@ class PurchaseRegisterColumn<T> {
     this.detailBuilder,
     this.flex = 2,
     this.alignRight = false,
+    this.center = false,
+    this.textStyle,
     this.showPlaceholderWhenEmpty = true,
     this.padding,
   });
@@ -19,6 +21,8 @@ class PurchaseRegisterColumn<T> {
   final String Function(T row)? detailBuilder;
   final int flex;
   final bool alignRight;
+  final bool center;
+  final TextStyle? textStyle;
   final bool showPlaceholderWhenEmpty;
   final EdgeInsetsGeometry? padding;
 }
@@ -361,7 +365,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       padding: column.padding ?? EdgeInsets.zero,
                       child: Text(
                         column.label,
-                        textAlign: column.alignRight
+                        textAlign: column.center
+                            ? TextAlign.center
+                            : column.alignRight
                             ? TextAlign.right
                             : TextAlign.left,
                         style: Theme.of(context).textTheme.labelMedium
@@ -477,7 +483,9 @@ class _RegisterHeader<T> extends StatelessWidget {
                   padding: column.padding ?? EdgeInsets.zero,
                   child: Text(
                     column.label,
-                    textAlign: column.alignRight
+                    textAlign: column.center
+                        ? TextAlign.center
+                        : column.alignRight
                         ? TextAlign.right
                         : TextAlign.left,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -571,7 +579,9 @@ class _RegisterCell<T> extends StatelessWidget {
     final detailValue = column.detailBuilder?.call(row).trim() ?? '';
     final primaryWidget = column.widgetBuilder != null
         ? Align(
-            alignment: column.alignRight
+            alignment: column.center
+                ? Alignment.center
+                : column.alignRight
                 ? Alignment.centerRight
                 : Alignment.centerLeft,
             widthFactor: 1,
@@ -581,7 +591,12 @@ class _RegisterCell<T> extends StatelessWidget {
             displayValue,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            textAlign: column.alignRight ? TextAlign.right : TextAlign.left,
+            textAlign: column.center
+                ? TextAlign.center
+                : column.alignRight
+                ? TextAlign.right
+                : TextAlign.left,
+            style: column.textStyle,
           );
 
     final paddedPrimaryWidget = Padding(
@@ -632,7 +647,7 @@ class _MobileRegisterField<T> extends StatelessWidget {
                 padding: column.padding ?? EdgeInsets.zero,
                 child: Text(
                   '${column.label}: $displayValue',
-                  style: textTheme.bodyMedium,
+                  style: column.textStyle ?? textTheme.bodyMedium,
                 ),
               ),
             ),

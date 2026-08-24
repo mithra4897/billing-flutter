@@ -1,5 +1,15 @@
 # Testing
 
+## CRM lead probability status
+
+- Verify the Leads register shows a circular percentage indicator beside each
+  lead's status.
+- Verify explicit probabilities below 0 or above 100 render as 0% or 100% and
+  do not affect the API payload.
+- Verify leads without a probability use Draft 10%, In Progress 50%, Own 100%,
+  or Lost 0%.
+- Verify the indicator's semantic label includes the displayed percentage.
+
 ## Sales outstanding balance drill-down parity — 2026-08-24
 
 - `dart format` completed for the shared sales dashboard helper, export, focused

@@ -414,3 +414,12 @@ The shared route builder opens `/sales/invoices` with `dashboard_filter=open`
 and `sort=balance_desc`, matching the explicit query-building pattern used by
 Monthly Sales. No additional request, backend endpoint, cache, or persistence
 layer is introduced.
+
+## CRM lead probability indicator
+
+`AppProbabilityIndicator` is the shared circular probability visualization used
+by the CRM Leads register. It clamps the supplied percentage, selects a semantic
+theme color by confidence band, and exposes the percentage through `Semantics`.
+The leads page prefers the API's `probability_percent`; for older lead payloads
+it maps the existing lead status to a stable fallback locally, so this UI change
+does not alter the CRM API or persistence model.

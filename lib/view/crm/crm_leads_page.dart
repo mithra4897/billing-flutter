@@ -274,6 +274,9 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Lead',
               flex: 3,
+              textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
               valueBuilder: (row) => stringValue(row.toJson(), 'lead_name'),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
@@ -286,12 +289,22 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
               valueBuilder: (row) => stringValue(row.toJson(), 'mobile'),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
-              label: 'Email',
-              flex: 3,
-              valueBuilder: (row) => stringValue(row.toJson(), 'email'),
+              label: 'Source',
+              flex: 2,
+              valueBuilder: (row) => _sourceLabel(row),
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Probability',
+              flex: 2,
+              center: true,
+              valueBuilder: (row) => '${_probabilityPercent(row).round()}%',
+              widgetBuilder: (context, row) => Center(
+                child: AppProbabilityIndicator(value: _probabilityPercent(row)),
+              ),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Status',
+              center: true,
               valueBuilder: (row) => controller.statusLabel(
                 stringValue(row.toJson(), 'lead_status'),
               ),
@@ -303,6 +316,11 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
                   color: appStatusColor(rawStatus),
                 );
               },
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Assigned to',
+              flex: 2,
+              valueBuilder: (row) => _assignedLabel(row),
             ),
             if (_isSuperAdmin)
               PurchaseRegisterColumn<CrmLeadModel>(
@@ -324,6 +342,39 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
         JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
     final displayName = stringValue(creator, 'display_name');
     return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+  }
+
+  String _sourceLabel(CrmLeadModel row) {
+    final source = row.source ?? const <String, dynamic>{};
+    return stringValue(source, 'source_name').isNotEmpty
+        ? stringValue(source, 'source_name')
+        : stringValue(source, 'name');
+  }
+
+  String _assignedLabel(CrmLeadModel row) {
+    final assigned = row.assignedUser ?? const <String, dynamic>{};
+    final displayName = stringValue(assigned, 'display_name');
+    return displayName.isNotEmpty
+        ? displayName
+        : stringValue(assigned, 'username');
+  }
+
+  double _probabilityPercent(CrmLeadModel row) {
+    final explicit = row.probabilityPercent;
+    if (explicit != null) return explicit.clamp(0, 100).toDouble();
+    switch ((row.leadStatus ?? '').trim().toLowerCase()) {
+      case 'converted':
+      case 'own':
+        return 100;
+      case 'lost':
+        return 0;
+      case 'in_progress':
+        return 50;
+      case 'new':
+      case 'draft':
+      default:
+        return 10;
+    }
   }
 
 }
