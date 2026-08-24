@@ -258,7 +258,8 @@ class _AppShellPageState extends State<AppShellPage> {
           key: routeKey,
           moduleKey: 'sales',
           embedded: true,
-          shellTitle: 'Sales Dashboard',
+          shellTitle: 'Sales',
+          showDashboardHeader: false,
         );
       case '/service/dashboard':
         return ErpModuleDashboardPage(

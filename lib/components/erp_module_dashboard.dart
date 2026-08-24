@@ -707,8 +707,11 @@ class _DashboardListCard extends StatefulWidget {
 }
 
 class _DashboardListCardState extends State<_DashboardListCard> {
+  static const int _pageSize = 10;
+
   late String _selectedFilter;
   late String _selectedSecondaryFilter;
+  int _currentPage = 1;
 
   ErpDashboardListSection get section => widget.section;
 
@@ -750,8 +753,15 @@ class _DashboardListCardState extends State<_DashboardListCard> {
           return true;
         })
         .toList(growable: false);
+    final totalPages = math.max(
+      1,
+      (filteredItems.length + _pageSize - 1) ~/ _pageSize,
+    );
+    final page = math.min(_currentPage, totalPages);
+    final pageStart = (page - 1) * _pageSize;
     final items = filteredItems
-        .take(section.maxVisibleItems ?? filteredItems.length)
+        .skip(pageStart)
+        .take(_pageSize)
         .toList(growable: false);
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
@@ -778,6 +788,7 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                           onChanged: (value) {
                             setState(() {
                               _selectedFilter = value;
+                              _currentPage = 1;
                             });
                             section.onFilterChanged?.call(value);
                           },
@@ -789,6 +800,7 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                           onChanged: (value) {
                             setState(() {
                               _selectedSecondaryFilter = value;
+                              _currentPage = 1;
                             });
                           },
                         ),
@@ -848,9 +860,10 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                                   AppUiConstants.buttonRadius,
                                 ),
                                 border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).dividerColor.withValues(alpha: 0.14),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outline
+                                      .withValues(alpha: 0.30),
                                 ),
                               ),
                               child: Row(
@@ -956,6 +969,39 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                   )
                   .toList(growable: false),
             ),
+          if (filteredItems.length > _pageSize) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '${pageStart + 1}-${math.min(pageStart + items.length, filteredItems.length)} of ${filteredItems.length}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: appTheme.mutedText,
+                  ),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                IconButton(
+                  tooltip: 'Previous page',
+                  onPressed: page > 1
+                      ? () => setState(() => _currentPage = page - 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_left_rounded),
+                ),
+                Text(
+                  '$page / $totalPages',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                IconButton(
+                  tooltip: 'Next page',
+                  onPressed: page < totalPages
+                      ? () => setState(() => _currentPage = page + 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -980,9 +1026,14 @@ class _DashboardListFilterDropdown extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+          color: Theme.of(context)
+              .colorScheme
+              .outline
+              .withValues(alpha: 0.50),
+          width: 1.2,
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -1226,9 +1277,14 @@ class _TrendControlDropdown extends StatelessWidget {
       key: const Key('erp-dashboard-trend-filter-dropdown'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+          color: Theme.of(context)
+              .colorScheme
+              .outline
+              .withValues(alpha: 0.50),
+          width: 1.2,
         ),
       ),
       child: DropdownButtonHideUnderline(

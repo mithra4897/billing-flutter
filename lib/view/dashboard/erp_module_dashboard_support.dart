@@ -1229,7 +1229,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                     dueDate.day,
                   ).isBefore(normalizedToday);
                 })
-                .take(3)
                 .map(
                   (item) => ErpDashboardListItem(
                     title:
@@ -1254,7 +1253,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                       item.balanceAmount ?? item.totalAmount ?? 0;
                   return status == 'partially_paid' && outstanding > 0;
                 })
-                .take(2)
                 .map(
                   (item) => ErpDashboardListItem(
                     title:
@@ -1277,7 +1275,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                       .toLowerCase();
                   return status == 'draft';
                 })
-                .take(2)
                 .map(
                   (item) => ErpDashboardListItem(
                     title:
@@ -1316,7 +1313,6 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                     expectedDate.day,
                   ).isBefore(normalizedToday);
                 })
-                .take(2)
                 .map(
                   (item) => ErpDashboardListItem(
                     title:
@@ -1332,7 +1328,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
                     filterTags: const <String>['delayed'],
                   ),
                 ),
-          ].take(6).toList(growable: false),
+          ],
         ),
       ],
       trend: _buildMonthlyTrendCard(
