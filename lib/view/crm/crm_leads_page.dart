@@ -270,7 +270,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
             ),
           ],
           rows: controller.filteredRows,
-          rowColorBuilder: _rowColor,
           columns: [
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Lead',
@@ -296,6 +295,14 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
               valueBuilder: (row) => controller.statusLabel(
                 stringValue(row.toJson(), 'lead_status'),
               ),
+              widgetBuilder: (context, row) {
+                final rawStatus = stringValue(row.toJson(), 'lead_status');
+                final label = controller.statusLabel(rawStatus);
+                return AppStatusBadge(
+                  label: label,
+                  color: appStatusColor(rawStatus),
+                );
+              },
             ),
             if (_isSuperAdmin)
               PurchaseRegisterColumn<CrmLeadModel>(
@@ -319,12 +326,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
     return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
   }
 
-  Color? _rowColor(CrmLeadModel row) {
-    final status = stringValue(row.toJson(), 'lead_status');
-    return status.trim().isEmpty
-        ? null
-        : appStatusColor(status).withValues(alpha: 0.10);
-  }
 }
 
 class _CrmLeadRegisterFilters extends StatelessWidget {
@@ -756,11 +757,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   }
                   _openCrmShellRoute(context, '/crm/leads/$id');
                 },
-                trailing: SettingsStatusPill(
+                trailing: AppStatusBadge(
                   label: controller.leadStatusLabel(
                     stringValue(data, 'lead_status', 'new'),
                   ),
-                  active: stringValue(data, 'lead_status', 'new') != 'lost',
+                  color: appStatusColor(
+                    stringValue(data, 'lead_status', 'new'),
+                  ),
                 ),
               );
             },

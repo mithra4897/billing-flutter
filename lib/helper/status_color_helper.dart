@@ -28,6 +28,8 @@ Color appStatusColor(String? rawStatus) {
   if (status.contains('completed') ||
       status.contains('closed') ||
       status.contains('won') ||
+      status.contains('qualified') ||
+      status.contains('converted') ||
       status.contains('approved') ||
       status.contains('paid') ||
       status.contains('posted') ||
@@ -41,6 +43,7 @@ Color appStatusColor(String? rawStatus) {
   if (status.contains('working') ||
       status.contains('in_progress') ||
       status.contains('in progress') ||
+      status.contains('negotiat') ||
       status.contains('pending') ||
       status.contains('on_hold') ||
       status.contains('on hold') ||
@@ -51,6 +54,13 @@ Color appStatusColor(String? rawStatus) {
   }
 
   if (status.contains('open')) {
+    return appStatusColorInfo;
+  }
+
+  if (status == 'new' ||
+      status.contains('contacted') ||
+      status.contains('proposal') ||
+      status.contains('submitted')) {
     return appStatusColorInfo;
   }
 

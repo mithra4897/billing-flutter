@@ -361,18 +361,6 @@ class _CrmOpportunityRegisterPageState
     return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
   }
 
-  Color? _rowColor(CrmOpportunityModel row) {
-    final data = row.toJson();
-    final status = stringValue(
-      data,
-      'status',
-      stringValue(data, 'enquiry_status'),
-    );
-    return status.trim().isEmpty
-        ? null
-        : appStatusColor(status).withValues(alpha: 0.10);
-  }
-
   String _statusLabel(String value) {
     switch (value.trim().toLowerCase()) {
       case 'won':
@@ -411,7 +399,6 @@ class _CrmOpportunityRegisterPageState
         ),
       ],
       rows: _filtered,
-      rowColorBuilder: _rowColor,
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Enquiry No',
@@ -458,6 +445,14 @@ class _CrmOpportunityRegisterPageState
           label: 'Status',
           valueBuilder: (row) =>
               _statusLabel(stringValue(row.toJson(), 'status')),
+          widgetBuilder: (context, row) {
+            final rawStatus = stringValue(row.toJson(), 'status');
+            final label = _statusLabel(rawStatus);
+            return AppStatusBadge(
+              label: label,
+              color: appStatusColor(rawStatus),
+            );
+          },
         ),
       ],
       onRowTap: (row) => _openCrmOpportunityShellRoute(
@@ -1182,9 +1177,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                                   width: _statusColumnWidth,
                                   child: Align(
                                     alignment: Alignment.centerLeft,
-                                    child: SettingsStatusPill(
+                                    child: AppStatusBadge(
                                       label: statusText,
-                                      active: statusText != 'lost',
+                                      color: appStatusColor(statusText),
                                     ),
                                   ),
                                 ),

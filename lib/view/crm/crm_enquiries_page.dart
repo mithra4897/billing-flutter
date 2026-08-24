@@ -400,17 +400,17 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   _openCrmShellRoute(context, '/crm/opportunities/$id');
                 },
                 detail: stringValue(data, 'remarks'),
-                trailing: SettingsStatusPill(
+                trailing: AppStatusBadge(
                   label: controller.lifecycleStatusLabel(
                     stringValue(data, 'status') == 'won'
                         ? 'won'
                         : stringValue(data, 'enquiry_status', 'open'),
                   ),
-                  active:
-                      (stringValue(data, 'status') == 'won'
-                          ? 'won'
-                          : stringValue(data, 'enquiry_status', 'open')) !=
-                      'lost',
+                  color: appStatusColor(
+                    stringValue(data, 'status') == 'won'
+                        ? 'won'
+                        : stringValue(data, 'enquiry_status', 'open'),
+                  ),
                 ),
               );
             },

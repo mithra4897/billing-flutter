@@ -641,7 +641,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
               child: Container(
                 constraints: BoxConstraints(maxHeight: dropdownHeight),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.extension<AppThemeExtension>()!.cardBackground,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: theme.dividerColor.withValues(alpha: 0.55),
