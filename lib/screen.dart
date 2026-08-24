@@ -338,6 +338,7 @@ export 'view/crm/crm_sources_page.dart';
 export 'view/crm/crm_stages_page.dart';
 export 'view/dashboard/crm_dashboard_page.dart';
 export 'view/dashboard/crm_dashboard_support.dart';
+export 'view/dashboard/sales_dashboard_support.dart';
 export 'view/dashboard/dashboard_page.dart';
 export 'view/dashboard/erp_module_dashboard_page.dart';
 export 'view/dashboard/erp_module_dashboard_support.dart';

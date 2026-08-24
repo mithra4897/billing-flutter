@@ -1351,6 +1351,89 @@ Acceptance criteria:
 8. Shared editable document line-item tables use the same bordered surface,
    header band, alternating rows, hover state, and selected state.
 
+## CRM follow-up timeline presentation
+
+Status: Implemented (2026-08-24)
+
+Objective: Apply the StaffU Activity Log visual language to the existing CRM
+follow-ups page while preserving its API contract, route filters, record
+visibility rules, and follow-up actions.
+
+Reference: `https://staffu.mantrakshdevs.com/active_log`, visually audited on
+2026-08-24.
+
+Requirements:
+
+- Keep the existing opportunity follow-up board request, hidden won/lost row
+  rules, completion filtering, dashboard query filters, refresh action, and
+  record-detail navigation unchanged.
+- Present each follow-up section as a bordered StaffU-style activity timeline
+  with a section heading, vertical rail, primary-colored nodes, compact time
+  labels, bordered detail cards, a Follow-up status badge, assignee/notes
+  metadata, and the existing Open action.
+- Add an optional single-date filter using the shared application date picker.
+  Clearing it restores the route's normal Today, Overdue, and Upcoming views.
+- Keep loading, error, and empty states on the existing shared components.
+- Adapt the timeline for narrow widths without horizontal overflow or hiding
+  the record action.
+
+Performance and accessibility:
+
+- Filtering and rendering remain O(n) time for n follow-up rows and O(n)
+  rendered-entry space; no additional API request or repeated per-row search is
+  introduced.
+- Timeline decoration must use semantic theme colors in both brightness modes.
+- Date and Open controls require visible labels/tooltips, and follow-up content
+  must remain available as normal readable text rather than decoration only.
+
+Acceptance criteria:
+
+1. Default, dashboard-filtered, and date-filtered follow-up rows preserve the
+   prior business selection rules.
+2. Follow-up sections visibly match the reference timeline structure in light
+   and dark themes.
+3. Selecting a date limits visible rows to that calendar day; clearing the
+   date restores the prior route view.
+4. Empty, loading, retry, refresh, and detail-navigation behavior remains
+   available.
+5. Focused formatting, analysis, and widget tests pass with no new warning.
+
+## Sales outstanding balance drill-down parity
+
+Status: Implemented (2026-08-24)
+
+Problem: The Sales Dashboard Outstanding Balance card totals every eligible
+positive invoice balance, but its invoice-register drill-down pre-selects only
+`posted` and `partially_paid`. The API exposes past-due positive balances with
+the derived `overdue` status, so those rows can be omitted and the register's
+overall outstanding total can disagree with the dashboard card.
+
+Objective: Make the dashboard value and its invoice drill-down use one shared
+outstanding-invoice definition, in the same deterministic route/filter style
+as the Monthly Sales card.
+
+Requirements:
+
+- An outstanding sales invoice has a positive `balance_amount` and a derived
+  status other than `draft` or `cancelled`.
+- The dashboard card must sum `balance_amount` only; it must not substitute the
+  original invoice total when balance data is absent.
+- The card route must apply `dashboard_filter=open` and descending balance
+  sorting.
+- The invoice register's Open preset must pre-select `posted`, `overdue`, and
+  `partially_paid`, then apply the same shared outstanding predicate.
+- Monthly Sales behavior, invoice API requests, manual filters, exports, and
+  database data remain unchanged.
+
+Performance and acceptance criteria:
+
+- Classification is O(1) per invoice and total aggregation is O(n) time with
+  O(1) auxiliary space.
+- For the same loaded invoice collection, the dashboard Outstanding Balance
+  equals the Open drill-down's overall outstanding total.
+- Overdue invoices appear in the Open preset, zero/negative balances and
+  draft/cancelled invoices do not, and focused tests cover all boundaries.
+
 ## Light-theme application sidebar
 
 Status: Implemented (2026-08-22)

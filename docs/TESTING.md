@@ -1,5 +1,34 @@
 # Testing
 
+## Sales outstanding balance drill-down parity — 2026-08-24
+
+- `dart format` completed for the shared sales dashboard helper, export, focused
+  dashboard/register edits, and unit test.
+- Focused Dart analysis of the dashboard helper, dashboard loader, invoice
+  register, and test passed with no issues.
+- `flutter test test/view/dashboard/sales_dashboard_support_test.dart
+  --no-pub`: passed all 4 tests.
+- Coverage verifies the overdue status preset, positive-balance/open-status
+  boundary, null-balance handling without invoice-total fallback, exact parity
+  between dashboard and drill-down sums, and the open/balance-desc route.
+- Manual authenticated verification remains recommended against the reported
+  company/FY dataset after refreshing both the Sales Dashboard and invoice
+  register.
+
+## CRM follow-up timeline presentation — 2026-08-24
+
+- Browser inspection of the StaffU Activity Log reference confirmed the date
+  filter card, grouped bordered sections, vertical rail and nodes, compact time
+  labels, nested detail cards, status pills, and responsive content structure.
+- `dart format` completed for the follow-ups page and focused widget test.
+- Focused Dart analysis reports only the page's pre-existing unused
+  `_buildGapList` warning; no new warning or information diagnostic is present.
+- `flutter test test/view/crm/crm_followups_page_test.dart --no-pub`: passed 3
+  tests covering populated timeline structure, rail continuity, record actions,
+  exact-date filtering/clearing, and a 420px-wide layout without overflow.
+- Authenticated manual visual QA against live CRM data remains recommended in
+  both operating-system brightness modes.
+
 ## Bulk Attendance submit-only action — 2026-08-22
 
 - Focused Flutter analysis passed for the Bulk Attendance page. Existing

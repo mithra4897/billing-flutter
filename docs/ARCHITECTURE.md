@@ -381,3 +381,36 @@ is required for either family.
 `localListTotalPages()`. It uses exact integer ceiling division, runs in O(1)
 time and O(1) space, and prevents exact page-size totals from producing a
 phantom page. Existing page extraction remains bounded to the visible page.
+
+## CRM follow-up timeline presentation
+
+`CrmFollowupsPage` continues to load the opportunity follow-up board through
+`CrmService` and applies the established completed, won/lost, source, and
+dashboard-route filters in memory. The presentation layer now renders those
+same bounded lists as StaffU-inspired timeline sections: a semantic rail and
+node, localized time label, bordered detail surface, status badge, assignee,
+notes, and the existing detail-route action.
+
+The optional calendar filter uses the shared `showAppDatePickerDialog` and
+normalizes the result to a local calendar day. It filters the already-loaded
+route-visible entries in one O(n) pass and does not trigger another API call.
+The timeline switches to a stacked time/detail arrangement below 680 logical
+pixels, while shared theme roles continue to own every surface, border, text,
+and accent color. `CrmService` injection on the page is optional and exists for
+deterministic widget verification; production callers retain the default
+service construction.
+
+## Sales outstanding balance parity
+
+`sales_dashboard_support.dart` is the shared boundary for the Sales Dashboard
+Outstanding Balance card and its invoice-register drill-down. It classifies an
+invoice as outstanding only when its derived status is neither draft nor
+cancelled and its persisted `balance_amount` is positive. The dashboard folds
+that predicate across the already-loaded invoice collection in O(n) time and
+O(1) auxiliary space; the register reuses the same predicate after selecting
+the `posted`, `overdue`, and `partially_paid` status set.
+
+The shared route builder opens `/sales/invoices` with `dashboard_filter=open`
+and `sort=balance_desc`, matching the explicit query-building pattern used by
+Monthly Sales. No additional request, backend endpoint, cache, or persistence
+layer is introduced.

@@ -14,20 +14,23 @@ class CrmFollowupsPage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.queryParameters = const <String, String>{},
+    this.crmService,
   });
 
   final bool embedded;
   final Map<String, String> queryParameters;
+  final CrmService? crmService;
 
   @override
   State<CrmFollowupsPage> createState() => _CrmFollowupsPageState();
 }
 
 class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
-  final CrmService _crmService = CrmService();
+  late final CrmService _crmService;
   final ScrollController _scrollController = ScrollController();
   bool _loading = true;
   String? _error;
+  DateTime? _selectedDate;
   List<Map<String, dynamic>> _followups = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _nextFollowupRows = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _gaps = const <Map<String, dynamic>>[];
@@ -46,9 +49,45 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   bool get _showOverdueOnly => _dashboardFilter == 'overdue';
   bool get _showUpcomingOnly => _dashboardFilter == 'upcoming';
   bool get _showOpenFollowupsOnly => _dashboardFilter == 'open_followups';
+  bool get _hasDashboardFilter =>
+      _showDueTodayOnly ||
+      _showOverdueOnly ||
+      _showUpcomingOnly ||
+      _showOpenFollowupsOnly;
 
   DateTime _normalizeDate(DateTime value) =>
       DateTime(value.year, value.month, value.day);
+
+  bool _matchesSelectedDate(_FollowupListEntry entry) {
+    final selectedDate = _selectedDate;
+    if (selectedDate == null) {
+      return true;
+    }
+    return _normalizedRowDate(entry.row, entry.dateKey) == selectedDate;
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final selected = await showAppDatePickerDialog(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: appCalendarFirstDate(now),
+      lastDate: appCalendarLastDate(now),
+      title: 'Filter followups by date',
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _selectedDate = _normalizeDate(selected);
+    });
+  }
+
+  void _clearDateFilter() {
+    setState(() {
+      _selectedDate = null;
+    });
+  }
 
   DateTime? _parseRowDateTime(Map<String, dynamic> row, String key) {
     final rawDate = nullableStringValue(row, key);
@@ -76,6 +115,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   @override
   void initState() {
     super.initState();
+    _crmService = widget.crmService ?? CrmService();
     _load();
   }
 
@@ -295,14 +335,12 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     String? inlineDetailText,
     String? notes,
   }) {
-    final assignedLabel = _assignedLabel(row).trim();
     final trimmedDateText = (dateText ?? '').trim();
     final trimmedInlineDetailText = (inlineDetailText ?? '').trim();
     final trimmedNotes = (notes ?? '').trim();
 
     return <String>[
       if (trimmedDateText.isNotEmpty) trimmedDateText,
-      if (assignedLabel.isNotEmpty) 'Assigned $assignedLabel',
       if (trimmedInlineDetailText.isNotEmpty) trimmedInlineDetailText,
       if (trimmedNotes.isNotEmpty) trimmedNotes,
     ].join(' • ');
@@ -429,6 +467,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final today = _normalizeDate(DateTime.now());
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
+        if (!_matchesSelectedDate(entry)) {
+          return false;
+        }
         final normalized = _normalizedRowDate(entry.row, entry.dateKey);
         if (normalized == null) {
           return false;
@@ -455,7 +496,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final today = _normalizeDate(DateTime.now());
     return _sortedEntries(
       _effectiveFollowupEntries.where(
-        (entry) => _normalizedRowDate(entry.row, entry.dateKey) == today,
+        (entry) =>
+            _matchesSelectedDate(entry) &&
+            _normalizedRowDate(entry.row, entry.dateKey) == today,
       ),
     );
   }
@@ -464,6 +507,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final today = _normalizeDate(DateTime.now());
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
+        if (!_matchesSelectedDate(entry)) {
+          return false;
+        }
         final normalized = _normalizedRowDate(entry.row, entry.dateKey);
         return normalized != null && normalized.isAfter(today);
       }),
@@ -631,6 +677,140 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     );
   }
 
+  Widget _buildSelectedDateFollowupList(BuildContext context) {
+    final entries = _selectedDateEntries;
+    if (entries.isEmpty) {
+      return SettingsEmptyState(
+        icon: Icons.event_busy_outlined,
+        title: 'No Followups on ${formatCalendarDate(_selectedDate!)}',
+        message: 'No followups match this date and the current route filter.',
+        minHeight: 180,
+      );
+    }
+
+    return Column(
+      children: List<Widget>.generate(entries.length, (index) {
+        final entry = entries[index];
+        return _buildFollowupCard(
+          context,
+          entry.row,
+          icon: Icons.event_note_outlined,
+          fallbackTitle: 'CRM Followup',
+          dateText: displayDateTime(
+            nullableStringValue(entry.row, entry.dateKey),
+          ),
+          showBottomBorder: index != entries.length - 1,
+        );
+      }),
+    );
+  }
+
+  Widget _buildDateFilter(BuildContext context) {
+    final selectedDate = _selectedDate;
+    return AppSectionCard(
+      showShadow: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+          final dateButton = AppActionButton(
+            icon: Icons.calendar_month_outlined,
+            label: selectedDate == null
+                ? 'Select date'
+                : formatCalendarDate(selectedDate),
+            filled: false,
+            onPressed: _pickDate,
+          );
+          final clearButton = selectedDate == null
+              ? null
+              : IconButton(
+                  tooltip: 'Clear date filter',
+                  onPressed: _clearDateFilter,
+                  icon: const Icon(Icons.close),
+                );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Filter with Date',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: AppUiConstants.spacingXs),
+                Row(
+                  children: [
+                    Flexible(child: dateButton),
+                    ?clearButton,
+                  ],
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Filter with Date',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingXs),
+                    dateButton,
+                  ],
+                ),
+              ),
+              ?clearButton,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimelineSection({
+    required BuildContext context,
+    required String title,
+    required Widget child,
+  }) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  border: Border.all(color: appTheme.tableBorder),
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+                child: const Icon(Icons.keyboard_arrow_down, size: 18),
+              ),
+              const SizedBox(width: AppUiConstants.spacingXs),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          child,
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionListRow(
     BuildContext context, {
     required Widget child,
@@ -673,60 +853,225 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final title = _cardTitle(row, fallback: fallbackTitle);
     final summaryText = _followupSummaryText(
       row,
-      dateText: dateText,
       inlineDetailText: inlineDetailText,
       notes: notes,
     );
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final parsedDate = dateText == null
+        ? null
+        : DateTime.tryParse(nullableStringValue(row, 'next_followup') ?? '') ??
+              DateTime.tryParse(
+                nullableStringValue(row, 'followup_date') ?? '',
+              );
+    final localDate = parsedDate?.isUtc == true
+        ? parsedDate!.toLocal()
+        : parsedDate;
+    final timeText = localDate == null
+        ? (dateText ?? 'No date')
+        : MaterialLocalizations.of(
+            context,
+          ).formatTimeOfDay(TimeOfDay.fromDateTime(localDate));
+    final assignedLabel = _assignedLabel(row).trim();
 
-    return _buildSectionListRow(
-      context,
-      compact: true,
-      showBottomBorder: showBottomBorder,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: AppUiConstants.spacingSm),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    Widget detailCard = Material(
+      key: ValueKey<String>('followup-card-${_rowIdentity(row)}'),
+      color: appTheme.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        side: BorderSide(color: appTheme.tableBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingXs,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 Text(
                   title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (summaryText.isNotEmpty) ...[
-                  const SizedBox(height: AppUiConstants.spacingXxs),
-                  Text(
-                    summaryText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
-                  ),
+                AppStatusBadge(
+                  label: 'Follow-up',
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ),
+            if (summaryText.isNotEmpty) ...[
+              const SizedBox(height: AppUiConstants.spacingXs),
+              Text(
+                summaryText,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
+              ),
+            ],
+            if (assignedLabel.isNotEmpty || detailRoute != null) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Row(
+                children: [
+                  if (assignedLabel.isNotEmpty) ...[
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.12),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        assignedLabel.characters.first.toUpperCase(),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(width: AppUiConstants.spacingXs),
+                    Expanded(
+                      child: Text(
+                        assignedLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ),
+                  ] else
+                    const Spacer(),
+                  if (detailRoute != null)
+                    AppActionButton(
+                      icon: Icons.open_in_new_outlined,
+                      label: 'Open',
+                      filled: false,
+                      onPressed: () =>
+                          _openCrmFollowupShellRoute(context, detailRoute),
+                    ),
                 ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    return LayoutBuilder(
+      key: ValueKey<String>('followup-timeline-${_rowIdentity(row)}'),
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 680;
+        final timelineRail = SizedBox(
+          width: 24,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (showBottomBorder)
+                Positioned(
+                  left: 11,
+                  top: 14,
+                  bottom: -AppUiConstants.spacingMd,
+                  child: Container(
+                    key: const ValueKey<String>('followup-timeline-rail'),
+                    width: 2,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.28),
+                  ),
+                ),
+              Positioned(
+                left: 5,
+                top: 8,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: appTheme.cardBackground,
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.24),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final timeLabel = Padding(
+          padding: const EdgeInsets.only(top: AppUiConstants.spacingXs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.schedule_outlined,
+                size: 16,
+                color: appTheme.mutedText,
+              ),
+              const SizedBox(width: AppUiConstants.spacingXxs),
+              Text(
+                timeText,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+              ),
+            ],
+          ),
+        );
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: showBottomBorder ? AppUiConstants.spacingMd : 0,
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                timelineRail,
+                const SizedBox(width: AppUiConstants.spacingXs),
+                if (!compact) ...[
+                  SizedBox(width: 132, child: timeLabel),
+                  const SizedBox(width: AppUiConstants.spacingSm),
+                  Expanded(child: detailCard),
+                ] else
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        timeLabel,
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                        detailCard,
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-          if (detailRoute != null) ...[
-            const SizedBox(width: AppUiConstants.spacingXs),
-            AppActionButton(
-              icon: Icons.open_in_new_outlined,
-              label: 'Open',
-              filled: false,
-              onPressed: () => _openCrmFollowupShellRoute(context, detailRoute),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  List<_FollowupListEntry> get _selectedDateEntries {
+    if (_selectedDate == null) {
+      return const <_FollowupListEntry>[];
+    }
+    final source = _hasDashboardFilter
+        ? _visiblePendingFollowups
+        : _effectiveFollowupEntries;
+    return _sortedEntries(source.where(_matchesSelectedDate));
   }
 
   Widget _buildGapList(BuildContext context) {
@@ -861,74 +1206,38 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_showDueTodayOnly &&
-              !_showOverdueOnly &&
-              !_showUpcomingOnly &&
-              !_showOpenFollowupsOnly) ...[
-            AppSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Today Followups',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildTodayFollowupList(context),
-                ],
-              ),
+          _buildDateFilter(context),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          if (_selectedDate != null)
+            _buildTimelineSection(
+              context: context,
+              title: formatCalendarDate(_selectedDate!),
+              child: _buildSelectedDateFollowupList(context),
+            )
+          else if (!_hasDashboardFilter) ...[
+            _buildTimelineSection(
+              context: context,
+              title: 'Today',
+              child: _buildTodayFollowupList(context),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            AppSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Overdue',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildPendingList(context),
-                ],
-              ),
+            _buildTimelineSection(
+              context: context,
+              title: 'Overdue',
+              child: _buildPendingList(context),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            AppSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Upcoming Followups',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildUpcomingFollowupList(context),
-                ],
-              ),
+            _buildTimelineSection(
+              context: context,
+              title: 'Upcoming Followups',
+              child: _buildUpcomingFollowupList(context),
             ),
-          ] else ...[
-            AppSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _pendingSectionTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  _buildPendingList(context),
-                ],
-              ),
+          ] else
+            _buildTimelineSection(
+              context: context,
+              title: _pendingSectionTitle,
+              child: _buildPendingList(context),
             ),
-          ],
         ],
       ),
     );
@@ -959,10 +1268,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 }
 
 class _FollowupListEntry {
-  const _FollowupListEntry({
-    required this.row,
-    required this.dateKey,
-  });
+  const _FollowupListEntry({required this.row, required this.dateKey});
 
   final Map<String, dynamic> row;
   final String dateKey;

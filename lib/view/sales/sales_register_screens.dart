@@ -1472,11 +1472,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
             return status != 'draft' && status != 'cancelled';
           case 'open':
-            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
-            final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
-            return status.isNotEmpty &&
-                !<String>{'draft', 'cancelled'}.contains(status) &&
-                outstanding > 0;
+            return salesInvoiceIsOutstanding(row);
           case 'overdue':
             final status = (row.invoiceStatus ?? '').trim().toLowerCase();
             final outstanding = row.balanceAmount ?? row.totalAmount ?? 0.0;
@@ -1572,7 +1568,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
           case 'submitted':
             return 'posted,partially_paid,paid';
           case 'open':
-            return 'posted,partially_paid';
+            return salesOpenInvoiceStatusOverride;
           default:
             return '';
         }

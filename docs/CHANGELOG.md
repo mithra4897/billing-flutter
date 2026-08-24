@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-08-24 — Sales outstanding balance drill-down parity
+
+- Request: Include overdue invoices in the Outstanding Balance pre-filter and
+  make its drill-down amount match the dashboard, like Monthly Sales.
+- Specification: Added the outstanding-invoice definition, route behavior, and
+  parity acceptance criteria to `docs/SPECIFICATIONS.md`.
+- Implementation: Added one reusable sales-invoice outstanding predicate,
+  balance aggregator, status preset, and route builder. Both the Sales
+  Dashboard and invoice register now use the same positive `balance_amount`
+  rule; the Open preset includes posted, overdue, and partially paid invoices
+  and sorts by descending balance.
+- Files changed: Shared sales dashboard support, Sales Dashboard loader,
+  invoice register, screen export, focused tests, and durable documentation.
+- Database/API impact: None; existing invoice list/all endpoints and persisted
+  balances are reused.
+- Security impact: None.
+- Tests added or updated: Added four focused parity and boundary tests.
+- Tests executed and results: Focused analysis passed with no issues; focused
+  Flutter tests passed 4/4.
+- Documentation updated: Specifications, architecture, testing, and changelog.
+- Known limitations: The reported production-shaped dataset was not available
+  to the isolated unit test, so authenticated manual value comparison remains.
+- Follow-up work: None required after dataset verification.
+
+## 2026-08-24 — CRM follow-up timeline presentation
+
+- Request: Reproduce the StaffU Activity Log design on the CRM follow-ups page.
+- Specification: Added the CRM follow-up timeline requirements and acceptance
+  criteria to `docs/SPECIFICATIONS.md`.
+- Implementation: Reworked the existing Today, Overdue, Upcoming, and
+  dashboard-filtered lists into semantic StaffU-style timelines; added an
+  optional shared-calendar date filter; retained refresh, loading, error,
+  empty, route-filter, visibility, and Open-record behavior. Added optional
+  service injection solely for deterministic widget tests.
+- Files changed: `lib/view/crm/crm_followups_page.dart`, focused widget tests,
+  and durable frontend documentation.
+- Database/API impact: None; the existing follow-up board and create/detail
+  contracts are unchanged, and date filtering is local.
+- Security impact: None; no new data is collected, stored, or transmitted.
+- Tests added or updated: Added desktop, date-filter, and 420px responsive
+  widget coverage.
+- Tests executed and results: Focused widget tests passed 3/3; focused analysis
+  has only the pre-existing unused `_buildGapList` warning.
+- Documentation updated: Specifications, architecture, testing, and changelog.
+- Known limitations: Authenticated visual QA with production-shaped CRM data is
+  not available in the local widget-test environment.
+- Follow-up work: None required for the presentation change.
+
 ## 2026-08-22 — Make Bulk Attendance submit-only
 
 - Removed the Bulk Attendance **Save draft** action. The remaining **Submit

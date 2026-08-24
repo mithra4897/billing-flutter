@@ -1083,14 +1083,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         )
         .length;
 
-    final outstandingAmount = invoiceRows.fold<double>(0.0, (sum, item) {
-      final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-      final outstanding = item.balanceAmount ?? item.totalAmount ?? 0.0;
-      if (status == 'draft' || status == 'cancelled' || outstanding <= 0) {
-        return sum;
-      }
-      return sum + outstanding;
-    });
+    final outstandingAmount = totalSalesInvoiceOutstanding(invoiceRows);
 
     final pipelineValue = (quotations.data ?? const <SalesQuotationModel>[])
         .fold<double>(0.0, (sum, item) {
@@ -1171,7 +1164,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
           helper: 'Awaiting customer payments',
           icon: Icons.payments_outlined,
           color: const Color(0xFFDA4D78),
-          route: '/sales/invoices?dashboard_filter=open',
+          route: salesOpenInvoicesRoute(),
         ),
         ErpDashboardStat(
           label: 'Active Pipeline',
