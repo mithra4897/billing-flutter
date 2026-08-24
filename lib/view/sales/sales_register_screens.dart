@@ -41,7 +41,6 @@ bool _matchesSelectedStatus(String? value, Set<String> selectedStatuses) {
 }
 
 const _salesRegisterSortItems = <AppDropdownItem<String>>[
-  AppDropdownItem(value: '', label: 'Default order'),
   AppDropdownItem(value: 'date_desc', label: 'Newest first'),
   AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
@@ -49,7 +48,6 @@ const _salesRegisterSortItems = <AppDropdownItem<String>>[
 ];
 
 const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
-  AppDropdownItem(value: '', label: 'Default order'),
   AppDropdownItem(value: 'date_desc', label: 'Newest first'),
   AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
@@ -102,7 +100,7 @@ class SalesRegisterController<T> extends GetxController {
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
-    this.initialSort = '',
+    this.initialSort = 'date_desc',
   });
 
   final SalesRegisterLoader<T> loader;
@@ -285,7 +283,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
-    this.initialSort = '',
+    this.initialSort = 'date_desc',
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -575,7 +573,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('customer_ids', <int>{});
     controller.setStatuses(<String>{});
-    controller.setSort('');
+    controller.setSort('date_desc');
   }
 
   Widget _searchField() {
@@ -1359,7 +1357,6 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       loader: (service) => service.invoices(
         filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
-      initialSort: 'balance_desc',
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, statuses, customFilters) {

@@ -65,25 +65,34 @@ Widget salesStatusBadge(
     case 'fully_allocated':
       color = Colors.green.shade600;
       break;
+    case 'fully_delivered':
+    case 'closed':
     case 'paid':
+    case 'fully_invoiced':
       color = Colors.teal.shade600;
       break;
     case 'partially_paid':
     case 'partially_returned':
+    case 'partially_invoiced':
+    case 'partially_delivered':
     case 'pending':
     case 'payment_pending':
     case 'due':
     case 'due_soon':
+    case 'draft':
       color = Colors.amber.shade700;
       break;
     case 'partially_allocated':
       color = Colors.orange.shade600;
       break;
+    case 'confirmed':
+    case 'accepted':
+      color = Colors.blue.shade600;
+      break;
     case 'posted':
     case 'submitted':
       color = Colors.blue.shade600;
       break;
-    case 'draft':
     default:
       color =
           Theme.of(context).extension<AppThemeExtension>()?.mutedText ??
