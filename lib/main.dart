@@ -51,8 +51,8 @@ void main() {
 }
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<AppToastMessengerState> appScaffoldMessengerKey =
-    GlobalKey<AppToastMessengerState>();
+final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class BillingApp extends StatelessWidget {
   const BillingApp({super.key});
@@ -79,7 +79,7 @@ class BillingApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: AppTheme.defaultMode,
       initialRoute: _initialRouteName(),
-      builder: (context, child) => AppToastMessenger(
+      builder: (context, child) => AppToastScaffoldMessenger(
         key: appScaffoldMessengerKey,
         child: child ?? const SizedBox.shrink(),
       ),

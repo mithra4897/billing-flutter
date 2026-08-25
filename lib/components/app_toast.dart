@@ -1,32 +1,45 @@
 import '../screen.dart';
 
 enum AppToastType { success, warning, error, info }
+
 class AppToast {
   AppToast._();
 
   static OverlayEntry? _entry;
+  static int _generation = 0;
 
   static void show(
     String message, {
+    BuildContext? context,
     AppToastType? type,
     Duration duration = const Duration(seconds: 3),
   }) {
     final text = message.trim();
     if (text.isEmpty) return;
 
-    final context = Get.overlayContext;
-    if (context == null) return;
-    final overlay = Overlay.of(context, rootOverlay: true);
+    final overlay =
+        appNavigatorKey.currentState?.overlay ??
+        (context == null
+            ? null
+            : Overlay.maybeOf(context, rootOverlay: true)) ??
+        (Get.overlayContext == null
+            ? null
+            : Overlay.maybeOf(Get.overlayContext!, rootOverlay: true));
+    if (overlay == null) return;
     dismiss();
+    final generation = ++_generation;
     final toastType = type ?? _inferType(text);
     _entry = OverlayEntry(
       builder: (context) => _AppToastView(message: text, type: toastType),
     );
     overlay.insert(_entry!);
-    Future<void>.delayed(duration, dismiss);
+    Future<void>.delayed(duration, () {
+      if (generation == _generation) dismiss();
+    });
   }
 
   static void dismiss() {
+    _generation++;
     _entry?.remove();
     _entry = null;
   }
@@ -50,30 +63,35 @@ class AppToast {
   }
 }
 
-/// Compatibility host for controller notifications while screens migrate from
-/// `ScaffoldMessenger` calls to `AppToast.show`.
-class AppToastMessenger extends StatefulWidget {
-  const AppToastMessenger({super.key, required this.child});
-
-  final Widget child;
+/// Root messenger that redirects existing snackbar callers to [AppToast].
+class AppToastScaffoldMessenger extends ScaffoldMessenger {
+  const AppToastScaffoldMessenger({super.key, required super.child});
 
   @override
-  State<AppToastMessenger> createState() => AppToastMessengerState();
+  ScaffoldMessengerState createState() => AppToastScaffoldMessengerState();
 }
 
-class AppToastMessengerState extends State<AppToastMessenger> {
-  void showSnackBar(SnackBar snackBar) {
+class AppToastScaffoldMessengerState extends ScaffoldMessengerState {
+  @override
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showSnackBar(
+    SnackBar snackBar, {
+    AnimationStyle? snackBarAnimationStyle,
+  }) {
     final content = snackBar.content;
     final message = content is Text
         ? content.data ?? content.textSpan?.toPlainText()
         : null;
-    AppToast.show(message ?? 'Notification');
+    AppToast.show(message ?? 'Notification', context: context);
+    return super.showSnackBar(
+      const SnackBar(
+        content: SizedBox.shrink(),
+        duration: Duration(milliseconds: 1),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      snackBarAnimationStyle: AnimationStyle.noAnimation,
+    );
   }
-
-  void hideCurrentSnackBar() => AppToast.dismiss();
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 class _AppToastView extends StatelessWidget {
