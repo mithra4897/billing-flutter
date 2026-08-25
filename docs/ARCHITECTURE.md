@@ -1,5 +1,17 @@
 # Architecture
 
+## CRM expected-value display formatting
+
+`formatCrmExpectedValue` is the single presentation helper shared by the CRM
+opportunity controller and register page. It parses a bounded scalar input in
+O(1) time and O(1) space, maps absent or numeric-zero values to the `-`
+placeholder, and otherwise preserves the API text. This is display-only: typed
+models, API payloads, filtering, storage, and monetary calculations are not
+changed. The existing `PurchaseRegisterColumn` remains the register component;
+the Expected Value column uses its built-in centered alignment and an
+appropriate flex allocation. The legacy read-only table uses the same centered
+text alignment.
+
 ## CRM register filter presentation
 
 CRM register pages reuse the Sales register's toggleable `PurchaseRegisterPage`

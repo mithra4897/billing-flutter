@@ -1,6 +1,15 @@
 import '../../screen.dart';
 import 'crm_module_refresh_controller.dart';
 
+String formatCrmExpectedValue(String raw, {String zeroPlaceholder = '-'}) {
+  final normalized = raw.trim();
+  final parsed = double.tryParse(normalized);
+  if (normalized.isEmpty || (parsed != null && parsed == 0)) {
+    return zeroPlaceholder;
+  }
+  return raw;
+}
+
 class CrmOpportunitiesController extends GetxController {
   static const int allFilterIntValue = 0;
   static const String allFilterStringValue = '__all__';
@@ -87,15 +96,6 @@ class CrmOpportunitiesController extends GetxController {
   Worker? _refreshWorker;
   String? _autofilledOpportunityName;
   String? _autofilledRemarks;
-
-  String _displayExpectedValue(Map<String, dynamic> data) {
-    final raw = stringValue(data, 'expected_value');
-    final parsed = double.tryParse(raw.trim());
-    if (parsed != null && parsed == 0) {
-      return '';
-    }
-    return raw;
-  }
 
   bool get isSelectedOpportunityReadOnly {
     final data = selectedItem?.toJson() ?? const <String, dynamic>{};
@@ -395,7 +395,10 @@ class CrmOpportunitiesController extends GetxController {
     status = stringValue(data, 'status', 'open');
     remarksController.text = stringValue(data, 'remarks');
     nameController.text = stringValue(data, 'opportunity_name');
-    expectedValueController.text = _displayExpectedValue(data);
+    expectedValueController.text = formatCrmExpectedValue(
+      stringValue(data, 'expected_value'),
+      zeroPlaceholder: '',
+    );
     probabilityController.text = stringValue(data, 'probability_percent');
     expectedCloseDateController.text = displayDate(
       nullableStringValue(data, 'expected_close_date'),

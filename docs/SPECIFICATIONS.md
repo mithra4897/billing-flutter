@@ -1,5 +1,33 @@
 # Specifications
 
+## CRM Enquiries expected-value presentation
+
+- Date: 2026-08-25
+- Status: Implemented
+
+Objective: Make the Expected Value column in the CRM Enquiries register
+readable and prevent zero or absent amounts from appearing as a meaningful
+value.
+
+Requirements:
+
+1. The Expected Value column has sufficient register width to remain visibly
+   separate from the adjacent Lead By column.
+2. A missing, blank, numeric zero, or zero-formatted Expected Value renders as
+   a centered `-` in register and read-only table views.
+3. A non-zero numeric amount retains its API-provided display text; malformed
+   non-empty legacy text remains visible rather than being discarded, and the
+   Expected Value column remains center-aligned.
+4. No CRM API, database, persistence, filtering, sorting, or calculation
+   behavior changes.
+
+Acceptance criteria:
+
+1. `0`, `0.0`, `0.00`, blank, and absent values show a centered `-`.
+2. A value such as `25000` is shown unchanged and centered.
+3. Expected Value and Lead By do not visually merge in the desktop register.
+4. Focused formatter tests, formatting, and analysis pass.
+
 ## CRM inline filter bars
 
 - Date: 2026-08-25

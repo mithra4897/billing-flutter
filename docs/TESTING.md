@@ -1,5 +1,18 @@
 # Testing
 
+## CRM Enquiries expected-value presentation — 2026-08-25
+
+- The register and legacy read-only table configure the shared Expected Value
+  display as centered, including its `-` zero/blank placeholder.
+- `dart format` completed for the CRM Expected Value formatter, register page,
+  and focused unit test.
+- Focused `flutter analyze` completed with no issues.
+- `flutter test test/controller/crm/crm_opportunities_controller_test.dart
+  --no-pub` passed 3/3 tests for blank/zero placeholders, non-zero/legacy
+  value preservation, and the blank editable-field variant.
+- Authenticated visual QA remains recommended to confirm the wider Expected
+  Value column remains distinct from Lead By at desktop and narrow widths.
+
 ## CRM inline filter bars — 2026-08-25
 
 - Verify the Filter action on CRM Enquiries, Leads, and Opportunities toggles

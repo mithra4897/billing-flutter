@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-25 — CRM Enquiries expected-value presentation
+
+- Request: Separate Expected Value from Lead By and replace zero values with a
+  clear placeholder.
+- Specification: Added display rules and acceptance criteria for blank and
+  zero Expected Value fields.
+- Implementation: Reused one CRM Expected Value formatter in the register and
+  read-only table view; zero/blank values show `-`, while editor input remains
+  blank for a zero value. Expanded the register column from its default width
+  to flex 2 and configured both views to center the Expected Value text and
+  placeholder.
+- Files changed: CRM opportunity controller/register page, focused formatter
+  test, and durable frontend documentation.
+- Database/API impact: None; the existing `expected_value` field is displayed
+  without changing its payload or persistence.
+- Security impact: None.
+- Tests added or updated: Added focused zero, blank, non-zero, legacy-text,
+  and editable-placeholder coverage.
+- Tests executed and results: Focused analysis passed with no issues; focused
+  Flutter test passed 3/3.
+- Documentation updated: Specifications, architecture, testing, and changelog.
+- Known limitations: Authenticated visual QA is still needed for production
+  desktop and narrow-width register layouts.
+- Follow-up work: None.
+
 ## 2026-08-25 — CRM inline filter bars
 
 - Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,

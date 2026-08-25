@@ -336,8 +336,11 @@ class _CrmOpportunityRegisterPageState
         ),
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Expected Value',
-          alignRight: true,
-          valueBuilder: (row) => stringValue(row.toJson(), 'expected_value'),
+          flex: 2,
+          center: true,
+          valueBuilder: (row) => formatCrmExpectedValue(
+            stringValue(row.toJson(), 'expected_value'),
+          ),
         ),
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Lead By',
@@ -1088,9 +1091,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                               ),
                               DataCell(
                                 _tableCellText(
-                                  stringValue(data, 'expected_value'),
+                                  formatCrmExpectedValue(
+                                    stringValue(data, 'expected_value'),
+                                  ),
                                   _valueColumnWidth,
-                                  textAlign: TextAlign.right,
+                                  textAlign: TextAlign.center,
                                 ),
                                 onTap: () => controller.selectItem(item),
                               ),
