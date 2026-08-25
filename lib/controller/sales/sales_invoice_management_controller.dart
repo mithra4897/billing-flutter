@@ -51,6 +51,9 @@ class SalesInvoiceManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  PaginationMeta? listMeta;
+  int listPage = 1;
+  Timer? _filterDebounce;
   List<SalesInvoiceModel> items = const <SalesInvoiceModel>[];
   List<SalesInvoiceModel> filteredItems = const <SalesInvoiceModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -1650,7 +1653,9 @@ class SalesInvoiceManagementController extends GetxController {
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(handleWorkingContextChanged);
-    searchController.addListener(applyFilters);
+    searchController.addListener(_scheduleFilteredReload);
+    dateFromController.addListener(_scheduleFilteredReload);
+    dateToController.addListener(_scheduleFilteredReload);
   }
 
   Future<void> initialize({
@@ -1701,8 +1706,9 @@ class SalesInvoiceManagementController extends GetxController {
     workspaceController.dispose();
     dateFromController.dispose();
     dateToController.dispose();
+    _filterDebounce?.cancel();
     searchController
-      ..removeListener(applyFilters)
+      ..removeListener(_scheduleFilteredReload)
       ..dispose();
     invoiceNoController.dispose();
     invoiceDateController.dispose();
@@ -1765,6 +1771,7 @@ class SalesInvoiceManagementController extends GetxController {
     int? initialOrderId,
     int? initialDeliveryId,
     bool? editorOnly,
+    int page = 1,
   }) async {
     final effectiveQuotationId = initialQuotationId ?? this.initialQuotationId;
     final effectiveProformaId = initialProformaId ?? this.initialProformaId;
@@ -1787,9 +1794,18 @@ class SalesInvoiceManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final invoiceFilters = <String, dynamic>{
-        'per_page': 200,
+        'per_page': 50,
+        'page': page,
         'sort_by': 'invoice_date',
+        'sort_order': 'desc',
       };
+      final search = searchController.text.trim();
+      final dateFrom = dateFromController.text.trim();
+      final dateTo = dateToController.text.trim();
+      if (search.isNotEmpty) invoiceFilters['search'] = search;
+      if (statusFilter.isNotEmpty) invoiceFilters['invoice_status'] = statusFilter;
+      if (dateFrom.isNotEmpty) invoiceFilters['date_from'] = dateFrom;
+      if (dateTo.isNotEmpty) invoiceFilters['date_to'] = dateTo;
       if (effectiveDeliveryId != null) {
         invoiceFilters['sales_delivery_id'] = effectiveDeliveryId;
       } else if (effectiveOrderId != null) {
@@ -1868,6 +1884,8 @@ class SalesInvoiceManagementController extends GetxController {
 
       State(() {
         items = invoicesResponse?.data ?? const <SalesInvoiceModel>[];
+        listMeta = invoicesResponse?.meta;
+        listPage = invoicesResponse?.meta?.currentPage ?? page;
         final pending = pendingSelection;
         if (pending != null && pending.id != null) {
           final pendingId = pending.id!;
@@ -2253,7 +2271,9 @@ class SalesInvoiceManagementController extends GetxController {
         .where((item) {
           final data = rowJson(item);
           final status = item.invoiceStatus ?? '';
-          final statusOk = statusFilter.isEmpty || status == statusFilter;
+          // Payment states such as paid and overdue are calculated by the API,
+          // rather than stored as invoice_status values.
+          const statusOk = true;
           final cust = quotationCustomerLabel(data);
           final searchOk =
               search.isEmpty ||
@@ -2279,6 +2299,27 @@ class SalesInvoiceManagementController extends GetxController {
     State(() {
       filteredItems = nextFiltered;
     });
+  }
+
+  void _scheduleFilteredReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!isClosed) {
+        unawaited(loadPage(page: 1));
+      }
+    });
+  }
+
+  void setStatusFilter(String value) {
+    if (statusFilter == value) return;
+    statusFilter = value;
+    _scheduleFilteredReload();
+    update();
+  }
+
+  void goToListPage(int page) {
+    if (page < 1 || page == listPage) return;
+    unawaited(loadPage(page: page));
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

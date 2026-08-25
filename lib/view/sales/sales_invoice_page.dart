@@ -600,6 +600,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         emptyMessage: 'No invoices yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        remoteTotalItems: controller.listMeta?.total,
+        remoteCurrentPage: controller.listMeta?.currentPage,
+        remotePerPage: controller.listMeta?.perPage,
+        onRemotePageChanged: controller.goToListPage,
         filterFields: [
           AppFormTextField(
             labelText: 'Search',
@@ -630,17 +634,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               controller.searchController.clear();
               controller.dateFromController.clear();
               controller.dateToController.clear();
-              controller.statusFilter = '';
-              controller.applyFilters();
+              controller.setStatusFilter('');
             },
           ),
         ],
         statusValue: controller.statusFilter,
         statusItems: SalesInvoiceManagementController.listStatusFilter,
-        onStatusChanged: (value) {
-          controller.statusFilter = value ?? '';
-          controller.applyFilters();
-        },
+        onStatusChanged: (value) =>
+            controller.setStatusFilter(value ?? ''),
         showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = controller.rowJson(item);

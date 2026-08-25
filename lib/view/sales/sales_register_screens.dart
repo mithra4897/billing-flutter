@@ -1,7 +1,16 @@
 import '../../screen.dart';
 import '../../controller/sales/sales_module_refresh_controller.dart';
 
-typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
+typedef SalesRegisterLoader<T> =
+    Future<dynamic> Function(
+      SalesService service,
+      Map<String, dynamic> filters,
+    );
+typedef SalesRegisterAllLoader<T> =
+    Future<dynamic> Function(
+      SalesService service,
+      Map<String, dynamic> filters,
+    );
 typedef SalesRegisterMatcher<T> =
     bool Function(
       T row,
@@ -55,6 +64,21 @@ const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'balance_desc', label: 'High outstanding'),
 ];
 
+Map<String, dynamic> _salesServerFilters(
+  Map<String, dynamic> filters, {
+  required String dateField,
+  required String documentField,
+  String? balanceField,
+}) {
+  final requested = filters['sort_by']?.toString();
+  final sortField = switch (requested) {
+    'document' => documentField,
+    'balance_amount' when balanceField != null => balanceField,
+    _ => dateField,
+  };
+  return <String, dynamic>{...filters, 'sort_by': sortField};
+}
+
 int _compareRegisterStrings(String? left, String? right) {
   final leftValue = (left ?? '').trim().toLowerCase();
   final rightValue = (right ?? '').trim().toLowerCase();
@@ -92,24 +116,51 @@ String _salesCustomerName(Map<String, dynamic> data) {
   return stringValue(data, 'customer_name');
 }
 
+String _salesInvoiceEffectiveStatus(SalesInvoiceModel invoice) {
+  final stored = (invoice.invoiceStatus ?? '').trim().toLowerCase();
+  if (stored == 'draft' || stored == 'cancelled') {
+    return stored;
+  }
+  final balance = invoice.balanceAmount ?? invoice.totalAmount ?? 0;
+  if (balance <= 0) {
+    return 'paid';
+  }
+  final paid = doubleValue(invoice.toJson(), 'paid_amount') ?? 0;
+  final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  if (dueDate != null &&
+      DateTime(dueDate.year, dueDate.month, dueDate.day).isBefore(today)) {
+    return 'overdue';
+  }
+  if (paid > 0) {
+    return 'partially_paid';
+  }
+  return 'posted';
+}
+
 class SalesRegisterController<T> extends GetxController {
   SalesRegisterController({
     required this.loader,
+    required this.allLoader,
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
     this.initialSort = 'date_desc',
+    this.statusFilterKey = '',
   });
 
   final SalesRegisterLoader<T> loader;
+  final SalesRegisterAllLoader<T> allLoader;
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesRegisterDateValue<T> dateValueOf;
   final SalesRegisterDocumentValue<T> documentValueOf;
   final SalesRegisterBalanceValue<T>? balanceValueOf;
   final String initialSort;
+  final String statusFilterKey;
   final SalesService _service = SalesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
@@ -124,11 +175,21 @@ class SalesRegisterController<T> extends GetxController {
   String dashboardFilter = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
+  List<T> allRows = <T>[];
+  final Map<int, String> customerOptions = <int, String>{};
+  PaginationMeta? pagination;
   Worker? _refreshWorker;
+  Timer? _filterDebounce;
 
   List<T> get filteredRows {
+    return _filterRows(rows);
+  }
+
+  List<T> get allFilteredRows => _filterRows(allRows);
+
+  List<T> _filterRows(List<T> source) {
     final query = searchController.text.trim().toLowerCase();
-    final filtered = rows
+    final filtered = source
         .where(
           (row) =>
               matches(row, query, selectedStatuses, customFilters) &&
@@ -148,9 +209,9 @@ class SalesRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     sort = initialSort;
-    searchController.addListener(update);
-    dateFromController.addListener(update);
-    dateToController.addListener(update);
+    searchController.addListener(_scheduleFilterReload);
+    dateFromController.addListener(_scheduleFilterReload);
+    dateToController.addListener(_scheduleFilterReload);
     _refreshWorker = ever<SalesModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -166,14 +227,15 @@ class SalesRegisterController<T> extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _filterDebounce?.cancel();
     dateFromController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     dateToController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     searchController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     super.onClose();
   }
@@ -181,11 +243,13 @@ class SalesRegisterController<T> extends GetxController {
   void setStatuses(Set<String> values) {
     selectedStatuses = Set<String>.from(values);
     update();
+    _scheduleFilterReload();
   }
 
   void setSort(String value) {
     sort = value;
     update();
+    _scheduleFilterReload();
   }
 
   void setCustomFilter(String key, dynamic value) {
@@ -197,6 +261,23 @@ class SalesRegisterController<T> extends GetxController {
       customFilters[key] = value;
     }
     update();
+    _scheduleFilterReload();
+  }
+
+  void _scheduleFilterReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(load(page: 1)),
+    );
+  }
+
+  Future<void> applyFilters() => load(page: 1);
+
+  void goToPage(int page) {
+    if (page >= 1 && page != pagination?.currentPage) {
+      unawaited(load(page: page));
+    }
   }
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
@@ -211,6 +292,7 @@ class SalesRegisterController<T> extends GetxController {
     dateFromController.clear();
     dateToController.clear();
     update();
+    unawaited(load(page: 1));
   }
 
   int _compareRows(T left, T right) {
@@ -250,18 +332,66 @@ class SalesRegisterController<T> extends GetxController {
     return leftValue.compareTo(rightValue);
   }
 
-  Future<void> load() async {
+  Future<void> load({int page = 1}) async {
+    _filterDebounce?.cancel();
     loading = true;
     error = null;
     update();
     try {
-      final response = await loader(_service);
+      final filters = <String, dynamic>{
+        'per_page': 50,
+        'page': page,
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (dateFromController.text.trim().isNotEmpty)
+          'date_from': dateFromController.text.trim(),
+        if (dateToController.text.trim().isNotEmpty)
+          'date_to': dateToController.text.trim(),
+      };
+      if (statusFilterKey.isNotEmpty && selectedStatuses.isNotEmpty) {
+        if (selectedStatuses.length == 1) {
+          filters[statusFilterKey] = selectedStatuses.single;
+        } else {
+          filters['${statusFilterKey}es'] = selectedStatuses.join(',');
+        }
+      }
+      final customerIds = _selectedSet<int>(customFilters['customer_ids']);
+      if (customerIds.length == 1) {
+        filters['customer_party_id'] = customerIds.single;
+      }
+      final sortValues = _serverSortValues();
+      filters
+        ..['sort_by'] = sortValues.$1
+        ..['sort_order'] = sortValues.$2;
+      final responses = await Future.wait<dynamic>([
+        loader(_service, filters),
+        if (page == 1) allLoader(_service, filters),
+      ]);
+      final response = responses.first;
       final data = response.data;
+      pagination = response.meta as PaginationMeta?;
       rows = data is List<T>
           ? data
           : data is List
           ? data.whereType<T>().toList(growable: false)
           : <T>[];
+      if (page == 1) {
+        final allData = responses[1].data;
+        allRows = allData is List<T>
+            ? allData
+            : allData is List
+            ? allData.whereType<T>().toList(growable: false)
+            : <T>[];
+        for (final row in allRows) {
+          if (row is! JsonModel) continue;
+          final json = row.toJson();
+          final id = intValue(json, 'customer_party_id');
+          final name = _salesCustomerName(json);
+          if (id != null && name.isNotEmpty) {
+            customerOptions[id] = name;
+          }
+        }
+      }
       loading = false;
       update();
     } catch (err) {
@@ -269,6 +399,17 @@ class SalesRegisterController<T> extends GetxController {
       loading = false;
       update();
     }
+  }
+
+  (String, String) _serverSortValues() {
+    return switch (sort) {
+      'date_asc' => ('date', 'asc'),
+      'doc_asc' => ('document', 'asc'),
+      'doc_desc' => ('document', 'desc'),
+      'balance_desc' => ('balance_amount', 'desc'),
+      'balance_asc' => ('balance_amount', 'asc'),
+      _ => ('date', 'desc'),
+    };
   }
 }
 
@@ -278,6 +419,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.title,
     required this.embedded,
     required this.loader,
+    required this.allLoader,
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
@@ -297,12 +439,14 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     this.customFiltersBuilder,
     this.footerBuilder,
     this.rowColorBuilder,
+    this.statusFilterKey = '',
   });
 
   final String controllerName;
   final String title;
   final bool embedded;
   final SalesRegisterLoader<T> loader;
+  final SalesRegisterAllLoader<T> allLoader;
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesRegisterDateValue<T> dateValueOf;
@@ -335,6 +479,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   )?
   footerBuilder;
   final Color? Function(BuildContext context, T row)? rowColorBuilder;
+  final String statusFilterKey;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -382,12 +527,14 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
       Get.put(
         SalesRegisterController<T>(
           loader: widget.loader,
+          allLoader: widget.allLoader,
           matches: widget.matches,
           dashboardMatches: widget.dashboardMatches,
           dateValueOf: widget.dateValueOf,
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
           initialSort: widget.initialSort,
+          statusFilterKey: widget.statusFilterKey,
         ),
         tag: _controllerTag,
       );
@@ -469,11 +616,12 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           rowColorBuilder: widget.rowColorBuilder,
           onRowTap: (row) =>
               _openSalesShellRoute(context, widget.rowRoute(row)),
-          footerBuilder: (context, currentPage) => widget.footerBuilder?.call(
-            context,
-            controller,
-            currentPage,
-          ),
+          footerBuilder: (context, currentPage) =>
+              widget.footerBuilder?.call(context, controller, currentPage),
+          remoteTotalItems: controller.pagination?.total,
+          remoteCurrentPage: controller.pagination?.currentPage,
+          remotePerPage: controller.pagination?.perPage,
+          onRemotePageChanged: controller.goToPage,
         );
       },
     );
@@ -515,66 +663,53 @@ class _SalesRegisterSummaryFooter extends StatelessWidget {
       ),
       child: Row(
         children: cells
-            .map(
-              (cell) {
-                final textStyle = theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                );
-                final displayText = cell.text == 'Total'
-                    ? 'Page total:\nOverall total:'
-                    : cell.text;
-                final isSummary = displayText.contains('\n');
-                return Expanded(
-                  flex: cell.flex,
-                  child: isSummary
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: displayText
-                              .split('\n')
-                              .expand(
-                                (line) => <Widget>[
-                                  if (line != displayText.split('\n').first)
-                                    Divider(
-                                      height: 8,
-                                      thickness: 1,
-                                      color: theme.dividerColor,
-                                    ),
-                                  Text(
-                                    line,
-                                    textAlign: cell.text.contains('\n')
-                                        ? TextAlign.right
-                                        : TextAlign.left,
-                                    style: textStyle,
+            .map((cell) {
+              final textStyle = theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              );
+              final displayText = cell.text == 'Total'
+                  ? 'Page total:\nOverall total:'
+                  : cell.text;
+              final isSummary = displayText.contains('\n');
+              return Expanded(
+                flex: cell.flex,
+                child: isSummary
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: displayText
+                            .split('\n')
+                            .expand(
+                              (line) => <Widget>[
+                                if (line != displayText.split('\n').first)
+                                  Divider(
+                                    height: 8,
+                                    thickness: 1,
+                                    color: theme.dividerColor,
                                   ),
-                                ],
-                              )
-                              .toList(growable: false),
-                        )
-                      : Text(
-                          displayText,
-                          textAlign: cell.alignRight
-                              ? TextAlign.right
-                              : TextAlign.left,
-                          style: textStyle,
-                        ),
-                );
-              },
-            )
+                                Text(
+                                  line,
+                                  textAlign: cell.text.contains('\n')
+                                      ? TextAlign.right
+                                      : TextAlign.left,
+                                  style: textStyle,
+                                ),
+                              ],
+                            )
+                            .toList(growable: false),
+                      )
+                    : Text(
+                        displayText,
+                        textAlign: cell.alignRight
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        style: textStyle,
+                      ),
+              );
+            })
             .toList(growable: false),
       ),
     );
   }
-}
-
-List<T> _salesCurrentPageRows<T>(List<T> rows, int currentPage) {
-  final start = (currentPage - 1) * kLocalListPageSize;
-  if (start >= rows.length) {
-    return <T>[];
-  }
-  final end = start + kLocalListPageSize > rows.length
-      ? rows.length
-      : start + kLocalListPageSize;
-  return rows.sublist(start, end);
 }
 
 String _salesTotalSummary(double overall, double page) =>
@@ -583,20 +718,8 @@ String _salesTotalSummary(double overall, double page) =>
 List<AppDropdownItem<int>> _mappedCustomerItems<T>(
   SalesRegisterController<T> controller,
 ) {
-  final uniqueCustomers = <int, String>{};
-  for (final row in controller.rows) {
-    if (row is! JsonModel) {
-      continue;
-    }
-    final data = row.toJson();
-    final id = intValue(data, 'customer_party_id');
-    final name = _salesCustomerName(data);
-    if (id != null && name.isNotEmpty) {
-      uniqueCustomers[id] = name;
-    }
-  }
   return <AppDropdownItem<int>>[
-    ...uniqueCustomers.entries.map(
+    ...controller.customerOptions.entries.map(
       (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
     ),
   ];
@@ -627,6 +750,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.setCustomFilter('customer_ids', <int>{});
     controller.setStatuses(<String>{});
     controller.setSort('date_desc');
+    unawaited(controller.applyFilters());
   }
 
   Widget _searchField() {
@@ -638,27 +762,30 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _customerField() {
+    final selected = _selectedSet<int>(
+      controller.customFilters['customer_ids'],
+    );
     return AppDropdownField<int>.fromMapped(
       labelText: 'Customer',
       mappedItems: customerItemsBuilder!(controller),
-      multiInitialValues: _selectedSet<int>(
-        controller.customFilters['customer_ids'],
+      initialValue: selected.isEmpty ? null : selected.first,
+      onChanged: (value) => controller.setCustomFilter(
+        'customer_ids',
+        value == null ? <int>{} : <int>{value},
       ),
-      multiHintText: 'Select customers',
-      onMultiChanged: (values) =>
-          controller.setCustomFilter('customer_ids', values),
     );
   }
 
   Widget _statusField() {
+    final selected = controller.selectedStatuses;
     return AppDropdownField<String>.fromMapped(
       labelText: 'Status',
       mappedItems: statusItems
           .where((item) => item.value.trim().isNotEmpty)
           .toList(growable: false),
-      multiInitialValues: controller.selectedStatuses,
-      multiHintText: 'Select statuses',
-      onMultiChanged: controller.setStatuses,
+      initialValue: selected.isEmpty ? null : selected.first,
+      onChanged: (value) =>
+          controller.setStatuses(value == null ? <String>{} : <String>{value}),
     );
   }
 
@@ -690,21 +817,29 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: AppUiConstants.spacingXs),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: _clearFilters,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
-            style: OutlinedButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            SizedBox(
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: controller.loading
+                    ? null
+                    : () => unawaited(controller.applyFilters()),
+                icon: const Icon(Icons.filter_alt_outlined),
+                label: const Text('Apply Filters'),
               ),
             ),
-          ),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: controller.loading ? null : _clearFilters,
+                icon: const Icon(Icons.clear_outlined),
+                label: const Text('Clear'),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -747,7 +882,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppUiConstants.spacingMd),
-              SizedBox(width: 160, child: _actionField(context)),
+              SizedBox(width: 310, child: _actionField(context)),
             ],
           );
         }
@@ -865,9 +1000,21 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       title: 'Quotations',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.quotations(
-        filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
+      loader: (service, filters) => service.quotations(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'quotation_date',
+          documentField: 'quotation_no',
+        ),
       ),
+      allLoader: (service, filters) => service.quotationsAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'quotation_date',
+          documentField: 'quotation_no',
+        ),
+      ),
+      statusFilterKey: 'quotation_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -906,9 +1053,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         }
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
-      rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(
-        row.createdAt,
-      ),
+      rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(row.createdAt),
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
         controller: controller,
@@ -918,8 +1063,8 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
       ),
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) =>
@@ -1045,9 +1190,21 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
       title: 'Proforma Invoices',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.proformaInvoices(
-        filters: const {'per_page': 200, 'sort_by': 'proforma_date'},
+      loader: (service, filters) => service.proformaInvoices(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'proforma_date',
+          documentField: 'proforma_no',
+        ),
       ),
+      allLoader: (service, filters) => service.proformaInvoicesAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'proforma_date',
+          documentField: 'proforma_no',
+        ),
+      ),
+      statusFilterKey: 'proforma_status',
       documentValueOf: (row) => row.proformaInvoiceNo ?? '',
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1107,8 +1264,8 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
       ),
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
@@ -1210,9 +1367,21 @@ class SalesOrderRegisterPage extends StatelessWidget {
       title: 'Orders',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.orders(
-        filters: const {'per_page': 200, 'sort_by': 'order_date'},
+      loader: (service, filters) => service.orders(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'order_date',
+          documentField: 'order_no',
+        ),
       ),
+      allLoader: (service, filters) => service.ordersAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'order_date',
+          documentField: 'order_no',
+        ),
+      ),
+      statusFilterKey: 'order_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1308,8 +1477,8 @@ class SalesOrderRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
       ),
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) =>
@@ -1439,14 +1608,28 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       title: 'Invoices',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.invoices(
-        filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
+      loader: (service, filters) => service.invoices(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'invoice_date',
+          documentField: 'invoice_no',
+          balanceField: 'balance_amount',
+        ),
       ),
+      allLoader: (service, filters) => service.invoicesAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'invoice_date',
+          documentField: 'invoice_no',
+          balanceField: 'balance_amount',
+        ),
+      ),
+      statusFilterKey: 'invoice_status',
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
-        final rowStatus = row.invoiceStatus ?? '';
+        final rowStatus = _salesInvoiceEffectiveStatus(row);
         final searchText = [
           row.invoiceNo ?? '',
           rowStatus,
@@ -1513,7 +1696,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       statusItems: _statusItems,
       extraActionsBuilder: (context, controller) => <Widget>[
         SalesInvoiceExportButton(
-          invoices: controller.filteredRows,
+          invoices: controller.allFilteredRows,
           returnDateFrom: controller.dateFromController.text,
           returnDateTo: controller.dateToController.text,
         ),
@@ -1527,8 +1710,8 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         sortItems: _salesInvoiceRegisterSortItems,
       ),
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
@@ -1641,9 +1824,21 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
       controllerName: 'SalesDeliveryRegisterController',
       title: 'Deliveries',
       embedded: embedded,
-      loader: (service) => service.deliveries(
-        filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
+      loader: (service, filters) => service.deliveries(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'delivery_date',
+          documentField: 'delivery_no',
+        ),
       ),
+      allLoader: (service, filters) => service.deliveriesAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'delivery_date',
+          documentField: 'delivery_no',
+        ),
+      ),
+      statusFilterKey: 'delivery_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1733,9 +1928,21 @@ class SalesReceiptRegisterPage extends StatelessWidget {
       title: 'Receipts',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.receipts(
-        filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+      loader: (service, filters) => service.receipts(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'receipt_date',
+          documentField: 'receipt_no',
+        ),
       ),
+      allLoader: (service, filters) => service.receiptsAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'receipt_date',
+          documentField: 'receipt_no',
+        ),
+      ),
+      statusFilterKey: 'receipt_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1778,8 +1985,8 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         customerItemsBuilder: _mappedCustomerItems,
       ),
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _salesCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(0, (sum, row) {
           final raw = row.toJson()['paid_amount'];
           return sum +
@@ -1884,9 +2091,21 @@ class SalesReturnRegisterPage extends StatelessWidget {
       controllerName: 'SalesReturnRegisterController',
       title: 'Returns',
       embedded: embedded,
-      loader: (service) => service.returns(
-        filters: const {'per_page': 200, 'sort_by': 'return_date'},
+      loader: (service, filters) => service.returns(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'return_date',
+          documentField: 'return_no',
+        ),
       ),
+      allLoader: (service, filters) => service.returnsAll(
+        filters: _salesServerFilters(
+          filters,
+          dateField: 'return_date',
+          documentField: 'return_no',
+        ),
+      ),
+      statusFilterKey: 'return_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();

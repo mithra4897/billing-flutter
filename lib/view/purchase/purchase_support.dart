@@ -462,6 +462,10 @@ class PurchaseListCard<T> extends StatefulWidget {
     this.onStatusChanged,
     this.showInlineFilters = true,
     this.headerActions = const <Widget>[],
+    this.remoteTotalItems,
+    this.remoteCurrentPage,
+    this.remotePerPage,
+    this.onRemotePageChanged,
     required this.itemBuilder,
   });
 
@@ -477,6 +481,13 @@ class PurchaseListCard<T> extends StatefulWidget {
   final ValueChanged<String?>? onStatusChanged;
   final bool showInlineFilters;
   final List<Widget> headerActions;
+  /// When supplied, the enclosing register owns pagination and [items] is the
+  /// already-paged server result.  This prevents a partial API result being
+  /// paged a second time in the client.
+  final int? remoteTotalItems;
+  final int? remoteCurrentPage;
+  final int? remotePerPage;
+  final ValueChanged<int>? onRemotePageChanged;
   final Widget Function(T item, bool selected) itemBuilder;
 
   @override
@@ -539,10 +550,13 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
     final controller = Get.find<_PurchaseListCardController>(
       tag: _controllerTag,
     );
-    if (!identical(oldWidget.items, widget.items)) {
+    if (widget.onRemotePageChanged == null &&
+        !identical(oldWidget.items, widget.items)) {
       controller.resetToFirstPage();
     }
-    controller.syncItemCountChange(widget.items.length);
+    if (widget.onRemotePageChanged == null) {
+      controller.syncItemCountChange(widget.items.length);
+    }
     controller.update();
   }
 
@@ -567,7 +581,13 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
     return GetBuilder<_PurchaseListCardController>(
       tag: _controllerTag,
       builder: (controller) {
-        final visibleItems = _pagedItems(controller.currentPage);
+        final usesRemotePagination = widget.onRemotePageChanged != null &&
+            widget.remoteTotalItems != null &&
+            widget.remoteCurrentPage != null &&
+            widget.remotePerPage != null;
+        final visibleItems = usesRemotePagination
+            ? widget.items
+            : _pagedItems(controller.currentPage);
 
         return AppSectionCard(
           child: Column(
@@ -655,9 +675,18 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                   ],
                 ),
               LocalPageNavigation(
-                totalItems: widget.items.length,
-                currentPage: controller.currentPage,
-                onPageChanged: controller.setPage,
+                totalItems: usesRemotePagination
+                    ? widget.remoteTotalItems!
+                    : widget.items.length,
+                pageSize: usesRemotePagination
+                    ? widget.remotePerPage!
+                    : kLocalListPageSize,
+                currentPage: usesRemotePagination
+                    ? widget.remoteCurrentPage!
+                    : controller.currentPage,
+                onPageChanged: usesRemotePagination
+                    ? widget.onRemotePageChanged!
+                    : controller.setPage,
               ),
             ],
           ),

@@ -46,6 +46,10 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.footer,
     this.footerBuilder,
     this.rowColorBuilder,
+    this.remoteTotalItems,
+    this.remoteCurrentPage,
+    this.remotePerPage,
+    this.onRemotePageChanged,
   });
 
   final String title;
@@ -64,6 +68,10 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final Widget? footer;
   final Widget? Function(BuildContext context, int currentPage)? footerBuilder;
   final Color? Function(BuildContext context, T row)? rowColorBuilder;
+  final int? remoteTotalItems;
+  final int? remoteCurrentPage;
+  final int? remotePerPage;
+  final ValueChanged<int>? onRemotePageChanged;
 
   @override
   State<PurchaseRegisterPage<T>> createState() =>
@@ -102,12 +110,14 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   @override
   void didUpdateWidget(covariant PurchaseRegisterPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.rows, widget.rows)) {
+    if (widget.onRemotePageChanged == null && !identical(oldWidget.rows, widget.rows)) {
       _controller.resetPage();
     }
 
-    final totalPages = _totalPages(widget.rows.length);
-    _controller.clampToTotalPages(totalPages);
+    if (widget.onRemotePageChanged == null) {
+      final totalPages = _totalPages(widget.rows.length);
+      _controller.clampToTotalPages(totalPages);
+    }
     _controller.update();
   }
 
@@ -157,7 +167,11 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
     BuildContext context,
     PurchaseRegisterPageController controller,
   ) {
-    final visibleRows = _pagedRows();
+    final remote = widget.onRemotePageChanged != null &&
+        widget.remoteTotalItems != null &&
+        widget.remoteCurrentPage != null &&
+        widget.remotePerPage != null;
+    final visibleRows = remote ? widget.rows : _pagedRows();
 
     if (widget.loading) {
       return AppLoadingView(message: 'Loading ${widget.title}...');
@@ -234,9 +248,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             ),
                           ),
                         ),
-                        if (_footerForPage(context, controller.currentPage) !=
+                        if (_footerForPage(context, remote ? widget.remoteCurrentPage! : controller.currentPage) !=
                             null)
-                          _footerForPage(context, controller.currentPage)!,
+                          _footerForPage(context, remote ? widget.remoteCurrentPage! : controller.currentPage)!,
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppUiConstants.spacingSm,
@@ -245,9 +259,10 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             AppUiConstants.spacingSm,
                           ),
                           child: LocalPageNavigation(
-                            totalItems: widget.rows.length,
-                            currentPage: controller.currentPage,
-                            onPageChanged: controller.setPage,
+                            totalItems: remote ? widget.remoteTotalItems! : widget.rows.length,
+                            pageSize: remote ? widget.remotePerPage! : kLocalListPageSize,
+                            currentPage: remote ? widget.remoteCurrentPage! : controller.currentPage,
+                            onPageChanged: remote ? widget.onRemotePageChanged! : controller.setPage,
                           ),
                         ),
                       ],
@@ -323,15 +338,16 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       _buildDesktopTable(context, visibleRows)
                       else
                       _buildMobileCards(context, visibleRows, appTheme),
-                    if (_footerForPage(context, controller.currentPage) !=
+                    if (_footerForPage(context, widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage) !=
                         null) ...[
-                      _footerForPage(context, controller.currentPage)!,
+                      _footerForPage(context, widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage)!,
                       const SizedBox(height: AppUiConstants.spacingMd),
                     ],
                     LocalPageNavigation(
-                      totalItems: widget.rows.length,
-                      currentPage: controller.currentPage,
-                      onPageChanged: controller.setPage,
+                      totalItems: widget.onRemotePageChanged != null ? widget.remoteTotalItems! : widget.rows.length,
+                      pageSize: widget.onRemotePageChanged != null ? widget.remotePerPage! : kLocalListPageSize,
+                      currentPage: widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage,
+                      onPageChanged: widget.onRemotePageChanged ?? controller.setPage,
                     ),
                   ],
                 ),

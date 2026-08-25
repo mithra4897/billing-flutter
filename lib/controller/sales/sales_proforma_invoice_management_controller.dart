@@ -145,6 +145,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  PaginationMeta? listMeta;
+  Timer? _filterDebounce;
   String dashboardFilter = '';
   List<SalesProformaInvoiceModel> items = const <SalesProformaInvoiceModel>[];
   List<SalesProformaInvoiceModel> filteredItems =
@@ -193,7 +195,9 @@ class SalesProformaInvoiceManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applyFilters);
+    searchController.addListener(_scheduleFilteredReload);
+    dateFromController.addListener(_scheduleFilteredReload);
+    dateToController.addListener(_scheduleFilteredReload);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -204,8 +208,9 @@ class SalesProformaInvoiceManagementController extends GetxController {
     workspaceController.dispose();
     dateFromController.dispose();
     dateToController.dispose();
+    _filterDebounce?.cancel();
     searchController
-      ..removeListener(_applyFilters)
+      ..removeListener(_scheduleFilteredReload)
       ..dispose();
     proformaInvoiceNoController.dispose();
     proformaInvoiceDateController.dispose();
@@ -361,6 +366,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
     int? selectId,
     int? initialCrmOpportunityId,
     bool editorOnly = false,
+    int page = 1,
   }) async {
     initialLoading = items.isEmpty;
     pageError = null;
@@ -370,7 +376,19 @@ class SalesProformaInvoiceManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.proformaInvoices(
-          filters: const {'per_page': 200, 'sort_by': 'proforma_date'},
+          filters: {
+            'per_page': 50,
+            'page': page,
+            'sort_by': 'proforma_date',
+            'sort_order': 'desc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+            if (statusFilter.isNotEmpty) 'proforma_status': statusFilter,
+            if (dateFromController.text.trim().isNotEmpty)
+              'date_from': dateFromController.text.trim(),
+            if (dateToController.text.trim().isNotEmpty)
+              'date_to': dateToController.text.trim(),
+          },
         ),
         _inventoryService.itemPrices(
           filters: const {
@@ -393,6 +411,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<SalesProformaInvoiceModel>).data ??
           const <SalesProformaInvoiceModel>[];
+      listMeta =
+          (responses[0] as PaginatedResponse<SalesProformaInvoiceModel>).meta;
       companies = cache.companies;
       locations = cache.locations;
       financialYears = cache.financialYears;
@@ -683,7 +703,21 @@ class SalesProformaInvoiceManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    _applyFilters();
+    _scheduleFilteredReload();
+    update();
+  }
+
+  void _scheduleFilteredReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!isClosed) unawaited(loadPage(page: 1));
+    });
+  }
+
+  void goToListPage(int page) {
+    if (page >= 1 && page != listMeta?.currentPage) {
+      unawaited(loadPage(page: page));
+    }
   }
 
   PartyModel? customerListEntryById(int? partyId) {

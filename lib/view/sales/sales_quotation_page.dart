@@ -335,6 +335,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         emptyMessage: 'No quotations yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        remoteTotalItems: controller.listMeta?.total,
+        remoteCurrentPage: controller.listMeta?.currentPage,
+        remotePerPage: controller.listMeta?.perPage,
+        onRemotePageChanged: controller.goToListPage,
         filterFields: [
           AppFormTextField(
             labelText: 'Search',

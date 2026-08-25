@@ -317,6 +317,10 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
         emptyMessage: 'No proforma invoices yet.',
         searchController: controller.searchController,
         searchHint: 'Search by number or customer',
+        remoteTotalItems: controller.listMeta?.total,
+        remoteCurrentPage: controller.listMeta?.currentPage,
+        remotePerPage: controller.listMeta?.perPage,
+        onRemotePageChanged: controller.goToListPage,
         filterFields: [
           AppFormTextField(
             labelText: 'Search',
