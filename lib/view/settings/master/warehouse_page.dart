@@ -7,11 +7,13 @@ class WarehouseManagementPage extends StatefulWidget {
     this.embedded = false,
     this.fixedCompanyId,
     this.fixedBranchId,
+    this.onControllerReady,
   });
 
   final bool embedded;
   final int? fixedCompanyId;
   final int? fixedBranchId;
+  final ValueChanged<WarehouseManagementController?>? onControllerReady;
 
   @override
   State<WarehouseManagementPage> createState() =>
@@ -20,6 +22,7 @@ class WarehouseManagementPage extends StatefulWidget {
 
 class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
   late final String _controllerTag;
+  WarehouseManagementController? _publishedController;
 
   @override
   void initState() {
@@ -49,10 +52,32 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
   }
 
   @override
+  void dispose() {
+    final callback = widget.onControllerReady;
+    if (callback != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => callback(null));
+    }
+    super.dispose();
+  }
+
+  void _publishController(WarehouseManagementController controller) {
+    if (identical(_publishedController, controller)) {
+      return;
+    }
+    _publishedController = controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onControllerReady?.call(controller);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<WarehouseManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        _publishController(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () => controller.startNewWarehouse(

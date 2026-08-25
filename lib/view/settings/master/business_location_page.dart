@@ -7,11 +7,13 @@ class BusinessLocationManagementPage extends StatefulWidget {
     this.embedded = false,
     this.fixedCompanyId,
     this.fixedBranchId,
+    this.onControllerReady,
   });
 
   final bool embedded;
   final int? fixedCompanyId;
   final int? fixedBranchId;
+  final ValueChanged<BusinessLocationManagementController?>? onControllerReady;
 
   @override
   State<BusinessLocationManagementPage> createState() =>
@@ -21,6 +23,7 @@ class BusinessLocationManagementPage extends StatefulWidget {
 class _BusinessLocationManagementPageState
     extends State<BusinessLocationManagementPage> {
   late final String _controllerTag;
+  BusinessLocationManagementController? _publishedController;
 
   @override
   void initState() {
@@ -53,10 +56,32 @@ class _BusinessLocationManagementPageState
   }
 
   @override
+  void dispose() {
+    final callback = widget.onControllerReady;
+    if (callback != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => callback(null));
+    }
+    super.dispose();
+  }
+
+  void _publishController(BusinessLocationManagementController controller) {
+    if (identical(_publishedController, controller)) {
+      return;
+    }
+    _publishedController = controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onControllerReady?.call(controller);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<BusinessLocationManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        _publishController(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () => controller.startNewLocation(

@@ -1,4 +1,7 @@
 import '../../../controller/settings/master/branch_management_controller.dart';
+import '../../../controller/settings/master/business_location_management_controller.dart';
+import '../../../controller/settings/master/warehouse_management_controller.dart';
+import '../../../controller/settings/tax/gst_registration_management_controller.dart';
 import '../../../screen.dart';
 
 class BranchManagementPage extends StatefulWidget {
@@ -20,6 +23,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
   late final String _controllerTag;
   late final BranchManagementController _controller;
   late final TabController _tabController;
+  BusinessLocationManagementController? _locationController;
+  WarehouseManagementController? _warehouseController;
+  GstRegistrationManagementController? _gstController;
 
   @override
   void initState() {
@@ -66,15 +72,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
       tag: _controllerTag,
       builder: (controller) {
         final content = _buildContent(context, controller);
-        final actions = [
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewBranch(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.add,
-            label: 'New Branch',
-          ),
-        ];
+        final actions = [_buildActiveTabAction(context, controller)];
 
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
@@ -88,6 +86,76 @@ class _BranchManagementPageState extends State<BranchManagementPage>
         );
       },
     );
+  }
+
+  AdaptiveShellActionButton _buildActiveTabAction(
+    BuildContext context,
+    BranchManagementController controller,
+  ) {
+    final isDesktop = Responsive.isDesktop(context);
+
+    switch (controller.activeTabIndex) {
+      case 1:
+        return AdaptiveShellActionButton(
+          onPressed:
+              controller.selectedBranch?.id == null ||
+                  _locationController == null
+              ? null
+              : () =>
+                    _locationController!.startNewLocation(isDesktop: isDesktop),
+          icon: Icons.add_location_alt_outlined,
+          label: 'New Location',
+        );
+      case 2:
+        return AdaptiveShellActionButton(
+          onPressed:
+              controller.selectedBranch?.id == null ||
+                  _warehouseController == null
+              ? null
+              : () => _warehouseController!.startNewWarehouse(
+                  isDesktop: isDesktop,
+                ),
+          icon: Icons.add_home_work_outlined,
+          label: 'New Warehouse',
+        );
+      case 3:
+        return AdaptiveShellActionButton(
+          onPressed:
+              controller.selectedBranch?.id == null || _gstController == null
+              ? null
+              : () => _gstController!.startNew(isDesktop: isDesktop),
+          icon: Icons.add_outlined,
+          label: 'New GST Registration',
+        );
+      case 0:
+      default:
+        return AdaptiveShellActionButton(
+          onPressed: () => controller.startNewBranch(isDesktop: isDesktop),
+          icon: Icons.add,
+          label: 'New Branch',
+        );
+    }
+  }
+
+  void _setLocationController(BusinessLocationManagementController? value) {
+    if (!mounted || identical(_locationController, value)) {
+      return;
+    }
+    setState(() => _locationController = value);
+  }
+
+  void _setWarehouseController(WarehouseManagementController? value) {
+    if (!mounted || identical(_warehouseController, value)) {
+      return;
+    }
+    setState(() => _warehouseController = value);
+  }
+
+  void _setGstController(GstRegistrationManagementController? value) {
+    if (!mounted || identical(_gstController, value)) {
+      return;
+    }
+    setState(() => _gstController = value);
   }
 
   Widget _buildContent(
@@ -175,6 +243,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 embedded: true,
                 fixedCompanyId: branch.companyId,
                 fixedBranchId: branch.id,
+                onControllerReady: _setLocationController,
               );
       case 2:
         return branch?.id == null
@@ -188,6 +257,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 embedded: true,
                 fixedCompanyId: branch.companyId,
                 fixedBranchId: branch.id,
+                onControllerReady: _setWarehouseController,
               );
       case 3:
         return branch?.id == null
@@ -201,6 +271,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 embedded: true,
                 fixedCompanyId: branch.companyId,
                 fixedBranchId: branch.id,
+                onControllerReady: _setGstController,
               );
       case 0:
       default:

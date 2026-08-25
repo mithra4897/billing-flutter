@@ -7,11 +7,13 @@ class GstRegistrationManagementPage extends StatefulWidget {
     this.embedded = false,
     this.fixedCompanyId,
     this.fixedBranchId,
+    this.onControllerReady,
   });
 
   final bool embedded;
   final int? fixedCompanyId;
   final int? fixedBranchId;
+  final ValueChanged<GstRegistrationManagementController?>? onControllerReady;
 
   @override
   State<GstRegistrationManagementPage> createState() =>
@@ -21,6 +23,7 @@ class GstRegistrationManagementPage extends StatefulWidget {
 class _GstRegistrationManagementPageState
     extends State<GstRegistrationManagementPage> {
   late final String _controllerTag;
+  GstRegistrationManagementController? _publishedController;
 
   @override
   void initState() {
@@ -37,6 +40,27 @@ class _GstRegistrationManagementPageState
       ),
       tag: _controllerTag,
     );
+  }
+
+  @override
+  void dispose() {
+    final callback = widget.onControllerReady;
+    if (callback != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => callback(null));
+    }
+    super.dispose();
+  }
+
+  void _publishController(GstRegistrationManagementController controller) {
+    if (identical(_publishedController, controller)) {
+      return;
+    }
+    _publishedController = controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onControllerReady?.call(controller);
+      }
+    });
   }
 
   Future<void> _save(
@@ -171,6 +195,7 @@ class _GstRegistrationManagementPageState
     return GetBuilder<GstRegistrationManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        _publishController(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () =>
