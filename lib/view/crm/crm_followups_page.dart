@@ -28,9 +28,14 @@ class CrmFollowupsPage extends StatefulWidget {
 class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   late final CrmService _crmService;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _filterDateFromController =
+      TextEditingController();
+  final TextEditingController _filterDateToController = TextEditingController();
   bool _loading = true;
+  bool _filtersVisible = false;
   String? _error;
-  DateTime? _selectedDate;
+  DateTime? _filterDateFrom;
+  DateTime? _filterDateTo;
   List<Map<String, dynamic>> _followups = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _nextFollowupRows = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _gaps = const <Map<String, dynamic>>[];
@@ -58,19 +63,36 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   DateTime _normalizeDate(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
-  bool _matchesSelectedDate(_FollowupListEntry entry) {
-    final selectedDate = _selectedDate;
-    if (selectedDate == null) {
-      return true;
-    }
-    return _normalizedRowDate(entry.row, entry.dateKey) == selectedDate;
+  String get _dateRangeLabel {
+    final from = _filterDateFrom == null
+        ? 'Any date'
+        : formatCalendarDate(_filterDateFrom!);
+    final to = _filterDateTo == null
+        ? 'Any date'
+        : formatCalendarDate(_filterDateTo!);
+    return '$from - $to';
   }
 
+  bool _matchesDateRange(_FollowupListEntry entry) {
+    final rowDate = _normalizedRowDate(entry.row, entry.dateKey);
+    if (rowDate == null) {
+      return false;
+    }
+    if (_filterDateFrom == null && _filterDateTo == null) {
+      return true;
+    }
+    return (_filterDateFrom == null || !rowDate.isBefore(_filterDateFrom!)) &&
+        (_filterDateTo == null || !rowDate.isAfter(_filterDateTo!));
+  }
+
+  // Kept as a small compatibility helper for callers using the previous date
+  // picker flow; the inline AppDateField now owns the picker interaction.
+  // ignore: unused_element
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final selected = await showAppDatePickerDialog(
       context: context,
-      initialDate: _selectedDate ?? now,
+      initialDate: _filterDateFrom ?? now,
       firstDate: appCalendarFirstDate(now),
       lastDate: appCalendarLastDate(now),
       title: 'Filter followups by date',
@@ -78,14 +100,27 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     if (selected == null || !mounted) {
       return;
     }
-    setState(() {
-      _selectedDate = _normalizeDate(selected);
-    });
+    _filterDateFromController.text = formatCalendarDate(selected);
   }
 
   void _clearDateFilter() {
+    _filterDateFromController.clear();
+    _filterDateToController.clear();
+  }
+
+  void _syncDateFilter() {
+    final rawFrom = _filterDateFromController.text.trim();
+    final rawTo = _filterDateToController.text.trim();
+    final nextFrom = rawFrom.isEmpty ? null : tryParseCalendarDate(rawFrom);
+    final nextTo = rawTo.isEmpty ? null : tryParseCalendarDate(rawTo);
+    final normalizedFrom = nextFrom == null ? null : _normalizeDate(nextFrom);
+    final normalizedTo = nextTo == null ? null : _normalizeDate(nextTo);
+    if (normalizedFrom == _filterDateFrom && normalizedTo == _filterDateTo) {
+      return;
+    }
     setState(() {
-      _selectedDate = null;
+      _filterDateFrom = normalizedFrom;
+      _filterDateTo = normalizedTo;
     });
   }
 
@@ -116,12 +151,20 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   void initState() {
     super.initState();
     _crmService = widget.crmService ?? CrmService();
+    _filterDateFromController.addListener(_syncDateFilter);
+    _filterDateToController.addListener(_syncDateFilter);
     _load();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _filterDateFromController
+      ..removeListener(_syncDateFilter)
+      ..dispose();
+    _filterDateToController
+      ..removeListener(_syncDateFilter)
+      ..dispose();
     for (final controller in _followupDateControllers.values) {
       controller.dispose();
     }
@@ -467,7 +510,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final today = _normalizeDate(DateTime.now());
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
-        if (!_matchesSelectedDate(entry)) {
+        if (!_matchesDateRange(entry)) {
           return false;
         }
         final normalized = _normalizedRowDate(entry.row, entry.dateKey);
@@ -497,7 +540,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return _sortedEntries(
       _effectiveFollowupEntries.where(
         (entry) =>
-            _matchesSelectedDate(entry) &&
+            _matchesDateRange(entry) &&
             _normalizedRowDate(entry.row, entry.dateKey) == today,
       ),
     );
@@ -507,7 +550,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final today = _normalizeDate(DateTime.now());
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
-        if (!_matchesSelectedDate(entry)) {
+        if (!_matchesDateRange(entry)) {
           return false;
         }
         final normalized = _normalizedRowDate(entry.row, entry.dateKey);
@@ -682,8 +725,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     if (entries.isEmpty) {
       return SettingsEmptyState(
         icon: Icons.event_busy_outlined,
-        title: 'No Followups on ${formatCalendarDate(_selectedDate!)}',
-        message: 'No followups match this date and the current route filter.',
+        title: 'No Followups in Selected Range',
+        message: 'No followups match these dates and the current route filter.',
         minHeight: 180,
       );
     }
@@ -706,66 +749,29 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   Widget _buildDateFilter(BuildContext context) {
-    final selectedDate = _selectedDate;
     return AppSectionCard(
       showShadow: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 520;
-          final dateButton = AppActionButton(
-            icon: Icons.calendar_month_outlined,
-            label: selectedDate == null
-                ? 'Select date'
-                : formatCalendarDate(selectedDate),
-            filled: false,
-            onPressed: _pickDate,
-          );
-          final clearButton = selectedDate == null
-              ? null
-              : IconButton(
-                  tooltip: 'Clear date filter',
-                  onPressed: _clearDateFilter,
-                  icon: const Icon(Icons.close),
-                );
-
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Filter with Date',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: AppUiConstants.spacingXs),
-                Row(
-                  children: [
-                    Flexible(child: dateButton),
-                    ?clearButton,
-                  ],
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Filter with Date',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: AppUiConstants.spacingXs),
-                    dateButton,
-                  ],
-                ),
-              ),
-              ?clearButton,
-            ],
-          );
-        },
+      child: SettingsFormWrap(
+        children: [
+          AppDateField(
+            labelText: 'Followup Date',
+            controller: _filterDateFromController,
+            hintText: 'From date',
+          ),
+          AppDateField(
+            labelText: 'To Date',
+            controller: _filterDateToController,
+            hintText: 'To date',
+          ),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _clearDateFilter,
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -871,6 +877,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         : MaterialLocalizations.of(
             context,
           ).formatTimeOfDay(TimeOfDay.fromDateTime(localDate));
+    final dateLabel = localDate == null
+        ? null
+        : formatCalendarDate(_normalizeDate(localDate));
     final assignedLabel = _assignedLabel(row).trim();
 
     Widget detailCard = Material(
@@ -1012,20 +1021,33 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 
         final timeLabel = Padding(
           padding: const EdgeInsets.only(top: AppUiConstants.spacingXs),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.schedule_outlined,
-                size: 16,
-                color: appTheme.mutedText,
-              ),
-              const SizedBox(width: AppUiConstants.spacingXxs),
-              Text(
-                timeText,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+              if (dateLabel != null)
+                Text(
+                  dateLabel,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: appTheme.mutedText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.schedule_outlined,
+                    size: 16,
+                    color: appTheme.mutedText,
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingXxs),
+                  Text(
+                    timeText,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1065,13 +1087,13 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   List<_FollowupListEntry> get _selectedDateEntries {
-    if (_selectedDate == null) {
+    if (_filterDateFrom == null && _filterDateTo == null) {
       return const <_FollowupListEntry>[];
     }
     final source = _hasDashboardFilter
         ? _visiblePendingFollowups
         : _effectiveFollowupEntries;
-    return _sortedEntries(source.where(_matchesSelectedDate));
+    return _sortedEntries(source.where(_matchesDateRange));
   }
 
   Widget _buildGapList(BuildContext context) {
@@ -1206,12 +1228,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDateFilter(context),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          if (_selectedDate != null)
+          if (_filtersVisible) ...[
+            _buildDateFilter(context),
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
+          if (_filterDateFrom != null || _filterDateTo != null)
             _buildTimelineSection(
               context: context,
-              title: formatCalendarDate(_selectedDate!),
+              title: _dateRangeLabel,
               child: _buildSelectedDateFollowupList(context),
             )
           else if (!_hasDashboardFilter) ...[
@@ -1246,6 +1270,12 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
+      AdaptiveShellActionButton(
+        onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: _filtersVisible,
+      ),
       AdaptiveShellActionButton(
         onPressed: _load,
         icon: Icons.refresh_outlined,

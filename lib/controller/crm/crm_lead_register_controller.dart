@@ -13,6 +13,12 @@ class CrmLeadRegisterController extends GetxController {
         AppDropdownItem(value: 'converted', label: 'Own'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
+  static const List<AppDropdownItem<String>> sortItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+        AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+        AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+      ];
 
   final CrmService _service = CrmService();
   final CrmModuleRefreshController _refreshController =
@@ -24,6 +30,7 @@ class CrmLeadRegisterController extends GetxController {
   bool loading = true;
   String? error;
   Set<String> statuses = <String>{'draft', 'in_progress'};
+  String sort = 'date_desc';
   List<CrmLeadModel> rows = const <CrmLeadModel>[];
   Worker? _refreshWorker;
 
@@ -81,6 +88,11 @@ class CrmLeadRegisterController extends GetxController {
 
   void setStatuses(Set<String> values) {
     statuses = values;
+    update();
+  }
+
+  void setSort(String value) {
+    sort = value;
     update();
   }
 
@@ -148,7 +160,7 @@ class CrmLeadRegisterController extends GetxController {
 
   List<CrmLeadModel> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
-    return rows
+    final filtered = rows
         .where((row) {
           final data = row.toJson();
           final statusOk = _matchesStatus(
@@ -170,6 +182,20 @@ class CrmLeadRegisterController extends GetxController {
           return statusOk && dateOk && searchOk;
         })
         .toList(growable: false);
+    final sorted = List<CrmLeadModel>.from(filtered);
+    sorted.sort((left, right) {
+      if (sort == 'name_asc') {
+        return stringValue(left.toJson(), 'lead_name').toLowerCase().compareTo(
+          stringValue(right.toJson(), 'lead_name').toLowerCase(),
+        );
+      }
+      final leftDate = nullableStringValue(left.toJson(), 'created_at') ?? '';
+      final rightDate = nullableStringValue(right.toJson(), 'created_at') ?? '';
+      return sort == 'date_asc'
+          ? leftDate.compareTo(rightDate)
+          : rightDate.compareTo(leftDate);
+    });
+    return sorted;
   }
 
   String statusLabel(String value) {

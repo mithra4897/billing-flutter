@@ -142,12 +142,16 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
                   dateToController: controller.dateToController,
                   statuses: controller.statuses,
                   statusItems: CrmLeadRegisterController.statusItems,
+                  sort: controller.sort,
+                  sortItems: CrmLeadRegisterController.sortItems,
                   onStatusesChanged: controller.setStatuses,
+                  onSortChanged: (value) => controller.setSort(value ?? ''),
                   onClear: () {
                     controller.searchController.clear();
                     controller.dateFromController.clear();
                     controller.dateToController.clear();
                     controller.setStatuses(<String>{'draft', 'in_progress'});
+                    controller.setSort('date_desc');
                   },
                 )
               : null,
@@ -269,7 +273,10 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
     required this.dateToController,
     required this.statuses,
     required this.statusItems,
+    required this.sort,
+    required this.sortItems,
     required this.onStatusesChanged,
+    required this.onSortChanged,
     required this.onClear,
   });
 
@@ -278,7 +285,10 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
   final TextEditingController dateToController;
   final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
+  final String sort;
+  final List<AppDropdownItem<String>> sortItems;
   final ValueChanged<Set<String>> onStatusesChanged;
+  final ValueChanged<String?> onSortChanged;
   final VoidCallback onClear;
 
   @override
@@ -298,6 +308,12 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
           multiInitialValues: statuses,
           multiHintText: 'Select statuses',
           onMultiChanged: onStatusesChanged,
+        ),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Sort',
+          mappedItems: sortItems,
+          initialValue: sort,
+          onChanged: onSortChanged,
         ),
         SizedBox(
           height: 48,

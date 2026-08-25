@@ -11,6 +11,12 @@ class CrmEnquiriesController extends GetxController {
         AppDropdownItem(value: 'converted', label: 'Won'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
+  static const List<AppDropdownItem<String>> sortItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+        AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+        AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+      ];
   static const List<AppDropdownItem<String>> followupStatuses =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'pending', label: 'Pending'),
@@ -69,6 +75,7 @@ class CrmEnquiriesController extends GetxController {
   Set<int> filterStageIds = <int>{};
   Set<int> filterAssignedToIds = <int>{};
   Set<String> filterEnquiryStatuses = <String>{};
+  String sort = 'date_desc';
   String enquiryStatus = 'open';
   String opportunityStatus = 'open';
   List<EnquiryLineDraft> lines = <EnquiryLineDraft>[];
@@ -409,6 +416,21 @@ class CrmEnquiriesController extends GetxController {
         final leftName = left.toString().trim().toLowerCase();
         final rightName = right.toString().trim().toLowerCase();
         return leftName.compareTo(rightName);
+      });
+    filteredItems = List<CrmEnquiryModel>.from(filteredItems)
+      ..sort((left, right) {
+        final leftData = left.toJson();
+        final rightData = right.toJson();
+        if (sort == 'name_asc') {
+          return stringValue(leftData, 'enquiry_no').toLowerCase().compareTo(
+            stringValue(rightData, 'enquiry_no').toLowerCase(),
+          );
+        }
+        final leftDate = nullableStringValue(leftData, 'enquiry_date') ?? '';
+        final rightDate = nullableStringValue(rightData, 'enquiry_date') ?? '';
+        return sort == 'date_asc'
+            ? leftDate.compareTo(rightDate)
+            : rightDate.compareTo(leftDate);
       });
 
     itemsLookup = nextItems;
@@ -873,11 +895,17 @@ class CrmEnquiriesController extends GetxController {
     update();
   }
 
+  void setSort(String value) {
+    sort = value;
+    applySearch();
+  }
+
   void clearFilters() {
     filterCustomerPartyIds = <int>{};
     filterStageIds = <int>{};
     filterAssignedToIds = <int>{};
     filterEnquiryStatuses = <String>{};
+    sort = 'date_desc';
     filtersApplied = false;
     filterDateFromController.clear();
     filterDateToController.clear();

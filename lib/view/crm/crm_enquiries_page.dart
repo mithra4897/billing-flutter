@@ -578,6 +578,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           multiHintText: 'Select statuses',
           onMultiChanged: controller.setFilterEnquiryStatuses,
         ),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Sort',
+          mappedItems: CrmEnquiriesController.sortItems,
+          initialValue: controller.sort,
+          onChanged: (value) => controller.setSort(value ?? ''),
+        ),
         AppDateField(
           labelText: 'Date From',
           controller: controller.filterDateFromController,

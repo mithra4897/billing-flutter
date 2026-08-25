@@ -7,6 +7,7 @@
 - Filter buttons now toggle inline controls with live search/date/status
   updates and a shared Clear action; existing CRM defaults and filter fields
   are preserved.
+- Added a Sales-style Sort filter to CRM lists, defaulting to Newest first.
 - CRM Follow-ups now uses the same toggleable inline From Date / To Date filter
   and no longer shows its previous always-visible date card.
 - No backend or database changes are required.

@@ -47,6 +47,12 @@ class _CrmOpportunityRegisterPageState
         AppDropdownItem(value: 'lost', label: 'Lost'),
         AppDropdownItem(value: 'won', label: 'Won'),
       ];
+  static const List<AppDropdownItem<String>> _sortItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'date_desc', label: 'Newest first'),
+        AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
+        AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+      ];
 
   final CrmService _service = CrmService();
   final TextEditingController _searchController = TextEditingController();
@@ -57,6 +63,7 @@ class _CrmOpportunityRegisterPageState
   bool _isSuperAdmin = false;
   String? _error;
   Set<String> _statuses = <String>{'open'};
+  String _sort = 'date_desc';
   List<CrmOpportunityModel> _rows = const <CrmOpportunityModel>[];
 
   Set<String> _dashboardStatuses() {
@@ -144,49 +151,62 @@ class _CrmOpportunityRegisterPageState
     final query = _searchController.text.trim().toLowerCase();
     final fromDate = tryParseCalendarDate(_dateFromController.text.trim());
     final toDate = tryParseCalendarDate(_dateToController.text.trim());
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final customer =
-              JsonModel.mapOf(data['customer']) ?? const <String, dynamic>{};
-          final stage =
-              JsonModel.mapOf(data['stage']) ?? const <String, dynamic>{};
-          final lead =
-              JsonModel.mapOf(data['lead']) ?? const <String, dynamic>{};
-          final statusOk =
-              _statuses.isEmpty ||
-              _statuses.contains(stringValue(data, 'status'));
-          final enquiryDate = DateTime.tryParse(
-            nullableStringValue(data, 'enquiry_date') ?? '',
-          );
-          final normalizedRowDate = enquiryDate == null
-              ? null
-              : DateTime(enquiryDate.year, enquiryDate.month, enquiryDate.day);
-          final dateOk =
-              (fromDate == null && toDate == null) ||
-              (normalizedRowDate != null &&
-                  (fromDate == null ||
-                      !normalizedRowDate.isBefore(
-                        DateTime(fromDate.year, fromDate.month, fromDate.day),
-                      )) &&
-                  (toDate == null ||
-                      !normalizedRowDate.isAfter(
-                        DateTime(toDate.year, toDate.month, toDate.day),
-                      )));
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'opportunity_name'),
-                stringValue(data, 'enquiry_no'),
-                stringValue(data, 'status'),
-                stringValue(customer, 'display_name'),
-                stringValue(customer, 'party_name'),
-                stringValue(stage, 'stage_name'),
-                stringValue(lead, 'lead_name'),
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && dateOk && searchOk;
-        })
-        .toList(growable: false);
+    final filtered = _rows.where((row) {
+      final data = row.toJson();
+      final customer =
+          JsonModel.mapOf(data['customer']) ?? const <String, dynamic>{};
+      final stage = JsonModel.mapOf(data['stage']) ?? const <String, dynamic>{};
+      final lead = JsonModel.mapOf(data['lead']) ?? const <String, dynamic>{};
+      final statusOk =
+          _statuses.isEmpty || _statuses.contains(stringValue(data, 'status'));
+      final enquiryDate = DateTime.tryParse(
+        nullableStringValue(data, 'enquiry_date') ?? '',
+      );
+      final normalizedRowDate = enquiryDate == null
+          ? null
+          : DateTime(enquiryDate.year, enquiryDate.month, enquiryDate.day);
+      final dateOk =
+          (fromDate == null && toDate == null) ||
+          (normalizedRowDate != null &&
+              (fromDate == null ||
+                  !normalizedRowDate.isBefore(
+                    DateTime(fromDate.year, fromDate.month, fromDate.day),
+                  )) &&
+              (toDate == null ||
+                  !normalizedRowDate.isAfter(
+                    DateTime(toDate.year, toDate.month, toDate.day),
+                  )));
+      final searchOk =
+          query.isEmpty ||
+          [
+            stringValue(data, 'opportunity_name'),
+            stringValue(data, 'enquiry_no'),
+            stringValue(data, 'status'),
+            stringValue(customer, 'display_name'),
+            stringValue(customer, 'party_name'),
+            stringValue(stage, 'stage_name'),
+            stringValue(lead, 'lead_name'),
+          ].join(' ').toLowerCase().contains(query);
+      return statusOk && dateOk && searchOk;
+    }).toList();
+    filtered.sort((left, right) {
+      final leftData = left.toJson();
+      final rightData = right.toJson();
+      if (_sort == 'name_asc') {
+        return stringValue(
+          leftData,
+          'opportunity_name',
+        ).toLowerCase().compareTo(
+          stringValue(rightData, 'opportunity_name').toLowerCase(),
+        );
+      }
+      final leftDate = nullableStringValue(leftData, 'enquiry_date') ?? '';
+      final rightDate = nullableStringValue(rightData, 'enquiry_date') ?? '';
+      return _sort == 'date_asc'
+          ? leftDate.compareTo(rightDate)
+          : rightDate.compareTo(leftDate);
+    });
+    return filtered;
   }
 
   String _customerLabel(Map<String, dynamic> data) {
@@ -278,13 +298,17 @@ class _CrmOpportunityRegisterPageState
               dateToController: _dateToController,
               statuses: _statuses,
               statusItems: _statusItems,
+              sort: _sort,
+              sortItems: _sortItems,
               onStatusesChanged: (values) =>
                   setState(() => _statuses = Set<String>.from(values)),
+              onSortChanged: (value) => setState(() => _sort = value ?? ''),
               onClear: () => setState(() {
                 _searchController.clear();
                 _dateFromController.clear();
                 _dateToController.clear();
                 _statuses = <String>{'open'};
+                _sort = 'date_desc';
               }),
             )
           : null,
@@ -360,7 +384,10 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
     required this.dateToController,
     required this.statuses,
     required this.statusItems,
+    required this.sort,
+    required this.sortItems,
     required this.onStatusesChanged,
+    required this.onSortChanged,
     required this.onClear,
   });
 
@@ -369,7 +396,10 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
   final TextEditingController dateToController;
   final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
+  final String sort;
+  final List<AppDropdownItem<String>> sortItems;
   final ValueChanged<Set<String>> onStatusesChanged;
+  final ValueChanged<String?> onSortChanged;
   final VoidCallback onClear;
 
   @override
@@ -389,6 +419,12 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
           multiInitialValues: statuses,
           multiHintText: 'Select statuses',
           onMultiChanged: onStatusesChanged,
+        ),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Sort',
+          mappedItems: sortItems,
+          initialValue: sort,
+          onChanged: onSortChanged,
         ),
         SizedBox(
           height: 48,

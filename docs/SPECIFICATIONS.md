@@ -12,6 +12,8 @@
   visible register without an Apply button.
 - The existing CRM filter fields and dashboard status defaults remain
   unchanged. A shared Clear action resets the current page's filters.
+- CRM lists include a Sales-style Sort control with **Newest first** as the
+  default, plus Oldest first and name ordering where applicable.
 - No backend, API, or database contract changes are required.
 - CRM Follow-ups also uses the toggleable bar for inclusive From Date and To
   Date filtering; either boundary may be left empty. The former always-visible
