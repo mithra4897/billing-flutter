@@ -813,74 +813,72 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Material(
-            key: _menuKey(item.key),
-            color: Colors.transparent,
-            child: InkWell(
+          Padding(
+            padding: EdgeInsets.only(left: depth * 12.0),
+            child: Material(
+              key: _menuKey(item.key),
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-              onTap: () {
-                final nextExpanded = !isExpanded;
-                setState(() {
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
+                onTap: () {
+                  final nextExpanded = !isExpanded;
+                  setState(() {
+                    if (nextExpanded) {
+                      _expandGroup(item.key, currentPath: currentPath);
+                    } else {
+                      _groupExpansionOverrides[item.key] = false;
+                    }
+                  });
                   if (nextExpanded) {
-                    _expandGroup(item.key, currentPath: currentPath);
-                  } else {
-                    _groupExpansionOverrides[item.key] = false;
+                    _scheduleExpandedGroupVisibility(item.key);
                   }
-                });
-                if (nextExpanded) {
-                  _scheduleExpandedGroupVisibility(item.key);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                margin: EdgeInsets.only(left: depth * 12.0),
-                decoration: BoxDecoration(
-                  color: containsCurrentPath ? selectedBackground : null,
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.buttonRadius,
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 140;
-                    return Row(
-                      children: [
-                        Icon(
-                          item.icon,
-                          size: 20,
-                          color: containsCurrentPath
-                              ? selectedForeground
-                              : foregroundColor,
-                        ),
-                        if (!compact) ...[
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: containsCurrentPath
-                                        ? selectedForeground
-                                        : foregroundColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                  decoration: BoxDecoration(
+                    color: null,
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 140;
+                      return Row(
+                        children: [
+                          Icon(item.icon, size: 20, color: foregroundColor),
+                          if (!compact) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: foregroundColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
                             ),
-                          ),
-                          Icon(
-                            isExpanded ? Icons.expand_less : Icons.expand_more,
-                            color: containsCurrentPath
-                                ? selectedForeground
-                                : mutedColor,
-                          ),
+                            Icon(
+                              isExpanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              color: mutedColor,
+                            ),
+                          ],
                         ],
-                      ],
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -973,10 +971,15 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final color = selected ? selectedForeground : foregroundColor;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: dense ? 2 : 4),
+      padding: EdgeInsets.only(
+        left: collapsed ? 0 : depth * 12.0,
+        bottom: dense ? 2 : 4,
+      ),
       child: Material(
         key: key,
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
           onTap: onTap,
@@ -985,7 +988,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               horizontal: 12,
               vertical: dense ? 10 : 12,
             ),
-            margin: EdgeInsets.only(left: collapsed ? 0 : depth * 12.0),
             decoration: BoxDecoration(
               color: selected ? selectedBackground : null,
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
