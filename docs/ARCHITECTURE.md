@@ -1,5 +1,15 @@
 # Architecture
 
+## CRM register filter presentation
+
+CRM register pages reuse the Sales register's toggleable `PurchaseRegisterPage`
+filter slot for inline search, date, and status controls. CRM Enquiries keeps
+its existing SettingsWorkspace list/editor flow and renders the equivalent bar
+inside the list pane. CRM Follow-ups keeps its timeline layout and renders its
+From Date and To Date controls only when the same Filter action is active. Existing controller- or
+page-owned filter state remains the source of truth; text-controller listeners
+update the filtered rows locally.
+
 ## Browser session restoration
 
 The existing shared-preference session store remains the single source of truth

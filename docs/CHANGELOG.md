@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-25 — CRM inline filter bars
+
+- Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,
+  and Opportunities.
+- Filter buttons now toggle inline controls with live search/date/status
+  updates and a shared Clear action; existing CRM defaults and filter fields
+  are preserved.
+- CRM Follow-ups now uses the same toggleable inline From Date / To Date filter
+  and no longer shows its previous always-visible date card.
+- No backend or database changes are required.
+
 ## 2026-08-24 — CRM lead probability status
 
 - Added a StaffU-inspired circular Probability column to the CRM Leads

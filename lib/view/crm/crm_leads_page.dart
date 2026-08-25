@@ -27,6 +27,7 @@ class CrmLeadRegisterPage extends StatefulWidget {
 
 class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
   bool _isSuperAdmin = false;
 
   Set<String> _dashboardStatuses() {
@@ -107,142 +108,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
     super.dispose();
   }
 
-  Future<void> _openRegisterFilterPanel(
-    BuildContext context,
-    CrmLeadRegisterController controller,
-  ) async {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
-    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
-    final searchController = TextEditingController(
-      text: controller.searchController.text,
-    );
-    final dateFromController = TextEditingController(
-      text: controller.dateFromController.text,
-    );
-    final dateToController = TextEditingController(
-      text: controller.dateToController.text,
-    );
-    Set<String> tempStatuses = Set<String>.from(controller.statuses);
-
-    final applied = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        final appTheme = Theme.of(
-          dialogContext,
-        ).extension<AppThemeExtension>()!;
-
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return Dialog(
-              insetPadding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: 20,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    dialogPadding,
-                    dialogPadding,
-                    dialogPadding,
-                    MediaQuery.of(dialogContext).viewInsets.bottom +
-                        dialogPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Filter CRM Leads',
-                              style: Theme.of(dialogContext)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(false),
-                            tooltip: 'Close',
-                            icon: const Icon(Icons.close),
-                            color: appTheme.mutedText,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _CrmLeadRegisterFilters(
-                        searchController: searchController,
-                        dateFromController: dateFromController,
-                        dateToController: dateToController,
-                        statuses: tempStatuses,
-                        statusItems: CrmLeadRegisterController.statusItems,
-                        onStatusesChanged: (value) {
-                          setDialogState(() {
-                            tempStatuses = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: () {
-                              controller.searchController.text =
-                                  searchController.text;
-                              controller.dateFromController.text =
-                                  dateFromController.text;
-                              controller.dateToController.text =
-                                  dateToController.text;
-                              controller.setStatuses(tempStatuses);
-                              Navigator.of(dialogContext).pop(true);
-                            },
-                            icon: const Icon(Icons.search),
-                            label: const Text('Apply Filters'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              controller.searchController.clear();
-                              controller.dateFromController.clear();
-                              controller.dateToController.clear();
-                              controller.setStatuses(<String>{
-                                'draft',
-                                'in_progress',
-                              });
-                              Navigator.of(dialogContext).pop(true);
-                            },
-                            icon: const Icon(Icons.clear),
-                            label: const Text('Clear'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    searchController.dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
-    if (applied == true) {
-      controller.update();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GetBuilder<CrmLeadRegisterController>(
@@ -258,10 +123,11 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
           emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
           actions: [
             AdaptiveShellActionButton(
-              onPressed: () => _openRegisterFilterPanel(context, controller),
+              onPressed: () =>
+                  setState(() => _filtersVisible = !_filtersVisible),
               icon: Icons.filter_alt_outlined,
               label: 'Filter',
-              filled: false,
+              filled: _filtersVisible,
             ),
             AdaptiveShellActionButton(
               onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
@@ -269,14 +135,30 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
               label: 'New lead',
             ),
           ],
+          filters: _filtersVisible
+              ? _CrmLeadRegisterFilters(
+                  searchController: controller.searchController,
+                  dateFromController: controller.dateFromController,
+                  dateToController: controller.dateToController,
+                  statuses: controller.statuses,
+                  statusItems: CrmLeadRegisterController.statusItems,
+                  onStatusesChanged: controller.setStatuses,
+                  onClear: () {
+                    controller.searchController.clear();
+                    controller.dateFromController.clear();
+                    controller.dateToController.clear();
+                    controller.setStatuses(<String>{'draft', 'in_progress'});
+                  },
+                )
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Lead',
               flex: 3,
-              textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              textStyle: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               valueBuilder: (row) => stringValue(row.toJson(), 'lead_name'),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
@@ -341,7 +223,9 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
     final creator =
         JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
     final displayName = stringValue(creator, 'display_name');
-    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+    return displayName.isNotEmpty
+        ? displayName
+        : stringValue(creator, 'username');
   }
 
   String _sourceLabel(CrmLeadModel row) {
@@ -376,7 +260,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
         return 10;
     }
   }
-
 }
 
 class _CrmLeadRegisterFilters extends StatelessWidget {
@@ -387,6 +270,7 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
     required this.statuses,
     required this.statusItems,
     required this.onStatusesChanged,
+    required this.onClear,
   });
 
   final TextEditingController searchController;
@@ -395,6 +279,7 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
   final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<Set<String>> onStatusesChanged;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -413,6 +298,14 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
           multiInitialValues: statuses,
           multiHintText: 'Select statuses',
           onMultiChanged: onStatusesChanged,
+        ),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+          ),
         ),
       ],
     );

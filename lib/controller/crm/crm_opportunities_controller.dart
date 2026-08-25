@@ -115,6 +115,8 @@ class CrmOpportunitiesController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(applySearch);
+    filterCloseFromController.addListener(applySearch);
+    filterCloseToController.addListener(applySearch);
     _refreshWorker = ever<CrmModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -144,8 +146,12 @@ class CrmOpportunitiesController extends GetxController {
     expectedValueController.dispose();
     probabilityController.dispose();
     expectedCloseDateController.dispose();
-    filterCloseFromController.dispose();
-    filterCloseToController.dispose();
+    filterCloseFromController
+      ..removeListener(applySearch)
+      ..dispose();
+    filterCloseToController
+      ..removeListener(applySearch)
+      ..dispose();
     disposeLines(lines);
     disposeFollowups(followups);
     disposeProducts(products);

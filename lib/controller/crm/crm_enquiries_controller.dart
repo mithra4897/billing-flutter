@@ -84,6 +84,8 @@ class CrmEnquiriesController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(applySearch);
+    filterDateFromController.addListener(applySearch);
+    filterDateToController.addListener(applySearch);
     _refreshWorker = ever<CrmModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -111,8 +113,12 @@ class CrmEnquiriesController extends GetxController {
     enquiryNoController.dispose();
     enquiryDateController.dispose();
     remarksController.dispose();
-    filterDateFromController.dispose();
-    filterDateToController.dispose();
+    filterDateFromController
+      ..removeListener(applySearch)
+      ..dispose();
+    filterDateToController
+      ..removeListener(applySearch)
+      ..dispose();
     disposeLines(lines);
     disposeFollowups(followups);
     super.onClose();

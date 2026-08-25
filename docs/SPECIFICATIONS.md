@@ -1,5 +1,22 @@
 # Specifications
 
+## CRM inline filter bars
+
+- Date: 2026-08-25
+- Status: Implemented
+
+- CRM Enquiries, Leads, and Opportunities use the same toggleable inline filter
+  bar interaction as Sales registers.
+- Clicking **Filter** opens the filter bar in the page layout; clicking it
+  again hides the bar. Search, date, lookup, and status changes update the
+  visible register without an Apply button.
+- The existing CRM filter fields and dashboard status defaults remain
+  unchanged. A shared Clear action resets the current page's filters.
+- No backend, API, or database contract changes are required.
+- CRM Follow-ups also uses the toggleable bar for inclusive From Date and To
+  Date filtering; either boundary may be left empty. The former always-visible
+  date filter card is removed.
+
 ## Persistent authenticated browser session
 
 - Date: 2026-08-20

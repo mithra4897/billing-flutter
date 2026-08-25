@@ -1,5 +1,21 @@
 # Testing
 
+## CRM inline filter bars — 2026-08-25
+
+- Verify the Filter action on CRM Enquiries, Leads, and Opportunities toggles
+  an inline filter bar instead of opening a dialog.
+- Verify CRM Follow-ups hides its old date card until Filter is clicked, then
+  shows From Date, To Date, and Clear controls. Verify either boundary can be
+  empty and the selected range is inclusive.
+- Verify search, date, lookup, and status changes update the visible rows, and
+  Clear restores each page's existing default status scope.
+- Verification performed: `dart format` completed and focused
+  `flutter analyze` passed with no issues. The full `flutter test --no-pub`
+  run is blocked by the repository's pre-existing missing
+  `lib/app/theme/app_module_theme.dart` referenced by
+  `test/app/theme/app_module_theme_test.dart`; authenticated visual QA remains
+  recommended.
+
 ## CRM lead probability status
 
 - Verify the Leads register shows a circular percentage indicator beside each

@@ -47,6 +47,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   late final String _controllerTag;
   late final CrmEnquiriesController _controller;
   late final TabController _tabController;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -115,10 +116,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () =>
@@ -141,6 +142,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     );
   }
 
+  // Retained for compatibility with older deep-linked page state.
+  // ignore: unused_element
   Future<void> _openFilterPanel(
     BuildContext context,
     CrmEnquiriesController controller,
@@ -361,6 +364,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_filtersVisible) _buildFilterBar(context, controller),
+          if (_filtersVisible) const SizedBox(height: AppUiConstants.spacingMd),
           _buildAppliedFilters(context, controller),
           if (controller.searchController.text.trim().isNotEmpty ||
               controller.filterCustomerPartyIds.isNotEmpty ||
@@ -464,7 +469,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final creator =
         JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
     final displayName = stringValue(creator, 'display_name');
-    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+    return displayName.isNotEmpty
+        ? displayName
+        : stringValue(creator, 'username');
   }
 
   Widget _buildAppliedFilters(
@@ -507,6 +514,89 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   Widget _filterBox({required Widget child}) =>
       SizedBox(width: 240, child: child);
+
+  Widget _buildFilterBar(
+    BuildContext context,
+    CrmEnquiriesController controller,
+  ) {
+    return SettingsFormWrap(
+      children: [
+        AppFormTextField(
+          labelText: 'Search',
+          controller: controller.searchController,
+          hintText: 'Search enquiries',
+        ),
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Customer',
+          mappedItems: controller.customers
+              .where((item) => item.id != null)
+              .map(
+                (item) => AppDropdownItem<int>(
+                  value: item.id!,
+                  label: item.toString(),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.filterCustomerPartyIds,
+          multiHintText: 'Select customers',
+          onMultiChanged: controller.setFilterCustomerPartyIds,
+        ),
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Stage',
+          mappedItems: controller.stages
+              .where((item) => intValue(item.toJson(), 'id') != null)
+              .map(
+                (item) => AppDropdownItem<int>(
+                  value: intValue(item.toJson(), 'id')!,
+                  label: _crmStageLabel(item.toString()),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.filterStageIds,
+          multiHintText: 'Select stages',
+          onMultiChanged: controller.setFilterStageIds,
+        ),
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Assigned To',
+          mappedItems: controller.users
+              .where((item) => item.id != null)
+              .map(
+                (item) => AppDropdownItem<int>(
+                  value: item.id!,
+                  label: item.displayName ?? item.username ?? '',
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.filterAssignedToIds,
+          multiHintText: 'Select assignees',
+          onMultiChanged: controller.setFilterAssignedToIds,
+        ),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Status',
+          mappedItems: CrmEnquiriesController.filterStatusItems,
+          multiInitialValues: controller.filterEnquiryStatuses,
+          multiHintText: 'Select statuses',
+          onMultiChanged: controller.setFilterEnquiryStatuses,
+        ),
+        AppDateField(
+          labelText: 'Date From',
+          controller: controller.filterDateFromController,
+        ),
+        AppDateField(
+          labelText: 'Date To',
+          controller: controller.filterDateToController,
+        ),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: controller.clearFilters,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildPrimaryTab(
     BuildContext context,

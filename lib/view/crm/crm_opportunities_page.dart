@@ -52,6 +52,7 @@ class _CrmOpportunityRegisterPageState
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _dateFromController = TextEditingController();
   final TextEditingController _dateToController = TextEditingController();
+  bool _filtersVisible = false;
   bool _loading = true;
   bool _isSuperAdmin = false;
   String? _error;
@@ -78,6 +79,8 @@ class _CrmOpportunityRegisterPageState
   void initState() {
     super.initState();
     _searchController.addListener(() => setState(() {}));
+    _dateFromController.addListener(() => setState(() {}));
+    _dateToController.addListener(() => setState(() {}));
     _applyDashboardFilters();
     _loadAccess();
     _load();
@@ -108,138 +111,6 @@ class _CrmOpportunityRegisterPageState
     _dateFromController.dispose();
     _dateToController.dispose();
     super.dispose();
-  }
-
-  Future<void> _openRegisterFilterPanel(BuildContext context) async {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
-    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
-    final searchController = TextEditingController(
-      text: _searchController.text,
-    );
-    final dateFromController = TextEditingController(
-      text: _dateFromController.text,
-    );
-    final dateToController = TextEditingController(
-      text: _dateToController.text,
-    );
-    Set<String> tempStatuses = Set<String>.from(_statuses);
-
-    final applied = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        final appTheme = Theme.of(
-          dialogContext,
-        ).extension<AppThemeExtension>()!;
-
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return Dialog(
-              insetPadding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: 20,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    dialogPadding,
-                    dialogPadding,
-                    dialogPadding,
-                    MediaQuery.of(dialogContext).viewInsets.bottom +
-                        dialogPadding,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Filter CRM Enquiries',
-                              style: Theme.of(dialogContext)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(false),
-                            tooltip: 'Close',
-                            icon: const Icon(Icons.close),
-                            color: appTheme.mutedText,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _CrmOpportunityRegisterFilters(
-                        searchController: searchController,
-                        dateFromController: dateFromController,
-                        dateToController: dateToController,
-                        statuses: tempStatuses,
-                        statusItems: _statusItems,
-                        onStatusesChanged: (values) {
-                          setDialogState(() {
-                            tempStatuses = Set<String>.from(values);
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _searchController.text = searchController.text;
-                                _dateFromController.text =
-                                    dateFromController.text;
-                                _dateToController.text = dateToController.text;
-                                _statuses = Set<String>.from(tempStatuses);
-                              });
-                              Navigator.of(dialogContext).pop(true);
-                            },
-                            icon: const Icon(Icons.search),
-                            label: const Text('Apply Filters'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _dateFromController.clear();
-                                _dateToController.clear();
-                                _statuses = <String>{'open'};
-                              });
-                              Navigator.of(dialogContext).pop(true);
-                            },
-                            icon: const Icon(Icons.clear),
-                            label: const Text('Clear'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    searchController.dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
-    if (applied == true && mounted) {
-      setState(() {});
-    }
   }
 
   Future<void> _load() async {
@@ -358,7 +229,9 @@ class _CrmOpportunityRegisterPageState
     final creator =
         JsonModel.mapOf(data['creator']) ?? const <String, dynamic>{};
     final displayName = stringValue(creator, 'display_name');
-    return displayName.isNotEmpty ? displayName : stringValue(creator, 'username');
+    return displayName.isNotEmpty
+        ? displayName
+        : stringValue(creator, 'username');
   }
 
   String _statusLabel(String value) {
@@ -386,10 +259,10 @@ class _CrmOpportunityRegisterPageState
           'No CRM enquiries yet. Create a new enquiry to get started.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () => _openRegisterFilterPanel(context),
+          onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
           icon: Icons.filter_alt_outlined,
           label: 'Filter',
-          filled: false,
+          filled: _filtersVisible,
         ),
         AdaptiveShellActionButton(
           onPressed: () =>
@@ -398,6 +271,23 @@ class _CrmOpportunityRegisterPageState
           label: 'New enquiry',
         ),
       ],
+      filters: _filtersVisible
+          ? _CrmOpportunityRegisterFilters(
+              searchController: _searchController,
+              dateFromController: _dateFromController,
+              dateToController: _dateToController,
+              statuses: _statuses,
+              statusItems: _statusItems,
+              onStatusesChanged: (values) =>
+                  setState(() => _statuses = Set<String>.from(values)),
+              onClear: () => setState(() {
+                _searchController.clear();
+                _dateFromController.clear();
+                _dateToController.clear();
+                _statuses = <String>{'open'};
+              }),
+            )
+          : null,
       rows: _filtered,
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
@@ -471,6 +361,7 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
     required this.statuses,
     required this.statusItems,
     required this.onStatusesChanged,
+    required this.onClear,
   });
 
   final TextEditingController searchController;
@@ -479,6 +370,7 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
   final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<Set<String>> onStatusesChanged;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +389,14 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
           multiInitialValues: statuses,
           multiHintText: 'Select statuses',
           onMultiChanged: onStatusesChanged,
+        ),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+          ),
         ),
       ],
     );

@@ -31,6 +31,8 @@ class CrmLeadRegisterController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_notifySearch);
+    dateFromController.addListener(_notifySearch);
+    dateToController.addListener(_notifySearch);
     _refreshWorker = ever<CrmModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -49,8 +51,12 @@ class CrmLeadRegisterController extends GetxController {
     searchController
       ..removeListener(_notifySearch)
       ..dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
+    dateFromController
+      ..removeListener(_notifySearch)
+      ..dispose();
+    dateToController
+      ..removeListener(_notifySearch)
+      ..dispose();
     super.onClose();
   }
 
