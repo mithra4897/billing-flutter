@@ -813,35 +813,19 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _actionField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppUiConstants.spacingXs),
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            SizedBox(
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: controller.loading
-                    ? null
-                    : () => unawaited(controller.applyFilters()),
-                icon: const Icon(Icons.filter_alt_outlined),
-                label: const Text('Apply Filters'),
-              ),
-            ),
-            SizedBox(
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: controller.loading ? null : _clearFilters,
-                icon: const Icon(Icons.clear_outlined),
-                label: const Text('Clear'),
-              ),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.only(top: AppUiConstants.spacingXs),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: controller.loading ? null : _clearFilters,
+            icon: const Icon(Icons.clear_outlined),
+            label: const Text('Clear'),
+          ),
         ),
-      ],
+      ),
     );
   }
 
@@ -882,7 +866,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppUiConstants.spacingMd),
-              SizedBox(width: 310, child: _actionField(context)),
+              SizedBox(width: 110, child: _actionField(context)),
             ],
           );
         }

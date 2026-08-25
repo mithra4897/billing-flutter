@@ -37,8 +37,8 @@
 ### Sales verification completed
 
 - Search and date fields reload page 1 after a short debounce.
-- Customer, status and sort changes reload page 1 automatically; Apply remains
-  available for an immediate refresh.
+- Customer, status and sort changes reload page 1 automatically. Clear resets
+  all filters; no separate Apply action is required.
 - Date, document-number and outstanding-balance sorting run on the API before
   pagination.
 - Multi-status dashboard filters are sent to the API.
