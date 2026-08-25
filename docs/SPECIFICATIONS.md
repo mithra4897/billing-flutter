@@ -1,5 +1,16 @@
 # Specifications
 
+## Global status toast
+
+- Date: 2026-08-25
+- Status: Implemented
+
+Controller-originated application feedback uses a single centered toast instead
+of the scaffold snackbar. The toast replaces the previous message, disappears
+after three seconds, and uses green for success, amber for warnings, red for
+errors, and blue for informational messages. It does not change API behavior,
+form validation, or persistence.
+
 ## CRM Enquiries expected-value presentation
 
 - Date: 2026-08-25

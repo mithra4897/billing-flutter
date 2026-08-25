@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-25 — Global status toast
+
+- Request: Replace snackbar feedback with a centered, color-coded global toast.
+- Implementation: Added one overlay-based toast with green, amber, red, and
+  blue states plus a compatibility host for controller notifications.
+- Database/API impact: None.
+- Security impact: None.
+- Tests executed and results: Focused Flutter analysis passed with no issues.
+- Known limitations: Context-owned snackbar calls must be migrated separately.
+
 ## 2026-08-25 — CRM Enquiries expected-value presentation
 
 - Request: Separate Expected Value from Lead By and replace zero values with a

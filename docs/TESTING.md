@@ -1,5 +1,12 @@
 # Testing
 
+## Global status toast — 2026-08-25
+
+- Focused `flutter analyze lib/main.dart lib/components/app_toast.dart` passed
+  with no issues.
+- Manual verification remains required for the visual placement and colors in
+  an authenticated browser session.
+
 ## CRM Enquiries expected-value presentation — 2026-08-25
 
 - The register and legacy read-only table configure the shared Expected Value

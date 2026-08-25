@@ -34,6 +34,7 @@ export 'components/app_status_badge.dart';
 export 'components/app_switch_tile.dart';
 export 'components/app_text_field.dart';
 export 'components/app_toggle_chip.dart';
+export 'components/app_toast.dart';
 export 'components/date_input_formatter.dart';
 export 'components/date_time_input_formatter.dart';
 export 'components/document_series_selector.dart';

@@ -1,5 +1,12 @@
 # Architecture
 
+## Global status toast
+
+`AppToast` owns one overlay entry above the active navigator and replaces it
+before displaying a new message. `AppToastMessenger` is the compatibility host
+for existing controller notification calls, keeping screen-independent feedback
+centered without adding per-controller UI state.
+
 ## CRM expected-value display formatting
 
 `formatCrmExpectedValue` is the single presentation helper shared by the CRM

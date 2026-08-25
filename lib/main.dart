@@ -7,6 +7,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'app/constants/app_config.dart';
 import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
+import 'components/app_toast.dart';
 import 'core/navigation/app_route_state.dart';
 import 'core/storage/session_storage.dart';
 import 'helper/app_format_settings.dart';
@@ -50,8 +51,8 @@ void main() {
 }
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
-    GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<AppToastMessengerState> appScaffoldMessengerKey =
+    GlobalKey<AppToastMessengerState>();
 
 class BillingApp extends StatelessWidget {
   const BillingApp({super.key});
@@ -72,13 +73,16 @@ class BillingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
-      scaffoldMessengerKey: appScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: AppTheme.defaultMode,
       initialRoute: _initialRouteName(),
+      builder: (context, child) => AppToastMessenger(
+        key: appScaffoldMessengerKey,
+        child: child ?? const SizedBox.shrink(),
+      ),
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');
         AppRouteState.update(uri.toString());
