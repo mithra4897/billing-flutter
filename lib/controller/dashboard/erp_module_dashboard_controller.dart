@@ -91,8 +91,22 @@ class ErpModuleDashboardController extends GetxController {
         start: selected.start,
         end: selected.end,
       ),
+      secondaryFilterValue: trendFilter.secondaryFilterValue,
     );
     update();
+  }
+
+  void setSecondaryFilter(String value) {
+    final normalizedValue = value.trim();
+    if (trendFilter.secondaryFilterValue == normalizedValue) {
+      return;
+    }
+    trendFilter = ErpDashboardTrendFilter(
+      preset: trendFilter.preset,
+      customRange: trendFilter.customRange,
+      secondaryFilterValue: normalizedValue,
+    );
+    refreshTrendSnapshot();
   }
 
   Future<void> refreshTrendSnapshot() async {
@@ -114,20 +128,23 @@ class ErpModuleDashboardController extends GetxController {
   ) async {
     switch (value) {
       case ErpDashboardTrendControlValue.monthly:
-        trendFilter = const ErpDashboardTrendFilter(
+        trendFilter = ErpDashboardTrendFilter(
           preset: ErpDashboardTrendPreset.monthly,
+          secondaryFilterValue: trendFilter.secondaryFilterValue,
         );
         update();
         await refreshTrendSnapshot();
       case ErpDashboardTrendControlValue.weekly:
-        trendFilter = const ErpDashboardTrendFilter(
+        trendFilter = ErpDashboardTrendFilter(
           preset: ErpDashboardTrendPreset.weekly,
+          secondaryFilterValue: trendFilter.secondaryFilterValue,
         );
         update();
         await refreshTrendSnapshot();
       case ErpDashboardTrendControlValue.yearly:
-        trendFilter = const ErpDashboardTrendFilter(
+        trendFilter = ErpDashboardTrendFilter(
           preset: ErpDashboardTrendPreset.yearly,
+          secondaryFilterValue: trendFilter.secondaryFilterValue,
         );
         update();
         await refreshTrendSnapshot();

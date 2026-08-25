@@ -19,10 +19,15 @@ class ErpDashboardGraphRange {
 enum ErpDashboardTrendPreset { monthly, weekly, yearly, custom }
 
 class ErpDashboardTrendFilter {
-  const ErpDashboardTrendFilter({required this.preset, this.customRange});
+  const ErpDashboardTrendFilter({
+    required this.preset,
+    this.customRange,
+    this.secondaryFilterValue = '',
+  });
 
   final ErpDashboardTrendPreset preset;
   final ErpDashboardGraphRange? customRange;
+  final String secondaryFilterValue;
 }
 
 Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(
@@ -210,15 +215,24 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       currentUser?['is_super_admin'] == true ||
       currentUser?['is_super_admin'] == 1 ||
       currentUser?['is_super_admin'] == '1';
+  final selectedEmployeeFilter = activeFilter.secondaryFilterValue.trim();
+  final selectedEmployeeId = selectedEmployeeFilter.startsWith('employee:')
+      ? selectedEmployeeFilter.substring('employee:'.length)
+      : '';
   final pendingLeadResponses = await Future.wait(
     <Future<PaginatedResponse<CrmLeadModel>>>[
       crmService.leads(
-        filters: const <String, dynamic>{'per_page': 1, 'lead_status': 'new'},
+        filters: <String, dynamic>{
+          'per_page': 1,
+          'lead_status': 'new',
+          if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
+        },
       ),
       crmService.leads(
-        filters: const <String, dynamic>{
+        filters: <String, dynamic>{
           'per_page': 1,
           'lead_status': 'in_progress',
+          if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
         },
       ),
     ],
@@ -229,7 +243,11 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
   final openOpportunityResponse = await crmService.opportunities(
-    filters: const <String, dynamic>{'per_page': 1, 'status': 'open'},
+    filters: <String, dynamic>{
+      'per_page': 1,
+      'status': 'open',
+      if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
+    },
   );
   final followupBoardResponse = await crmService.opportunityFollowupsBoard();
   final followupBoardData =
@@ -262,13 +280,26 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         ? employeeUsername
         : 'Employee $employeeId';
   }
+  bool matchesSelectedEmployee(Map<String, dynamic> row) {
+    if (selectedEmployeeId.isEmpty) {
+      return true;
+    }
+    final assignedUser = JsonModel.mapOf(row['assigned_user']);
+    return intValue(assignedUser ?? const <String, dynamic>{}, 'id')
+            ?.toString() ==
+        selectedEmployeeId;
+  }
+  final filteredFollowupBoardRows = followupBoardRows
+      .where(matchesSelectedEmployee)
+      .toList(growable: false);
   final completedFollowupRows =
       (followupBoardData['completed_followups'] as List<dynamic>? ??
               const <dynamic>[])
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
+          .where(matchesSelectedEmployee)
           .toList(growable: false);
-  final followupItems = followupBoardRows
+  final followupItems = filteredFollowupBoardRows
       .map(CrmPendingFollowupItem.fromJson)
       .where(
         (item) =>
@@ -309,13 +340,13 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       )
       .length;
 
-  final todayCount = followupBoardRows
+  final todayCount = filteredFollowupBoardRows
       .where((row) => _crmIsBoardFollowupDueToday(row, currentDate))
       .length;
-  final overdueCount = followupBoardRows
+  final overdueCount = filteredFollowupBoardRows
       .where((row) => _crmIsBoardFollowupOverdue(row, currentDate))
       .length;
-  final upcomingCount = followupBoardRows
+  final upcomingCount = filteredFollowupBoardRows
       .where((row) => _crmIsBoardFollowupUpcoming(row, currentDate))
       .length;
   final highPriority = pendingItems
@@ -375,7 +406,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       ),
       ErpDashboardStat(
         label: 'Open Follow-ups',
-        value: _formatInt(followupBoardRows.length),
+        value: _formatInt(filteredFollowupBoardRows.length),
         helper: 'Pending calls, emails, and next steps',
         icon: Icons.assignment_late_outlined,
         color: const Color(0xFFDA4D78),
@@ -403,6 +434,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                 ),
               ]
             : const <ErpDashboardListFilterOption>[],
+        initialSecondaryFilterValue: selectedEmployeeFilter,
         items: pendingItems
             .take(6)
             .map((item) {

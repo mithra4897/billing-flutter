@@ -254,6 +254,7 @@ class ErpModuleDashboard extends StatelessWidget {
     required this.snapshot,
     this.trendControlValue,
     this.onTrendControlChanged,
+    this.onSecondaryFilterChanged,
     this.showTrendControls = false,
     this.trendLoading = false,
     this.showHeader = true,
@@ -262,6 +263,7 @@ class ErpModuleDashboard extends StatelessWidget {
   final ErpDashboardSnapshot snapshot;
   final ErpDashboardTrendControlValue? trendControlValue;
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
+  final ValueChanged<String>? onSecondaryFilterChanged;
   final bool showTrendControls;
   final bool trendLoading;
   final bool showHeader;
@@ -312,6 +314,7 @@ class ErpModuleDashboard extends StatelessWidget {
                 flex: 13,
                 child: _DashboardPrimaryColumn(
                   sections: snapshot.primarySections,
+                  onSecondaryFilterChanged: onSecondaryFilterChanged,
                 ),
               ),
               const SizedBox(width: AppUiConstants.spacingLg),
@@ -331,7 +334,10 @@ class ErpModuleDashboard extends StatelessWidget {
           Column(
             key: const Key('erp-dashboard-stacked'),
             children: [
-              _DashboardPrimaryColumn(sections: snapshot.primarySections),
+              _DashboardPrimaryColumn(
+                sections: snapshot.primarySections,
+                onSecondaryFilterChanged: onSecondaryFilterChanged,
+              ),
               const SizedBox(height: AppUiConstants.spacingLg),
               _DashboardInsightsColumn(
                 snapshot: snapshot,
@@ -343,7 +349,10 @@ class ErpModuleDashboard extends StatelessWidget {
             ],
           )
         else
-          _DashboardPrimaryColumn(sections: snapshot.primarySections),
+          _DashboardPrimaryColumn(
+            sections: snapshot.primarySections,
+            onSecondaryFilterChanged: onSecondaryFilterChanged,
+          ),
       ],
     );
   }
@@ -610,9 +619,13 @@ class _DashboardStatCard extends StatelessWidget {
 }
 
 class _DashboardPrimaryColumn extends StatelessWidget {
-  const _DashboardPrimaryColumn({required this.sections});
+  const _DashboardPrimaryColumn({
+    required this.sections,
+    this.onSecondaryFilterChanged,
+  });
 
   final List<ErpDashboardListSection> sections;
+  final ValueChanged<String>? onSecondaryFilterChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -637,7 +650,10 @@ class _DashboardPrimaryColumn extends StatelessWidget {
                     ? 0
                     : AppUiConstants.spacingLg,
               ),
-              child: _DashboardListCard(section: section),
+              child: _DashboardListCard(
+                section: section,
+                onSecondaryFilterChanged: onSecondaryFilterChanged,
+              ),
             ),
           )
           .toList(growable: false),
@@ -698,9 +714,13 @@ class _DashboardInsightsColumn extends StatelessWidget {
 }
 
 class _DashboardListCard extends StatefulWidget {
-  const _DashboardListCard({required this.section});
+  const _DashboardListCard({
+    required this.section,
+    this.onSecondaryFilterChanged,
+  });
 
   final ErpDashboardListSection section;
+  final ValueChanged<String>? onSecondaryFilterChanged;
 
   @override
   State<_DashboardListCard> createState() => _DashboardListCardState();
@@ -802,6 +822,7 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                               _selectedSecondaryFilter = value;
                               _currentPage = 1;
                             });
+                            widget.onSecondaryFilterChanged?.call(value);
                           },
                         ),
                     ],

@@ -137,6 +137,7 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
                     controller.trendFilter.preset,
                   ),
                   onTrendControlChanged: _handleTrendControlChanged,
+                  onSecondaryFilterChanged: controller.setSecondaryFilter,
                   trendLoading: controller.isTrendReloading,
                   showHeader: widget.showDashboardHeader,
                 ),
