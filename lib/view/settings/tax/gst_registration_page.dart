@@ -22,6 +22,9 @@ class GstRegistrationManagementPage extends StatefulWidget {
 
 class _GstRegistrationManagementPageState
     extends State<GstRegistrationManagementPage> {
+  static const double _formFieldWidth = 300;
+  static const double _formFieldSpacing = 16;
+
   late final String _controllerTag;
   GstRegistrationManagementController? _publishedController;
 
@@ -256,6 +259,12 @@ class _GstRegistrationManagementPageState
                 const SizedBox(height: 16),
               ],
               SettingsFormWrap(
+                maxWidth: _formFieldWidth,
+                spacing: _formFieldSpacing,
+                // This editor is embedded inside the Branches workspace. Its
+                // available width is narrower than a standalone settings page,
+                // but still wide enough for two standard fields.
+                mobileBreakpoint: 480,
                 children: [
                   if (widget.fixedCompanyId == null)
                     if (widget.fixedBranchId == null)
@@ -343,10 +352,15 @@ class _GstRegistrationManagementPageState
                 value: controller.isActive,
                 onChanged: controller.setIsActive,
               ),
-              AppFormTextField(
-                controller: controller.remarksController,
-                labelText: 'Remarks',
-                maxLines: 3,
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: (_formFieldWidth * 2) + _formFieldSpacing,
+                ),
+                child: AppFormTextField(
+                  controller: controller.remarksController,
+                  labelText: 'Remarks',
+                  maxLines: 3,
+                ),
               ),
               const SizedBox(height: 16),
               Wrap(
