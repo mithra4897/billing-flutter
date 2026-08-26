@@ -7,7 +7,6 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'app/constants/app_config.dart';
 import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
-import 'components/app_toast.dart';
 import 'core/navigation/app_route_state.dart';
 import 'core/storage/session_storage.dart';
 import 'helper/app_format_settings.dart';
@@ -79,7 +78,7 @@ class BillingApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: AppTheme.defaultMode,
       initialRoute: _initialRouteName(),
-      builder: (context, child) => AppToastScaffoldMessenger(
+      builder: (context, child) => ScaffoldMessenger(
         key: appScaffoldMessengerKey,
         child: child ?? const SizedBox.shrink(),
       ),

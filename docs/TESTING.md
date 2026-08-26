@@ -1087,3 +1087,13 @@ been packaged successfully.
   issues. Full `flutter test`: passed 18 tests.
 - After simplifying the schedule choices, focused analysis passed and the
   company leave-policy model test passed (2 tests).
+
+## Print summary rupee typography
+
+- Verify quotation, sales invoice, and another document type with a `₹` text
+  field show the same rupee glyph as the designer preview, because PDF text
+  fields containing `₹` use the Flutter-rendered currency image.
+- Trigger a success/error toast during route or form rebuilds and verify no
+  `notifyClients` or descendant assertion is reported in the debug console.
+- Hot restart the web app while a route is mounted and verify the standard root
+  `ScaffoldMessenger` rebuilds without a `_FocusInheritedScope` assertion.

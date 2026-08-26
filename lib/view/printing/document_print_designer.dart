@@ -989,8 +989,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final summaryRight = math.max(label.x + label.width, value.x + value.width);
     final amountWidth = math.max(62.0, value.width * 0.68);
     final amountX = summaryRight - amountWidth;
-    const currencyWidth = 12.0;
-    final currencyX = amountX - currencyWidth - 3;
+    const currencyWidth = 16.0;
+    final currencyX = amountX - currencyWidth - 4;
     final amountWordsY = shapes
         .firstWhereOrNull((shape) => shape.id == 'amount-words-label')
         ?.y;
@@ -1045,8 +1045,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             '{{discount_summary_currency}}\n'
             '{{round_off_summary_currency}}\n'
             '\u20B9',
-        fontSize: 10,
+        fontSize: 13,
         bold: true,
+        letterSpacing: 0,
         multiline: true,
         align: 'center',
       ),
@@ -2793,6 +2794,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       case 'text':
       default:
         final text = resolvePrintTemplateText(shape.text, data);
+        if (text.contains('\u20B9')) {
+          final uiText = await _buildPdfUiCurrencyTextWidget(
+            shape,
+            text,
+            template,
+          );
+          if (uiText != null) {
+            return uiText;
+          }
+        }
         final allowMultiline = shape.multiline || text.contains('\n');
         final summaryLines = _resolveTwoColumnPrintSummary(shape.text, data);
         final textStyle = _pdfTextStyleForTemplate(
@@ -3288,6 +3299,70 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       default:
         return pw.TextAlign.left;
     }
+  }
+
+  Future<pw.Widget?> _buildPdfUiCurrencyTextWidget(
+    DocumentPrintShape shape,
+    String text,
+    DocumentPrintTemplate template,
+  ) async {
+    // Keep the rendered PDF glyph visually equivalent to the live Flutter
+    // preview after PDF viewers downsample it at print/display resolution.
+    const renderScale = 12.0;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: applyDocumentPrintFontStyle(
+          TextStyle(
+            color: Color(shape.strokeColor),
+            fontSize: shape.fontSize * renderScale,
+            fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
+            fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
+            decoration: shape.underline
+                ? TextDecoration.underline
+                : TextDecoration.none,
+            letterSpacing: shape.letterSpacing * renderScale,
+            height: shape.lineHeight,
+          ),
+          _shapeFontFamily(template, shape),
+        ),
+      ),
+      textAlign: switch (shape.align) {
+        'center' => TextAlign.center,
+        'right' => TextAlign.right,
+        _ => TextAlign.left,
+      },
+      textDirection: TextDirection.ltr,
+      maxLines: shape.multiline || text.contains('\n') ? null : 1,
+    )..layout(maxWidth: shape.width * renderScale);
+
+    if (painter.width <= 0 || painter.height <= 0) {
+      return null;
+    }
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    painter.paint(canvas, Offset.zero);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      painter.width.ceil(),
+      painter.height.ceil(),
+    );
+    picture.dispose();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (bytes == null) {
+      return null;
+    }
+
+    return pw.Image(
+      pw.MemoryImage(
+        bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+      ),
+      width: painter.width / renderScale,
+      height: painter.height / renderScale,
+      fit: pw.BoxFit.contain,
+    );
   }
 
   String _shapeFontFamily(

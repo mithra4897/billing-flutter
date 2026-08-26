@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-26 — Print summary rupee typography
+
+- The downloaded invoice summary now embeds a high-resolution Flutter-rendered
+  currency-text image, so its rupee glyph exactly matches the UI preview.
+- Increased the embedded render resolution to retain the preview glyph's
+  visible stroke weight in downloaded PDFs.
+- Applied the Flutter-rendered rupee rule to every print text field containing
+  `₹`, rather than only the sales-invoice summary shape.
+
+## 2026-08-26 — Toast overlay frame safety
+
+- Deferred toast overlay mutations until after the active widget frame to
+  prevent inherited-widget descendant assertions during rebuilds.
+- Replaced the unsupported `ScaffoldMessenger` subclass with Flutter's standard
+  root messenger so hot restart cannot retain invalid inherited dependents.
+
 ## 2026-08-25 — Global status toast
 
 - Request: Replace snackbar feedback with a centered, color-coded global toast.

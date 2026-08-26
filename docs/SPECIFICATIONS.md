@@ -11,6 +11,9 @@ after three seconds, and uses green for success, amber for warnings, red for
 errors, and blue for informational messages. It does not change API behavior,
 form validation, or persistence.
 
+The app root must use Flutter's standard `ScaffoldMessenger`; `AppToast` remains
+an independent overlay and must not subclass messenger framework state.
+
 ## CRM Enquiries expected-value presentation
 
 - Date: 2026-08-25
@@ -1315,6 +1318,13 @@ Design rules:
   light-scheme/dark-surface combination must not be copied.
 - The local Nunito font asset is the application font; print-only font families
   remain unchanged.
+- Every generated print text field containing `₹` rasterizes that field with
+  Flutter's own high-resolution `TextPainter` output, ensuring the rupee glyph
+  exactly matches the UI preview without losing stroke weight during PDF
+  downsampling. This applies to quotation, invoice, order, purchase, and other
+  print templates without requiring document-specific shape IDs.
+- Toast overlay entries must be inserted or removed outside the widget build
+  phase so inherited widget dependents remain attached to the active tree.
 - Material `ColorScheme` owns standard semantic roles. `AppThemeExtension`
   remains the compatibility layer for ERP-specific roles already consumed by
   the application.

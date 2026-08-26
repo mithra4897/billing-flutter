@@ -3,9 +3,9 @@
 ## Global status toast
 
 `AppToast` owns one overlay entry above the active navigator and replaces it
-before displaying a new message. `AppToastMessenger` is the compatibility host
-for existing controller notification calls, keeping screen-independent feedback
-centered without adding per-controller UI state.
+before displaying a new message. The application root uses Flutter's standard
+`ScaffoldMessenger`; toast behavior remains a separate overlay service so hot
+restart cannot retain an unsupported custom messenger/inherited-widget state.
 
 ## CRM expected-value display formatting
 
