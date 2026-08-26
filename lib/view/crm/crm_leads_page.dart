@@ -331,6 +331,7 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
       child: SettingsFormWrap(
         maxWidth: double.infinity,
         maxColumns: 6,
+        expandChildren: true,
         children: [
           AppDateField(labelText: 'From Date', controller: dateFromController),
           AppDateField(labelText: 'To Date', controller: dateToController),
@@ -357,10 +358,10 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
             ),
           SizedBox(
             height: 48,
-            child: OutlinedButton.icon(
+            child: IconButton(
               onPressed: onClear,
-              icon: const Icon(Icons.clear_outlined),
-              label: const Text('Clear'),
+              tooltip: 'Clear filters',
+              icon: const Icon(Icons.close_outlined),
             ),
           ),
         ],

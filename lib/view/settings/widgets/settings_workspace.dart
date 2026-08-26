@@ -770,6 +770,7 @@ class SettingsFormWrap extends StatelessWidget {
     this.mobileBreakpoint = 640,
     this.maxWidth = 300,
     this.maxColumns = 2,
+    this.expandChildren = false,
   });
 
   final List<Widget> children;
@@ -778,6 +779,7 @@ class SettingsFormWrap extends StatelessWidget {
   final double mobileBreakpoint;
   final double maxWidth;
   final int maxColumns;
+  final bool expandChildren;
 
   @override
   Widget build(BuildContext context) {
@@ -819,7 +821,9 @@ class SettingsFormWrap extends StatelessWidget {
                     child: child,
                   );
                 } else {
-                  return child;
+                  return expandChildren
+                      ? SizedBox(width: itemWidth, child: child)
+                      : child;
                 }
               })
               .toList(growable: false),

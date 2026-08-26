@@ -540,6 +540,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       child: SettingsFormWrap(
         maxWidth: double.infinity,
         maxColumns: 6,
+        expandChildren: true,
         children: [
           AppDropdownField<int>.fromMapped(
             labelText: 'Customer',
@@ -610,10 +611,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           ),
           SizedBox(
             height: 48,
-            child: OutlinedButton.icon(
+            child: IconButton(
               onPressed: controller.clearFilters,
-              icon: const Icon(Icons.clear_outlined),
-              label: const Text('Clear'),
+              tooltip: 'Clear filters',
+              icon: const Icon(Icons.close_outlined),
             ),
           ),
         ],

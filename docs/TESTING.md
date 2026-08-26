@@ -8,6 +8,7 @@
 - Verify each CRM list has one working search field in the application bar and
   no duplicate Search field inside filters or list/table content. Verify it is
   centered in the main header area between the title and right-side actions.
+- Verify the Clear action matches the adjacent filter control width and height.
 - `dart format` and focused `flutter analyze` were run for the three CRM page
   files; authenticated visual QA remains recommended.
 
