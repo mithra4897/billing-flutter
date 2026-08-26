@@ -23,11 +23,13 @@ class DepartmentManagementController extends GetxController {
   List<EmployeeModel> employees = const <EmployeeModel>[];
   DepartmentModel? selectedDepartment;
   bool isActive = true;
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleReload);
     loadDepartments();
   }
 
@@ -36,13 +38,15 @@ class DepartmentManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleReload)
       ..dispose();
+    _searchDebounce?.cancel();
     nameController.dispose();
     super.onClose();
   }
 
-  Future<void> loadDepartments({int? selectId}) async {
+  Future<void> loadDepartments({int? selectId, int page = 1}) async {
+    _searchDebounce?.cancel();
     initialLoading = departments.isEmpty;
     pageError = null;
     update();
@@ -50,22 +54,30 @@ class DepartmentManagementController extends GetxController {
     try {
       final responses = await Future.wait<dynamic>([
         _hrService.departments(
-          filters: const {'per_page': 200, 'sort_by': 'department_name'},
+          filters: {
+            'page': page,
+            'per_page': 50,
+            'sort_by': 'department_name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
         _hrService.employees(
           filters: const {'per_page': 300, 'sort_by': 'employee_name'},
         ),
       ]);
-      final items =
-          (responses[0] as PaginatedResponse<DepartmentModel>).data ??
-          const <DepartmentModel>[];
+      final departmentResponse =
+          responses[0] as PaginatedResponse<DepartmentModel>;
+      final items = departmentResponse.data ?? const <DepartmentModel>[];
       final employeeItems =
           (responses[1] as PaginatedResponse<EmployeeModel>).data ??
           const <EmployeeModel>[];
 
       departments = items;
+      paginationMeta = departmentResponse.meta;
       employees = employeeItems;
-      filteredDepartments = _filterDepartments(items, searchController.text);
+      filteredDepartments = items;
       initialLoading = false;
 
       final selected = selectId != null
@@ -93,21 +105,18 @@ class DepartmentManagementController extends GetxController {
     update();
   }
 
-  List<DepartmentModel> _filterDepartments(
-    List<DepartmentModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [item.departmentName ?? ''];
-    });
+  void _scheduleReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadDepartments(page: 1)),
+    );
   }
 
-  void _applySearch() {
-    filteredDepartments = _filterDepartments(
-      departments,
-      searchController.text,
-    );
-    update();
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadDepartments(page: page));
+    }
   }
 
   void selectDepartment(DepartmentModel item, {bool notify = true}) {

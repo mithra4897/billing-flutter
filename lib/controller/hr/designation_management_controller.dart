@@ -23,11 +23,13 @@ class DesignationManagementController extends GetxController {
   List<EmployeeModel> employees = const <EmployeeModel>[];
   DesignationModel? selectedDesignation;
   bool isActive = true;
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleReload);
     loadDesignations();
   }
 
@@ -36,13 +38,15 @@ class DesignationManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleReload)
       ..dispose();
+    _searchDebounce?.cancel();
     nameController.dispose();
     super.onClose();
   }
 
-  Future<void> loadDesignations({int? selectId}) async {
+  Future<void> loadDesignations({int? selectId, int page = 1}) async {
+    _searchDebounce?.cancel();
     initialLoading = designations.isEmpty;
     pageError = null;
     update();
@@ -50,22 +54,30 @@ class DesignationManagementController extends GetxController {
     try {
       final responses = await Future.wait<dynamic>([
         _hrService.designations(
-          filters: const {'per_page': 200, 'sort_by': 'designation_name'},
+          filters: {
+            'page': page,
+            'per_page': 50,
+            'sort_by': 'designation_name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
         _hrService.employees(
           filters: const {'per_page': 300, 'sort_by': 'employee_name'},
         ),
       ]);
-      final items =
-          (responses[0] as PaginatedResponse<DesignationModel>).data ??
-          const <DesignationModel>[];
+      final designationResponse =
+          responses[0] as PaginatedResponse<DesignationModel>;
+      final items = designationResponse.data ?? const <DesignationModel>[];
       final employeeItems =
           (responses[1] as PaginatedResponse<EmployeeModel>).data ??
           const <EmployeeModel>[];
 
       designations = items;
+      paginationMeta = designationResponse.meta;
       employees = employeeItems;
-      filteredDesignations = _filterDesignations(items, searchController.text);
+      filteredDesignations = items;
       initialLoading = false;
 
       final selected = selectId != null
@@ -93,21 +105,18 @@ class DesignationManagementController extends GetxController {
     update();
   }
 
-  List<DesignationModel> _filterDesignations(
-    List<DesignationModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [item.designationName ?? ''];
-    });
+  void _scheduleReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadDesignations(page: 1)),
+    );
   }
 
-  void _applySearch() {
-    filteredDesignations = _filterDesignations(
-      designations,
-      searchController.text,
-    );
-    update();
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadDesignations(page: page));
+    }
   }
 
   void selectDesignation(DesignationModel item, {bool notify = true}) {

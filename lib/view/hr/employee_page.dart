@@ -367,6 +367,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   @override
   void dispose() {
+    _employeeController.listSearchDebounce?.cancel();
     _tabController.dispose();
     _searchController.removeListener(_applySearch);
     _employeeCodeController.removeListener(_handleEmployeeCodeChanged);
@@ -387,16 +388,27 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     });
   }
 
-  Future<void> _loadData({int? selectId}) async {
+  Future<void> _loadData({int? selectId, int page = 1}) async {
+    _employeeController.listSearchDebounce?.cancel();
     _updateController(() {
       _initialLoading = _employees.isEmpty;
       _pageError = null;
     });
 
     try {
+      final companyInfo = await hrSessionCompanyInfo();
       final responses = await Future.wait<dynamic>([
         _hrService.employees(
-          filters: const {'per_page': 200, 'sort_by': 'employee_name'},
+          filters: {
+            'page': page,
+            'per_page': 50,
+            'sort_by': 'employee_name',
+            'sort_order': 'asc',
+            if (companyInfo.companyId != null)
+              'company_id': companyInfo.companyId,
+            if (_searchController.text.trim().isNotEmpty)
+              'search': _searchController.text.trim(),
+          },
         ),
         _hrService.departments(
           filters: const {'per_page': 200, 'sort_by': 'department_name'},
@@ -412,9 +424,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         ),
       ]);
 
-      final employees =
-          (responses[0] as PaginatedResponse<EmployeeModel>).data ??
-          const <EmployeeModel>[];
+      final employeeResponse = responses[0] as PaginatedResponse<EmployeeModel>;
+      final employees = employeeResponse.data ?? const <EmployeeModel>[];
       final departments =
           (responses[1] as PaginatedResponse<DepartmentModel>).data ??
           const <DepartmentModel>[];
@@ -441,15 +452,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
       _updateController(() {
         _employees = employees;
+        _employeeController.paginationMeta = employeeResponse.meta;
         _departments = departments;
         _designations = designations;
         _companies = companies;
         _costCenters = costCenters.where((item) => item.isActive).toList();
         _contextCompanyId = contextSelection.companyId;
-        _filteredEmployees = _filterEmployees(
-          employees,
-          _searchController.text,
-        );
+        _filteredEmployees = employees;
         if (selectId != null) {
           final savedInAll = employees.cast<EmployeeModel?>().firstWhere(
             (item) => item?.id == selectId,
@@ -508,7 +517,15 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }) async {
     try {
       final employeesResp = await _hrService.employees(
-        filters: const {'per_page': 200, 'sort_by': 'employee_name'},
+        filters: {
+          'page': 1,
+          'per_page': 50,
+          'sort_by': 'employee_name',
+          'sort_order': 'asc',
+          if (_contextCompanyId != null) 'company_id': _contextCompanyId,
+          if (_searchController.text.trim().isNotEmpty)
+            'search': _searchController.text.trim(),
+        },
       );
       if (!mounted) return;
       final employees = employeesResp.data ?? const <EmployeeModel>[];
@@ -517,10 +534,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
       _updateController(() {
         _employees = employees;
-        _filteredEmployees = _filterEmployees(
-          employees,
-          _searchController.text,
-        );
+        _filteredEmployees = employees;
+        _employeeController.paginationMeta = employeesResp.meta;
         if (row != null &&
             !_filteredEmployees.any((EmployeeModel e) => e.id == employeeId)) {
           _filteredEmployees = <EmployeeModel>[row, ..._filteredEmployees];
@@ -556,29 +571,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
   }
 
-  List<EmployeeModel> _filterEmployees(
-    List<EmployeeModel> source,
-    String query,
-  ) {
-    final scoped = _contextCompanyId == null
-        ? source
-        : source.where((item) => item.companyId == _contextCompanyId).toList();
-
-    return filterMasterList(scoped, query, (item) {
-      return [
-        item.employeeCode ?? '',
-        item.employeeName ?? '',
-        item.departmentName ?? '',
-        item.designationName ?? '',
-        item.mobile ?? '',
-      ];
-    });
+  void _applySearch() {
+    _employeeController.listSearchDebounce?.cancel();
+    _employeeController.listSearchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(_loadData(page: 1)),
+    );
   }
 
-  void _applySearch() {
-    _updateController(() {
-      _filteredEmployees = _filterEmployees(_employees, _searchController.text);
-    });
+  void _goToEmployeePage(int page) {
+    if (page >= 1 && page != _employeeController.paginationMeta?.currentPage) {
+      unawaited(_loadData(page: page));
+    }
   }
 
   Future<void> _selectEmployee(EmployeeModel employee) async {
@@ -1957,6 +1961,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         items: _filteredEmployees,
         selectedItem: _selectedEmployee,
         emptyMessage: 'No employees found.',
+        paginationMeta: _employeeController.paginationMeta,
+        onPageChanged: _goToEmployeePage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.employeeName ?? '-',
           subtitle: [
@@ -3056,10 +3062,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
           itemCount: structure.components.length,
-          onReorder: _saving
+          onReorderItem: _saving
               ? (_, _) {}
-              : (oldIndex, newIndex) =>
-                    _reorderComponents(structure, oldIndex, newIndex),
+              : (oldIndex, newIndex) => _reorderComponents(
+                  structure,
+                  oldIndex,
+                  newIndex > oldIndex ? newIndex + 1 : newIndex,
+                ),
           itemBuilder: (context, index) {
             final component = structure.components[index];
             final expanded = component.key == _selectedComponentKey;

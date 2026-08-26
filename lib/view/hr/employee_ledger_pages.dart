@@ -94,6 +94,19 @@ class _EmployeeLedgerRegisterPageState
     }
   }
 
+  Future<List<T>> _loadAllPages<T>(
+    Future<PaginatedResponse<T>> Function(int page) loader,
+  ) async {
+    final first = await loader(1);
+    final items = <T>[...?first.data];
+    final lastPage = first.meta?.lastPage ?? 1;
+    for (var page = 2; page <= lastPage; page++) {
+      final response = await loader(page);
+      items.addAll(response.data ?? const []);
+    }
+    return items;
+  }
+
   Future<void> _loadRows() async {
     setState(() {
       _loading = true;
@@ -102,37 +115,40 @@ class _EmployeeLedgerRegisterPageState
 
     try {
       final responses = await Future.wait<dynamic>([
-        _hrService.employees(
-          filters: const <String, dynamic>{
-            'per_page': 100,
-            'sort_by': 'employee_name',
-          },
+        _loadAllPages<EmployeeModel>(
+          (page) => _hrService.employees(
+            filters: <String, dynamic>{
+              'page': page,
+              'per_page': 200,
+              'sort_by': 'employee_name',
+            },
+          ),
         ),
-        _hrService.payslips(
-          filters: const <String, dynamic>{
-            'per_page': 200,
-            'sort_by': 'payslip_date',
-            'sort_order': 'desc',
-          },
+        _loadAllPages<PayslipModel>(
+          (page) => _hrService.payslips(
+            filters: <String, dynamic>{
+              'page': page,
+              'per_page': 200,
+              'sort_by': 'payslip_date',
+              'sort_order': 'desc',
+            },
+          ),
         ),
-        _hrService.expenseClaims(
-          filters: const <String, dynamic>{
-            'per_page': 200,
-            'sort_by': 'claim_date',
-            'sort_order': 'desc',
-          },
+        _loadAllPages<ExpenseClaimModel>(
+          (page) => _hrService.expenseClaims(
+            filters: <String, dynamic>{
+              'page': page,
+              'per_page': 200,
+              'sort_by': 'claim_date',
+              'sort_order': 'desc',
+            },
+          ),
         ),
       ]);
 
-      final employees =
-          (responses[0] as PaginatedResponse<EmployeeModel>).data ??
-          const <EmployeeModel>[];
-      final payslips =
-          (responses[1] as PaginatedResponse<PayslipModel>).data ??
-          const <PayslipModel>[];
-      final expenseClaims =
-          (responses[2] as PaginatedResponse<ExpenseClaimModel>).data ??
-          const <ExpenseClaimModel>[];
+      final employees = responses[0] as List<EmployeeModel>;
+      final payslips = responses[1] as List<PayslipModel>;
+      final expenseClaims = responses[2] as List<ExpenseClaimModel>;
 
       final employeeIds = employees
           .where((item) => item.id != null)

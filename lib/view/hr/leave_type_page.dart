@@ -79,6 +79,8 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
         items: controller.filteredLeaveTypes,
         selectedItem: controller.selectedLeaveType,
         emptyMessage: 'No leave type records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.leaveName ?? '-',
           subtitle: [

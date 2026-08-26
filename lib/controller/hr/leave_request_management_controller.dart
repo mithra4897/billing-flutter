@@ -51,12 +51,16 @@ class LeaveRequestManagementController extends GetxController {
   int? employeeId;
   int? leaveTypeId;
   String status = 'pending';
+  PaginationMeta? paginationMeta;
+  Timer? _filterDebounce;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleReload);
+    listDateFromController.addListener(_scheduleReload);
+    listDateToController.addListener(_scheduleReload);
     loadData();
   }
 
@@ -66,13 +70,18 @@ class LeaveRequestManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleReload)
       ..dispose();
     fromDateController.dispose();
     toDateController.dispose();
     reasonController.dispose();
-    listDateFromController.dispose();
-    listDateToController.dispose();
+    listDateFromController
+      ..removeListener(_scheduleReload)
+      ..dispose();
+    listDateToController
+      ..removeListener(_scheduleReload)
+      ..dispose();
+    _filterDebounce?.cancel();
     super.onClose();
   }
 
@@ -80,7 +89,8 @@ class LeaveRequestManagementController extends GetxController {
     unawaited(loadData());
   }
 
-  Future<void> loadData({int? selectId}) async {
+  Future<void> loadData({int? selectId, int page = 1}) async {
+    _filterDebounce?.cancel();
     initialLoading = leaveRequests.isEmpty;
     pageError = null;
     update();
@@ -138,7 +148,22 @@ class LeaveRequestManagementController extends GetxController {
         return;
       }
 
-      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
+      final filters = <String, dynamic>{
+        'company_id': cid,
+        'page': page,
+        'per_page': 50,
+        'sort_by': 'from_date',
+        'sort_order': 'desc',
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (listFilterEmployeeIds.length == 1)
+          'employee_id': listFilterEmployeeIds.single,
+        if (listFilterEmployeeIds.length > 1)
+          'employee_ids': listFilterEmployeeIds.join(','),
+        if (listFilterStatuses.length == 1) 'status': listFilterStatuses.single,
+        if (listFilterStatuses.length > 1)
+          'statuses': listFilterStatuses.join(','),
+      };
       final dateFrom = listDateFromController.text.trim();
       final dateTo = listDateToController.text.trim();
       if (dateFrom.isNotEmpty) {
@@ -162,9 +187,10 @@ class LeaveRequestManagementController extends GetxController {
         ),
       ]);
 
+      final requestResponse =
+          responses[0] as PaginatedResponse<LeaveRequestModel>;
       final nextLeaveRequests =
-          (responses[0] as PaginatedResponse<LeaveRequestModel>).data ??
-          const <LeaveRequestModel>[];
+          requestResponse.data ?? const <LeaveRequestModel>[];
       final nextLeaveTypes =
           (responses[1] as PaginatedResponse<LeaveTypeModel>).data ??
           const <LeaveTypeModel>[];
@@ -177,12 +203,10 @@ class LeaveRequestManagementController extends GetxController {
       canViewAllHr = viewAll;
       linkedEmployeeId = linked;
       leaveRequests = nextLeaveRequests;
+      paginationMeta = requestResponse.meta;
       leaveTypes = nextLeaveTypes;
       employees = nextEmployees;
-      filteredLeaveRequests = filterLeaveRequests(
-        nextLeaveRequests,
-        searchController.text,
-      );
+      filteredLeaveRequests = nextLeaveRequests;
       initialLoading = false;
       pageError = null;
 
@@ -249,42 +273,18 @@ class LeaveRequestManagementController extends GetxController {
     return name == 'casual leave' || name.contains('casual');
   }
 
-  List<LeaveRequestModel> filterLeaveRequests(
-    List<LeaveRequestModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (LeaveRequestModel item) {
-          return [
-            item.employeeCode ?? '',
-            item.employeeName ?? '',
-            item.leaveTypeName ?? '',
-            item.status ?? '',
-            item.reason ?? '',
-          ];
-        })
-        .where((item) {
-          if (canViewAllHr &&
-              listFilterEmployeeIds.isNotEmpty &&
-              !listFilterEmployeeIds.contains(item.employeeId)) {
-            return false;
-          }
-          if (listFilterStatuses.isNotEmpty &&
-              !listFilterStatuses.contains(
-                (item.status ?? '').trim().toLowerCase(),
-              )) {
-            return false;
-          }
-          return true;
-        })
-        .toList(growable: false);
+  void _scheduleReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadData(page: 1)),
+    );
   }
 
-  void _applySearch() {
-    filteredLeaveRequests = filterLeaveRequests(
-      leaveRequests,
-      searchController.text,
-    );
-    update();
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadData(page: page));
+    }
   }
 
   void selectLeaveRequest(LeaveRequestModel item, {bool notify = true}) {
@@ -499,16 +499,14 @@ class LeaveRequestManagementController extends GetxController {
     listFilterStatuses = <String>{};
     listDateFromController.clear();
     listDateToController.clear();
-    filteredLeaveRequests = filterLeaveRequests(
-      leaveRequests,
-      searchController.text,
-    );
     update();
+    unawaited(loadData(page: 1));
   }
 
   void setListFilterEmployeeIds(Set<int> values) {
     listFilterEmployeeIds = Set<int>.from(values);
     update();
+    _scheduleReload();
   }
 
   void setListFilterStatuses(Set<String> values) {
@@ -517,6 +515,7 @@ class LeaveRequestManagementController extends GetxController {
         .where((value) => value.isNotEmpty)
         .toSet();
     update();
+    _scheduleReload();
   }
 
   void setLeaveTypeId(int? value) {

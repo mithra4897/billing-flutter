@@ -265,14 +265,16 @@ class PayrollRunRegisterController extends GetxController {
   String? companyBanner;
   List<PayrollRunModel> rows = const <PayrollRunModel>[];
   Worker? _refreshWorker;
+  PaginationMeta? paginationMeta;
+  Timer? _filterDebounce;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
-    searchController.addListener(update);
-    dateFromController.addListener(update);
-    dateToController.addListener(update);
+    searchController.addListener(_scheduleReload);
+    dateFromController.addListener(_scheduleReload);
+    dateToController.addListener(_scheduleReload);
     _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
       event,
     ) {
@@ -289,14 +291,15 @@ class PayrollRunRegisterController extends GetxController {
     _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
     dateFromController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
     dateToController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
+    _filterDebounce?.cancel();
     super.onClose();
   }
 
@@ -304,19 +307,33 @@ class PayrollRunRegisterController extends GetxController {
     unawaited(load());
   }
 
-  Future<void> load() async {
+  Future<void> load({int page = 1}) async {
+    _filterDebounce?.cancel();
     loading = true;
     error = null;
     update();
     try {
       final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
+      final filters = <String, dynamic>{
+        'page': page,
+        'per_page': 50,
+        'sort_by': 'run_date',
+        'sort_order': 'desc',
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (statusFilter.isNotEmpty) 'status': statusFilter,
+        if (dateFromController.text.trim().isNotEmpty)
+          'date_from': dateFromController.text.trim(),
+        if (dateToController.text.trim().isNotEmpty)
+          'date_to': dateToController.text.trim(),
+      };
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
       }
       final response = await _service.payrollRuns(filters: filters);
       companyBanner = info.banner;
       rows = response.data ?? const <PayrollRunModel>[];
+      paginationMeta = response.meta;
       loading = false;
       update();
     } catch (err) {
@@ -326,42 +343,26 @@ class PayrollRunRegisterController extends GetxController {
     }
   }
 
-  List<PayrollRunModel> get filteredRows {
-    final q = searchController.text.trim().toLowerCase();
-    final fromDate = parseNormalizedDateValue(dateFromController.text);
-    final toDate = parseNormalizedDateValue(dateToController.text);
-    return rows
-        .where((PayrollRunModel row) {
-          final status = row.status?.trim().toLowerCase() ?? '';
-          final statusMatches = statusFilter.isEmpty || status == statusFilter;
-          if (!statusMatches) {
-            return false;
-          }
-          final runDate = parseNormalizedDateValue(row.runDate);
-          if (fromDate != null &&
-              (runDate == null || runDate.isBefore(fromDate))) {
-            return false;
-          }
-          if (toDate != null && (runDate == null || runDate.isAfter(toDate))) {
-            return false;
-          }
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.periodLabel,
-            row.runDate ?? '',
-            row.status ?? '',
-            row.linesCount?.toString() ?? '',
-            row.companyId?.toString() ?? '',
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
+  List<PayrollRunModel> get filteredRows => rows;
+
+  void _scheduleReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(load(page: 1)),
+    );
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(load(page: page));
+    }
   }
 
   void setStatusFilter(String value) {
     statusFilter = value;
     update();
+    _scheduleReload();
   }
 
   void clearFilters() {
@@ -390,12 +391,16 @@ class PayslipRegisterController extends GetxController {
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<PayslipModel> rows = const <PayslipModel>[];
   Worker? _refreshWorker;
+  PaginationMeta? paginationMeta;
+  Timer? _filterDebounce;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
-    searchController.addListener(update);
+    searchController.addListener(_scheduleReload);
+    dateFromController.addListener(_scheduleReload);
+    dateToController.addListener(_scheduleReload);
     _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
       event,
     ) {
@@ -412,10 +417,15 @@ class PayslipRegisterController extends GetxController {
     _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
-    dateFromController.dispose();
-    dateToController.dispose();
+    dateFromController
+      ..removeListener(_scheduleReload)
+      ..dispose();
+    dateToController
+      ..removeListener(_scheduleReload)
+      ..dispose();
+    _filterDebounce?.cancel();
     super.onClose();
   }
 
@@ -423,7 +433,8 @@ class PayslipRegisterController extends GetxController {
     unawaited(load());
   }
 
-  Future<void> load() async {
+  Future<void> load({int page = 1}) async {
+    _filterDebounce?.cancel();
     loading = true;
     error = null;
     update();
@@ -477,7 +488,17 @@ class PayslipRegisterController extends GetxController {
         nextEmployees = empResp.data ?? const <EmployeeModel>[];
       }
 
-      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
+      final filters = <String, dynamic>{
+        'company_id': cid,
+        'page': page,
+        'per_page': 50,
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (filterEmployeeIds.length == 1)
+          'employee_id': filterEmployeeIds.single,
+        if (filterEmployeeIds.length > 1)
+          'employee_ids': filterEmployeeIds.join(','),
+      };
       if (filterPayrollRunId != null) {
         filters['payroll_run_id'] = filterPayrollRunId;
       }
@@ -496,6 +517,7 @@ class PayslipRegisterController extends GetxController {
       canViewAllHr = viewAll;
       employees = nextEmployees;
       rows = response.data ?? const <PayslipModel>[];
+      paginationMeta = response.meta;
       loading = false;
       error = null;
       update();
@@ -506,27 +528,20 @@ class PayslipRegisterController extends GetxController {
     }
   }
 
-  List<PayslipModel> get filteredRows {
-    final q = searchController.text.trim().toLowerCase();
-    return rows
-        .where((PayslipModel row) {
-          if (canViewAllHr &&
-              filterEmployeeIds.isNotEmpty &&
-              !filterEmployeeIds.contains(row.employeeId)) {
-            return false;
-          }
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.id?.toString() ?? '',
-            displayDate(row.payslipDate),
-            row.employeeDisplayLabel,
-            row.payrollPeriodLabel,
-            formatAmount(row.netSalary),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
+  List<PayslipModel> get filteredRows => rows;
+
+  void _scheduleReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(load(page: 1)),
+    );
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(load(page: page));
+    }
   }
 
   String selectedEmployeeLabel() {
@@ -568,6 +583,7 @@ class PayslipRegisterController extends GetxController {
   void setEmployeeFilters(Set<int> values) {
     filterEmployeeIds = Set<int>.from(values);
     update();
+    _scheduleReload();
   }
 
   void applyRouteFilters({int? payrollRunId}) {
@@ -653,6 +669,10 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
             controller.appliedFilterChips,
           ),
           rows: controller.filteredRows,
+          remoteTotalItems: controller.paginationMeta?.total,
+          remoteCurrentPage: controller.paginationMeta?.currentPage,
+          remotePerPage: controller.paginationMeta?.perPage,
+          onRemotePageChanged: controller.goToPage,
           columns: [
             PurchaseRegisterColumn<AttendanceRecordModel>(
               label: 'Employee',
@@ -818,6 +838,10 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
                 )
               : null,
           rows: controller.filteredRows,
+          remoteTotalItems: controller.paginationMeta?.total,
+          remoteCurrentPage: controller.paginationMeta?.currentPage,
+          remotePerPage: controller.paginationMeta?.perPage,
+          onRemotePageChanged: controller.goToPage,
           columns: [
             PurchaseRegisterColumn<PayrollRunModel>(
               label: 'Period',
@@ -1017,6 +1041,10 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
               ? _buildInlinePayslipFilters(controller)
               : null,
           rows: controller.filteredRows,
+          remoteTotalItems: controller.paginationMeta?.total,
+          remoteCurrentPage: controller.paginationMeta?.currentPage,
+          remotePerPage: controller.paginationMeta?.perPage,
+          onRemotePageChanged: controller.goToPage,
           columns: [
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Date',

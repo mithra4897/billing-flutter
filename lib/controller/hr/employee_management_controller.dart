@@ -114,6 +114,8 @@ class EmployeeManagementController extends GetxController {
   String employmentType = 'permanent';
   String status = 'active';
   String salaryMode = 'monthly';
+  PaginationMeta? paginationMeta;
+  Timer? listSearchDebounce;
   int draftKeySeed = -1;
   String addressType = 'present';
   int? selectedAddressKey;

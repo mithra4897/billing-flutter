@@ -240,6 +240,8 @@ class ExpenseClaimsManagementController extends GetxController {
 
   List<ExpenseLineEditors> lineEditors = <ExpenseLineEditors>[];
   Worker? _refreshWorker;
+  PaginationMeta? paginationMeta;
+  Timer? _filterDebounce;
 
   bool get employeeFieldReadOnly => true;
 
@@ -279,6 +281,7 @@ class ExpenseClaimsManagementController extends GetxController {
     claimDateController.dispose();
     notesController.dispose();
     disposeLineEditors();
+    _filterDebounce?.cancel();
     super.onClose();
   }
 
@@ -287,7 +290,7 @@ class ExpenseClaimsManagementController extends GetxController {
   }
 
   void _onSearchChanged() {
-    update();
+    _scheduleReload();
   }
 
   void disposeLineEditors() {
@@ -297,51 +300,7 @@ class ExpenseClaimsManagementController extends GetxController {
     lineEditors = <ExpenseLineEditors>[];
   }
 
-  List<ExpenseClaimModel> get filteredRows {
-    final query = searchController.text.trim().toLowerCase();
-    final showApprovalQueueOnly = canViewAllClaims && !canSelfServiceClaims;
-    final visibleRows = showApprovalQueueOnly
-        ? rows
-              .where((ExpenseClaimModel row) {
-                return isHrApprovalQueueRow(row.toJson());
-              })
-              .toList(growable: false)
-        : rows;
-    if (query.isEmpty) {
-      return visibleRows;
-    }
-    return visibleRows
-        .where((ExpenseClaimModel row) {
-          final data = row.toJson();
-          if (canViewAllClaims &&
-              filterEmployeeIds.isNotEmpty &&
-              !filterEmployeeIds.contains(intValue(data, 'employee_id'))) {
-            return false;
-          }
-          final paymentStatus = stringValue(
-            data,
-            'payment_status',
-          ).trim().toLowerCase();
-          if (filterPaymentStatuses.isNotEmpty &&
-              !filterPaymentStatuses.contains(paymentStatus)) {
-            return false;
-          }
-          final claimStatus = expenseClaimStatusCode(data['claim_status']);
-          if (filterClaimStatuses.isNotEmpty &&
-              !filterClaimStatuses.contains(claimStatus)) {
-            return false;
-          }
-          return [
-            stringValue(data, 'claim_no'),
-            stringValue(data, 'claim_date'),
-            stringValue(data, 'claim_status'),
-            stringValue(data, 'total_amount'),
-            nestedExpenseEmployeeName(data),
-            expensePaymentSubtitle(data),
-          ].join(' ').toLowerCase().contains(query);
-        })
-        .toList(growable: false);
-  }
+  List<ExpenseClaimModel> get filteredRows => rows;
 
   List<EmployeeModel> get employeesForEditor {
     if (companyId == null) {
@@ -361,7 +320,8 @@ class ExpenseClaimsManagementController extends GetxController {
     return base;
   }
 
-  Future<void> loadPage({int? selectClaimId}) async {
+  Future<void> loadPage({int? selectClaimId, int page = 1}) async {
+    _filterDebounce?.cancel();
     initialLoading = rows.isEmpty;
     pageError = null;
     update();
@@ -408,7 +368,24 @@ class ExpenseClaimsManagementController extends GetxController {
 
       final filters = <String, dynamic>{
         'company_id': sessionCompanyId,
-        'per_page': 200,
+        'page': page,
+        'per_page': 50,
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (filterEmployeeIds.length == 1)
+          'employee_id': filterEmployeeIds.single,
+        if (filterEmployeeIds.length > 1)
+          'employee_ids': filterEmployeeIds.join(','),
+        if (filterPaymentStatuses.length == 1)
+          'payment_status': filterPaymentStatuses.single,
+        if (filterPaymentStatuses.length > 1)
+          'payment_statuses': filterPaymentStatuses.join(','),
+        if (filterClaimStatuses.length == 1)
+          'claim_status': filterClaimStatuses.single,
+        if (filterClaimStatuses.length > 1)
+          'claim_statuses': filterClaimStatuses.join(','),
+        if (allowViewAll && !allowSelfService && filterClaimStatuses.isEmpty)
+          'claim_statuses': 'applied,rejected,approved,reimbursed',
       };
       final dateFrom = normalizeDateForApi(filterDateFromController.text);
       final dateTo = normalizeDateForApi(filterDateToController.text);
@@ -423,6 +400,7 @@ class ExpenseClaimsManagementController extends GetxController {
       canViewAllClaims = allowViewAll;
       canSelfServiceClaims = allowSelfService;
       rows = nextRows;
+      paginationMeta = listResponse.meta;
       initialLoading = false;
 
       final pickId =
@@ -493,27 +471,7 @@ class ExpenseClaimsManagementController extends GetxController {
   }
 
   Future<void> syncExpenseClaimsListFromServer({int? selectClaimId}) async {
-    if (companyId == null) {
-      return;
-    }
-    final filters = <String, dynamic>{'company_id': companyId, 'per_page': 200};
-    final listResponse = await hrService.expenseClaims(filters: filters);
-    final nextRows = listResponse.data ?? const <ExpenseClaimModel>[];
-    final pickId = selectClaimId ?? editingClaimId;
-    ExpenseClaimModel? match;
-    if (pickId != null) {
-      for (final row in nextRows) {
-        if (intValue(row.toJson(), 'id') == pickId) {
-          match = row;
-          break;
-        }
-      }
-    }
-    rows = nextRows;
-    if (match != null) {
-      selectedListRow = match;
-    }
-    update();
+    await loadPage(selectClaimId: selectClaimId ?? editingClaimId);
   }
 
   Future<void> reloadEditorAndListAfterMutation({required int claimId}) async {
@@ -726,11 +684,13 @@ class ExpenseClaimsManagementController extends GetxController {
     filterPaymentStatuses = <String>{};
     filterClaimStatuses = <String>{};
     update();
+    unawaited(loadPage(page: 1));
   }
 
   void setFilterEmployeeIds(Set<int> values) {
     filterEmployeeIds = Set<int>.from(values);
     update();
+    _scheduleReload();
   }
 
   void setFilterPaymentStatuses(Set<String> values) {
@@ -739,6 +699,7 @@ class ExpenseClaimsManagementController extends GetxController {
         .where((value) => value.isNotEmpty)
         .toSet();
     update();
+    _scheduleReload();
   }
 
   void setFilterClaimStatuses(Set<String> values) {
@@ -747,6 +708,21 @@ class ExpenseClaimsManagementController extends GetxController {
         .where((value) => value.isNotEmpty)
         .toSet();
     update();
+    _scheduleReload();
+  }
+
+  void _scheduleReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadPage(page: 1)),
+    );
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadPage(page: page));
+    }
   }
 
   void setEmployeeId(int? value) {

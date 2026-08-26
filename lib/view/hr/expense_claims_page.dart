@@ -365,6 +365,8 @@ class _ExpenseClaimsManagementPageState
             items: controller.filteredRows,
             selectedItem: controller.selectedListRow,
             emptyMessage: 'No expense claims match the filters.',
+            paginationMeta: controller.paginationMeta,
+            onPageChanged: controller.goToPage,
             itemBuilder: (ExpenseClaimModel item, bool selected) {
               final data = item.toJson();
               return SettingsListTile(

@@ -16,7 +16,7 @@
 | Purchase | Requisitions, Orders, Receipts, Invoices, Returns, Payments | Done | Done | Done | Complete |
 | Accounts | Vouchers, account masters, postings, reconciliation, cash sessions, budgets, party accounts, reports | Done | Done | Done | Complete |
 | Inventory | Items, opening stock, issues, internal receipts, transfers, produce tracking, damage, adjustments, movements, batches, serials, physical counts, stock balances | Done | Done | Done | Complete |
-| HR | Payslips, leave requests, expense claims, attendance | Partial | Pending | Pending | Pending |
+| HR | Employees, payroll runs, payslips, leave requests, expense claims, attendance, HR masters, employee ledger | Done | Done | Done | Complete |
 | CRM | Leads, enquiries, opportunities | Partial | Pending | Pending | Pending |
 | Assets | Fixed assets, disposals, cost-centre transactions | Partial | Pending | Pending | Pending |
 | Projects | Tasks, expenses, billing, resource usage | Partial | Pending | Pending | Pending |
@@ -141,6 +141,40 @@
   warehouse, batch, serial, and other required reference data still load.
 - Flutter analysis passes with no issues, all modified PHP files pass syntax
   verification, and both worktrees pass whitespace checks.
+
+## HR detailed progress
+
+| Register / list | Server filtering | Server pagination | Page controls | Status |
+|---|---:|---:|---:|---|
+| Employees | Done | Done | Done | Complete |
+| Payroll Runs | Done | Done | Done | Complete |
+| Payslips | Done | Done | Done | Complete |
+| Leave Requests | Done | Done | Done | Complete |
+| Expense Claims | Done | Done | Done | Complete |
+| Departments | Done | Done | Done | Complete |
+| Designations | Done | Done | Done | Complete |
+| Leave Types | Done | Done | Done | Complete |
+| Monthly Attendance | Done | Monthly report result | Done | Complete |
+| Employee Ledger | Done | Derived report result | Not required | Complete |
+
+### HR verification completed
+
+- Employee, payroll, payslip, leave, expense-claim, department, designation,
+  and leave-type searches reload page 1 after a short debounce.
+- Employee, status, payment-status, payroll-period, and date filters are sent to
+  the API and evaluated before pagination.
+- HR management lists and registers use API pagination metadata and page
+  controls; selecting another page requests that database page.
+- Monthly Attendance deliberately loads one complete month sheet and paginates
+  its employee rows locally because the calendar is a single report result.
+- Employee Ledger deliberately remains a derived report. It now walks every API
+  page for employees, payslips, and reimbursed claims, so historical totals are
+  no longer limited to the first fixed-size result set.
+- Form dropdowns continue to use independent reference-data requests, so
+  paginating the visible management lists does not hide required employees,
+  leave types, or other linked records.
+- Flutter HR analysis has no errors, and all modified PHP files pass syntax
+  verification.
 
 ## Update rule
 

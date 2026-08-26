@@ -82,6 +82,8 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
         items: controller.filteredDesignations,
         selectedItem: controller.selectedDesignation,
         emptyMessage: 'No designation records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.designationName ?? '-',
           subtitle: item.id?.toString() ?? '',

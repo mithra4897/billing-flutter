@@ -168,6 +168,8 @@ class _LeaveRequestManagementPageState
             items: controller.filteredLeaveRequests,
             selectedItem: controller.selectedLeaveRequest,
             emptyMessage: 'No leave requests found.',
+            paginationMeta: controller.paginationMeta,
+            onPageChanged: controller.goToPage,
             itemBuilder: (LeaveRequestModel item, bool selected) =>
                 SettingsListTile(
                   title: item.employeeName ?? item.employeeCode ?? '-',

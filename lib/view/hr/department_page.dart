@@ -94,6 +94,8 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
         items: controller.filteredDepartments,
         selectedItem: controller.selectedDepartment,
         emptyMessage: 'No department records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.departmentName ?? '-',
           subtitle: item.id?.toString() ?? '',

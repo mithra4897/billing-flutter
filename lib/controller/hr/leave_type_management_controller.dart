@@ -1,4 +1,4 @@
-﻿import '../../screen.dart';
+import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class LeaveTypeManagementController extends GetxController {
@@ -23,11 +23,13 @@ class LeaveTypeManagementController extends GetxController {
   List<LeaveTypeModel> leaveTypes = const <LeaveTypeModel>[];
   List<LeaveTypeModel> filteredLeaveTypes = const <LeaveTypeModel>[];
   LeaveTypeModel? selectedLeaveType;
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleReload);
     loadLeaveTypes();
   }
 
@@ -36,26 +38,36 @@ class LeaveTypeManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleReload)
       ..dispose();
+    _searchDebounce?.cancel();
     leaveNameController.dispose();
     maxDaysController.dispose();
     super.onClose();
   }
 
-  Future<void> loadLeaveTypes({int? selectId}) async {
+  Future<void> loadLeaveTypes({int? selectId, int page = 1}) async {
+    _searchDebounce?.cancel();
     initialLoading = leaveTypes.isEmpty;
     pageError = null;
     update();
 
     try {
       final response = await _hrService.leaveTypes(
-        filters: const {'per_page': 200, 'sort_by': 'leave_name'},
+        filters: {
+          'page': page,
+          'per_page': 50,
+          'sort_by': 'leave_name',
+          'sort_order': 'asc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
+        },
       );
       final items = response.data ?? const <LeaveTypeModel>[];
 
       leaveTypes = items;
-      filteredLeaveTypes = _filterLeaveTypes(items, searchController.text);
+      filteredLeaveTypes = items;
+      paginationMeta = response.meta;
       initialLoading = false;
 
       final selected = selectId != null
@@ -83,18 +95,18 @@ class LeaveTypeManagementController extends GetxController {
     update();
   }
 
-  List<LeaveTypeModel> _filterLeaveTypes(
-    List<LeaveTypeModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [item.leaveName ?? '', item.maxDaysPerYear?.toString() ?? ''];
-    });
+  void _scheduleReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadLeaveTypes(page: 1)),
+    );
   }
 
-  void _applySearch() {
-    filteredLeaveTypes = _filterLeaveTypes(leaveTypes, searchController.text);
-    update();
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadLeaveTypes(page: page));
+    }
   }
 
   void selectLeaveType(LeaveTypeModel item, {bool notify = true}) {
