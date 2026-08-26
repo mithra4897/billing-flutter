@@ -611,10 +611,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           ),
           SizedBox(
             height: 48,
-            child: IconButton(
+            child: TextButton.icon(
               onPressed: controller.clearFilters,
-              tooltip: 'Clear filters',
               icon: const Icon(Icons.close_outlined),
+              label: const Text('Clear'),
             ),
           ),
         ],

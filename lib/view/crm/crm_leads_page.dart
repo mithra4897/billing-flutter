@@ -358,10 +358,10 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
             ),
           SizedBox(
             height: 48,
-            child: IconButton(
+            child: TextButton.icon(
               onPressed: onClear,
-              tooltip: 'Clear filters',
               icon: const Icon(Icons.close_outlined),
+              label: const Text('Clear'),
             ),
           ),
         ],
