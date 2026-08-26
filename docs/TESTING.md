@@ -34,6 +34,8 @@
   not see the Employee filter.
 - Verify Super Admins also see Employee on Follow-ups, that it filters the
   timeline entries, and that Clear resets the employee and date filters.
+- Verify the CRM Dashboard Employee filter opens a searchable ERP link field,
+  retains the selected employee, and still filters dashboard counts and lists.
 - Verification performed: `dart format` completed and focused
   `flutter analyze` passed with no issues. The full `flutter test --no-pub`
   run is blocked by the repository's pre-existing missing

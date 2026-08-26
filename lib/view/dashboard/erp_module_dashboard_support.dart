@@ -216,25 +216,32 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       currentUser?['is_super_admin'] == 1 ||
       currentUser?['is_super_admin'] == '1';
   final selectedEmployeeFilter = activeFilter.secondaryFilterValue.trim();
-  final selectedEmployeeId = selectedEmployeeFilter.startsWith('employee:')
-      ? selectedEmployeeFilter.substring('employee:'.length)
-      : '';
+  final selectedEmployeeIds = selectedEmployeeFilter.startsWith('employee:')
+      ? selectedEmployeeFilter
+            .substring('employee:'.length)
+            .split(',')
+            .where((item) => item.trim().isNotEmpty)
+            .toSet()
+      : <String>{};
+  final employeeFilters = selectedEmployeeIds.isEmpty
+      ? <String?>[null]
+      : selectedEmployeeIds.toList(growable: false);
+  Map<String, dynamic> scopedFilters(
+    Map<String, dynamic> filters,
+    String? employeeId,
+  ) => employeeId == null
+      ? filters
+      : <String, dynamic>{...filters, 'assigned_to': employeeId};
   final pendingLeadResponses = await Future.wait(
     <Future<PaginatedResponse<CrmLeadModel>>>[
-      crmService.leads(
-        filters: <String, dynamic>{
-          'per_page': 1,
-          'lead_status': 'new',
-          if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
-        },
-      ),
-      crmService.leads(
-        filters: <String, dynamic>{
-          'per_page': 1,
-          'lead_status': 'in_progress',
-          if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
-        },
-      ),
+      for (final employeeId in employeeFilters)
+        for (final status in const ['new', 'in_progress'])
+          crmService.leads(
+            filters: scopedFilters(<String, dynamic>{
+              'per_page': 1,
+              'lead_status': status,
+            }, employeeId),
+          ),
     ],
   );
   final pendingLeadCount = pendingLeadResponses.fold<int>(
@@ -242,12 +249,21 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     (sum, response) =>
         sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
-  final openOpportunityResponse = await crmService.opportunities(
-    filters: <String, dynamic>{
-      'per_page': 1,
-      'status': 'open',
-      if (selectedEmployeeId.isNotEmpty) 'assigned_to': selectedEmployeeId,
-    },
+  final openOpportunityResponses = await Future.wait(
+    <Future<PaginatedResponse<CrmOpportunityModel>>>[
+      for (final employeeId in employeeFilters)
+        crmService.opportunities(
+          filters: scopedFilters(<String, dynamic>{
+            'per_page': 1,
+            'status': 'open',
+          }, employeeId),
+        ),
+    ],
+  );
+  final openOpportunityCount = openOpportunityResponses.fold<int>(
+    0,
+    (sum, response) =>
+        sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
   final followupBoardResponse = await crmService.opportunityFollowupsBoard();
   final followupBoardData =
@@ -281,14 +297,17 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         : 'Employee $employeeId';
   }
   bool matchesSelectedEmployee(Map<String, dynamic> row) {
-    if (selectedEmployeeId.isEmpty) {
+    if (selectedEmployeeIds.isEmpty) {
       return true;
     }
     final assignedUser = JsonModel.mapOf(row['assigned_user']);
-    return intValue(assignedUser ?? const <String, dynamic>{}, 'id')
-            ?.toString() ==
-        selectedEmployeeId;
+    final assignedId = intValue(
+      assignedUser ?? const <String, dynamic>{},
+      'id',
+    );
+    return assignedId != null && selectedEmployeeIds.contains('$assignedId');
   }
+
   final filteredFollowupBoardRows = followupBoardRows
       .where(matchesSelectedEmployee)
       .toList(growable: false);
@@ -386,11 +405,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       ),
       ErpDashboardStat(
         label: 'Total Pending Enquiries',
-        value: _formatInt(
-          openOpportunityResponse.meta?.total ??
-              openOpportunityResponse.data?.length ??
-              0,
-        ),
+        value: _formatInt(openOpportunityCount),
         helper: 'Tracked across the sales pipeline',
         icon: Icons.mark_email_unread_outlined,
         color: const Color(0xFF19A7B8),
@@ -434,6 +449,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                 ),
               ]
             : const <ErpDashboardListFilterOption>[],
+        secondaryFilterSearchable: isSuperAdmin,
         initialSecondaryFilterValue: selectedEmployeeFilter,
         items: pendingItems
             .take(6)

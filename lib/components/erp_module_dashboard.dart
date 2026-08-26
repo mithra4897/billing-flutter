@@ -97,6 +97,7 @@ class ErpDashboardListSection {
     this.onFilterChanged,
     this.secondaryFilterOptions = const <ErpDashboardListFilterOption>[],
     this.initialSecondaryFilterValue = '',
+    this.secondaryFilterSearchable = false,
     this.maxVisibleItems,
     this.emptyTitle = 'No records yet',
     this.emptyMessage = 'This section will populate when activity starts.',
@@ -111,6 +112,7 @@ class ErpDashboardListSection {
   final ValueChanged<String>? onFilterChanged;
   final List<ErpDashboardListFilterOption> secondaryFilterOptions;
   final String initialSecondaryFilterValue;
+  final bool secondaryFilterSearchable;
   final int? maxVisibleItems;
   final String emptyTitle;
   final String emptyMessage;
@@ -814,17 +816,29 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                           },
                         ),
                       if (section.secondaryFilterOptions.isNotEmpty)
-                        _DashboardListFilterDropdown(
-                          options: section.secondaryFilterOptions,
-                          value: _selectedSecondaryFilter,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedSecondaryFilter = value;
-                              _currentPage = 1;
-                            });
-                            widget.onSecondaryFilterChanged?.call(value);
-                          },
-                        ),
+                        section.secondaryFilterSearchable
+                            ? _DashboardSearchFilterField(
+                                options: section.secondaryFilterOptions,
+                                value: _selectedSecondaryFilter,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedSecondaryFilter = value;
+                                    _currentPage = 1;
+                                  });
+                                  widget.onSecondaryFilterChanged?.call(value);
+                                },
+                              )
+                            : _DashboardListFilterDropdown(
+                                options: section.secondaryFilterOptions,
+                                value: _selectedSecondaryFilter,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedSecondaryFilter = value;
+                                    _currentPage = 1;
+                                  });
+                                  widget.onSecondaryFilterChanged?.call(value);
+                                },
+                              ),
                     ],
                   ),
           ),
@@ -881,10 +895,9 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                                   AppUiConstants.buttonRadius,
                                 ),
                                 border: Border.all(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outline
-                                      .withValues(alpha: 0.30),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withValues(alpha: 0.30),
                                 ),
                               ),
                               child: Row(
@@ -997,9 +1010,9 @@ class _DashboardListCardState extends State<_DashboardListCard> {
               children: [
                 Text(
                   '${pageStart + 1}-${math.min(pageStart + items.length, filteredItems.length)} of ${filteredItems.length}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: appTheme.mutedText,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
                 ),
                 const SizedBox(width: AppUiConstants.spacingXs),
                 IconButton(
@@ -1050,10 +1063,7 @@ class _DashboardListFilterDropdown extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outline
-              .withValues(alpha: 0.50),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.50),
           width: 1.2,
         ),
       ),
@@ -1076,6 +1086,66 @@ class _DashboardListFilterDropdown extends StatelessWidget {
             }
           },
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardSearchFilterField extends StatelessWidget {
+  const _DashboardSearchFilterField({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<ErpDashboardListFilterOption> options;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedValues = value.startsWith('employee:')
+        ? value
+              .substring('employee:'.length)
+              .split(',')
+              .where((item) => item.trim().isNotEmpty)
+              .toSet()
+        : <String>{};
+    final selected = options.cast<ErpDashboardListFilterOption?>().firstWhere(
+      (option) =>
+          option?.value == value ||
+          (selectedValues.length == 1 &&
+              option?.value == 'employee:${selectedValues.first}'),
+      orElse: () => null,
+    );
+    return SizedBox(
+      width: 220,
+      child: ErpLinkField<String>(
+        labelText: 'Employee',
+        doctypeLabel: 'Employee',
+        hintText: 'Search employees',
+        options: options
+            .map(
+              (option) => ErpLinkFieldOption<String>(
+                value: option.value,
+                label: option.label,
+              ),
+            )
+            .toList(growable: false),
+        multiInitialSelections: selectedValues,
+        initialSelection: selected == null
+            ? null
+            : ErpLinkFieldOption<String>(
+                value: selected.value,
+                label: selected.label,
+              ),
+        onChanged: (_) {},
+        onMultiChanged: (nextValues) {
+          final ids = nextValues
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false);
+          onChanged(ids.isEmpty ? '' : 'employee:${ids.join(',')}');
+        },
       ),
     );
   }
@@ -1301,10 +1371,7 @@ class _TrendControlDropdown extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outline
-              .withValues(alpha: 0.50),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.50),
           width: 1.2,
         ),
       ),

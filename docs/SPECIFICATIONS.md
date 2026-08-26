@@ -59,6 +59,9 @@ Acceptance criteria:
 - CRM Follow-ups exposes the same Super Admin-only Employee filter alongside
   its From Date and To Date controls; Clear resets both date and employee
   selections.
+- The CRM Dashboard Employee filter uses a searchable ERP link field rather
+  than a static dropdown. Other dashboard secondary filters retain their
+  existing control.
 - No backend, API, or database contract changes are required.
 - CRM Follow-ups also uses the toggleable bar for inclusive From Date and To
   Date filtering; either boundary may be left empty. The former always-visible
