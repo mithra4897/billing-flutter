@@ -1,14 +1,14 @@
 import '../../screen.dart';
 
 class PayrollRunEmployeeTable extends StatelessWidget {
-  const PayrollRunEmployeeTable({
-    super.key,
-    required this.employees,
-  });
+  const PayrollRunEmployeeTable({super.key, required this.employees});
 
   final List<PayrollEmployeePreviewModel> employees;
 
-  Color _statusColor(BuildContext context, PayrollEmployeePreviewModel employee) {
+  Color _statusColor(
+    BuildContext context,
+    PayrollEmployeePreviewModel employee,
+  ) {
     if (employee.eligible) {
       return Colors.green;
     }
@@ -40,67 +40,82 @@ class PayrollRunEmployeeTable extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(minWidth: constraints.maxWidth),
             child: DataTable(
-          columnSpacing: 28,
-          headingRowColor: WidgetStatePropertyAll(
-            Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-          columns: const [
-            DataColumn(label: Text('Employee')),
-            DataColumn(label: Text('Code')),
-            DataColumn(label: Text('Eligibility')),
-            DataColumn(label: Text('Gross')),
-            DataColumn(label: Text('Paid days')),
-            DataColumn(label: Text('LOP')),
-            DataColumn(label: Text('Details')),
-          ],
-              rows: employees.map((employee) {
-            final color = _statusColor(context, employee);
-            return DataRow(
-              color: WidgetStatePropertyAll(color.withValues(alpha: 0.08)),
-              cells: [
-                DataCell(Text(employee.employeeName ?? '—')),
-                DataCell(Text(employee.employeeCode ?? '—')),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: color.withValues(alpha: 0.45)),
-                    ),
-                    child: Text(
-                      _statusLabel(employee),
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                DataCell(Text(formatAmount(employee.grossSalary ?? 0))),
-                DataCell(
-                  Text(
-                    '${formatAmount(employee.paidDays ?? 0)}/${employee.workingDays ?? 0}',
-                  ),
-                ),
-                DataCell(Text(formatAmount(employee.lopDays ?? 0))),
-                DataCell(
-                  SizedBox(
-                    width: 360,
-                    child: Text(
-                      employee.eligible
-                          ? 'Ready for payroll processing'
-                          : employee.reason ?? 'Payroll setup needs attention.',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
+              columnSpacing: 28,
+              headingRowColor: WidgetStatePropertyAll(
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              columns: const [
+                DataColumn(label: Text('Employee')),
+                DataColumn(label: Text('Code')),
+                DataColumn(label: Text('Eligibility')),
+                DataColumn(label: Text('Gross')),
+                DataColumn(label: Text('Paid days')),
+                DataColumn(label: Text('LOP')),
+                DataColumn(label: Text('Details')),
               ],
-            );
-              }).toList(growable: false),
+              rows: employees
+                  .map((employee) {
+                    final color = _statusColor(context, employee);
+                    return DataRow(
+                      color: WidgetStatePropertyAll(
+                        color.withValues(alpha: 0.08),
+                      ),
+                      cells: [
+                        DataCell(Text(employee.employeeName ?? '—')),
+                        DataCell(Text(employee.employeeCode ?? '—')),
+                        DataCell(
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: color.withValues(alpha: 0.45),
+                              ),
+                            ),
+                            child: Text(
+                              _statusLabel(employee),
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(formatAmount(employee.grossSalary ?? 0))),
+                        DataCell(
+                          Text(
+                            employee.paidDays == null
+                                ? '—/${employee.workingDays ?? 0}'
+                                : '${formatAmount(employee.paidDays!)}/${employee.workingDays ?? 0}',
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            employee.lopDays == null
+                                ? '—'
+                                : formatAmount(employee.lopDays!),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: 360,
+                            child: Text(
+                              employee.eligible
+                                  ? 'Ready for payroll processing'
+                                  : employee.reason ??
+                                        'Payroll setup needs attention.',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  })
+                  .toList(growable: false),
             ),
           ),
         ),

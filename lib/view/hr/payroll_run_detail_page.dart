@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import 'hr_workflow_dialogs.dart';
+import '../../controller/hr/hr_module_refresh_controller.dart';
 
 class PayrollRunDetailPage extends StatefulWidget {
   const PayrollRunDetailPage({
@@ -86,10 +86,12 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
         )) {
       return;
     }
-    await _runAction(() => _hr.processPayrollRun(
-          widget.runId,
-          PayrollRunModel.fromJson(const <String, dynamic>{}),
-        ));
+    await _runAction(
+      () => _hr.processPayrollRun(
+        widget.runId,
+        PayrollRunModel.fromJson(const <String, dynamic>{}),
+      ),
+    );
   }
 
   Future<void> _delete() async {
@@ -100,18 +102,29 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
         )) {
       return;
     }
-    await _runAction(() => _hr.deletePayrollRun(widget.runId));
+    await _runAction(
+      () => _hr.deletePayrollRun(widget.runId),
+      refreshSource: 'payroll_run_delete',
+    );
   }
 
-  Future<void> _runAction(Future<ApiResponse<dynamic>> Function() action) async {
+  Future<void> _runAction(
+    Future<ApiResponse<dynamic>> Function() action, {
+    String? refreshSource,
+  }) async {
     setState(() => _busy = true);
     try {
       final response = await action();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
       if (response.success == true) {
+        if (refreshSource != null) {
+          HrModuleRefreshController.ensureRegistered().notifyChanged(
+            source: refreshSource,
+          );
+        }
         if (_run?.status == 'draft' || response.data == null) {
           _backToRegister();
         } else {
@@ -120,9 +133,9 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
       }
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.displayMessage)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.displayMessage)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,102 +171,123 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
     final run = _run!;
     final lines = run.lines;
     final preview = run.payrollPreview;
-    final totalGross = lines.fold<double>(0, (sum, line) => sum + (line.grossSalary ?? 0));
-    final totalDeductions = lines.fold<double>(0, (sum, line) => sum + (line.totalDeductions ?? 0));
-    final totalNet = lines.fold<double>(0, (sum, line) => sum + (line.netSalary ?? 0));
+    final totalGross = lines.fold<double>(
+      0,
+      (sum, line) => sum + (line.grossSalary ?? 0),
+    );
+    final totalDeductions = lines.fold<double>(
+      0,
+      (sum, line) => sum + (line.totalDeductions ?? 0),
+    );
+    final totalNet = lines.fold<double>(
+      0,
+      (sum, line) => sum + (line.netSalary ?? 0),
+    );
     final status = run.status ?? '';
 
     return SizedBox(
       width: double.infinity,
       child: AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Payroll run #${widget.runId}',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              _PayrollInfoChip(label: 'Period', value: run.periodLabel),
-              _PayrollInfoChip(label: 'Run date', value: displayDate(run.runDate)),
-              _PayrollInfoChip(label: 'Status', value: status.toUpperCase()),
-              _PayrollInfoChip(label: 'Lines', value: '${run.linesCount ?? lines.length}'),
-              _PayrollInfoChip(label: 'Gross', value: formatAmount(totalGross)),
-              _PayrollInfoChip(label: 'Deductions', value: formatAmount(totalDeductions)),
-              _PayrollInfoChip(label: 'Net', value: formatAmount(totalNet)),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingLg),
-          Text(
-            status == 'draft' ? 'Employees for this run' : 'Employee lines',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Expanded(
-            child: SingleChildScrollView(
-              child: status == 'draft' && preview != null
-                  ? PayrollRunEmployeeTable(employees: preview.employees)
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: _processedTable(lines),
-                    ),
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: AppUiConstants.spacingSm,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-              if (lines.isNotEmpty)
-                FilledButton.tonal(
-                  onPressed: () => ShellRouteScope.maybeOf(context)?.call(
-                    '/hr/payslips?payroll_run_id=${widget.runId}',
+                Expanded(
+                  child: Text(
+                    'Payroll run #${widget.runId}',
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  child: const Text('View payslips'),
-                ),
-              if (status == 'draft') ...[
-                FilledButton.tonal(
-                  onPressed: _busy
-                      ? null
-                      : () => openPayrollRunEditor(
-                          context,
-                          hr: _hr,
-                          companyId: widget.companyId,
-                          runId: widget.runId,
-                          onSaved: () => _load(),
-                        ),
-                  child: const Text('Edit'),
-                ),
-                FilledButton(
-                  onPressed: _busy ? null : _process,
-                  child: const Text('Process'),
-                ),
-              ],
-              if (status == 'draft' || status == 'processed')
-                FilledButton(
-                  onPressed: _busy ? null : _delete,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  child: const Text('Delete'),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                _PayrollInfoChip(label: 'Period', value: run.periodLabel),
+                _PayrollInfoChip(
+                  label: 'Run date',
+                  value: displayDate(run.runDate),
+                ),
+                _PayrollInfoChip(label: 'Status', value: status.toUpperCase()),
+                _PayrollInfoChip(
+                  label: 'Lines',
+                  value: '${run.linesCount ?? lines.length}',
+                ),
+                _PayrollInfoChip(
+                  label: 'Gross',
+                  value: formatAmount(totalGross),
+                ),
+                _PayrollInfoChip(
+                  label: 'Deductions',
+                  value: formatAmount(totalDeductions),
+                ),
+                _PayrollInfoChip(label: 'Net', value: formatAmount(totalNet)),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            Text(
+              status == 'draft' ? 'Employees for this run' : 'Employee lines',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Expanded(
+              child: SingleChildScrollView(
+                child: status == 'draft' && preview != null
+                    ? PayrollRunEmployeeTable(employees: preview.employees)
+                    : SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: _processedTable(lines),
+                      ),
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                spacing: AppUiConstants.spacingSm,
+                children: [
+                  if (lines.isNotEmpty)
+                    FilledButton.tonal(
+                      onPressed: () => ShellRouteScope.maybeOf(
+                        context,
+                      )?.call('/hr/payslips?payroll_run_id=${widget.runId}'),
+                      child: const Text('View payslips'),
+                    ),
+                  if (status == 'draft') ...[
+                    FilledButton.tonal(
+                      onPressed: _busy
+                          ? null
+                          : () => openPayrollRunEditor(
+                              context,
+                              hr: _hr,
+                              companyId: widget.companyId,
+                              runId: widget.runId,
+                              onSaved: () => _load(),
+                            ),
+                      child: const Text('Edit'),
+                    ),
+                    FilledButton(
+                      onPressed: _busy ? null : _process,
+                      child: const Text('Process'),
+                    ),
+                  ],
+                  if (status == 'draft' || status == 'processed')
+                    FilledButton(
+                      onPressed: _busy ? null : _delete,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                      child: const Text('Delete'),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -269,17 +303,25 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
         DataColumn(label: Text('Paid days')),
         DataColumn(label: Text('LOP')),
       ],
-      rows: lines.map((line) {
-        return DataRow(cells: [
-          DataCell(Text(line.employeeName ?? '—')),
-          DataCell(Text(line.employeeCode ?? '—')),
-          DataCell(Text(formatAmount(line.grossSalary ?? 0))),
-          DataCell(Text(formatAmount(line.totalDeductions ?? 0))),
-          DataCell(Text(formatAmount(line.netSalary ?? 0))),
-          DataCell(Text('${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}')),
-          DataCell(Text(formatAmount(line.lopDays ?? 0))),
-        ]);
-      }).toList(growable: false),
+      rows: lines
+          .map((line) {
+            return DataRow(
+              cells: [
+                DataCell(Text(line.employeeName ?? '—')),
+                DataCell(Text(line.employeeCode ?? '—')),
+                DataCell(Text(formatAmount(line.grossSalary ?? 0))),
+                DataCell(Text(formatAmount(line.totalDeductions ?? 0))),
+                DataCell(Text(formatAmount(line.netSalary ?? 0))),
+                DataCell(
+                  Text(
+                    '${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}',
+                  ),
+                ),
+                DataCell(Text(formatAmount(line.lopDays ?? 0))),
+              ],
+            );
+          })
+          .toList(growable: false),
     );
   }
 }

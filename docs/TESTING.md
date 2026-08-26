@@ -1,5 +1,20 @@
 # Testing
 
+## Payroll deletion dashboard refresh — 2026-08-26
+
+- Delete a draft or processed payroll run, return to the HR dashboard, and
+  verify payroll-related dashboard data reloads without a browser refresh.
+- Focused Flutter analysis of the dashboard controller and payroll deletion
+  flows passed with no issues.
+
+## Draft payroll attendance preview — 2026-08-26
+
+- Verify a draft attendance-based payroll with no submitted attendance shows
+  pending paid/LOP values and an attendance-required reason, not all working
+  days as confirmed LOP.
+- `php -l app/Services/Hr/PayrollRunService.php` passed.
+- Focused Flutter analysis for the payroll preview model/table passed.
+
 ## Full-width CRM filter bars — 2026-08-26
 
 - Verify CRM Enquiries, Leads, and Opportunities show filter controls across

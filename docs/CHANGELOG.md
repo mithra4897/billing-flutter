@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-26 — Refresh HR dashboard after payroll deletion
+
+- Payroll-run deletion now emits the existing HR module refresh event, so the
+  HR dashboard updates immediately without a browser refresh.
+
+## 2026-08-26 — Pending LOP in draft payroll preview
+
+- Draft payroll rows now show pending values instead of displaying false LOP
+  days when attendance has not been submitted.
+- The employee row explains that submitted attendance is required.
+
 ## 2026-08-26 — Full-width CRM filter bars
 
 - CRM Enquiries, Leads, and Opportunities now expand their inline filter bars

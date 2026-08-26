@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../controller/hr/hr_module_refresh_controller.dart';
 
 /// When no company is stored but the user has exactly one active company, persist it
 /// so HR screens behave like the rest of the app without an extra header step.
@@ -1916,402 +1917,495 @@ Future<void> showPayrollRunDetailDialog(
           body: SafeArea(
             child: Center(
               child: AlertDialog(
-        title: Text('Payroll run #$id'),
-        content: SizedBox(
-          width: MediaQuery.sizeOf(ctx).width - 48,
-          height: MediaQuery.sizeOf(ctx).height - 140,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
+                title: Text('Payroll run #$id'),
+                content: SizedBox(
+                  width: MediaQuery.sizeOf(ctx).width - 48,
+                  height: MediaQuery.sizeOf(ctx).height - 140,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Wrap(
-                        spacing: AppUiConstants.spacingSm,
-                        runSpacing: AppUiConstants.spacingSm,
-                        children: [
-                          _HrInfoChip(label: 'Period', value: run.periodLabel),
-                          _HrInfoChip(
-                            label: 'Run date',
-                            value: displayDate(run.runDate),
-                          ),
-                          _HrInfoChip(label: 'Status', value: st.toUpperCase()),
-                          _HrInfoChip(
-                            label: 'Lines',
-                            value: (run.linesCount ?? lineRows.length)
-                                .toString(),
-                          ),
-                          _HrInfoChip(
-                            label: 'Attendance',
-                            value: run.useAttendance == false ? 'No' : 'Yes',
-                          ),
-                          if (run.voucherId != null)
-                            _HrInfoChip(
-                              label: 'Voucher',
-                              value: (run.voucherNo?.trim().isNotEmpty ?? false)
-                                  ? run.voucherNo!.trim()
-                                  : 'ID ${run.voucherId}',
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingMd),
-                      Text(
-                        'Payroll Totals',
-                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingSm),
-                      Wrap(
-                        spacing: AppUiConstants.spacingSm,
-                        runSpacing: AppUiConstants.spacingSm,
-                        children: [
-                          _HrInfoChip(
-                            label: 'Gross',
-                            value: formatAmount(totalGross),
-                          ),
-                          _HrInfoChip(
-                            label: 'Deductions',
-                            value: formatAmount(totalDeductions),
-                          ),
-                          _HrInfoChip(
-                            label: 'Net',
-                            value: formatAmount(totalNet),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingMd),
-                      Text(
-                        st == 'draft'
-                            ? 'Employees for this run'
-                            : 'Employee Lines',
-                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingSm),
-                      if (st == 'draft' && payrollPreview != null) ...[
-                        Text(
-                          '${payrollPreview.eligibleCount} ready • '
-                          '${payrollPreview.excludedCount} need attention',
-                          style: Theme.of(ctx).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: AppUiConstants.spacingSm),
-                        if (payrollPreview.employees.isEmpty)
-                          const Text('No employees found for this company.')
-                        else
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              columns: const [
-                                DataColumn(label: Text('Employee')),
-                                DataColumn(label: Text('Code')),
-                                DataColumn(label: Text('Status')),
-                                DataColumn(label: Text('Gross')),
-                                DataColumn(label: Text('Paid days')),
-                                DataColumn(label: Text('LOP')),
-                                DataColumn(label: Text('Details')),
-                              ],
-                              rows: payrollPreview.employees.map((employee) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(employee.employeeName ?? '—')),
-                                    DataCell(Text(employee.employeeCode ?? '—')),
-                                    DataCell(
-                                      Text(employee.eligible ? 'Ready' : 'Attention'),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: AppUiConstants.spacingSm,
+                                runSpacing: AppUiConstants.spacingSm,
+                                children: [
+                                  _HrInfoChip(
+                                    label: 'Period',
+                                    value: run.periodLabel,
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Run date',
+                                    value: displayDate(run.runDate),
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Status',
+                                    value: st.toUpperCase(),
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Lines',
+                                    value: (run.linesCount ?? lineRows.length)
+                                        .toString(),
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Attendance',
+                                    value: run.useAttendance == false
+                                        ? 'No'
+                                        : 'Yes',
+                                  ),
+                                  if (run.voucherId != null)
+                                    _HrInfoChip(
+                                      label: 'Voucher',
+                                      value:
+                                          (run.voucherNo?.trim().isNotEmpty ??
+                                              false)
+                                          ? run.voucherNo!.trim()
+                                          : 'ID ${run.voucherId}',
                                     ),
-                                    DataCell(
-                                      Text(formatAmount(employee.grossSalary ?? 0)),
-                                    ),
-                                    DataCell(
-                                      Text(
-                                        '${formatAmount(employee.paidDays ?? 0)}/${employee.workingDays ?? 0}',
-                                      ),
-                                    ),
-                                    DataCell(Text(formatAmount(employee.lopDays ?? 0))),
-                                    DataCell(
-                                      Text(
-                                        employee.eligible
-                                            ? 'Eligible for processing'
-                                            : employee.reason ?? 'Payroll setup is incomplete.',
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(growable: false),
-                            ),
-                          ),
-                      ] else if (lineRows.isEmpty)
-                        const Text('No payroll lines were generated.')
-                      else
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Employee')),
-                              DataColumn(label: Text('Code')),
-                              DataColumn(label: Text('Gross')),
-                              DataColumn(label: Text('Deductions')),
-                              DataColumn(label: Text('Net')),
-                              DataColumn(label: Text('Paid days')),
-                              DataColumn(label: Text('LOP')),
-                            ],
-                            rows: lineRows.map((line) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(line.employeeName ?? '—')),
-                                  DataCell(Text(line.employeeCode ?? '—')),
-                                  DataCell(Text(formatAmount(line.grossSalary ?? 0))),
-                                  DataCell(Text(formatAmount(line.totalDeductions ?? 0))),
-                                  DataCell(Text(formatAmount(line.netSalary ?? 0))),
-                                  DataCell(
-                                    Text(
-                                      '${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}',
+                                ],
+                              ),
+                              const SizedBox(height: AppUiConstants.spacingMd),
+                              Text(
+                                'Payroll Totals',
+                                style: Theme.of(ctx).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: AppUiConstants.spacingSm),
+                              Wrap(
+                                spacing: AppUiConstants.spacingSm,
+                                runSpacing: AppUiConstants.spacingSm,
+                                children: [
+                                  _HrInfoChip(
+                                    label: 'Gross',
+                                    value: formatAmount(totalGross),
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Deductions',
+                                    value: formatAmount(totalDeductions),
+                                  ),
+                                  _HrInfoChip(
+                                    label: 'Net',
+                                    value: formatAmount(totalNet),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppUiConstants.spacingMd),
+                              Text(
+                                st == 'draft'
+                                    ? 'Employees for this run'
+                                    : 'Employee Lines',
+                                style: Theme.of(ctx).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: AppUiConstants.spacingSm),
+                              if (st == 'draft' && payrollPreview != null) ...[
+                                Text(
+                                  '${payrollPreview.eligibleCount} ready • '
+                                  '${payrollPreview.excludedCount} need attention',
+                                  style: Theme.of(ctx).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(
+                                  height: AppUiConstants.spacingSm,
+                                ),
+                                if (payrollPreview.employees.isEmpty)
+                                  const Text(
+                                    'No employees found for this company.',
+                                  )
+                                else
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: DataTable(
+                                      columns: const [
+                                        DataColumn(label: Text('Employee')),
+                                        DataColumn(label: Text('Code')),
+                                        DataColumn(label: Text('Status')),
+                                        DataColumn(label: Text('Gross')),
+                                        DataColumn(label: Text('Paid days')),
+                                        DataColumn(label: Text('LOP')),
+                                        DataColumn(label: Text('Details')),
+                                      ],
+                                      rows: payrollPreview.employees
+                                          .map((employee) {
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  Text(
+                                                    employee.employeeName ??
+                                                        '—',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    employee.employeeCode ??
+                                                        '—',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    employee.eligible
+                                                        ? 'Ready'
+                                                        : 'Attention',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    formatAmount(
+                                                      employee.grossSalary ?? 0,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    '${formatAmount(employee.paidDays ?? 0)}/${employee.workingDays ?? 0}',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    formatAmount(
+                                                      employee.lopDays ?? 0,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    employee.eligible
+                                                        ? 'Eligible for processing'
+                                                        : employee.reason ??
+                                                              'Payroll setup is incomplete.',
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          })
+                                          .toList(growable: false),
                                     ),
                                   ),
-                                  DataCell(Text(formatAmount(line.lopDays ?? 0))),
-                                ],
-                              );
-                            }).toList(growable: false),
+                              ] else if (lineRows.isEmpty)
+                                const Text('No payroll lines were generated.')
+                              else
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    columns: const [
+                                      DataColumn(label: Text('Employee')),
+                                      DataColumn(label: Text('Code')),
+                                      DataColumn(label: Text('Gross')),
+                                      DataColumn(label: Text('Deductions')),
+                                      DataColumn(label: Text('Net')),
+                                      DataColumn(label: Text('Paid days')),
+                                      DataColumn(label: Text('LOP')),
+                                    ],
+                                    rows: lineRows
+                                        .map((line) {
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(
+                                                Text(line.employeeName ?? '—'),
+                                              ),
+                                              DataCell(
+                                                Text(line.employeeCode ?? '—'),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  formatAmount(
+                                                    line.grossSalary ?? 0,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  formatAmount(
+                                                    line.totalDeductions ?? 0,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  formatAmount(
+                                                    line.netSalary ?? 0,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  '${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}',
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  formatAmount(
+                                                    line.lopDays ?? 0,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        })
+                                        .toList(growable: false),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
+                      ),
+                      const Divider(),
+                      Wrap(
+                        spacing: AppUiConstants.spacingSm,
+                        runSpacing: AppUiConstants.spacingSm,
+                        children: [
+                          if (lineRows.isNotEmpty)
+                            FilledButton.tonal(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                final route = '/hr/payslips?payroll_run_id=$id';
+                                final navigate = ShellRouteScope.maybeOf(
+                                  context,
+                                );
+                                if (navigate != null) {
+                                  navigate(route);
+                                  return;
+                                }
+                                Navigator.of(context).pushNamed(route);
+                              },
+                              child: const Text('View payslips'),
+                            ),
+                          if (st == 'draft') ...[
+                            FilledButton.tonal(
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await openPayrollRunEditor(
+                                  context,
+                                  hr: hr,
+                                  companyId: companyId,
+                                  runId: id,
+                                  onSaved: onChanged,
+                                );
+                              },
+                              child: const Text('Edit'),
+                            ),
+                            FilledButton.tonal(
+                              onPressed: () async {
+                                if (!await _confirm(
+                                  ctx,
+                                  'Process payroll',
+                                  'Generate payroll lines and payslips for '
+                                      '${payrollPreview?.eligibleCount ?? 0} eligible '
+                                      'employees? Review any excluded employees first.',
+                                )) {
+                                  return;
+                                }
+                                try {
+                                  final res = await hr.processPayrollRun(
+                                    id,
+                                    PayrollRunModel.fromJson(
+                                      <String, dynamic>{},
+                                    ),
+                                  );
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(content: Text(res.message)),
+                                  );
+                                  if (res.success == true) {
+                                    Navigator.pop(ctx);
+                                    onChanged();
+                                  }
+                                } on ApiException catch (error) {
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(error.displayMessage),
+                                    ),
+                                  );
+                                } catch (_) {
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Unable to process payroll. Please try again.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Process'),
+                            ),
+                          ],
+                          if (st == 'draft' || st == 'processed')
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  ctx,
+                                ).colorScheme.error,
+                                foregroundColor: Theme.of(
+                                  ctx,
+                                ).colorScheme.onError,
+                              ),
+                              onPressed: () async {
+                                final isProcessed = st == 'processed';
+                                if (!await _confirm(
+                                  ctx,
+                                  'Delete payroll run',
+                                  isProcessed
+                                      ? 'Delete this processed payroll run? Its payroll '
+                                            'lines and payslips will be permanently removed.'
+                                      : 'Delete this draft payroll run?',
+                                )) {
+                                  return;
+                                }
+                                try {
+                                  final del = await hr.deletePayrollRun(id);
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(content: Text(del.message)),
+                                  );
+                                  if (del.success == true) {
+                                    HrModuleRefreshController.ensureRegistered()
+                                        .notifyChanged(
+                                          source: 'payroll_run_delete',
+                                        );
+                                    Navigator.pop(ctx);
+                                    onChanged();
+                                  }
+                                } on ApiException catch (error) {
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(error.displayMessage),
+                                    ),
+                                  );
+                                } catch (_) {
+                                  if (!ctx.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Unable to delete payroll run. Please try again.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Delete'),
+                            ),
+                          if (st == 'processed')
+                            FilledButton(
+                              onPressed: () async {
+                                if (!await _confirm(
+                                  ctx,
+                                  'Post payroll',
+                                  'Post this payroll run to accounting?',
+                                )) {
+                                  return;
+                                }
+                                final res = await hr.postPayrollRun(
+                                  id,
+                                  PayrollRunModel.fromJson(<String, dynamic>{}),
+                                );
+                                if (!ctx.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text(res.message)),
+                                );
+                                if (res.success == true) {
+                                  Navigator.pop(ctx);
+                                  onChanged();
+                                  try {
+                                    final delivery =
+                                        await emailDesignedPayslipsForRun(
+                                          context,
+                                          hr: hr,
+                                          payrollRunId: id,
+                                          companyId: companyId,
+                                        );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(delivery.message),
+                                        ),
+                                      );
+                                    }
+                                  } catch (error) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Payroll was posted, but designed payslip '
+                                            'emailing failed: $error',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              child: const Text('Post'),
+                            ),
+                          if (st == 'posted')
+                            FilledButton.tonalIcon(
+                              onPressed: () async {
+                                if (!await _confirm(
+                                  ctx,
+                                  'Email payslips',
+                                  'Send every employee in this posted payroll run '
+                                      'their PDF payslip now?',
+                                )) {
+                                  return;
+                                }
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                try {
+                                  final delivery =
+                                      await emailDesignedPayslipsForRun(
+                                        context,
+                                        hr: hr,
+                                        payrollRunId: id,
+                                        companyId: companyId,
+                                      );
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(content: Text(delivery.message)),
+                                    );
+                                  }
+                                } catch (error) {
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Designed payslip emailing failed: $error',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.email_outlined),
+                              label: const Text('Email payslips'),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const Divider(),
-              Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  if (lineRows.isNotEmpty)
-                    FilledButton.tonal(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        final route = '/hr/payslips?payroll_run_id=$id';
-                        final navigate = ShellRouteScope.maybeOf(context);
-                        if (navigate != null) {
-                          navigate(route);
-                          return;
-                        }
-                        Navigator.of(context).pushNamed(route);
-                      },
-                      child: const Text('View payslips'),
-                    ),
-                  if (st == 'draft') ...[
-                    FilledButton.tonal(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await openPayrollRunEditor(
-                          context,
-                          hr: hr,
-                          companyId: companyId,
-                          runId: id,
-                          onSaved: onChanged,
-                        );
-                      },
-                      child: const Text('Edit'),
-                    ),
-                    FilledButton.tonal(
-                      onPressed: () async {
-                        if (!await _confirm(
-                          ctx,
-                          'Process payroll',
-                          'Generate payroll lines and payslips for '
-                              '${payrollPreview?.eligibleCount ?? 0} eligible '
-                              'employees? Review any excluded employees first.',
-                        )) {
-                          return;
-                        }
-                        try {
-                          final res = await hr.processPayrollRun(
-                            id,
-                            PayrollRunModel.fromJson(<String, dynamic>{}),
-                          );
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(
-                            ctx,
-                          ).showSnackBar(SnackBar(content: Text(res.message)));
-                          if (res.success == true) {
-                            Navigator.pop(ctx);
-                            onChanged();
-                          }
-                        } on ApiException catch (error) {
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text(error.displayMessage)),
-                          );
-                        } catch (_) {
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Unable to process payroll. Please try again.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text('Process'),
-                    ),
-                  ],
-                  if (st == 'draft' || st == 'processed')
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(ctx).colorScheme.error,
-                        foregroundColor: Theme.of(ctx).colorScheme.onError,
-                      ),
-                      onPressed: () async {
-                        final isProcessed = st == 'processed';
-                        if (!await _confirm(
-                          ctx,
-                          'Delete payroll run',
-                          isProcessed
-                              ? 'Delete this processed payroll run? Its payroll '
-                                    'lines and payslips will be permanently removed.'
-                              : 'Delete this draft payroll run?',
-                        )) {
-                          return;
-                        }
-                        try {
-                          final del = await hr.deletePayrollRun(id);
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(
-                            ctx,
-                          ).showSnackBar(SnackBar(content: Text(del.message)));
-                          if (del.success == true) {
-                            Navigator.pop(ctx);
-                            onChanged();
-                          }
-                        } on ApiException catch (error) {
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text(error.displayMessage)),
-                          );
-                        } catch (_) {
-                          if (!ctx.mounted) {
-                            return;
-                          }
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Unable to delete payroll run. Please try again.',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text('Delete'),
-                    ),
-                  if (st == 'processed')
-                    FilledButton(
-                      onPressed: () async {
-                        if (!await _confirm(
-                          ctx,
-                          'Post payroll',
-                          'Post this payroll run to accounting?',
-                        )) {
-                          return;
-                        }
-                        final res = await hr.postPayrollRun(
-                          id,
-                          PayrollRunModel.fromJson(<String, dynamic>{}),
-                        );
-                        if (!ctx.mounted) {
-                          return;
-                        }
-                        ScaffoldMessenger.of(
-                          ctx,
-                        ).showSnackBar(SnackBar(content: Text(res.message)));
-                        if (res.success == true) {
-                          Navigator.pop(ctx);
-                          onChanged();
-                          try {
-                            final delivery = await emailDesignedPayslipsForRun(
-                              context,
-                              hr: hr,
-                              payrollRunId: id,
-                              companyId: companyId,
-                            );
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(delivery.message)),
-                              );
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Payroll was posted, but designed payslip '
-                                    'emailing failed: $error',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      },
-                      child: const Text('Post'),
-                    ),
-                  if (st == 'posted')
-                    FilledButton.tonalIcon(
-                      onPressed: () async {
-                        if (!await _confirm(
-                          ctx,
-                          'Email payslips',
-                          'Send every employee in this posted payroll run '
-                              'their PDF payslip now?',
-                        )) {
-                          return;
-                        }
-                        if (!context.mounted) {
-                          return;
-                        }
-                        try {
-                          final delivery = await emailDesignedPayslipsForRun(
-                            context,
-                            hr: hr,
-                            payrollRunId: id,
-                            companyId: companyId,
-                          );
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text(delivery.message)),
-                            );
-                          }
-                        } catch (error) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Designed payslip emailing failed: $error',
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.email_outlined),
-                      label: const Text('Email payslips'),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
               ),
             ),
           ),

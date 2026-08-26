@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../hr/hr_module_refresh_controller.dart';
 import '../project/project_module_refresh_controller.dart';
 
 class ErpModuleDashboardController extends GetxController {
@@ -14,6 +15,8 @@ class ErpModuleDashboardController extends GetxController {
   String? shellTitle;
   final ProjectModuleRefreshController _projectRefreshController =
       ProjectModuleRefreshController.ensureRegistered();
+  final HrModuleRefreshController _hrRefreshController =
+      HrModuleRefreshController.ensureRegistered();
 
   Future<ErpDashboardSnapshot>? snapshotFuture;
   ErpDashboardSnapshot? snapshotCache;
@@ -22,6 +25,7 @@ class ErpModuleDashboardController extends GetxController {
     preset: ErpDashboardTrendPreset.monthly,
   );
   Worker? _projectRefreshWorker;
+  Worker? _hrRefreshWorker;
 
   @override
   void onInit() {
@@ -35,12 +39,22 @@ class ErpModuleDashboardController extends GetxController {
         reload();
       },
     );
+    _hrRefreshWorker = ever<HrModuleRefreshEvent?>(
+      _hrRefreshController.lastEvent,
+      (event) {
+        if (event == null || moduleKey != 'hr') {
+          return;
+        }
+        reload();
+      },
+    );
     snapshotFuture = loadSnapshot(cacheResult: true);
   }
 
   @override
   void onClose() {
     _projectRefreshWorker?.dispose();
+    _hrRefreshWorker?.dispose();
     super.onClose();
   }
 
