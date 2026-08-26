@@ -3,7 +3,8 @@
 ## Full-width CRM filter bars — 2026-08-26
 
 - Verify CRM Enquiries, Leads, and Opportunities show filter controls across
-  the available desktop page width and continue wrapping on narrow screens.
+  the available desktop page width, fit six controls per row on wide screens,
+  and continue wrapping on narrow screens.
 - `dart format` and focused `flutter analyze` were run for the three CRM page
   files; authenticated visual QA remains recommended.
 

@@ -447,6 +447,7 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
   Widget build(BuildContext context) {
     return SettingsFormWrap(
       maxWidth: double.infinity,
+      maxColumns: 6,
       children: [
         AppFormTextField(
           labelText: 'Search',

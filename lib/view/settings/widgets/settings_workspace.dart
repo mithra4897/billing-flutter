@@ -769,6 +769,7 @@ class SettingsFormWrap extends StatelessWidget {
     this.runSpacing = 16,
     this.mobileBreakpoint = 640,
     this.maxWidth = 300,
+    this.maxColumns = 2,
   });
 
   final List<Widget> children;
@@ -776,6 +777,7 @@ class SettingsFormWrap extends StatelessWidget {
   final double runSpacing;
   final double mobileBreakpoint;
   final double maxWidth;
+  final int maxColumns;
 
   @override
   Widget build(BuildContext context) {
@@ -783,9 +785,10 @@ class SettingsFormWrap extends StatelessWidget {
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final isMobile = availableWidth < mobileBreakpoint;
+        final columnCount = isMobile ? 1 : (maxColumns < 1 ? 1 : maxColumns);
         final itemWidth = isMobile
             ? availableWidth
-            : (availableWidth - spacing) / 2;
+            : (availableWidth - (spacing * (columnCount - 1))) / columnCount;
 
         return Wrap(
           spacing: spacing,

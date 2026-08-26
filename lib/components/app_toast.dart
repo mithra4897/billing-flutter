@@ -1,3 +1,5 @@
+import 'package:flutter/scheduler.dart';
+
 import '../screen.dart';
 
 enum AppToastType { success, warning, error, info }
@@ -16,6 +18,18 @@ class AppToast {
   }) {
     final text = message.trim();
     if (text.isEmpty) return;
+    if (WidgetsBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        show(
+          text,
+          context: context,
+          type: type,
+          duration: duration,
+        );
+      });
+      return;
+    }
 
     final overlay =
         appNavigatorKey.currentState?.overlay ??
@@ -60,37 +74,6 @@ class AppToast {
       return AppToastType.success;
     }
     return AppToastType.info;
-  }
-}
-
-/// Root messenger that redirects existing snackbar callers to [AppToast].
-class AppToastScaffoldMessenger extends ScaffoldMessenger {
-  const AppToastScaffoldMessenger({super.key, required super.child});
-
-  @override
-  ScaffoldMessengerState createState() => AppToastScaffoldMessengerState();
-}
-
-class AppToastScaffoldMessengerState extends ScaffoldMessengerState {
-  @override
-  ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showSnackBar(
-    SnackBar snackBar, {
-    AnimationStyle? snackBarAnimationStyle,
-  }) {
-    final content = snackBar.content;
-    final message = content is Text
-        ? content.data ?? content.textSpan?.toPlainText()
-        : null;
-    AppToast.show(message ?? 'Notification', context: context);
-    return super.showSnackBar(
-      const SnackBar(
-        content: SizedBox.shrink(),
-        duration: Duration(milliseconds: 1),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      snackBarAnimationStyle: AnimationStyle.noAnimation,
-    );
   }
 }
 

@@ -90,6 +90,8 @@ Acceptance criteria:
 - The CRM filter bar and its controls use the full available page width on
   desktop and responsive widths on smaller screens; fields are not capped by
   the shared settings form's default field width.
+- On wide screens, CRM filter controls are laid out six per row; they collapse
+  responsively on tablet and mobile widths.
 
 ## Persistent authenticated browser session
 

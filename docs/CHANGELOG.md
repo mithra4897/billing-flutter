@@ -4,8 +4,10 @@
 
 - CRM Enquiries, Leads, and Opportunities now expand their inline filter bars
   across the available page width while preserving responsive wrapping.
+- Wide CRM filter bars now fit up to six controls per row.
 - Reused `SettingsFormWrap` with a CRM-specific width configuration; no shared
-  component or backend/API behavior changed.
+  component behavior changes for existing callers and no backend/API behavior
+  changed.
 
 ## 2026-08-26 — Print summary rupee typography
 

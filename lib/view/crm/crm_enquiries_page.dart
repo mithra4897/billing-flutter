@@ -534,6 +534,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   ) {
     return SettingsFormWrap(
       maxWidth: double.infinity,
+      maxColumns: 6,
       children: [
         AppFormTextField(
           labelText: 'Search',
