@@ -993,6 +993,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         allowType: false,
+                        suffixIcon: AppDateTimeFieldSuffix(
+                          controller: followup.nextFollowupController,
+                          onCleared: controller.update,
+                        ),
                         onChanged: (_) => controller.update(),
                       ),
                       AppDropdownField<int>.fromMapped(

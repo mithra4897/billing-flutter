@@ -19,6 +19,7 @@ export 'components/app_action_button.dart';
 export 'components/app_branding_logo.dart';
 export 'components/app_calendar_picker.dart';
 export 'components/app_date_field.dart';
+export 'components/app_date_time_field_suffix.dart';
 export 'components/app_dropdown_field.dart';
 export 'components/app_error_state_view.dart';
 export 'components/app_field_box.dart';

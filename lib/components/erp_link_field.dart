@@ -110,8 +110,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
 
   String get _doctypeLabel =>
       (widget.doctypeLabel ?? widget.labelText).trim().isEmpty
-          ? 'record'
-          : (widget.doctypeLabel ?? widget.labelText).trim();
+      ? 'record'
+      : (widget.doctypeLabel ?? widget.labelText).trim();
 
   @override
   void initState() {
@@ -353,13 +353,13 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     }
     return options
         .where((option) {
-      final haystack = [
-        option.label,
-        option.subtitle ?? '',
-        option.searchText ?? '',
-      ].join(' ').toLowerCase();
-      return haystack.contains(normalized);
-    })
+          final haystack = [
+            option.label,
+            option.subtitle ?? '',
+            option.searchText ?? '',
+          ].join(' ').toLowerCase();
+          return haystack.contains(normalized);
+        })
         .toList(growable: false);
   }
 
@@ -369,7 +369,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       return false;
     }
     return _results.any(
-          (item) => item.label.trim().toLowerCase() == normalized,
+      (item) => item.label.trim().toLowerCase() == normalized,
     );
   }
 
@@ -438,7 +438,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     final nextPosition = currentPosition < 0
         ? 0
         : (currentPosition + delta + selectableIndexes.length) %
-        selectableIndexes.length;
+              selectableIndexes.length;
     setState(() {
       _highlightedIndex = selectableIndexes[nextPosition];
     });
@@ -492,9 +492,9 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   }
 
   Future<void> _selectEntry(
-      _ErpMenuEntry<T> entry,
-      FormFieldState<T?> field,
-      ) async {
+    _ErpMenuEntry<T> entry,
+    FormFieldState<T?> field,
+  ) async {
     switch (entry.kind) {
       case _ErpMenuEntryKind.result:
         final option = entry.option;
@@ -657,42 +657,42 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                 child: entries.isEmpty
                     ? const SizedBox.shrink()
                     : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  shrinkWrap: true,
-                  itemCount: entries.length,
-                  itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    return _ErpDropdownRow<T>(
-                      entry: entry,
-                      highlighted: index == _highlightedIndex,
-                      showCheckbox:
-                      _isMultiSelect &&
-                          entry.kind == _ErpMenuEntryKind.result,
-                      checked:
-                      _isMultiSelect &&
-                          entry.option != null &&
-                          _multiSelectedValues.contains(
-                            entry.option!.value,
-                          ),
-                      onPointerDown: _beginDropdownInteraction,
-                      onHoverChanged: (hovered) {
-                        if (!hovered) {
-                          return;
-                        }
-                        if (_highlightedIndex != index) {
-                          setState(() {
-                            _highlightedIndex = index;
-                          });
-                          _markOverlayNeedsBuild();
-                        }
-                      },
-                      onTap: entry.selectable && _fieldState != null
-                          ? () => _selectEntry(entry, _fieldState!)
-                          : null,
-                    );
-                  },
-                ),
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        shrinkWrap: true,
+                        itemCount: entries.length,
+                        itemBuilder: (context, index) {
+                          final entry = entries[index];
+                          return _ErpDropdownRow<T>(
+                            entry: entry,
+                            highlighted: index == _highlightedIndex,
+                            showCheckbox:
+                                _isMultiSelect &&
+                                entry.kind == _ErpMenuEntryKind.result,
+                            checked:
+                                _isMultiSelect &&
+                                entry.option != null &&
+                                _multiSelectedValues.contains(
+                                  entry.option!.value,
+                                ),
+                            onPointerDown: _beginDropdownInteraction,
+                            onHoverChanged: (hovered) {
+                              if (!hovered) {
+                                return;
+                              }
+                              if (_highlightedIndex != index) {
+                                setState(() {
+                                  _highlightedIndex = index;
+                                });
+                                _markOverlayNeedsBuild();
+                              }
+                            },
+                            onTap: entry.selectable && _fieldState != null
+                                ? () => _selectEntry(entry, _fieldState!)
+                                : null,
+                          );
+                        },
+                      ),
               ),
             ),
           ),
@@ -741,18 +741,18 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                   labelText: compactCellMode ? null : widget.labelText,
                   floatingLabelBehavior: compactCellMode
                       ? FloatingLabelBehavior.never
-                      : FloatingLabelBehavior.auto,
+                      : FloatingLabelBehavior.always,
                   isDense: true,
                   contentPadding: compactCellMode
                       ? const EdgeInsets.symmetric(
-                    horizontal: AppUiConstants.tableCellPaddingSm,
-                    vertical: AppUiConstants.tableCellPaddingXs,
-                  )
-                      : null,
+                          horizontal: AppUiConstants.tableCellPaddingSm,
+                          vertical: AppUiConstants.tableCellPaddingXs,
+                        )
+                      : const EdgeInsets.fromLTRB(12, 20, 12, 12),
                   hintText: _isMultiSelect
                       ? (widget.multiHintText ??
-                      widget.hintText ??
-                      'Search $_doctypeLabel')
+                            widget.hintText ??
+                            'Search $_doctypeLabel')
                       : (widget.hintText ?? 'Search $_doctypeLabel'),
                   errorText: field.errorText,
                   errorStyle: compactCellMode ? compactErrorStyle : null,
@@ -765,13 +765,13 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                   ),
                   suffixIcon: _loading || _creating
                       ? const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
+                          padding: EdgeInsets.all(8),
+                          child: SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
                       : const Icon(Icons.arrow_drop_down, size: 18),
                 ),
                 onTap: () {
@@ -818,20 +818,20 @@ class _ErpMenuEntry<T> {
   });
 
   _ErpMenuEntry.result(ErpLinkFieldOption<T> option)
-      : this._(
-    kind: _ErpMenuEntryKind.result,
-    label: option.label,
-    option: option,
-  );
+    : this._(
+        kind: _ErpMenuEntryKind.result,
+        label: option.label,
+        option: option,
+      );
 
   const _ErpMenuEntry.empty(String label)
-      : this._(kind: _ErpMenuEntryKind.empty, label: label);
+    : this._(kind: _ErpMenuEntryKind.empty, label: label);
 
   const _ErpMenuEntry.loading(String label)
-      : this._(kind: _ErpMenuEntryKind.loading, label: label);
+    : this._(kind: _ErpMenuEntryKind.loading, label: label);
 
   const _ErpMenuEntry.create(String query, String label)
-      : this._(kind: _ErpMenuEntryKind.create, label: label, query: query);
+    : this._(kind: _ErpMenuEntryKind.create, label: label, query: query);
 
   final _ErpMenuEntryKind kind;
   final String label;
