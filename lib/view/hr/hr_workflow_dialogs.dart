@@ -1909,13 +1909,17 @@ Future<void> showPayrollRunDetailDialog(
       (sum, item) => sum + (item.netSalary ?? 0),
     );
 
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(title: Text('Payroll run #$id')),
+          body: SafeArea(
+            child: Center(
+              child: AlertDialog(
         title: Text('Payroll run #$id'),
         content: SizedBox(
-          width: 600,
-          height: 520,
+          width: MediaQuery.sizeOf(ctx).width - 48,
+          height: MediaQuery.sizeOf(ctx).height - 140,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1998,98 +2002,79 @@ Future<void> showPayrollRunDetailDialog(
                         if (payrollPreview.employees.isEmpty)
                           const Text('No employees found for this company.')
                         else
-                          ...payrollPreview.employees.map(
-                            (employee) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppUiConstants.spacingSm,
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppUiConstants.buttonRadius,
-                                  ),
-                                  side: BorderSide(
-                                    color: Theme.of(
-                                      ctx,
-                                    ).dividerColor.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                leading: Icon(
-                                  employee.eligible
-                                      ? Icons.check_circle_outline
-                                      : Icons.error_outline,
-                                  color: employee.eligible
-                                      ? Colors.green
-                                      : Theme.of(ctx).colorScheme.error,
-                                ),
-                                title: Text(
-                                  <String?>[
-                                        employee.employeeName,
-                                        employee.employeeCode,
-                                      ]
-                                      .whereType<String>()
-                                      .map((value) => value.trim())
-                                      .where((value) => value.isNotEmpty)
-                                      .join(' • '),
-                                ),
-                                subtitle: Text(
-                                  employee.eligible
-                                      ? 'Ready • Gross ${formatAmount(employee.grossSalary ?? 0)} • '
-                                            'Paid ${formatAmount(employee.paidDays ?? 0)}/'
-                                            '${employee.workingDays ?? 0} • '
-                                            'LOP ${formatAmount(employee.lopDays ?? 0)}'
-                                      : employee.reason ??
-                                            'Payroll setup is incomplete.',
-                                ),
-                              ),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('Employee')),
+                                DataColumn(label: Text('Code')),
+                                DataColumn(label: Text('Status')),
+                                DataColumn(label: Text('Gross')),
+                                DataColumn(label: Text('Paid days')),
+                                DataColumn(label: Text('LOP')),
+                                DataColumn(label: Text('Details')),
+                              ],
+                              rows: payrollPreview.employees.map((employee) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(employee.employeeName ?? '—')),
+                                    DataCell(Text(employee.employeeCode ?? '—')),
+                                    DataCell(
+                                      Text(employee.eligible ? 'Ready' : 'Attention'),
+                                    ),
+                                    DataCell(
+                                      Text(formatAmount(employee.grossSalary ?? 0)),
+                                    ),
+                                    DataCell(
+                                      Text(
+                                        '${formatAmount(employee.paidDays ?? 0)}/${employee.workingDays ?? 0}',
+                                      ),
+                                    ),
+                                    DataCell(Text(formatAmount(employee.lopDays ?? 0))),
+                                    DataCell(
+                                      Text(
+                                        employee.eligible
+                                            ? 'Eligible for processing'
+                                            : employee.reason ?? 'Payroll setup is incomplete.',
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(growable: false),
                             ),
                           ),
                       ] else if (lineRows.isEmpty)
                         const Text('No payroll lines were generated.')
                       else
-                        ...lineRows.map(
-                          (line) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppUiConstants.spacingSm,
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppUiConstants.buttonRadius,
-                                ),
-                                side: BorderSide(
-                                  color: Theme.of(
-                                    ctx,
-                                  ).dividerColor.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              title: Text(
-                                <String?>[line.employeeName, line.employeeCode]
-                                    .whereType<String>()
-                                    .map((value) => value.trim())
-                                    .where((v) => v.isNotEmpty)
-                                    .join(' • '),
-                              ),
-                              subtitle: Text(
-                                'Earned ${formatAmount(line.grossSalary ?? 0)}  '
-                                'Ded ${formatAmount(line.totalDeductions ?? 0)}  '
-                                'Net ${formatAmount(line.netSalary ?? 0)}\n'
-                                'Paid ${formatAmount(line.paidDays ?? 0)}/'
-                                '${line.workingDays ?? 0}  '
-                                'Present ${formatAmount(line.presentDays ?? 0)}',
-                              ),
-                              trailing: Text(
-                                'LOP ${formatAmount(line.lopDays ?? 0)}',
-                              ),
-                            ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(label: Text('Employee')),
+                              DataColumn(label: Text('Code')),
+                              DataColumn(label: Text('Gross')),
+                              DataColumn(label: Text('Deductions')),
+                              DataColumn(label: Text('Net')),
+                              DataColumn(label: Text('Paid days')),
+                              DataColumn(label: Text('LOP')),
+                            ],
+                            rows: lineRows.map((line) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(line.employeeName ?? '—')),
+                                  DataCell(Text(line.employeeCode ?? '—')),
+                                  DataCell(Text(formatAmount(line.grossSalary ?? 0))),
+                                  DataCell(Text(formatAmount(line.totalDeductions ?? 0))),
+                                  DataCell(Text(formatAmount(line.netSalary ?? 0))),
+                                  DataCell(
+                                    Text(
+                                      '${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}',
+                                    ),
+                                  ),
+                                  DataCell(Text(formatAmount(line.lopDays ?? 0))),
+                                ],
+                              );
+                            }).toList(growable: false),
                           ),
                         ),
                     ],
@@ -2327,12 +2312,10 @@ Future<void> showPayrollRunDetailDialog(
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+              ),
+            ),
           ),
-        ],
+        ),
       ),
     );
   } catch (e) {

@@ -510,6 +510,13 @@ class _AppShellPageState extends State<AppShellPage> {
         return ExpenseClaimsManagementPage(key: routeKey, embedded: true);
       case '/hr/payroll-runs':
         return PayrollRunRegisterPage(key: routeKey, embedded: true);
+      case '/hr/payroll-runs/detail':
+        return PayrollRunDetailPage(
+          key: routeKey,
+          runId: int.tryParse(_currentQueryParameters['run_id'] ?? '') ?? 0,
+          companyId: int.tryParse(_currentQueryParameters['company_id'] ?? '') ?? 0,
+          embedded: true,
+        );
       case '/hr/payslips':
         return PayslipRegisterPage(
           key: routeKey,
@@ -1662,6 +1669,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/hr/employee-ledgers/')) {
       return 'Employee Ledger';
+    }
+    if (path.startsWith('/hr/payroll-runs/')) {
+      return 'Payroll Run';
     }
     if (path.startsWith('/sales/quotations/')) {
       return 'Sales Quotation';

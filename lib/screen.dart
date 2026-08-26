@@ -352,6 +352,8 @@ export 'view/hr/employee_page.dart';
 export 'view/hr/expense_claims_page.dart';
 export 'view/hr/hr_list_filter_helpers.dart';
 export 'view/hr/hr_registers.dart';
+export 'view/hr/payroll_run_detail_page.dart';
+export 'view/hr/payroll_run_employee_table.dart';
 export 'view/hr/hr_statutory_settings_page.dart';
 export 'view/hr/hr_workflow_dialogs.dart';
 export 'view/hr/leave_request_page.dart';

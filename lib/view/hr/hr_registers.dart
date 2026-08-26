@@ -849,13 +849,10 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
               _showNeedCompanySnack(context);
               return;
             }
-            await showPayrollRunDetailDialog(
-              context,
-              hr: controller._service,
-              id: id,
-              companyId: companyId,
-              onChanged: controller.load,
-            );
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/hr/payroll-runs/detail?run_id=$id&company_id=$companyId');
+            }
           },
         );
       },
