@@ -28,6 +28,8 @@
 - Wide CRM filter bars now fit up to six controls per row.
 - Moved CRM list search into the application bar and removed duplicate search
   controls from filter and list/table content.
+- Added the same application-bar search to CRM Follow-ups, filtering follow-up
+  cards and pending enquiry gaps by their visible identifying details.
 - Widened the application-bar search to 360 px and centered it in the main
   header area; the title remains left-aligned and Filter/New stay on the right.
 - Reused `SettingsFormWrap` with a CRM-specific width configuration; no shared

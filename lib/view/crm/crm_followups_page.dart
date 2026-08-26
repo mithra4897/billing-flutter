@@ -28,6 +28,7 @@ class CrmFollowupsPage extends StatefulWidget {
 class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   late final CrmService _crmService;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   final TextEditingController _filterDateFromController =
       TextEditingController();
   final TextEditingController _filterDateToController = TextEditingController();
@@ -87,6 +88,28 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         JsonModel.mapOf(row['assigned_user']) ?? const <String, dynamic>{};
     final assignedId = intValue(assigned, 'id') ?? intValue(row, 'assigned_to');
     return assignedId != null && _employeeFilterIds.contains(assignedId);
+  }
+
+  bool _matchesSearch(Map<String, dynamic> row) {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      return true;
+    }
+    final assigned =
+        JsonModel.mapOf(row['assigned_user']) ?? const <String, dynamic>{};
+    final searchableText = <String>[
+      stringValue(row, 'opportunity_no'),
+      stringValue(row, 'lead_no'),
+      stringValue(row, 'customer_name'),
+      stringValue(row, 'lead_name'),
+      stringValue(row, 'status'),
+      stringValue(row, 'followup_date'),
+      stringValue(row, 'next_followup'),
+      stringValue(row, 'notes'),
+      stringValue(assigned, 'display_name'),
+      stringValue(assigned, 'username'),
+    ].join(' ').toLowerCase();
+    return searchableText.contains(query);
   }
 
   DateTime _normalizeDate(DateTime value) =>
@@ -183,10 +206,17 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   void initState() {
     super.initState();
     _crmService = widget.crmService ?? CrmService();
+    _searchController.addListener(_onSearchChanged);
     _filterDateFromController.addListener(_syncDateFilter);
     _filterDateToController.addListener(_syncDateFilter);
     _loadAccess();
     _load();
+  }
+
+  void _onSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadAccess() async {
@@ -203,6 +233,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
     _filterDateFromController
       ..removeListener(_syncDateFilter)
       ..dispose();
@@ -506,6 +539,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     for (final row in _followups) {
       if (!_matchesEmployee(row) ||
           _shouldHideRow(row) ||
+          !_matchesSearch(row) ||
           crmIsCompletedFollowupStatus(nullableStringValue(row, 'status'))) {
         continue;
       }
@@ -522,7 +556,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     for (final row in _nextFollowupRows) {
-      if (!_matchesEmployee(row) || _shouldHideRow(row)) {
+      if (!_matchesEmployee(row) ||
+          _shouldHideRow(row) ||
+          !_matchesSearch(row)) {
         continue;
       }
       if (_normalizedRowDate(row, 'next_followup') == null) {
@@ -1152,7 +1188,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 
   Widget _buildGapList(BuildContext context) {
     final visibleGaps = _gaps
-        .where((row) => !_shouldHideRow(row))
+        .where((row) => !_shouldHideRow(row) && _matchesSearch(row))
         .toList(growable: false);
 
     if (visibleGaps.isEmpty) {
@@ -1325,6 +1361,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
+      AdaptiveShellSearchField(
+        controller: _searchController,
+        hintText: 'Search followups',
+      ),
       AdaptiveShellActionButton(
         onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
         icon: Icons.filter_alt_outlined,
