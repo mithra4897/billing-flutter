@@ -533,6 +533,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     CrmEnquiriesController controller,
   ) {
     return SettingsFormWrap(
+      maxWidth: double.infinity,
       children: [
         AppFormTextField(
           labelText: 'Search',

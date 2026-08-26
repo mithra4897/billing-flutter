@@ -326,6 +326,7 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsFormWrap(
+      maxWidth: double.infinity,
       children: [
         AppFormTextField(
           labelText: 'Search',

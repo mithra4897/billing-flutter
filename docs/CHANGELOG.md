@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-26 — Full-width CRM filter bars
+
+- CRM Enquiries, Leads, and Opportunities now expand their inline filter bars
+  across the available page width while preserving responsive wrapping.
+- Reused `SettingsFormWrap` with a CRM-specific width configuration; no shared
+  component or backend/API behavior changed.
+
 ## 2026-08-26 — Print summary rupee typography
 
 - The downloaded invoice summary now embeds a high-resolution Flutter-rendered

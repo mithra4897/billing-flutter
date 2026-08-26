@@ -87,6 +87,9 @@ Acceptance criteria:
 - CRM Follow-ups also uses the toggleable bar for inclusive From Date and To
   Date filtering; either boundary may be left empty. The former always-visible
   date filter card is removed.
+- The CRM filter bar and its controls use the full available page width on
+  desktop and responsive widths on smaller screens; fields are not capped by
+  the shared settings form's default field width.
 
 ## Persistent authenticated browser session
 

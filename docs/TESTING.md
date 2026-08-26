@@ -1,5 +1,12 @@
 # Testing
 
+## Full-width CRM filter bars — 2026-08-26
+
+- Verify CRM Enquiries, Leads, and Opportunities show filter controls across
+  the available desktop page width and continue wrapping on narrow screens.
+- `dart format` and focused `flutter analyze` were run for the three CRM page
+  files; authenticated visual QA remains recommended.
+
 ## CRM lead completion after delivery or invoice — 2026-08-26
 
 - Backend focused PHPUnit coverage was added for the in-progress versus
