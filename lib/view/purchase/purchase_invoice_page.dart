@@ -88,6 +88,10 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search invoices',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -417,6 +421,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         searchController: controller.searchController,
         searchHint: 'Search by bill no or supplier',
         showInlineFilters: _filtersVisible,
+        showInlineSearch: false,
         statusValue: controller.statusFilter,
         statusItems: PurchaseInvoiceManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

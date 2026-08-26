@@ -58,6 +58,10 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search returns',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -246,6 +250,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         searchController: controller.searchController,
         searchHint: 'Search returns',
         showInlineFilters: _filtersVisible,
+        showInlineSearch: false,
         statusValue: controller.statusFilter,
         statusItems: PurchaseReturnManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

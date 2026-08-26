@@ -85,6 +85,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search receipts',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -372,6 +376,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         searchController: controller.searchController,
         searchHint: 'Search receipts',
         showInlineFilters: _filtersVisible,
+        showInlineSearch: false,
         statusValue: controller.statusFilter,
         statusItems: PurchaseReceiptManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

@@ -586,6 +586,10 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           emptyMessage: widget.emptyMessage,
           actions: [
             ...extraActions,
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: widget.searchHint,
+            ),
             AdaptiveShellActionButton(
               onPressed: () {
                 setState(() {
@@ -753,14 +757,6 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     unawaited(controller.applyFilters());
   }
 
-  Widget _searchField() {
-    return AppFormTextField(
-      labelText: 'Search',
-      controller: controller.searchController,
-      hintText: searchHint,
-    );
-  }
-
   Widget _customerField() {
     final selected = _selectedSet<int>(
       controller.customFilters['customer_ids'],
@@ -832,126 +828,29 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasCustomer = customerItemsBuilder != null;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isWide = width >= 1480;
-        final isMedium = width >= 920 && width < 1480;
-
-        if (isWide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: _searchField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              if (hasCustomer) ...[
-                Expanded(child: _customerField()),
-                const SizedBox(width: AppUiConstants.spacingMd),
-              ],
-              Expanded(child: _statusField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(child: _sortField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(
-                child: _dateField(
-                  label: 'Date From',
-                  textController: controller.dateFromController,
-                ),
-              ),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(
-                child: _dateField(
-                  label: 'Date To',
-                  textController: controller.dateToController,
-                ),
-              ),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              SizedBox(width: 110, child: _actionField(context)),
-            ],
-          );
-        }
-
-        if (isMedium) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _searchField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  if (hasCustomer) ...[
-                    Expanded(child: _customerField()),
-                    const SizedBox(width: AppUiConstants.spacingMd),
-                  ],
-                  Expanded(child: _statusField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _sortField()),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _dateField(
-                      label: 'Date From',
-                      textController: controller.dateFromController,
-                    ),
-                  ),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(
-                    child: _dateField(
-                      label: 'Date To',
-                      textController: controller.dateToController,
-                    ),
-                  ),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _actionField(context)),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SettingsFormWrap(
+          maxWidth: double.infinity,
+          maxColumns: 6,
+          expandChildren: true,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            if (hasCustomer) _customerField(),
+            _statusField(),
+            _sortField(),
+            _dateField(
+              label: 'Date From',
+              textController: controller.dateFromController,
             ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            SettingsFormWrap(
-              maxWidth: double.infinity,
-              children: [
-                _searchField(),
-                if (hasCustomer) _customerField(),
-                _statusField(),
-                _sortField(),
-                _dateField(
-                  label: 'Date From',
-                  textController: controller.dateFromController,
-                ),
-                _dateField(
-                  label: 'Date To',
-                  textController: controller.dateToController,
-                ),
-                _actionField(context),
-              ],
+            _dateField(
+              label: 'Date To',
+              textController: controller.dateToController,
             ),
+            _actionField(context),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 }

@@ -63,6 +63,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search deliveries',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -541,11 +545,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         searchController: controller.searchController,
         searchHint: 'Search deliveries',
         filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Delivery no or customer name',
-          ),
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,

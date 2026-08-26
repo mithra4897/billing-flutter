@@ -461,6 +461,7 @@ class PurchaseListCard<T> extends StatefulWidget {
     this.statusItems = const <AppDropdownItem<String>>[],
     this.onStatusChanged,
     this.showInlineFilters = true,
+    this.showInlineSearch = true,
     this.headerActions = const <Widget>[],
     this.remoteTotalItems,
     this.remoteCurrentPage,
@@ -480,6 +481,7 @@ class PurchaseListCard<T> extends StatefulWidget {
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?>? onStatusChanged;
   final bool showInlineFilters;
+  final bool showInlineSearch;
   final List<Widget> headerActions;
 
   /// When supplied, the enclosing register owns pagination and [items] is the
@@ -625,10 +627,13 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                           bottom: AppUiConstants.spacingMd,
                         ),
                         child: SettingsFormWrap(
+                          maxWidth: double.infinity,
+                          maxColumns: 6,
+                          expandChildren: true,
                           children: [
                             if (widget.filterFields.isNotEmpty)
                               ...widget.filterFields
-                            else
+                            else if (widget.showInlineSearch)
                               (widget.primaryFilter ??
                                   TextField(
                                     controller: widget.searchController,
@@ -636,7 +641,9 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                                       hintText: widget.searchHint,
                                       prefixIcon: const Icon(Icons.search),
                                     ),
-                                  )),
+                                  ))
+                            else
+                              const SizedBox.shrink(),
                             if (widget.statusItems.isNotEmpty &&
                                 widget.onStatusChanged != null)
                               AppDropdownField<String>.fromMapped(

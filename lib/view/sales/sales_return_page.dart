@@ -57,6 +57,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search returns',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -279,11 +283,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         searchController: controller.searchController,
         searchHint: 'Search returns',
         filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Return no or customer name',
-          ),
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,

@@ -608,6 +608,10 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           actions: [
             if (widget.extraActionsBuilder != null)
               ...widget.extraActionsBuilder!(context, controller),
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: widget.searchHint,
+            ),
             AdaptiveShellActionButton(
               onPressed: () {
                 setState(() {
@@ -1845,15 +1849,10 @@ class _RegisterFilters extends StatelessWidget {
   Widget build(BuildContext context) {
     return SettingsFormWrap(
       maxWidth: maxWidth ?? 300,
+      maxColumns: 6,
+      expandChildren: true,
       children: [
-        ...(filterFields ??
-            <Widget>[
-              AppFormTextField(
-                labelText: 'Search',
-                controller: searchController,
-                hintText: searchHint,
-              ),
-            ]),
+        ...?filterFields,
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
           mappedItems: statusItems
@@ -1905,14 +1904,6 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     controller.setCustomFilter('balance_filter', '');
     controller.setStatuses(<String>{});
     controller.setSort('');
-  }
-
-  Widget _searchField() {
-    return AppFormTextField(
-      labelText: 'Search',
-      controller: controller.searchController,
-      hintText: searchHint,
-    );
   }
 
   Widget _statusField() {
@@ -1993,127 +1984,29 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasSupplier = supplierItemsBuilder != null;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isWide = width >= 1480;
-        final isMedium = width >= 920 && width < 1480;
-
-        if (isWide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: _searchField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              if (hasSupplier) ...[
-                Expanded(child: _supplierField()),
-                const SizedBox(width: AppUiConstants.spacingMd),
-              ],
-              Expanded(child: _statusField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(child: _sortField()),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(
-                child: _dateField(
-                  label: 'Date From',
-                  textController: controller.dateFromController,
-                ),
-              ),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              Expanded(
-                child: _dateField(
-                  label: 'Date To',
-                  textController: controller.dateToController,
-                ),
-              ),
-              const SizedBox(width: AppUiConstants.spacingMd),
-              SizedBox(width: 160, child: _actionField(context)),
-            ],
-          );
-        }
-
-        if (isMedium) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _searchField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  if (hasSupplier) ...[
-                    Expanded(child: _supplierField()),
-                    const SizedBox(width: AppUiConstants.spacingMd),
-                  ],
-                  Expanded(child: _statusField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _sortField()),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _dateField(
-                      label: 'Date From',
-                      textController: controller.dateFromController,
-                    ),
-                  ),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(
-                    child: _dateField(
-                      label: 'Date To',
-                      textController: controller.dateToController,
-                    ),
-                  ),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _actionField(context)),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SettingsFormWrap(
+          maxWidth: double.infinity,
+          maxColumns: 6,
+          expandChildren: true,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            if (hasSupplier) _supplierField(),
+            _statusField(),
+            _sortField(),
+            _dateField(
+              label: 'Date From',
+              textController: controller.dateFromController,
             ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            SettingsFormWrap(
-              maxWidth: double.infinity,
-              children: [
-                _searchField(),
-                if (hasSupplier) _supplierField(),
-                _statusField(),
-                _sortField(),
-                _dateField(
-                  label: 'Date From',
-                  textController: controller.dateFromController,
-                ),
-                _dateField(
-                  label: 'Date To',
-                  textController: controller.dateToController,
-                ),
-                _actionField(context),
-              ],
+            _dateField(
+              label: 'Date To',
+              textController: controller.dateToController,
             ),
+            _actionField(context),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -2166,14 +2059,6 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _searchField() {
-    return AppFormTextField(
-      labelText: 'Search',
-      controller: controller.searchController,
-      hintText: 'Bill no or supplier name',
     );
   }
 
@@ -2237,101 +2122,23 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final isWide = width >= 1320;
-        final isMedium = width >= 920 && width < 1320;
-
-        if (isWide) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 2, child: _searchField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _supplierField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _statusField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _sortField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _dateFromField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _dateToField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  SizedBox(width: 160, child: _actionField(context)),
-                ],
-              ),
-            ],
-          );
-        }
-
-        if (isMedium) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Find Invoices',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _searchField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _supplierField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _statusField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _sortField()),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _dateFromField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _dateToField()),
-                  const SizedBox(width: AppUiConstants.spacingMd),
-                  Expanded(child: _actionField(context)),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SettingsFormWrap(
+          maxWidth: double.infinity,
+          maxColumns: 6,
+          expandChildren: true,
           children: [
-            Text(
-              'Find Invoices',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            SettingsFormWrap(
-              maxWidth: double.infinity,
-              children: [
-                _searchField(),
-                _supplierField(),
-                _statusField(),
-                _sortField(),
-                _dateFromField(),
-                _dateToField(),
-                _actionField(context),
-              ],
-            ),
+            _supplierField(),
+            _statusField(),
+            _sortField(),
+            _dateFromField(),
+            _dateToField(),
+            _actionField(context),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 }

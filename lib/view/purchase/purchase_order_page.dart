@@ -56,6 +56,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search orders',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -326,6 +330,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         searchController: controller.searchController,
         searchHint: 'Search orders',
         showInlineFilters: _filtersVisible,
+        showInlineSearch: false,
         statusValue: controller.statusFilter,
         statusItems: PurchaseOrderManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),

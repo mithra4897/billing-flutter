@@ -66,6 +66,10 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search receipts',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -139,11 +143,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         searchController: controller.searchController,
         searchHint: 'Search receipts',
         filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Receipt no or customer name',
-          ),
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,

@@ -36,6 +36,14 @@
   component behavior changes for existing callers and no backend/API behavior
   changed.
 
+## 2026-08-26 — Sales and Purchase app-bar search
+
+- Sales and Purchase register/document pages now place their list search in the
+  application bar, matching the CRM layout.
+- Inline filter controls use the shared `SettingsFormWrap` with a maximum of
+  six controls per row and remain responsive on smaller screens.
+- Search behavior, filtering, APIs, and document data remain unchanged.
+
 ## 2026-08-26 — Print summary rupee typography
 
 - The downloaded invoice summary now embeds a high-resolution Flutter-rendered

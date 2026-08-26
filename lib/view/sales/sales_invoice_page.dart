@@ -82,6 +82,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search invoices',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -606,11 +610,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         onRemotePageChanged: controller.goToListPage,
         filterFields: [
           AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Invoice no or customer name',
-          ),
-          AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,
             hintText: dateFormatHint(),
@@ -640,8 +639,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ],
         statusValue: controller.statusFilter,
         statusItems: SalesInvoiceManagementController.listStatusFilter,
-        onStatusChanged: (value) =>
-            controller.setStatusFilter(value ?? ''),
+        onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
         showInlineFilters: _filtersVisible,
         itemBuilder: (item, selected) {
           final data = controller.rowJson(item);

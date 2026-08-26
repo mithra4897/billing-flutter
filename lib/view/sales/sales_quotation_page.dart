@@ -94,6 +94,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search quotations',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -340,11 +344,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         remotePerPage: controller.listMeta?.perPage,
         onRemotePageChanged: controller.goToListPage,
         filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Quotation no or customer name',
-          ),
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,

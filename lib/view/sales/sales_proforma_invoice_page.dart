@@ -96,6 +96,10 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search proforma invoices',
+          ),
           AdaptiveShellActionButton(
             onPressed: () {
               setState(() {
@@ -322,11 +326,6 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
         remotePerPage: controller.listMeta?.perPage,
         onRemotePageChanged: controller.goToListPage,
         filterFields: [
-          AppFormTextField(
-            labelText: 'Search',
-            controller: controller.searchController,
-            hintText: 'Proforma invoice no or customer name',
-          ),
           AppFormTextField(
             labelText: 'Date From',
             controller: controller.dateFromController,
