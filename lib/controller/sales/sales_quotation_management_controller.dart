@@ -941,7 +941,17 @@ class SalesQuotationManagementController extends GetxController {
         'discount_summary_label': discountAmount.abs() < 0.005
             ? ''
             : 'DISCOUNT :',
+        'discount_summary_currency': discountAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
+        'round_off_summary_label': roundOffAmount.abs() < 0.005
+            ? ''
+            : 'ROUND OFF :',
+        'round_off_summary_currency': roundOffAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
         'discount_amount': discountAmount,
+        'round_off_amount': roundToDouble(roundOffAmount, 2),
         'cgst_amount': roundToDouble(summary.cgst, 2),
         'sgst_amount': roundToDouble(summary.sgst, 2),
         'igst_amount': roundToDouble(summary.igst, 2),
