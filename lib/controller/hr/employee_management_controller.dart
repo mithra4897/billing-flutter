@@ -123,6 +123,7 @@ class EmployeeManagementController extends GetxController {
   int? selectedComponentParentKey;
   int? selectedComponentKey;
   String componentType = 'earning';
+  String componentRole = 'standard';
   String componentCalculationBasis = 'fixed';
   String componentContributionRole = 'employee';
 
@@ -265,6 +266,7 @@ class EmployeeSalaryComponentDraft {
     this.id,
     required this.componentName,
     required this.componentType,
+    required this.componentRole,
     required this.amount,
     required this.calculationBasis,
     required this.percentValue,
@@ -275,6 +277,7 @@ class EmployeeSalaryComponentDraft {
   final int? id;
   final String componentName;
   final String componentType;
+  final String componentRole;
   final String amount;
   final String calculationBasis;
   final String percentValue;
@@ -304,6 +307,7 @@ class EmployeeSalaryComponentDraft {
       id: id,
       componentName: componentName,
       componentType: componentType,
+      componentRole: componentRole,
       amount: amount,
       calculationBasis: calculationBasis,
       percentValue: percentValue,
@@ -317,6 +321,7 @@ class EmployeeSalaryComponentDraft {
       id: id,
       componentName: componentName,
       componentType: componentType,
+      componentRole: componentRole,
       amount: Validators.parseFlexibleNumber(amount),
       calculationBasis: calculationBasis,
       percentValue: calculationBasis == 'fixed' || percentage.isEmpty

@@ -52,6 +52,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'deduction', label: 'Deduction'),
       ];
 
+  static const List<AppDropdownItem<String>> _componentRoleItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'standard', label: 'Standard component'),
+        AppDropdownItem(value: 'derived_gross', label: 'Derived gross (summary)'),
+        AppDropdownItem(value: 'derived_net', label: 'Derived net (summary)'),
+      ];
+
   late final TabController _tabController;
   late final String _controllerTag;
 
@@ -300,6 +307,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       _employeeController.selectedComponentKey = value;
   String get _componentType => _employeeController.componentType;
   set _componentType(String value) => _employeeController.componentType = value;
+  String get _componentRole => _employeeController.componentRole;
+  set _componentRole(String value) => _employeeController.componentRole = value;
   String get _componentCalculationBasis =>
       _employeeController.componentCalculationBasis;
   set _componentCalculationBasis(String value) =>
@@ -1231,6 +1240,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               id: item.id,
               componentName: item.componentName ?? '',
               componentType: item.componentType ?? 'earning',
+              componentRole: item.componentRole ?? 'standard',
               amount: employeeDecimalText(item.amount),
               calculationBasis: item.calculationBasis ?? 'fixed',
               percentValue: employeeDecimalText(item.percentValue),
@@ -1408,6 +1418,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentAmountController.clear();
     _componentPercentController.clear();
     _componentType = 'earning';
+    _componentRole = 'standard';
     _componentCalculationBasis = 'fixed';
     _componentContributionRole = 'employee';
     _componentFormError = null;
@@ -1424,6 +1435,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentAmountController.clear();
     _componentPercentController.clear();
     _componentType = 'earning';
+    _componentRole = 'standard';
     _componentCalculationBasis = 'fixed';
     _componentContributionRole = 'employee';
     _componentFormError = null;
@@ -1441,6 +1453,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentAmountController.text = component.amount;
     _componentPercentController.text = component.percentValue;
     _componentType = component.componentType;
+    _componentRole = component.componentRole;
     _componentCalculationBasis = component.calculationBasis;
     _componentContributionRole = component.contributionRole;
     _componentFormError = null;
@@ -1511,6 +1524,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           ?.id,
       componentName: _componentNameController.text.trim(),
       componentType: _componentType,
+      componentRole: _componentRole,
       amount: _componentCalculationBasis == 'fixed'
           ? amountText
           : (amountText.isEmpty ? '0' : amountText),
@@ -3136,6 +3150,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               initialValue: _componentType,
               onChanged: (value) =>
                   _updateController(() => _componentType = value ?? 'earning'),
+            ),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Component Role',
+              mappedItems: _componentRoleItems,
+              initialValue: _componentRole,
+              onChanged: (value) => _updateController(
+                () => _componentRole = value ?? 'standard',
+              ),
             ),
             AppDropdownField<String>.fromMapped(
               labelText: 'Calculation',

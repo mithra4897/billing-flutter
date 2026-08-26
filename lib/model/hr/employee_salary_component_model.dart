@@ -6,6 +6,7 @@ class EmployeeSalaryComponentModel extends JsonModel {
     this.salaryStructureId,
     this.componentName,
     this.componentType,
+    this.componentRole,
     this.amount,
     this.calculationBasis,
     this.percentValue,
@@ -14,6 +15,7 @@ class EmployeeSalaryComponentModel extends JsonModel {
   final int? salaryStructureId;
   final String? componentName;
   final String? componentType;
+  final String? componentRole;
   final double? amount;
   final String? calculationBasis;
   final double? percentValue;
@@ -28,6 +30,7 @@ class EmployeeSalaryComponentModel extends JsonModel {
       salaryStructureId: _nullableInt(json['salary_structure_id']),
       componentName: json['component_name']?.toString(),
       componentType: json['component_type']?.toString(),
+      componentRole: json['component_role']?.toString(),
       amount: _double(json['amount']),
       calculationBasis: json['calculation_basis']?.toString(),
       percentValue: _double(json['percent_value']),
@@ -42,6 +45,7 @@ class EmployeeSalaryComponentModel extends JsonModel {
       if (salaryStructureId != null) 'salary_structure_id': salaryStructureId,
       if (componentName != null) 'component_name': componentName,
       if (componentType != null) 'component_type': componentType,
+      if (componentRole != null) 'component_role': componentRole,
       if (amount != null) 'amount': amount,
       if (calculationBasis != null) 'calculation_basis': calculationBasis,
       if (percentValue != null) 'percent_value': percentValue,
