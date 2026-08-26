@@ -5,6 +5,10 @@
 - CRM Enquiries, Leads, and Opportunities now expand their inline filter bars
   across the available page width while preserving responsive wrapping.
 - Wide CRM filter bars now fit up to six controls per row.
+- Moved CRM list search into the application bar and removed duplicate search
+  controls from filter and list/table content.
+- Widened the application-bar search to 360 px and centered it in the main
+  header area; the title remains left-aligned and Filter/New stay on the right.
 - Reused `SettingsFormWrap` with a CRM-specific width configuration; no shared
   component behavior changes for existing callers and no backend/API behavior
   changed.

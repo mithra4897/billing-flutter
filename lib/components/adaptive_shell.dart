@@ -353,7 +353,7 @@ class AdaptiveShellSearchField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.hintText,
-    this.width = 240,
+    this.width = 360,
   });
 
   final TextEditingController controller;
@@ -477,11 +477,19 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       isSuperAdmin: _isSuperAdmin,
       orderedModules: _orderedModules,
     );
-    final actionBar = widget.actionsListenable == null
-        ? _buildHeaderActions(widget.actions)
+    final headerSearch = widget.actionsListenable == null
+        ? _buildHeaderSearch(_headerSearchActions(widget.actions))
         : ValueListenableBuilder<List<Widget>>(
             valueListenable: widget.actionsListenable!,
-            builder: (context, actions, _) => _buildHeaderActions(actions),
+            builder: (context, actions, _) =>
+                _buildHeaderSearch(_headerSearchActions(actions)),
+          );
+    final actionBar = widget.actionsListenable == null
+        ? _buildHeaderActions(_headerTrailingActions(widget.actions))
+        : ValueListenableBuilder<List<Widget>>(
+            valueListenable: widget.actionsListenable!,
+            builder: (context, actions, _) =>
+                _buildHeaderActions(_headerTrailingActions(actions)),
           );
 
     return Scaffold(
@@ -581,11 +589,21 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                     },
                                   ),
                                 Expanded(
-                                  child: _AdaptiveShellTitle(
-                                    title: widget.title,
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: _AdaptiveShellTitle(
+                                          title: widget.title,
+                                          style: theme.textTheme.titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                      headerSearch,
+                                    ],
                                   ),
                                 ),
                                 const Padding(
@@ -623,6 +641,37 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     }
     final routeName = ModalRoute.of(context)?.settings.name ?? '/dashboard';
     return Uri.parse(routeName).path;
+  }
+
+  List<Widget> _headerSearchActions(List<Widget> actions) =>
+      actions.whereType<AdaptiveShellSearchField>().toList(growable: false);
+
+  List<Widget> _headerTrailingActions(List<Widget> actions) => actions
+      .where((action) => action is! AdaptiveShellSearchField)
+      .toList(growable: false);
+
+  Widget _buildHeaderSearch(List<Widget> actions) {
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, right: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: actions
+              .map(
+                (action) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: action,
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
   }
 
   Widget _buildHeaderActions(List<Widget> actions) {

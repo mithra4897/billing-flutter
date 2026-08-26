@@ -92,6 +92,12 @@ Acceptance criteria:
   the shared settings form's default field width.
 - On wide screens, CRM filter controls are laid out six per row; they collapse
   responsively on tablet and mobile widths.
+- CRM list search is provided once in the application bar, not duplicated
+  inside the filter bar or list/table content.
+- The application-bar search is centered in the main header area, with the page
+  title on the left and CRM filter/create actions on the right. It uses a wider
+  360 px desktop field while remaining horizontally scrollable on compact
+  screens.
 
 ## Persistent authenticated browser session
 

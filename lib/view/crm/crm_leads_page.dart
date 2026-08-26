@@ -142,6 +142,10 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search leads',
+            ),
             AdaptiveShellActionButton(
               onPressed: () =>
                   setState(() => _filtersVisible = !_filtersVisible),
@@ -157,7 +161,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
           ],
           filters: _filtersVisible
               ? _CrmLeadRegisterFilters(
-                  searchController: controller.searchController,
                   dateFromController: controller.dateFromController,
                   dateToController: controller.dateToController,
                   statuses: controller.statuses,
@@ -294,7 +297,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
 
 class _CrmLeadRegisterFilters extends StatelessWidget {
   const _CrmLeadRegisterFilters({
-    required this.searchController,
     required this.dateFromController,
     required this.dateToController,
     required this.statuses,
@@ -309,7 +311,6 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
     required this.onClear,
   });
 
-  final TextEditingController searchController;
   final TextEditingController dateFromController;
   final TextEditingController dateToController;
   final Set<String> statuses;
@@ -329,11 +330,6 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
       maxWidth: double.infinity,
       maxColumns: 6,
       children: [
-        AppFormTextField(
-          labelText: 'Search',
-          controller: searchController,
-          hintText: 'Search lead, company, mobile, or email',
-        ),
         AppDateField(labelText: 'From Date', controller: dateFromController),
         AppDateField(labelText: 'To Date', controller: dateToController),
         AppDropdownField<String>.fromMapped(
@@ -473,6 +469,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search leads',
+          ),
           AdaptiveShellActionButton(
             onPressed: () => _openFilterPanel(context, controller),
             icon: Icons.filter_alt_outlined,
@@ -735,8 +735,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               controller.filtersApplied)
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmLeadModel>(
-            searchController: controller.searchController,
-            searchHint: 'Search leads',
+            showSearchBar: false,
             items: controller.filteredItems,
             selectedItem: controller.selectedItem,
             emptyMessage: 'No CRM leads found.',

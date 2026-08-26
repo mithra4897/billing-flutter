@@ -303,6 +303,10 @@ class _CrmOpportunityRegisterPageState
       emptyMessage:
           'No CRM enquiries yet. Create a new enquiry to get started.',
       actions: [
+        AdaptiveShellSearchField(
+          controller: _searchController,
+          hintText: 'Search enquiries',
+        ),
         AdaptiveShellActionButton(
           onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
           icon: Icons.filter_alt_outlined,
@@ -318,7 +322,6 @@ class _CrmOpportunityRegisterPageState
       ],
       filters: _filtersVisible
           ? _CrmOpportunityRegisterFilters(
-              searchController: _searchController,
               dateFromController: _dateFromController,
               dateToController: _dateToController,
               statuses: _statuses,
@@ -414,7 +417,6 @@ class _CrmOpportunityRegisterPageState
 
 class _CrmOpportunityRegisterFilters extends StatelessWidget {
   const _CrmOpportunityRegisterFilters({
-    required this.searchController,
     required this.dateFromController,
     required this.dateToController,
     required this.statuses,
@@ -429,7 +431,6 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
     required this.onClear,
   });
 
-  final TextEditingController searchController;
   final TextEditingController dateFromController;
   final TextEditingController dateToController;
   final Set<String> statuses;
@@ -449,11 +450,6 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
       maxWidth: double.infinity,
       maxColumns: 6,
       children: [
-        AppFormTextField(
-          labelText: 'Search',
-          controller: searchController,
-          hintText: 'Search enquiry, number, customer, stage, owner, or lead',
-        ),
         AppDateField(labelText: 'From Date', controller: dateFromController),
         AppDateField(labelText: 'To Date', controller: dateToController),
         AppDropdownField<String>.fromMapped(
@@ -609,6 +605,10 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search enquiries',
+          ),
           AdaptiveShellActionButton(
             onPressed: () => _openFilterPanel(context, controller),
             icon: Icons.filter_alt_outlined,
@@ -998,15 +998,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: controller.searchController,
-            decoration: const InputDecoration(
-              hintText:
-                  'Search enquiry, number, customer, stage, owner, or lead',
-              prefixIcon: Icon(Icons.search),
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           if (controller.filteredItems.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingXl),

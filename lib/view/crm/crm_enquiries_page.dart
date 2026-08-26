@@ -128,6 +128,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search enquiries',
+          ),
           AdaptiveShellActionButton(
             onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
@@ -390,8 +394,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               controller.filterDateToController.text.trim().isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmEnquiryModel>(
-            searchController: controller.searchController,
-            searchHint: 'Search enquiries',
+            showSearchBar: false,
             items: controller.filteredItems,
             selectedItem: controller.selectedItem,
             emptyMessage: 'No CRM enquiries found.',
@@ -536,11 +539,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       maxWidth: double.infinity,
       maxColumns: 6,
       children: [
-        AppFormTextField(
-          labelText: 'Search',
-          controller: controller.searchController,
-          hintText: 'Search enquiries',
-        ),
         AppDropdownField<int>.fromMapped(
           labelText: 'Customer',
           mappedItems: controller.customers
