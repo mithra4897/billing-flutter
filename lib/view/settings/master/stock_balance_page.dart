@@ -45,6 +45,11 @@ class _StockBalancePageState extends State<StockBalancePage> {
           _statusFilter = status;
           _categoryFilter = category;
         });
+        controller.setListFilters(
+          category: category,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
       },
       onClear: () {
         setState(() {
@@ -54,6 +59,7 @@ class _StockBalancePageState extends State<StockBalancePage> {
           _statusFilter = '';
           _categoryFilter = '';
         });
+        controller.setListFilters(category: '', dateFrom: '', dateTo: '');
       },
     );
   }
@@ -77,20 +83,7 @@ class _StockBalancePageState extends State<StockBalancePage> {
   List<StockBalanceModel> _visibleItems(
     StockBalanceManagementController controller,
   ) {
-    return controller.filteredItems
-        .where((item) {
-          final matchesCategory =
-              _categoryFilter.isEmpty ||
-              (item.categoryName ?? item.categoryCode ?? '').trim() ==
-                  _categoryFilter;
-          final matchesDate = matchesDateValueRange(
-            item.lastMovementAt,
-            fromValue: _dateFromController.text,
-            toValue: _dateToController.text,
-          );
-          return matchesCategory && matchesDate;
-        })
-        .toList(growable: false);
+    return controller.filteredItems;
   }
 
   @override
@@ -165,6 +158,8 @@ class _StockBalancePageState extends State<StockBalancePage> {
         items: _visibleItems(controller),
         selectedItem: controller.selectedItem,
         emptyMessage: 'No stock balance records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.itemName.isNotEmpty ? item.itemName : item.itemCode,
           subtitle: [

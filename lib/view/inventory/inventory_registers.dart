@@ -3,7 +3,10 @@ import '../../model/inventory/opening_stock_item_model.dart';
 import '../../view_model/inventory/inventory_module_refresh_controller.dart';
 
 typedef InventoryRegisterLoader<T> =
-    Future<PaginatedResponse<T>> Function(InventoryService service);
+    Future<PaginatedResponse<T>> Function(
+      InventoryService service,
+      Map<String, dynamic> filters,
+    );
 typedef InventoryRegisterMatcher<T> = bool Function(T row, String query);
 typedef InventoryRegisterValueGetter<T> = String? Function(T row);
 typedef InventoryRegisterValuesGetter<T> = List<String> Function(T row);
@@ -65,9 +68,19 @@ List<String> _openingStockCategoryValues(OpeningStockModel row) {
 
 Future<PaginatedResponse<OpeningStockModel>> _loadOpeningStocksWithItems(
   InventoryService service,
+  Map<String, dynamic> filters,
 ) async {
   final response = await service.openingStocks(
-    filters: const {'per_page': 200, 'sort_by': 'opening_date'},
+    filters:
+        <String, dynamic>{
+            ...filters,
+            'sort_by': 'opening_date',
+            if (filters['status'] != null) 'opening_status': filters['status'],
+            if (filters['statuses'] != null)
+              'opening_statuses': filters['statuses'],
+          }
+          ..remove('status')
+          ..remove('statuses'),
   );
   final rows = response.data ?? const <OpeningStockModel>[];
   if (rows.isEmpty) {
@@ -298,44 +311,10 @@ class InventoryRegisterController<T> extends GetxController {
   List<AppDropdownItem<String>> loadedCategoryItems =
       const <AppDropdownItem<String>>[];
   Worker? _refreshWorker;
+  PaginationMeta? pagination;
+  Timer? _filterDebounce;
 
-  List<T> get filteredRows {
-    final query = searchController.text.trim().toLowerCase();
-    return rows
-        .where((row) {
-          if (query.isNotEmpty && !matches(row, query)) {
-            return false;
-          }
-          if (statuses.isNotEmpty) {
-            final rowStatus = (statusValue?.call(row) ?? '')
-                .trim()
-                .toLowerCase();
-            if (!statuses.contains(rowStatus)) {
-              return false;
-            }
-          }
-          if (categories.isNotEmpty && categoryValues != null) {
-            final rowCategories =
-                (categoryValues?.call(row) ?? const <String>[])
-                    .map((value) => value.trim().toLowerCase())
-                    .where((value) => value.isNotEmpty)
-                    .toSet();
-            if (!rowCategories.any(categories.contains)) {
-              return false;
-            }
-          }
-          if (dateValue != null &&
-              !matchesDateValueRange(
-                dateValue!.call(row),
-                fromValue: dateFromController.text,
-                toValue: dateToController.text,
-              )) {
-            return false;
-          }
-          return true;
-        })
-        .toList(growable: false);
-  }
+  List<T> get filteredRows => rows;
 
   List<AppDropdownItem<String>> get statusItems {
     if (statusValue == null) {
@@ -396,9 +375,9 @@ class InventoryRegisterController<T> extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(update);
-    dateFromController.addListener(update);
-    dateToController.addListener(update);
+    searchController.addListener(_scheduleReload);
+    dateFromController.addListener(_scheduleReload);
+    dateToController.addListener(_scheduleReload);
     _refreshWorker = ever<InventoryModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -414,14 +393,15 @@ class InventoryRegisterController<T> extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _filterDebounce?.cancel();
     searchController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
     dateFromController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
     dateToController
-      ..removeListener(update)
+      ..removeListener(_scheduleReload)
       ..dispose();
     super.onClose();
   }
@@ -432,6 +412,7 @@ class InventoryRegisterController<T> extends GetxController {
         .where((value) => value.isNotEmpty)
         .toSet();
     update();
+    _scheduleReload();
   }
 
   void setCategories(Set<String> values) {
@@ -440,6 +421,7 @@ class InventoryRegisterController<T> extends GetxController {
         .where((value) => value.isNotEmpty)
         .toSet();
     update();
+    _scheduleReload();
   }
 
   void clearFilters() {
@@ -449,15 +431,46 @@ class InventoryRegisterController<T> extends GetxController {
     statuses = <String>{};
     categories = <String>{};
     update();
+    unawaited(load(page: 1));
   }
 
-  Future<void> load() async {
+  void _scheduleReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(load(page: 1)),
+    );
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != pagination?.currentPage) {
+      unawaited(load(page: page));
+    }
+  }
+
+  Future<void> load({int page = 1}) async {
+    _filterDebounce?.cancel();
     loading = true;
     error = null;
     update();
     try {
-      final response = await loader(_service);
+      final filters = <String, dynamic>{
+        'page': page,
+        'per_page': 50,
+        'sort_order': 'desc',
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (dateFromController.text.trim().isNotEmpty)
+          'date_from': dateFromController.text.trim(),
+        if (dateToController.text.trim().isNotEmpty)
+          'date_to': dateToController.text.trim(),
+        if (statuses.length == 1) 'status': statuses.single,
+        if (statuses.length > 1) 'statuses': statuses.join(','),
+        if (categories.isNotEmpty) 'categories': categories.join(','),
+      };
+      final response = await loader(_service, filters);
       rows = response.data ?? <T>[];
+      pagination = response.meta;
       if (categoryItemsLoader != null) {
         loadedCategoryItems = await categoryItemsLoader!(_service);
       }
@@ -484,7 +497,6 @@ class _RegisterFilters extends StatelessWidget {
     required this.categoryItems,
     required this.onCategoryChanged,
     this.showAdvancedFilters = true,
-    this.onSearchSubmitted,
   });
 
   final TextEditingController searchController;
@@ -498,7 +510,6 @@ class _RegisterFilters extends StatelessWidget {
   final List<AppDropdownItem<String>> categoryItems;
   final ValueChanged<Set<String>> onCategoryChanged;
   final bool showAdvancedFilters;
-  final VoidCallback? onSearchSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -510,10 +521,6 @@ class _RegisterFilters extends StatelessWidget {
           controller: searchController,
           hintText: searchHint,
           textInputAction: TextInputAction.search,
-          onFieldSubmitted: (_) {
-            onSearchSubmitted?.call();
-          },
-          onEditingComplete: onSearchSubmitted,
         ),
         if (showAdvancedFilters &&
             (dateFromController != null || dateToController != null)) ...[
@@ -649,12 +656,6 @@ class _InventoryRegisterShellState<T>
           emptyMessage: widget.emptyMessage,
           actions: [
             AdaptiveShellActionButton(
-              onPressed: () => _openFilterPanel(context, controller),
-              icon: Icons.filter_alt_outlined,
-              label: 'Filter',
-              filled: false,
-            ),
-            AdaptiveShellActionButton(
               onPressed: () =>
                   _openInventoryShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
@@ -664,7 +665,13 @@ class _InventoryRegisterShellState<T>
           filters: _RegisterFilters(
             searchController: controller.searchController,
             searchHint: widget.searchHint,
-            showAdvancedFilters: false,
+            showAdvancedFilters: true,
+            dateFromController: controller.supportsDateFilter
+                ? controller.dateFromController
+                : null,
+            dateToController: controller.supportsDateFilter
+                ? controller.dateToController
+                : null,
             statuses: controller.statuses,
             statusItems: controller.statusItems,
             onStatusChanged: controller.setStatuses,
@@ -676,156 +683,10 @@ class _InventoryRegisterShellState<T>
           columns: widget.columns,
           onRowTap: (row) =>
               _openInventoryShellRoute(context, widget.rowRoute(row)),
-        );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    InventoryRegisterController<T> controller,
-  ) async {
-    final dialogSearchController = TextEditingController(
-      text: controller.searchController.text,
-    );
-    final dialogDateFromController = TextEditingController(
-      text: controller.dateFromController.text,
-    );
-    final dialogDateToController = TextEditingController(
-      text: controller.dateToController.text,
-    );
-    final tempStatuses = Set<String>.from(controller.statuses);
-    final tempCategories = Set<String>.from(controller.categories);
-
-    void applyDialogFilters(BuildContext dialogContext) {
-      controller.searchController.text = dialogSearchController.text;
-      controller.dateFromController.text = dialogDateFromController.text;
-      controller.dateToController.text = dialogDateToController.text;
-      controller.setStatuses(tempStatuses);
-      controller.setCategories(tempCategories);
-      Navigator.of(dialogContext).pop();
-    }
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        final appTheme = Theme.of(
-          dialogContext,
-        ).extension<AppThemeExtension>()!;
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return CallbackShortcuts(
-              bindings: <ShortcutActivator, VoidCallback>{
-                const SingleActivator(LogicalKeyboardKey.enter): () {
-                  applyDialogFilters(dialogContext);
-                },
-                const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
-                  applyDialogFilters(dialogContext);
-                },
-              },
-              child: Focus(
-                autofocus: true,
-                child: Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppUiConstants.cardRadius,
-                    ),
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 760),
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        AppUiConstants.cardPadding,
-                        AppUiConstants.cardPadding,
-                        AppUiConstants.cardPadding,
-                        MediaQuery.of(dialogContext).viewInsets.bottom +
-                            AppUiConstants.cardPadding,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Filter ${widget.title}',
-                                  style: Theme.of(dialogContext)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () =>
-                                    Navigator.of(dialogContext).pop(),
-                                tooltip: 'Close',
-                                icon: const Icon(Icons.close),
-                                color: appTheme.mutedText,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppUiConstants.spacingMd),
-                          _RegisterFilters(
-                            searchController: dialogSearchController,
-                            searchHint: widget.searchHint,
-                            dateFromController: controller.supportsDateFilter
-                                ? dialogDateFromController
-                                : null,
-                            dateToController: controller.supportsDateFilter
-                                ? dialogDateToController
-                                : null,
-                            statuses: tempStatuses,
-                            statusItems: controller.statusItems,
-                            onStatusChanged: (values) {
-                              setDialogState(() {
-                                tempStatuses
-                                  ..clear()
-                                  ..addAll(values);
-                              });
-                            },
-                            categories: tempCategories,
-                            categoryItems: controller.categoryItems,
-                            onCategoryChanged: (values) {
-                              setDialogState(() {
-                                tempCategories
-                                  ..clear()
-                                  ..addAll(values);
-                              });
-                            },
-                            onSearchSubmitted: () =>
-                                applyDialogFilters(dialogContext),
-                          ),
-                          const SizedBox(height: AppUiConstants.spacingMd),
-                          Wrap(
-                            spacing: AppUiConstants.spacingMd,
-                            runSpacing: AppUiConstants.spacingMd,
-                            children: [
-                              FilledButton.icon(
-                                onPressed: () =>
-                                    applyDialogFilters(dialogContext),
-                                icon: const Icon(Icons.search),
-                                label: const Text('Apply Filters'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  controller.clearFilters();
-                                  Navigator.of(dialogContext).pop();
-                                },
-                                icon: const Icon(Icons.clear),
-                                label: const Text('Clear'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
+          remoteTotalItems: controller.pagination?.total,
+          remoteCurrentPage: controller.pagination?.currentPage,
+          remotePerPage: controller.pagination?.perPage,
+          onRemotePageChanged: controller.goToPage,
         );
       },
     );
@@ -892,14 +753,25 @@ class StockIssueRegisterPage extends StatelessWidget {
       controllerName: 'StockIssueRegisterController',
       title: 'Stock issues',
       embedded: embedded,
-      loader: (service) => _loadEnrichedInventoryRegister<StockIssueModel>(
-        service: service,
-        listLoader: () => service.stockIssues(
-          filters: const {'per_page': 200, 'sort_by': 'issue_date'},
-        ),
-        detailLoader: service.stockIssue,
-        fromJson: StockIssueModel.fromJson,
-      ),
+      loader: (service, filters) =>
+          _loadEnrichedInventoryRegister<StockIssueModel>(
+            service: service,
+            listLoader: () => service.stockIssues(
+              filters:
+                  <String, dynamic>{
+                      ...filters,
+                      'sort_by': 'issue_date',
+                      if (filters['status'] != null)
+                        'issue_status': filters['status'],
+                      if (filters['statuses'] != null)
+                        'issue_statuses': filters['statuses'],
+                    }
+                    ..remove('status')
+                    ..remove('statuses'),
+            ),
+            detailLoader: service.stockIssue,
+            fromJson: StockIssueModel.fromJson,
+          ),
       matches: (row, query) {
         final data = row.toJson();
         return [
@@ -952,11 +824,21 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
       controllerName: 'InternalStockReceiptRegisterController',
       title: 'Internal stock receipts',
       embedded: embedded,
-      loader: (service) =>
+      loader: (service, filters) =>
           _loadEnrichedInventoryRegister<InternalStockReceiptModel>(
             service: service,
             listLoader: () => service.internalStockReceipts(
-              filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+              filters:
+                  <String, dynamic>{
+                      ...filters,
+                      'sort_by': 'receipt_date',
+                      if (filters['status'] != null)
+                        'receipt_status': filters['status'],
+                      if (filters['statuses'] != null)
+                        'receipt_statuses': filters['statuses'],
+                    }
+                    ..remove('status')
+                    ..remove('statuses'),
             ),
             detailLoader: service.internalStockReceipt,
             fromJson: InternalStockReceiptModel.fromJson,
@@ -1009,14 +891,25 @@ class StockTransferRegisterPage extends StatelessWidget {
       controllerName: 'StockTransferRegisterController',
       title: 'Stock transfers',
       embedded: embedded,
-      loader: (service) => _loadEnrichedInventoryRegister<StockTransferModel>(
-        service: service,
-        listLoader: () => service.stockTransfers(
-          filters: const {'per_page': 200, 'sort_by': 'transfer_date'},
-        ),
-        detailLoader: service.stockTransfer,
-        fromJson: StockTransferModel.fromJson,
-      ),
+      loader: (service, filters) =>
+          _loadEnrichedInventoryRegister<StockTransferModel>(
+            service: service,
+            listLoader: () => service.stockTransfers(
+              filters:
+                  <String, dynamic>{
+                      ...filters,
+                      'sort_by': 'transfer_date',
+                      if (filters['status'] != null)
+                        'transfer_status': filters['status'],
+                      if (filters['statuses'] != null)
+                        'transfer_statuses': filters['statuses'],
+                    }
+                    ..remove('status')
+                    ..remove('statuses'),
+            ),
+            detailLoader: service.stockTransfer,
+            fromJson: StockTransferModel.fromJson,
+          ),
       matches: (row, query) {
         final data = row.toJson();
         return [
@@ -1070,8 +963,18 @@ class ProduceTrackingRegisterPage extends StatelessWidget {
       controllerName: 'ProduceTrackingRegisterController',
       title: 'Produce Tracking',
       embedded: embedded,
-      loader: (service) => service.produceTrackings(
-        filters: const {'per_page': 200, 'sort_by': 'tracking_date'},
+      loader: (service, filters) => service.produceTrackings(
+        filters:
+            <String, dynamic>{
+                ...filters,
+                'sort_by': 'tracking_date',
+                if (filters['status'] != null)
+                  'tracking_status': filters['status'],
+                if (filters['statuses'] != null)
+                  'tracking_statuses': filters['statuses'],
+              }
+              ..remove('status')
+              ..remove('statuses'),
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -1136,11 +1039,21 @@ class StockDamageRegisterPage extends StatelessWidget {
       controllerName: 'StockDamageRegisterController',
       title: 'Stock damage',
       embedded: embedded,
-      loader: (service) =>
+      loader: (service, filters) =>
           _loadEnrichedInventoryRegister<StockDamageEntryModel>(
             service: service,
             listLoader: () => service.stockDamageEntries(
-              filters: const {'per_page': 200, 'sort_by': 'damage_date'},
+              filters:
+                  <String, dynamic>{
+                      ...filters,
+                      'sort_by': 'damage_date',
+                      if (filters['status'] != null)
+                        'damage_status': filters['status'],
+                      if (filters['statuses'] != null)
+                        'damage_statuses': filters['statuses'],
+                    }
+                    ..remove('status')
+                    ..remove('statuses'),
             ),
             detailLoader: service.stockDamageEntry,
             fromJson: StockDamageEntryModel.fromJson,
@@ -1197,11 +1110,21 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
       controllerName: 'InventoryAdjustmentRegisterController',
       title: 'Inventory adjustments',
       embedded: embedded,
-      loader: (service) =>
+      loader: (service, filters) =>
           _loadEnrichedInventoryRegister<InventoryAdjustmentModel>(
             service: service,
             listLoader: () => service.inventoryAdjustments(
-              filters: const {'per_page': 200, 'sort_by': 'adjustment_date'},
+              filters:
+                  <String, dynamic>{
+                      ...filters,
+                      'sort_by': 'adjustment_date',
+                      if (filters['status'] != null)
+                        'adjustment_status': filters['status'],
+                      if (filters['statuses'] != null)
+                        'adjustment_statuses': filters['statuses'],
+                    }
+                    ..remove('status')
+                    ..remove('statuses'),
             ),
             detailLoader: service.inventoryAdjustment,
             fromJson: InventoryAdjustmentModel.fromJson,
@@ -1258,8 +1181,18 @@ class StockMovementRegisterPage extends StatelessWidget {
       controllerName: 'StockMovementRegisterController',
       title: 'Stock movements',
       embedded: embedded,
-      loader: (service) => service.stockMovements(
-        filters: const {'per_page': 200, 'sort_by': 'movement_date'},
+      loader: (service, filters) => service.stockMovements(
+        filters:
+            <String, dynamic>{
+                ...filters,
+                'sort_by': 'movement_date',
+                if (filters['date_from'] != null)
+                  'voucher_from': filters['date_from'],
+                if (filters['date_to'] != null)
+                  'voucher_to': filters['date_to'],
+              }
+              ..remove('date_from')
+              ..remove('date_to'),
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -1313,8 +1246,8 @@ class StockBatchRegisterPage extends StatelessWidget {
       controllerName: 'StockBatchRegisterController',
       title: 'Stock batches',
       embedded: embedded,
-      loader: (service) => service.stockBatches(
-        filters: const {'per_page': 200, 'sort_by': 'batch_no'},
+      loader: (service, filters) => service.stockBatches(
+        filters: <String, dynamic>{...filters, 'sort_by': 'batch_no'},
       ),
       matches: (row, query) {
         final data = row.toJson();
@@ -1361,8 +1294,20 @@ class StockSerialRegisterPage extends StatelessWidget {
       controllerName: 'StockSerialRegisterController',
       title: 'Stock serials',
       embedded: embedded,
-      loader: (service) => service.stockSerials(
-        filters: const {'per_page': 200, 'sort_by': 'serial_no'},
+      loader: (service, filters) => service.stockSerials(
+        filters:
+            <String, dynamic>{
+                ...filters,
+                'sort_by': 'serial_no',
+                if (filters['status'] != null) 'status': filters['status'],
+                if (filters['statuses'] != null)
+                  'statuses': filters['statuses'],
+                if (filters['date_from'] != null)
+                  'inward_from': filters['date_from'],
+                if (filters['date_to'] != null) 'inward_to': filters['date_to'],
+              }
+              ..remove('date_from')
+              ..remove('date_to'),
       ),
       matches: (row, query) {
         final data = row.toJson();

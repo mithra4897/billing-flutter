@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 
 class ItemManagementController extends GetxController {
   static const List<AppDropdownItem<String>> itemTypeItems =
@@ -51,6 +51,12 @@ class ItemManagementController extends GetxController {
   String? formError;
   List<ItemModel> items = const <ItemModel>[];
   List<ItemModel> filteredItems = const <ItemModel>[];
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
+  String statusFilter = '';
+  String categoryFilter = '';
+  String dateFromFilter = '';
+  String dateToFilter = '';
   List<ItemCategoryModel> categories = const <ItemCategoryModel>[];
   List<BrandModel> brands = const <BrandModel>[];
   List<UomModel> uoms = const <UomModel>[];
@@ -79,7 +85,7 @@ class ItemManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleListReload);
     loadData();
   }
 
@@ -88,8 +94,9 @@ class ItemManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleListReload)
       ..dispose();
+    _searchDebounce?.cancel();
     codeController.dispose();
     nameController.dispose();
     localNameController.dispose();
@@ -110,7 +117,7 @@ class ItemManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadData({int? selectId}) async {
+  Future<void> loadData({int? selectId, int page = 1}) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -119,7 +126,28 @@ class ItemManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _loadAllItems(),
+        _inventoryService.items(
+          filters: {
+            'page': page,
+            'per_page': 50,
+            'sort_by': 'item_name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+            if (statusFilter.isNotEmpty)
+              'is_active': statusFilter == 'active' ? 1 : 0,
+            if (categoryFilter.isNotEmpty)
+              'category_id': categories
+                  .cast<ItemCategoryModel?>()
+                  .firstWhere(
+                    (entry) => entry?.categoryName == categoryFilter,
+                    orElse: () => null,
+                  )
+                  ?.id,
+            if (dateFromFilter.isNotEmpty) 'created_from': dateFromFilter,
+            if (dateToFilter.isNotEmpty) 'created_to': dateToFilter,
+          },
+        ),
         _inventoryService.itemCategories(
           filters: const {'per_page': 200, 'sort_by': 'category_name'},
         ),
@@ -128,9 +156,8 @@ class ItemManagementController extends GetxController {
         ),
       ]);
 
-      final nextItems =
-          (responses[0] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
+      final itemResponse = responses[0] as PaginatedResponse<ItemModel>;
+      final nextItems = itemResponse.data ?? const <ItemModel>[];
       final nextCategories =
           (responses[1] as PaginatedResponse<ItemCategoryModel>).data ??
           const <ItemCategoryModel>[];
@@ -146,6 +173,7 @@ class ItemManagementController extends GetxController {
           );
 
       items = nextItems;
+      paginationMeta = itemResponse.meta;
       contextCompanyId = contextSelection.companyId;
       categories = nextCategories
           .where((category) => category.isActive)
@@ -155,7 +183,7 @@ class ItemManagementController extends GetxController {
           .toList(growable: false);
       uoms = cache.activeUoms;
       taxCodes = cache.activeTaxCodes;
-      filteredItems = _filterItems(nextItems, searchController.text);
+      filteredItems = nextItems;
       initialLoading = false;
 
       final selected = selectId != null
@@ -183,64 +211,31 @@ class ItemManagementController extends GetxController {
     update();
   }
 
-  Future<PaginatedResponse<ItemModel>> _loadAllItems() async {
-    const perPage = 200;
-    final allItems = <ItemModel>[];
-
-    var page = 1;
-    var lastPage = 1;
-    PaginationMeta? lastMeta;
-
-    do {
-      final response = await _inventoryService.items(
-        filters: <String, dynamic>{
-          'per_page': perPage,
-          'page': page,
-          'sort_by': 'item_name',
-        },
-      );
-
-      allItems.addAll(response.data ?? const <ItemModel>[]);
-      lastMeta = response.meta;
-      lastPage = response.meta?.lastPage ?? 1;
-      page++;
-    } while (page <= lastPage);
-
-    return PaginatedResponse<ItemModel>(
-      data: allItems,
-      message: lastMeta == null
-          ? 'Items fetched successfully.'
-          : 'Items fetched successfully. (${allItems.length}/${lastMeta.total})',
-      success: true,
-      meta: PaginationMeta(
-        currentPage: 1,
-        lastPage: 1,
-        perPage: allItems.length,
-        total: allItems.length,
-      ),
+  void _scheduleListReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadData(page: 1)),
     );
   }
 
-  List<ItemModel> _filterItems(List<ItemModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.itemCode,
-        item.itemName,
-        item.itemNameLocal ?? '',
-        item.itemType ?? '',
-        item.categoryCode ?? '',
-        item.categoryName ?? '',
-        item.sku ?? '',
-        item.barcode ?? '',
-        item.description ?? '',
-        item.remarks ?? '',
-      ];
-    });
+  void setListFilters({
+    required String status,
+    required String category,
+    required String dateFrom,
+    required String dateTo,
+  }) {
+    statusFilter = status;
+    categoryFilter = category;
+    dateFromFilter = dateFrom;
+    dateToFilter = dateTo;
+    unawaited(loadData(page: 1));
   }
 
-  void _applySearch() {
-    filteredItems = _filterItems(items, searchController.text);
-    update();
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadData(page: page));
+    }
   }
 
   void selectItem(ItemModel item, {bool notify = true}) {

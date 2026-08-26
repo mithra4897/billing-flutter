@@ -29,6 +29,12 @@ class PhysicalStockCountManagementController extends GetxController {
   List<PhysicalStockCountModel> items = const <PhysicalStockCountModel>[];
   List<PhysicalStockCountModel> filteredItems =
       const <PhysicalStockCountModel>[];
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
+  String statusFilter = '';
+  String categoryFilter = '';
+  String dateFromFilter = '';
+  String dateToFilter = '';
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> allItems = const <ItemModel>[];
@@ -53,7 +59,7 @@ class PhysicalStockCountManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleListReload);
     loadData();
   }
 
@@ -62,15 +68,16 @@ class PhysicalStockCountManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleListReload)
       ..dispose();
+    _searchDebounce?.cancel();
     countNoController.dispose();
     countDateController.dispose();
     remarksController.dispose();
     super.onClose();
   }
 
-  Future<void> loadData({int? selectId}) async {
+  Future<void> loadData({int? selectId, int page = 1}) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -80,7 +87,18 @@ class PhysicalStockCountManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _inventoryService.physicalStockCounts(
-          filters: const {'per_page': 200, 'sort_by': 'count_date'},
+          filters: {
+            'page': page,
+            'per_page': 50,
+            'sort_by': 'count_date',
+            'sort_order': 'desc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+            if (statusFilter.isNotEmpty) 'count_status': statusFilter,
+            if (categoryFilter.isNotEmpty) 'categories': categoryFilter,
+            if (dateFromFilter.isNotEmpty) 'date_from': dateFromFilter,
+            if (dateToFilter.isNotEmpty) 'date_to': dateToFilter,
+          },
         ),
         _inventoryService.stockBatchesDropdown(filters: const {}),
         _inventoryService.stockSerialsDropdown(filters: const {}),
@@ -89,9 +107,9 @@ class PhysicalStockCountManagementController extends GetxController {
         ),
       ]);
 
-      final counts =
-          (responses[0] as PaginatedResponse<PhysicalStockCountModel>).data ??
-          const <PhysicalStockCountModel>[];
+      final countResponse =
+          responses[0] as PaginatedResponse<PhysicalStockCountModel>;
+      final counts = countResponse.data ?? const <PhysicalStockCountModel>[];
       final batchesResponse =
           (responses[1] as ApiResponse<List<StockBatchModel>>).data ??
           const <StockBatchModel>[];
@@ -110,7 +128,8 @@ class PhysicalStockCountManagementController extends GetxController {
           );
 
       items = counts;
-      filteredItems = filterCounts(counts, searchController.text);
+      filteredItems = counts;
+      paginationMeta = countResponse.meta;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -165,9 +184,31 @@ class PhysicalStockCountManagementController extends GetxController {
     });
   }
 
-  void _applySearch() {
-    filteredItems = filterCounts(items, searchController.text);
-    update();
+  void _scheduleListReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadData(page: 1)),
+    );
+  }
+
+  void setListFilters({
+    required String status,
+    required String category,
+    required String dateFrom,
+    required String dateTo,
+  }) {
+    statusFilter = status;
+    categoryFilter = category;
+    dateFromFilter = dateFrom;
+    dateToFilter = dateTo;
+    unawaited(loadData(page: 1));
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadData(page: page));
+    }
   }
 
   void selectCount(PhysicalStockCountModel item, {bool notify = true}) {

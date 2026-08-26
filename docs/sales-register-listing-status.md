@@ -15,7 +15,7 @@
 | Sales | Quotations, Proformas, Orders, Deliveries, Invoices, Returns, Receipts | Done | Done | Done | Complete |
 | Purchase | Requisitions, Orders, Receipts, Invoices, Returns, Payments | Done | Done | Done | Complete |
 | Accounts | Vouchers, account masters, postings, reconciliation, cash sessions, budgets, party accounts, reports | Done | Done | Done | Complete |
-| Inventory | Items, movements, transfers, adjustments, opening stock, batches, serials, physical counts | Partial | Pending | Pending | Pending |
+| Inventory | Items, opening stock, issues, internal receipts, transfers, produce tracking, damage, adjustments, movements, batches, serials, physical counts, stock balances | Done | Done | Done | Complete |
 | HR | Payslips, leave requests, expense claims, attendance | Partial | Pending | Pending | Pending |
 | CRM | Leads, enquiries, opportunities | Partial | Pending | Pending | Pending |
 | Assets | Fixed assets, disposals, cost-centre transactions | Partial | Pending | Pending | Pending |
@@ -108,6 +108,39 @@
   artificial paginated registers.
 - Flutter Accounts analysis passes with no issues, and all modified PHP files
   pass syntax verification.
+
+## Inventory detailed progress
+
+| Register / list | Server filtering | Server pagination | Page controls | Status |
+|---|---:|---:|---:|---|
+| Items | Done | Done | Done | Complete |
+| Opening Stock | Done | Done | Done | Complete |
+| Stock Issues | Done | Done | Done | Complete |
+| Internal Stock Receipts | Done | Done | Done | Complete |
+| Stock Transfers | Done | Done | Done | Complete |
+| Produce Tracking | Done | Done | Done | Complete |
+| Stock Damage | Done | Done | Done | Complete |
+| Inventory Adjustments | Done | Done | Done | Complete |
+| Stock Movements | Done | Done | Done | Complete |
+| Stock Batches | Done | Done | Done | Complete |
+| Stock Serials | Done | Done | Done | Complete |
+| Physical Stock Counts | Done | Done | Done | Complete |
+| Stock Balances | Done | Done | Done | Complete |
+
+### Inventory verification completed
+
+- Shared Inventory registers use debounced API search, API date/status/category
+  filtering, and pagination metadata instead of loading a fixed 200-row set.
+- Multi-status filters are evaluated before pagination for document registers
+  and stock serials.
+- Document search includes linked item codes, names, and categories, so older
+  item matches remain discoverable.
+- Item, physical-count, and stock-balance management lists use API pagination;
+  status, category, and applicable date filters run on the server.
+- Detail-form lookups remain independent from visible register pages, so item,
+  warehouse, batch, serial, and other required reference data still load.
+- Flutter analysis passes with no issues, all modified PHP files pass syntax
+  verification, and both worktrees pass whitespace checks.
 
 ## Update rule
 

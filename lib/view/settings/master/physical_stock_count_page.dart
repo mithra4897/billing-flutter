@@ -49,6 +49,12 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
           _statusFilter = status;
           _categoryFilter = category;
         });
+        controller.setListFilters(
+          status: status,
+          category: category,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
       },
       onClear: () {
         setState(() {
@@ -58,6 +64,12 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
           _statusFilter = '';
           _categoryFilter = '';
         });
+        controller.setListFilters(
+          status: '',
+          category: '',
+          dateFrom: '',
+          dateTo: '',
+        );
       },
     );
   }
@@ -78,41 +90,10 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
     ];
   }
 
-  String _categoryForItem(
-    PhysicalStockCountManagementController controller,
-    int? itemId,
-  ) {
-    final item = controller.allItems.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return (item?.categoryName ?? item?.categoryCode ?? '').trim();
-  }
-
   List<PhysicalStockCountModel> _visibleItems(
     PhysicalStockCountManagementController controller,
   ) {
-    return controller.filteredItems
-        .where((item) {
-          final matchesStatus =
-              _statusFilter.isEmpty ||
-              (item.countStatus ?? '').trim().toLowerCase() ==
-                  _statusFilter.toLowerCase();
-          final matchesDate = matchesDateValueRange(
-            item.countDate,
-            fromValue: _dateFromController.text,
-            toValue: _dateToController.text,
-          );
-          final matchesCategory =
-              _categoryFilter.isEmpty ||
-              item.items.any(
-                (line) =>
-                    _categoryForItem(controller, line.itemId) ==
-                    _categoryFilter,
-              );
-          return matchesStatus && matchesDate && matchesCategory;
-        })
-        .toList(growable: false);
+    return controller.filteredItems;
   }
 
   @override
@@ -197,6 +178,8 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
         items: _visibleItems(controller),
         selectedItem: controller.selectedCount,
         emptyMessage: 'No physical counts found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.countNo ?? '-',
           subtitle: [

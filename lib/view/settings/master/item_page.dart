@@ -50,6 +50,12 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           _statusFilter = status;
           _categoryFilter = category;
         });
+        controller.setListFilters(
+          status: status,
+          category: category,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+        );
       },
       onClear: () {
         setState(() {
@@ -59,6 +65,12 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           _statusFilter = '';
           _categoryFilter = '';
         });
+        controller.setListFilters(
+          status: '',
+          category: '',
+          dateFrom: '',
+          dateTo: '',
+        );
       },
     );
   }
@@ -78,19 +90,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   }
 
   List<ItemModel> _visibleItems(ItemManagementController controller) {
-    return controller.filteredItems
-        .where((item) {
-          final matchesStatus =
-              _statusFilter.isEmpty ||
-              (_statusFilter == 'active' && item.isActive) ||
-              (_statusFilter == 'inactive' && !item.isActive);
-          final matchesCategory =
-              _categoryFilter.isEmpty ||
-              (item.categoryName ?? item.categoryCode ?? '').trim() ==
-                  _categoryFilter;
-          return matchesStatus && matchesCategory;
-        })
-        .toList(growable: false);
+    return controller.filteredItems;
   }
 
   @override
@@ -190,6 +190,8 @@ class _ItemManagementPageState extends State<ItemManagementPage>
         items: _visibleItems(controller),
         selectedItem: controller.selectedItem,
         emptyMessage: 'No item records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.goToPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.itemName,
           subtitle: [

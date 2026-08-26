@@ -18,11 +18,16 @@ class StockBalanceManagementController extends GetxController {
   List<StockBalanceModel> items = const <StockBalanceModel>[];
   List<StockBalanceModel> filteredItems = const <StockBalanceModel>[];
   StockBalanceModel? selectedItem;
+  PaginationMeta? paginationMeta;
+  Timer? _searchDebounce;
+  String categoryFilter = '';
+  String dateFromFilter = '';
+  String dateToFilter = '';
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_scheduleListReload);
     _refreshWorker = ever<InventoryModuleRefreshEvent?>(
       _refreshController.lastEvent,
       _handleInventoryRefresh,
@@ -35,25 +40,37 @@ class StockBalanceManagementController extends GetxController {
     _refreshWorker.dispose();
     pageScrollController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_scheduleListReload)
       ..dispose();
+    _searchDebounce?.cancel();
     workspaceController.dispose();
     super.onClose();
   }
 
-  Future<void> loadData({int? selectId}) async {
+  Future<void> loadData({int? selectId, int page = 1}) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
 
     try {
       final response = await _inventoryService.stockBalances(
-        filters: const {'per_page': 300, 'sort_by': 'qty_available'},
+        filters: {
+          'page': page,
+          'per_page': 50,
+          'sort_by': 'qty_available',
+          'sort_order': 'desc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
+          if (categoryFilter.isNotEmpty) 'categories': categoryFilter,
+          if (dateFromFilter.isNotEmpty) 'last_movement_from': dateFromFilter,
+          if (dateToFilter.isNotEmpty) 'last_movement_to': dateToFilter,
+        },
       );
       final nextItems = response.data ?? const <StockBalanceModel>[];
 
       items = nextItems;
-      filteredItems = filterItems(nextItems, searchController.text);
+      filteredItems = nextItems;
+      paginationMeta = response.meta;
       initialLoading = false;
 
       final selected = selectId != null
@@ -101,9 +118,29 @@ class StockBalanceManagementController extends GetxController {
     });
   }
 
-  void _applySearch() {
-    filteredItems = filterItems(items, searchController.text);
-    update();
+  void _scheduleListReload() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(loadData(page: 1)),
+    );
+  }
+
+  void setListFilters({
+    required String category,
+    required String dateFrom,
+    required String dateTo,
+  }) {
+    categoryFilter = category;
+    dateFromFilter = dateFrom;
+    dateToFilter = dateTo;
+    unawaited(loadData(page: 1));
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != paginationMeta?.currentPage) {
+      unawaited(loadData(page: page));
+    }
   }
 
   void selectItem(StockBalanceModel item) {
