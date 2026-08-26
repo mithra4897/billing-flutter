@@ -1,5 +1,23 @@
 # Specifications
 
+## CRM lead completion after delivery or invoice
+
+- Date: 2026-08-26
+- Status: Implemented
+
+CRM lead conversion to an opportunity or quotation is not a completed lead.
+The lead remains **In Progress** until the linked sales chain reaches a
+delivery or invoice. The Flutter register displays the server-provided status;
+no new frontend status or API field is introduced. A delivery- or invoice-linked
+lead displays **Own**/completed as before.
+
+Acceptance criteria:
+
+1. A lead with only a quotation or sales order remains In Progress.
+2. A lead with a linked delivery or invoice displays Own/completed.
+3. Refreshing CRM after a Sales transition shows the updated status.
+4. Existing Lost behavior and API compatibility are preserved.
+
 ## Global status toast
 
 - Date: 2026-08-25

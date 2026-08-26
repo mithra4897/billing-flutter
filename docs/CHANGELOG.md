@@ -1570,3 +1570,11 @@
   including distinct-layer, luminance, and contrast assertions.
 - Known limitation: Authenticated visual QA across all legacy module-local
   hardcoded colors remains manual.
+# 2026-08-26 — CRM lead completion after delivery or invoice
+
+- CRM documentation now records that quotation/order creation keeps a linked
+  lead In Progress and delivery/invoice completion displays Own.
+- The existing typed server-status and module-refresh flow remains reused; no
+  frontend API or database contract changed.
+- Manual authenticated verification remains recommended for the end-to-end
+  quotation → delivery/invoice workflow.

@@ -1,5 +1,15 @@
 # Testing
 
+## CRM lead completion after delivery or invoice — 2026-08-26
+
+- Backend focused PHPUnit coverage was added for the in-progress versus
+  converted boundary.
+- Flutter reuses the existing server-status rendering and CRM module refresh;
+  no new frontend computation or API call was added.
+- Manual verification remains recommended: create a CRM quotation, confirm the
+  lead stays In Progress, then create a delivery or invoice and refresh CRM to
+  confirm Own/completed.
+
 ## Global status toast — 2026-08-25
 
 - Focused `flutter analyze lib/main.dart lib/components/app_toast.dart` passed

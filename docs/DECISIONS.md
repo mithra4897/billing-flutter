@@ -1,5 +1,25 @@
 # Architecture decisions
 
+## ADR-0031: Complete CRM leads at delivery or invoice
+
+- Date: 2026-08-26
+- Status: Accepted
+- Context: The CRM marked a lead completed as soon as an opportunity or sales
+  order existed, although the requested business completion point is delivery
+  or invoicing.
+- Decision: Keep the canonical completion decision in the backend sales-chain
+  service. Flutter continues to render the API's `lead_status` and reuses the
+  existing CRM refresh mechanism.
+- Reason: This prevents quotation/order screens from duplicating business rules
+  and keeps completion consistent across delivery and invoice entry paths.
+- Alternatives considered: Mark completion from the quotation screen; add a
+  separate frontend-only status; complete at sales order creation.
+- Consequences: Leads may remain read-only while In Progress because their
+  linked opportunity is already established, but they are not shown as
+  completed until delivery/invoice exists. No schema migration is required.
+- Related files: `billing-api/app/Services/Crm/CrmSalesChainService.php`,
+  CRM lead/opportunity services, and CRM lead register refresh flow.
+
 ## ADR-0030: Keep leave-type creation out of leave requests and company policy
 
 - Date: 2026-08-21
