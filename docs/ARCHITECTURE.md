@@ -236,6 +236,16 @@ Salary fallback when an older saved `hr_payslip` layout has no salary-summary
 binding. The values are already provided in `salary_summary`; the fallback
 does not alter payroll calculations or persisted template data.
 
+### Payslip PDF table borders
+
+The vector PDF renderer in `document_print_designer.dart` reuses the same table
+geometry as the preview, but emits salary-table dividers through one
+`pw.CustomPaint` stroke grid, including the outer border. This keeps row,
+column, and outline borders consistent at fractional PDF coordinates while
+retaining the template's configured stroke width and rounded corners. The
+change is presentation-only and does not affect payroll data or saved
+templates.
+
 ### HR salary-component order propagation
 
 The Employee Salary Components tab sends the selected employee and salary

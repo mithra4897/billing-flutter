@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-26 — Consistent payslip PDF salary-table borders
+
+- Payslip PDF salary-table row, column, and outer borders now use one stroked
+  vector grid, preventing uneven rasterized borders when the template stroke
+  width is 1 or 0.80.
+- The designer preview, configured table styling, payroll data, API, and
+  persistence remain unchanged.
+- Focused formatting and Flutter analysis passed; a fresh browser download
+  remains the final manual visual check.
+
 ## 2026-08-26 — Refresh HR dashboard after payroll deletion
 
 - Payroll-run deletion now emits the existing HR module refresh event, so the

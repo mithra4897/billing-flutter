@@ -361,6 +361,33 @@ including older saved templates that lack a salary summary.
 - A template that already displays the salary summary is not duplicated.
 - Earnings and Deductions tables retain their current rows and bindings.
 
+## Payslip PDF table stroke consistency
+
+- Date: 2026-08-26
+- Status: Implemented
+
+### Objective
+
+Keep salary-table borders visually uniform in downloaded payslip PDFs when the
+template stroke width is configured to 1, matching the print-designer preview.
+
+### Scope and rules
+
+- Apply the fix only to the vector PDF table renderer.
+- Preserve the configured stroke width, colors, rounded outer border, rows,
+  columns, totals, and table content.
+- Draw the internal row and column dividers as one PDF stroke operation model,
+  rather than adjacent filled rectangles that can rasterize unevenly at
+  fractional coordinates.
+- Make no payroll calculation, API, database, or template-persistence changes.
+
+### Acceptance criteria
+
+- Downloaded payslip salary tables render consistent horizontal and vertical
+  borders at stroke width 1.
+- The on-screen designer preview remains unchanged.
+- Focused formatting and Flutter analysis pass.
+
 ## Payroll run deletion from processed state
 
 - Date: 2026-08-13

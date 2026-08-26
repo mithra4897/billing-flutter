@@ -659,6 +659,17 @@
 - `flutter analyze`: completed with one pre-existing unrelated unused
   `_buildGapList` warning in `lib/view/crm/crm_followups_page.dart`; no issue
   was reported for the payslip template change.
+
+## Payslip PDF table stroke consistency — 2026-08-26
+
+- Rendered the supplied downloaded payslip PDF to inspect the salary-table
+  border artifact.
+- `dart format lib/view/printing/document_print_designer.dart`: passed.
+- `flutter analyze lib/view/printing/document_print_designer.dart`: passed with
+  no issues.
+- Manual verification still required after a fresh payslip download to confirm
+  the browser PDF viewer/printer rasterizes the updated single-stroke grid
+  evenly at the target output resolution.
 - `php -l ../billing-api/app/Http/Controllers/Hr/PayslipController.php`:
   passed with no syntax errors after removing the calculated deduction row.
 - Manual verification remains required for highly custom saved template

@@ -2932,6 +2932,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               ? totalRowTop + headerHeight
               : math.max(usedHeight, shape.printHeader ? headerHeight : 0.0));
     final children = <pw.Widget>[];
+    final horizontalRuleTops = <double>[];
 
     final fillColor = _pdfFillColor(shape);
     if (fillColor != null) {
@@ -2969,14 +2970,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               .toList(growable: false),
         ),
       );
-      children.add(
-        _buildPdfHorizontalRule(
-          top: headerHeight,
-          width: shape.width,
-          color: _pdfColor(shape.strokeColor),
-          strokeWidth: strokeWidth,
-        ),
-      );
+      horizontalRuleTops.add(headerHeight);
     }
 
     var currentTop = headerHeight;
@@ -3014,14 +3008,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       currentTop += rowHeight;
       if (rowIndex < visibleRows.length - 1 || useFullHeight) {
-        children.add(
-          _buildPdfHorizontalRule(
-            top: currentTop,
-            width: shape.width,
-            color: _pdfColor(shape.strokeColor),
-            strokeWidth: strokeWidth,
-          ),
-        );
+        horizontalRuleTops.add(currentTop);
       }
     }
 
@@ -3037,14 +3024,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ),
         ),
       );
-      children.add(
-        _buildPdfHorizontalRule(
-          top: totalRowTop,
-          width: shape.width,
-          color: _pdfColor(shape.strokeColor),
-          strokeWidth: strokeWidth,
-        ),
-      );
+      horizontalRuleTops.add(totalRowTop);
       children.add(
         _buildPdfTableRowLayer(
           shape: shape,
@@ -3079,22 +3059,27 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     var cursorX = 0.0;
+    final verticalRuleLefts = <double>[];
     for (var i = 0; i < columnWidths.length; i++) {
       if (i > 0) {
-        children.add(
-          _buildPdfVerticalRule(
-            left: cursorX,
-            top: 0,
-            height: contentBottom,
-            color: _pdfColor(shape.strokeColor),
-            strokeWidth: strokeWidth,
-          ),
-        );
+        verticalRuleLefts.add(cursorX);
       }
       cursorX += columnWidths[i];
     }
 
     final tableHeight = math.max(headerHeight, contentBottom);
+    children.add(
+      _buildPdfTableGrid(
+        width: shape.width,
+        height: tableHeight,
+        contentBottom: contentBottom,
+        horizontalRuleTops: horizontalRuleTops,
+        verticalRuleLefts: verticalRuleLefts,
+        color: _pdfColor(shape.strokeColor),
+        strokeWidth: strokeWidth,
+        borderRadius: shape.borderRadius,
+      ),
+    );
     final table = pw.SizedBox(
       width: shape.width,
       height: tableHeight,
@@ -3116,13 +3101,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           child: pw.Container(
             width: shape.width,
             height: tableHeight,
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(
-                color: _pdfColor(shape.strokeColor),
-                width: strokeWidth,
-              ),
-              borderRadius: pw.BorderRadius.circular(shape.borderRadius),
-            ),
             child: clippedTable,
           ),
         ),
@@ -3187,38 +3165,50 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return pw.Stack(children: children);
   }
 
-  pw.Widget _buildPdfHorizontalRule({
-    required double top,
+  pw.Widget _buildPdfTableGrid({
     required double width,
-    required PdfColor color,
-    required double strokeWidth,
-  }) {
-    return pw.Positioned(
-      left: 0,
-      top: math.max(0, top - (strokeWidth / 2)),
-      child: pw.SizedBox(
-        width: width,
-        height: strokeWidth,
-        child: pw.Container(color: color),
-      ),
-    );
-  }
-
-  pw.Widget _buildPdfVerticalRule({
-    required double left,
-    required double top,
     required double height,
+    required double contentBottom,
+    required List<double> horizontalRuleTops,
+    required List<double> verticalRuleLefts,
     required PdfColor color,
     required double strokeWidth,
+    required double borderRadius,
   }) {
-    return pw.Positioned(
-      left: math.max(0, left - (strokeWidth / 2)),
-      top: top,
-      child: pw.SizedBox(
-        width: strokeWidth,
-        height: height,
-        child: pw.Container(color: color),
-      ),
+    if (strokeWidth <= 0 || width <= 0 || height <= 0) {
+      return pw.SizedBox(width: width, height: height);
+    }
+
+    return pw.CustomPaint(
+      size: PdfPoint(width, height),
+      painter: (canvas, size) {
+        canvas
+          ..saveContext()
+          ..setLineWidth(strokeWidth)
+          ..setStrokeColor(color);
+
+        for (final top in horizontalRuleTops) {
+          final y = size.y - top.clamp(0.0, contentBottom).toDouble();
+          canvas
+            ..drawLine(0, y, size.x, y)
+            ..strokePath();
+        }
+        for (final left in verticalRuleLefts) {
+          final x = left.clamp(0.0, width).toDouble();
+          canvas
+            ..drawLine(x, size.y, x, size.y - contentBottom)
+            ..strokePath();
+        }
+
+        if (borderRadius > 0) {
+          canvas.drawRRect(0, 0, size.x, size.y, borderRadius, borderRadius);
+        } else {
+          canvas.drawRect(0, 0, size.x, size.y);
+        }
+        canvas.strokePath();
+
+        canvas.restoreContext();
+      },
     );
   }
 
