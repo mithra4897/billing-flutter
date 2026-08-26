@@ -48,6 +48,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   late final CrmEnquiriesController _controller;
   late final TabController _tabController;
   bool _filtersVisible = false;
+  bool _isSuperAdmin = false;
 
   @override
   void initState() {
@@ -73,6 +74,18 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       if (_tabController.indexIsChanging) {
         _controller.setActiveTabIndex(_tabController.index);
       }
+    });
+    _loadAccess();
+  }
+
+  Future<void> _loadAccess() async {
+    final currentUser = await SessionStorage.getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
     });
   }
 
@@ -556,21 +569,22 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           multiHintText: 'Select stages',
           onMultiChanged: controller.setFilterStageIds,
         ),
-        AppDropdownField<int>.fromMapped(
-          labelText: 'Assigned To',
-          mappedItems: controller.users
-              .where((item) => item.id != null)
-              .map(
-                (item) => AppDropdownItem<int>(
-                  value: item.id!,
-                  label: item.displayName ?? item.username ?? '',
-                ),
-              )
-              .toList(growable: false),
-          multiInitialValues: controller.filterAssignedToIds,
-          multiHintText: 'Select assignees',
-          onMultiChanged: controller.setFilterAssignedToIds,
-        ),
+        if (_isSuperAdmin)
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Employee',
+            mappedItems: controller.users
+                .where((item) => item.id != null)
+                .map(
+                  (item) => AppDropdownItem<int>(
+                    value: item.id!,
+                    label: item.displayName ?? item.username ?? '',
+                  ),
+                )
+                .toList(growable: false),
+            multiInitialValues: controller.filterAssignedToIds,
+            multiHintText: 'Select employees',
+            onMultiChanged: controller.setFilterAssignedToIds,
+          ),
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
           mappedItems: CrmEnquiriesController.filterStatusItems,

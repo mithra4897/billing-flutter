@@ -46,6 +46,26 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
     controller.setStatuses(_dashboardStatuses());
   }
 
+  List<AppDropdownItem<int>> _employeeItems(
+    CrmLeadRegisterController controller,
+  ) {
+    final employees = <int, String>{};
+    for (final row in controller.rows) {
+      final assigned = JsonModel.mapOf(row.toJson()['assigned_user']);
+      final id = intValue(assigned ?? const <String, dynamic>{}, 'id');
+      if (id == null) continue;
+      final label = stringValue(assigned!, 'display_name').isNotEmpty
+          ? stringValue(assigned, 'display_name')
+          : stringValue(assigned, 'username');
+      if (label.isNotEmpty) employees[id] = label;
+    }
+    return employees.entries
+        .map(
+          (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
+        )
+        .toList(growable: false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -144,14 +164,20 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
                   statusItems: CrmLeadRegisterController.statusItems,
                   sort: controller.sort,
                   sortItems: CrmLeadRegisterController.sortItems,
+                  employeeItems: _isSuperAdmin
+                      ? _employeeItems(controller)
+                      : const <AppDropdownItem<int>>[],
+                  employeeIds: controller.assignedToIds,
                   onStatusesChanged: controller.setStatuses,
                   onSortChanged: (value) => controller.setSort(value ?? ''),
+                  onEmployeeChanged: controller.setAssignedToIds,
                   onClear: () {
                     controller.searchController.clear();
                     controller.dateFromController.clear();
                     controller.dateToController.clear();
                     controller.setStatuses(<String>{'draft', 'in_progress'});
                     controller.setSort('date_desc');
+                    controller.setAssignedToIds(<int>{});
                   },
                 )
               : null,
@@ -277,6 +303,9 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
     required this.sortItems,
     required this.onStatusesChanged,
     required this.onSortChanged,
+    required this.employeeItems,
+    required this.employeeIds,
+    required this.onEmployeeChanged,
     required this.onClear,
   });
 
@@ -289,6 +318,9 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
   final List<AppDropdownItem<String>> sortItems;
   final ValueChanged<Set<String>> onStatusesChanged;
   final ValueChanged<String?> onSortChanged;
+  final List<AppDropdownItem<int>> employeeItems;
+  final Set<int> employeeIds;
+  final ValueChanged<Set<int>> onEmployeeChanged;
   final VoidCallback onClear;
 
   @override
@@ -315,6 +347,14 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
           initialValue: sort,
           onChanged: onSortChanged,
         ),
+        if (employeeItems.isNotEmpty)
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Employee',
+            mappedItems: employeeItems,
+            multiInitialValues: employeeIds,
+            multiHintText: 'Select employees',
+            onMultiChanged: onEmployeeChanged,
+          ),
         SizedBox(
           height: 48,
           child: OutlinedButton.icon(

@@ -30,6 +30,7 @@ class CrmLeadRegisterController extends GetxController {
   bool loading = true;
   String? error;
   Set<String> statuses = <String>{'draft', 'in_progress'};
+  Set<int> assignedToIds = <int>{};
   String sort = 'date_desc';
   List<CrmLeadModel> rows = const <CrmLeadModel>[];
   Worker? _refreshWorker;
@@ -93,6 +94,11 @@ class CrmLeadRegisterController extends GetxController {
 
   void setSort(String value) {
     sort = value;
+    update();
+  }
+
+  void setAssignedToIds(Set<int> values) {
+    assignedToIds = Set<int>.from(values);
     update();
   }
 
@@ -167,6 +173,12 @@ class CrmLeadRegisterController extends GetxController {
             stringValue(data, 'lead_status'),
             statuses,
           );
+          final assignedUser =
+              JsonModel.mapOf(data['assigned_user']) ??
+              const <String, dynamic>{};
+          final assignedOk =
+              assignedToIds.isEmpty ||
+              assignedToIds.contains(intValue(assignedUser, 'id'));
           final dateOk = _matchesDateRange(
             nullableStringValue(data, 'created_at'),
           );
@@ -179,7 +191,7 @@ class CrmLeadRegisterController extends GetxController {
                 stringValue(data, 'email'),
                 stringValue(data, 'lead_status'),
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && dateOk && searchOk;
+          return statusOk && assignedOk && dateOk && searchOk;
         })
         .toList(growable: false);
     final sorted = List<CrmLeadModel>.from(filtered);

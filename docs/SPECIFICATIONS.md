@@ -53,6 +53,12 @@ Acceptance criteria:
   unchanged. A shared Clear action resets the current page's filters.
 - CRM lists include a Sales-style Sort control with **Newest first** as the
   default, plus Oldest first and name ordering where applicable.
+- CRM Leads, Enquiries, and Opportunities expose an Employee filter only to
+  Super Admin users. It filters by the existing assigned-user data in the
+  loaded CRM rows; regular users do not see or use this control.
+- CRM Follow-ups exposes the same Super Admin-only Employee filter alongside
+  its From Date and To Date controls; Clear resets both date and employee
+  selections.
 - No backend, API, or database contract changes are required.
 - CRM Follow-ups also uses the toggleable bar for inclusive From Date and To
   Date filtering; either boundary may be left empty. The former always-visible

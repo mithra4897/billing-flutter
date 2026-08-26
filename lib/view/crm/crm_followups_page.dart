@@ -33,9 +33,11 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   final TextEditingController _filterDateToController = TextEditingController();
   bool _loading = true;
   bool _filtersVisible = false;
+  bool _isSuperAdmin = false;
   String? _error;
   DateTime? _filterDateFrom;
   DateTime? _filterDateTo;
+  Set<int> _employeeFilterIds = <int>{};
   List<Map<String, dynamic>> _followups = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _nextFollowupRows = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _gaps = const <Map<String, dynamic>>[];
@@ -59,6 +61,33 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       _showOverdueOnly ||
       _showUpcomingOnly ||
       _showOpenFollowupsOnly;
+
+  List<AppDropdownItem<int>> get _employeeItems {
+    final employees = <int, String>{};
+    for (final row in [..._followups, ..._nextFollowupRows]) {
+      final assigned =
+          JsonModel.mapOf(row['assigned_user']) ?? const <String, dynamic>{};
+      final id = intValue(assigned, 'id') ?? intValue(row, 'assigned_to');
+      if (id == null) continue;
+      final label = stringValue(assigned, 'display_name').isNotEmpty
+          ? stringValue(assigned, 'display_name')
+          : stringValue(assigned, 'username');
+      employees[id] = label.isEmpty ? 'Employee $id' : label;
+    }
+    return employees.entries
+        .map(
+          (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
+        )
+        .toList(growable: false);
+  }
+
+  bool _matchesEmployee(Map<String, dynamic> row) {
+    if (_employeeFilterIds.isEmpty) return true;
+    final assigned =
+        JsonModel.mapOf(row['assigned_user']) ?? const <String, dynamic>{};
+    final assignedId = intValue(assigned, 'id') ?? intValue(row, 'assigned_to');
+    return assignedId != null && _employeeFilterIds.contains(assignedId);
+  }
 
   DateTime _normalizeDate(DateTime value) =>
       DateTime(value.year, value.month, value.day);
@@ -106,6 +135,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   void _clearDateFilter() {
     _filterDateFromController.clear();
     _filterDateToController.clear();
+    if (_employeeFilterIds.isNotEmpty) {
+      setState(() => _employeeFilterIds = <int>{});
+    }
   }
 
   void _syncDateFilter() {
@@ -153,7 +185,19 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     _crmService = widget.crmService ?? CrmService();
     _filterDateFromController.addListener(_syncDateFilter);
     _filterDateToController.addListener(_syncDateFilter);
+    _loadAccess();
     _load();
+  }
+
+  Future<void> _loadAccess() async {
+    final currentUser = await SessionStorage.getCurrentUser();
+    if (!mounted) return;
+    setState(() {
+      _isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
+    });
   }
 
   @override
@@ -460,7 +504,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     final entriesByIdentity = <String, _FollowupListEntry>{};
 
     for (final row in _followups) {
-      if (_shouldHideRow(row) ||
+      if (!_matchesEmployee(row) ||
+          _shouldHideRow(row) ||
           crmIsCompletedFollowupStatus(nullableStringValue(row, 'status'))) {
         continue;
       }
@@ -477,7 +522,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     for (final row in _nextFollowupRows) {
-      if (_shouldHideRow(row)) {
+      if (!_matchesEmployee(row) || _shouldHideRow(row)) {
         continue;
       }
       if (_normalizedRowDate(row, 'next_followup') == null) {
@@ -763,6 +808,15 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
             controller: _filterDateToController,
             hintText: 'To date',
           ),
+          if (_isSuperAdmin)
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Employee',
+              mappedItems: _employeeItems,
+              multiInitialValues: _employeeFilterIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: (values) =>
+                  setState(() => _employeeFilterIds = Set<int>.from(values)),
+            ),
           SizedBox(
             height: 48,
             child: OutlinedButton.icon(
@@ -1229,6 +1283,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_filtersVisible) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
             _buildDateFilter(context),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],

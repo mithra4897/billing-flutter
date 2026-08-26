@@ -63,6 +63,7 @@ class _CrmOpportunityRegisterPageState
   bool _isSuperAdmin = false;
   String? _error;
   Set<String> _statuses = <String>{'open'};
+  Set<int> _assignedToIds = <int>{};
   String _sort = 'date_desc';
   List<CrmOpportunityModel> _rows = const <CrmOpportunityModel>[];
 
@@ -80,6 +81,25 @@ class _CrmOpportunityRegisterPageState
     _dateFromController.clear();
     _dateToController.clear();
     _statuses = _dashboardStatuses();
+  }
+
+  List<AppDropdownItem<int>> _employeeItems() {
+    final employees = <int, String>{};
+    for (final row in _rows) {
+      final assigned = JsonModel.mapOf(row.toJson()['assigned_user']);
+      final data = assigned ?? const <String, dynamic>{};
+      final id = intValue(data, 'id');
+      if (id == null) continue;
+      final label = stringValue(data, 'display_name').isNotEmpty
+          ? stringValue(data, 'display_name')
+          : stringValue(data, 'username');
+      if (label.isNotEmpty) employees[id] = label;
+    }
+    return employees.entries
+        .map(
+          (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
+        )
+        .toList(growable: false);
   }
 
   @override
@@ -159,6 +179,11 @@ class _CrmOpportunityRegisterPageState
       final lead = JsonModel.mapOf(data['lead']) ?? const <String, dynamic>{};
       final statusOk =
           _statuses.isEmpty || _statuses.contains(stringValue(data, 'status'));
+      final assigned =
+          JsonModel.mapOf(data['assigned_user']) ?? const <String, dynamic>{};
+      final assignedOk =
+          _assignedToIds.isEmpty ||
+          _assignedToIds.contains(intValue(assigned, 'id'));
       final enquiryDate = DateTime.tryParse(
         nullableStringValue(data, 'enquiry_date') ?? '',
       );
@@ -187,7 +212,7 @@ class _CrmOpportunityRegisterPageState
             stringValue(stage, 'stage_name'),
             stringValue(lead, 'lead_name'),
           ].join(' ').toLowerCase().contains(query);
-      return statusOk && dateOk && searchOk;
+      return statusOk && assignedOk && dateOk && searchOk;
     }).toList();
     filtered.sort((left, right) {
       final leftData = left.toJson();
@@ -300,15 +325,22 @@ class _CrmOpportunityRegisterPageState
               statusItems: _statusItems,
               sort: _sort,
               sortItems: _sortItems,
+              employeeItems: _isSuperAdmin
+                  ? _employeeItems()
+                  : const <AppDropdownItem<int>>[],
+              employeeIds: _assignedToIds,
               onStatusesChanged: (values) =>
                   setState(() => _statuses = Set<String>.from(values)),
               onSortChanged: (value) => setState(() => _sort = value ?? ''),
+              onEmployeeChanged: (values) =>
+                  setState(() => _assignedToIds = Set<int>.from(values)),
               onClear: () => setState(() {
                 _searchController.clear();
                 _dateFromController.clear();
                 _dateToController.clear();
                 _statuses = <String>{'open'};
                 _sort = 'date_desc';
+                _assignedToIds = <int>{};
               }),
             )
           : null,
@@ -391,6 +423,9 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
     required this.sortItems,
     required this.onStatusesChanged,
     required this.onSortChanged,
+    required this.employeeItems,
+    required this.employeeIds,
+    required this.onEmployeeChanged,
     required this.onClear,
   });
 
@@ -403,6 +438,9 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
   final List<AppDropdownItem<String>> sortItems;
   final ValueChanged<Set<String>> onStatusesChanged;
   final ValueChanged<String?> onSortChanged;
+  final List<AppDropdownItem<int>> employeeItems;
+  final Set<int> employeeIds;
+  final ValueChanged<Set<int>> onEmployeeChanged;
   final VoidCallback onClear;
 
   @override
@@ -429,6 +467,14 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
           initialValue: sort,
           onChanged: onSortChanged,
         ),
+        if (employeeItems.isNotEmpty)
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Employee',
+            mappedItems: employeeItems,
+            multiInitialValues: employeeIds,
+            multiHintText: 'Select employees',
+            onMultiChanged: onEmployeeChanged,
+          ),
         SizedBox(
           height: 48,
           child: OutlinedButton.icon(

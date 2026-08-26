@@ -43,6 +43,10 @@
   updates and a shared Clear action; existing CRM defaults and filter fields
   are preserved.
 - Added a Sales-style Sort filter to CRM lists, defaulting to Newest first.
+- Added a Super Admin-only Employee filter to CRM Leads, Enquiries, and
+  Opportunities using each row's existing assigned employee.
+- Added the same Employee filter to CRM Follow-ups with consistent top spacing
+  and Clear behavior.
 - CRM Follow-ups now uses the same toggleable inline From Date / To Date filter
   and no longer shows its previous always-visible date card.
 - No backend or database changes are required.

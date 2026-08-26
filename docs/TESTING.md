@@ -29,6 +29,11 @@
   empty and the selected range is inclusive.
 - Verify search, date, lookup, and status changes update the visible rows, and
   Clear restores each page's existing default status scope.
+- Verify Super Admins see the Employee filter on CRM lists and that selecting
+  an employee limits rows to that assigned employee. Verify regular users do
+  not see the Employee filter.
+- Verify Super Admins also see Employee on Follow-ups, that it filters the
+  timeline entries, and that Clear resets the employee and date filters.
 - Verification performed: `dart format` completed and focused
   `flutter analyze` passed with no issues. The full `flutter test --no-pub`
   run is blocked by the repository's pre-existing missing
