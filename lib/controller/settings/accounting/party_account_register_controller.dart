@@ -45,6 +45,7 @@ class PartyAccountRegisterController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   late final SettingsAccountingModuleRefreshController _moduleRefresh;
   Worker? _refreshWorker;
+  Timer? _searchDebounce;
 
   bool initialLoading = true;
   bool loading = false;
@@ -88,14 +89,18 @@ class PartyAccountRegisterController extends GetxController {
       },
     );
     formPartyId = initialPartyId;
+    searchController.addListener(_onSearchChanged);
     bootstrap();
   }
 
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
-    searchController.dispose();
+    searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
     remarksController.dispose();
     super.onClose();
   }
@@ -244,18 +249,30 @@ class PartyAccountRegisterController extends GetxController {
   void setFilterPurpose(String? value) {
     filterPurpose = value;
     update();
+    unawaited(fetch(resetPage: true));
   }
 
   void setFilterActive(bool? value) {
     filterActive = value;
     update();
+    unawaited(fetch(resetPage: true));
   }
 
   void clearFilters() {
     searchController.clear();
+    _searchDebounce?.cancel();
     filterPurpose = null;
     filterActive = null;
     update();
+    unawaited(fetch(resetPage: true));
+  }
+
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(fetch(resetPage: true)),
+    );
   }
 
   void setFormPartyId(int? value) {

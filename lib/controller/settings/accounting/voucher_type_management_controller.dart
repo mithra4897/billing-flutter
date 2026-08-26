@@ -27,6 +27,10 @@ class VoucherTypeManagementController extends GetxController {
   List<AppDropdownItem<String>> documentTypeItems =
       const <AppDropdownItem<String>>[];
   VoucherTypeModel? selectedType;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   String? documentType;
   String voucherCategory = 'journal';
   bool autoPost = true;
@@ -55,6 +59,7 @@ class VoucherTypeManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -65,7 +70,8 @@ class VoucherTypeManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadTypes({int? selectId}) async {
+  Future<void> loadTypes({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = types.isEmpty;
     pageError = null;
     update();
@@ -75,13 +81,21 @@ class VoucherTypeManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait([
         _accountsService.voucherTypes(
-          filters: const {'per_page': 300, 'sort_by': 'name'},
+          filters: <String, dynamic>{
+            'page': currentPage,
+            'per_page': pageSize,
+            'sort_by': 'name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
       ]);
       final items = responses[0].data ?? const <VoucherTypeModel>[];
 
       types = items;
-      filteredTypes = _filterTypes(items, searchController.text);
+      paginationMeta = responses[0].meta;
+      filteredTypes = items;
       documentTypeItems = buildDocumentTypeDropdownItems(
         cache.activeDocumentSeries,
       );
@@ -112,23 +126,19 @@ class VoucherTypeManagementController extends GetxController {
     update();
   }
 
-  List<VoucherTypeModel> _filterTypes(
-    List<VoucherTypeModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.code ?? '',
-        item.name ?? '',
-        item.voucherCategory ?? '',
-        item.documentType ?? '',
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadTypes(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredTypes = _filterTypes(types, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadTypes();
   }
 
   void selectType(VoucherTypeModel item, {bool notify = true}) {

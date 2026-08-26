@@ -107,6 +107,8 @@ class _BankReconciliationManagementPageState
         items: controller.filteredRecords,
         selectedItem: controller.selectedRecord,
         emptyMessage: 'No reconciliation records found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.accountName ?? item.accountCode ?? '',
           subtitle: [

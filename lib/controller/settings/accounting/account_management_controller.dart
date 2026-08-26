@@ -48,6 +48,10 @@ class AccountManagementController extends GetxController {
   List<AccountModel> filteredAccounts = const <AccountModel>[];
   List<AccountGroupModel> groups = const <AccountGroupModel>[];
   AccountModel? selectedAccount;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   int? contextCompanyId;
   int? contextBranchId;
   int? companyId;
@@ -81,6 +85,7 @@ class AccountManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -94,7 +99,8 @@ class AccountManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = accounts.isEmpty;
     pageError = null;
     update();
@@ -120,9 +126,14 @@ class AccountManagementController extends GetxController {
             financialYears: const <FinancialYearModel>[],
           );
 
-      final accountsResponse = await _accountsService.accountsAll(
+      final accountsResponse = await _accountsService.accounts(
         filters: <String, dynamic>{
+          'page': currentPage,
+          'per_page': pageSize,
           'sort_by': 'account_name',
+          'sort_order': 'asc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
           if (contextSelection.companyId != null)
             'company_id': contextSelection.companyId,
         },
@@ -130,7 +141,8 @@ class AccountManagementController extends GetxController {
       final nextAccounts = accountsResponse.data ?? const <AccountModel>[];
 
       accounts = nextAccounts;
-      filteredAccounts = _filterAccounts(nextAccounts, searchController.text);
+      paginationMeta = accountsResponse.meta;
+      filteredAccounts = nextAccounts;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       groups = nextGroups
@@ -164,21 +176,19 @@ class AccountManagementController extends GetxController {
     update();
   }
 
-  List<AccountModel> _filterAccounts(List<AccountModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.accountCode ?? '',
-        item.accountName ?? '',
-        item.accountType ?? '',
-        item.accountGroupName ?? '',
-        item.companyName ?? '',
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredAccounts = _filterAccounts(accounts, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   void selectAccount(AccountModel item, {bool notify = true}) {

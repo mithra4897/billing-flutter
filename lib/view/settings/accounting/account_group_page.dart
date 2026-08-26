@@ -137,6 +137,8 @@ class _AccountGroupManagementPageState
         items: controller.filteredGroups,
         selectedItem: controller.selectedGroup,
         emptyMessage: 'No account groups found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.groupName ?? '',
           subtitle: [

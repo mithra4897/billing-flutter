@@ -24,7 +24,12 @@ class AccountGroupManagementController extends GetxController {
   String? pageError;
   String? formError;
   List<AccountGroupModel> groups = const <AccountGroupModel>[];
+  List<AccountGroupModel> allGroups = const <AccountGroupModel>[];
   List<AccountGroupModel> filteredGroups = const <AccountGroupModel>[];
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   AccountGroupModel? selectedGroup;
   int? parentGroupId;
   String groupNature = 'asset';
@@ -53,6 +58,7 @@ class AccountGroupManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -66,24 +72,40 @@ class AccountGroupManagementController extends GetxController {
 
   List<AccountGroupModel> get parentOptions {
     final selectedId = selectedGroup?.id;
-    return groups
+    return allGroups
         .where((item) => item.id != null && item.id != selectedId)
         .toList(growable: false);
   }
 
-  Future<void> loadGroups({int? selectId}) async {
+  Future<void> loadGroups({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = groups.isEmpty;
     pageError = null;
     update();
 
     try {
-      final response = await _accountsService.accountGroups(
-        filters: const {'per_page': 300, 'sort_by': 'group_name'},
-      );
+      final results = await Future.wait<dynamic>([
+        _accountsService.accountGroups(filters: <String, dynamic>{
+          'page': currentPage,
+          'per_page': pageSize,
+          'sort_by': 'group_name',
+          'sort_order': 'asc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
+        }),
+        _accountsService.accountGroupsAll(
+          filters: const {'sort_by': 'group_name'},
+        ),
+      ]);
+      final response = results[0] as PaginatedResponse<AccountGroupModel>;
       final items = response.data ?? const <AccountGroupModel>[];
 
       groups = items;
-      filteredGroups = _filterGroups(items, searchController.text);
+      allGroups =
+          (results[1] as ApiResponse<List<AccountGroupModel>>).data ??
+          const <AccountGroupModel>[];
+      paginationMeta = response.meta;
+      filteredGroups = items;
       initialLoading = false;
 
       final selected = selectId != null
@@ -111,23 +133,19 @@ class AccountGroupManagementController extends GetxController {
     update();
   }
 
-  List<AccountGroupModel> _filterGroups(
-    List<AccountGroupModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.groupCode ?? '',
-        item.groupName ?? '',
-        item.groupNature ?? '',
-        item.groupCategory ?? '',
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadGroups(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredGroups = _filterGroups(groups, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadGroups();
   }
 
   void selectGroup(AccountGroupModel item, {bool notify = true}) {

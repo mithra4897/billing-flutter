@@ -38,6 +38,10 @@ class BankReconciliationManagementController extends GetxController {
   List<VoucherModel> vouchers = const <VoucherModel>[];
   List<VoucherLineModel> voucherLineOptions = const <VoucherLineModel>[];
   BankReconciliationModel? selectedRecord;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   int? accountId;
   int? voucherId;
   int? voucherLineId;
@@ -64,6 +68,7 @@ class BankReconciliationManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -76,7 +81,8 @@ class BankReconciliationManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = records.isEmpty;
     pageError = null;
     update();
@@ -85,7 +91,14 @@ class BankReconciliationManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _accountsService.bankReconciliation(),
+        _accountsService.bankReconciliation(filters: <String, dynamic>{
+          'page': currentPage,
+          'per_page': pageSize,
+          'sort_by': 'id',
+          'sort_order': 'desc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
+        }),
         _accountsService.vouchersAll(
           filters: const {
             'posting_status': 'posted',
@@ -95,14 +108,16 @@ class BankReconciliationManagementController extends GetxController {
       ]);
 
       final nextRecords =
-          (responses[0] as ApiResponse<List<BankReconciliationModel>>).data ??
+          (responses[0] as PaginatedResponse<BankReconciliationModel>).data ??
           const <BankReconciliationModel>[];
       final nextVouchers =
           (responses[1] as ApiResponse<List<VoucherModel>>).data ??
           const <VoucherModel>[];
 
       records = nextRecords;
-      filteredRecords = _filterRecords(nextRecords, searchController.text);
+      paginationMeta =
+          (responses[0] as PaginatedResponse<BankReconciliationModel>).meta;
+      filteredRecords = nextRecords;
       bankAccounts = cache.activeAccounts
           .where(
             (item) => item.accountType == 'bank' && item.allowReconciliation,
@@ -137,23 +152,19 @@ class BankReconciliationManagementController extends GetxController {
     update();
   }
 
-  List<BankReconciliationModel> _filterRecords(
-    List<BankReconciliationModel> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (item) {
-      return [
-        item.accountName ?? '',
-        item.bankReferenceNo ?? '',
-        item.voucherNo ?? '',
-        item.reconciliationStatus ?? '',
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredRecords = _filterRecords(records, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   Future<void> loadVoucherLinesForSelection({bool notify = true}) async {

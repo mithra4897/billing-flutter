@@ -36,6 +36,10 @@ class CashSessionManagementController extends GetxController {
   List<CashSessionModel> filteredSessions = const <CashSessionModel>[];
   List<AccountModel> cashAccounts = const <AccountModel>[];
   CashSessionModel? selectedSession;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -67,6 +71,7 @@ class CashSessionManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -82,7 +87,8 @@ class CashSessionManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = sessions.isEmpty;
     pageError = null;
     update();
@@ -92,7 +98,14 @@ class CashSessionManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _accountsService.cashSessions(),
+        _accountsService.cashSessions(filters: <String, dynamic>{
+          'page': currentPage,
+          'per_page': pageSize,
+          'sort_by': 'id',
+          'sort_order': 'desc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
+        }),
         _accountsService.accountsAll(
           filters: const {
             'account_type': 'cash',
@@ -103,7 +116,7 @@ class CashSessionManagementController extends GetxController {
       ]);
 
       final nextSessions =
-          (responses[0] as ApiResponse<List<CashSessionModel>>).data ??
+          (responses[0] as PaginatedResponse<CashSessionModel>).data ??
           const <CashSessionModel>[];
       final accounts =
           (responses[1] as ApiResponse<List<AccountModel>>).data ??
@@ -117,7 +130,8 @@ class CashSessionManagementController extends GetxController {
           );
 
       sessions = nextSessions;
-      filteredSessions = _filterSessions(nextSessions, searchController.text);
+      paginationMeta = (responses[0] as PaginatedResponse<CashSessionModel>).meta;
+      filteredSessions = nextSessions;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -154,24 +168,19 @@ class CashSessionManagementController extends GetxController {
     update();
   }
 
-  List<CashSessionModel> _filterSessions(
-    List<CashSessionModel> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (item) {
-      return [
-        item.cashAccountName ?? '',
-        item.cashAccountCode ?? '',
-        item.username ?? '',
-        item.userDisplayName ?? '',
-        item.status ?? '',
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredSessions = _filterSessions(sessions, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   List<AccountModel> get cashAccountOptions {

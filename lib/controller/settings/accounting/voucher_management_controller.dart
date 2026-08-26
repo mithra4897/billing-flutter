@@ -41,7 +41,7 @@ class VoucherManagementController extends GetxController {
   VoucherManagementController();
 
   static const String _refreshSource = 'VoucherManagementController';
-  static const int _defaultVoucherListLimit = 200;
+  static const int _defaultVoucherListLimit = 20;
 
   static const List<AppDropdownItem<String>> approvalStatusItems =
       <AppDropdownItem<String>>[
@@ -120,6 +120,9 @@ class VoucherManagementController extends GetxController {
   List<VoucherModel> vouchers = const <VoucherModel>[];
   List<VoucherModel> allVouchers = const <VoucherModel>[];
   List<VoucherModel> filteredVouchers = const <VoucherModel>[];
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  Timer? _searchDebounce;
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<VoucherTypeModel> voucherTypes = const <VoucherTypeModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
@@ -177,6 +180,7 @@ class VoucherManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -196,7 +200,8 @@ class VoucherManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = vouchers.isEmpty;
     pageError = null;
     update();
@@ -212,9 +217,13 @@ class VoucherManagementController extends GetxController {
 
       final responses = await Future.wait<dynamic>([
         _accountsService.vouchers(
-          filters: const {
+          filters: <String, dynamic>{
+            'page': currentPage,
             'per_page': _defaultVoucherListLimit,
             'sort_by': 'voucher_date',
+            'sort_order': 'desc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
           },
         ),
         _accountsService.vouchersAll(
@@ -271,15 +280,9 @@ class VoucherManagementController extends GetxController {
       permissionCodes = permissionCodesResponse.toSet();
       isSuperAdmin = superAdmin;
       vouchers = nextVouchers;
+      paginationMeta = (responses[0] as PaginatedResponse<VoucherModel>).meta;
       allVouchers = nextAllVouchers;
-      filteredVouchers = filterVouchers(
-        _searchSource(
-          visibleItems: nextVouchers,
-          fullItems: nextAllVouchers,
-          query: searchController.text,
-        ),
-        searchController.text,
-      );
+      filteredVouchers = nextVouchers;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -349,27 +352,19 @@ class VoucherManagementController extends GetxController {
     });
   }
 
-  List<VoucherModel> _searchSource({
-    required List<VoucherModel> visibleItems,
-    required List<VoucherModel> fullItems,
-    required String query,
-  }) {
-    if (query.trim().isEmpty) {
-      return visibleItems;
-    }
-    return fullItems;
+  void applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void applySearch() {
-    filteredVouchers = filterVouchers(
-      _searchSource(
-        visibleItems: vouchers,
-        fullItems: allVouchers,
-        query: searchController.text,
-      ),
-      searchController.text,
-    );
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   VoucherTypeModel? get selectedVoucherType {

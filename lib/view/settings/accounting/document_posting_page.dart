@@ -115,6 +115,8 @@ class _DocumentPostingManagementPageState
         items: controller.filteredRows,
         selectedItem: controller.selectedPosting,
         emptyMessage: 'No document postings.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

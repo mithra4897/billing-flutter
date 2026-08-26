@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | Sales | Quotations, Proformas, Orders, Deliveries, Invoices, Returns, Receipts | Done | Done | Done | Complete |
 | Purchase | Requisitions, Orders, Receipts, Invoices, Returns, Payments | Done | Done | Done | Complete |
-| Accounts | Vouchers, Party Account Register, financial registers | Partial | Partial | Partial | In progress |
+| Accounts | Vouchers, account masters, postings, reconciliation, cash sessions, budgets, party accounts, reports | Done | Done | Done | Complete |
 | Inventory | Items, movements, transfers, adjustments, opening stock, batches, serials, physical counts | Partial | Pending | Pending | Pending |
 | HR | Payslips, leave requests, expense claims, attendance | Partial | Pending | Pending | Pending |
 | CRM | Leads, enquiries, opportunities | Partial | Pending | Pending | Pending |
@@ -73,6 +73,41 @@
   visible rows use API pagination.
 - Flutter Purchase analysis has no errors, and all modified PHP files pass
   syntax verification.
+
+## Accounts detailed progress
+
+| Register / list | Server filtering | Server pagination | Page controls | Status |
+|---|---:|---:|---:|---|
+| Vouchers | Done | Done | Done | Complete |
+| Party Account Register | Done | Done | Done | Complete |
+| Document Postings | Done | Done | Done | Complete |
+| Bank Reconciliation | Done | Done | Done | Complete |
+| Cash Sessions | Done | Done | Done | Complete |
+| Budgets | Done | Done | Done | Complete |
+| Chart of Accounts | Done | Done | Done | Complete |
+| Account Groups | Done | Done | Done | Complete |
+| Voucher Types | Done | Done | Done | Complete |
+| Posting Rule Groups | Done | Done | Done | Complete |
+| Posting Rules | Done | Done | Done | Complete |
+| Voucher Allocations | Done | Source-line scoped | Not required | Complete |
+| Financial Reports | Done | Report result | Not required | Complete |
+
+### Accounts verification completed
+
+- Searches wait briefly and then reload page 1 from the API; there is no Apply
+  button for register filters.
+- API filtering happens before pagination, so older matching rows are not hidden
+  by the current page.
+- Vouchers, postings, reconciliation, cash sessions, budgets and Accounts master
+  lists use API pagination metadata and page controls.
+- Party Account purpose and active-state changes reload automatically.
+- Form lookups continue to load complete reference collections where required;
+  management lists remain paginated.
+- Voucher allocations load the complete set for the selected voucher line, and
+  financial statements remain server-filtered report responses rather than
+  artificial paginated registers.
+- Flutter Accounts analysis passes with no issues, and all modified PHP files
+  pass syntax verification.
 
 ## Update rule
 
