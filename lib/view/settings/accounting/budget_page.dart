@@ -239,6 +239,8 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
         items: controller.filteredRows,
         selectedItem: controller.selectedBudget,
         emptyMessage: 'No budgets.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

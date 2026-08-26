@@ -116,6 +116,8 @@ class _PostingRuleGroupManagementPageState
         items: controller.filtered,
         selectedItem: controller.selected,
         emptyMessage: 'No posting rule groups.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

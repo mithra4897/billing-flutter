@@ -117,6 +117,8 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
         items: controller.filteredTypes,
         selectedItem: controller.selectedType,
         emptyMessage: 'No voucher types found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.name ?? '',
           subtitle: [

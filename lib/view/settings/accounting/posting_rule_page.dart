@@ -152,6 +152,8 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         items: controller.filtered,
         selectedItem: controller.selected,
         emptyMessage: 'No posting rules.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

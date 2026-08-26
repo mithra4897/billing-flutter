@@ -50,6 +50,10 @@ class BudgetManagementController extends GetxController {
   List<BudgetModel> rows = const <BudgetModel>[];
   List<BudgetModel> filteredRows = const <BudgetModel>[];
   BudgetModel? selectedBudget;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   List<FinancialYearModel> years = const <FinancialYearModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
 
@@ -81,6 +85,7 @@ class BudgetManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
@@ -102,7 +107,8 @@ class BudgetManagementController extends GetxController {
 
   Map<String, dynamic> json(BudgetModel? model) => model?.toJson() ?? const {};
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = rows.isEmpty;
     pageError = null;
     update();
@@ -112,7 +118,14 @@ class BudgetManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final results = await Future.wait<dynamic>([
         _accountsService.budgets(
-          filters: const {'per_page': 200, 'sort_by': 'budget_name'},
+          filters: <String, dynamic>{
+            'page': currentPage,
+            'per_page': pageSize,
+            'sort_by': 'budget_name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
         _accountsService.accountsAll(
           filters: const {'sort_by': 'account_name'},
@@ -135,7 +148,8 @@ class BudgetManagementController extends GetxController {
           );
 
       rows = budgets;
-      filteredRows = _filter(budgets, searchController.text);
+      paginationMeta = (results[0] as PaginatedResponse<BudgetModel>).meta;
+      filteredRows = budgets;
       years = cache.activeFinancialYears;
       accounts = nextAccounts.where((item) => item.isActive).toList();
       companyId ??= contextSelection.companyId;
@@ -169,20 +183,19 @@ class BudgetManagementController extends GetxController {
     update();
   }
 
-  List<BudgetModel> _filter(List<BudgetModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      final data = item.toJson();
-      return [
-        stringValue(data, 'budget_code'),
-        stringValue(data, 'budget_name'),
-        stringValue(data, 'budget_status'),
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredRows = _filter(rows, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   Future<void> selectBudget(BudgetModel item, {bool notify = true}) async {

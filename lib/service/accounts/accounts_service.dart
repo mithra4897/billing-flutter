@@ -408,9 +408,9 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteVoucher(int id) =>
       destroy('${ApiEndpoints.vouchers}/$id');
 
-  Future<PaginatedResponse<VoucherAllocationModel>> voucherAllocations({
+  Future<ApiResponse<List<VoucherAllocationModel>>> voucherAllocations({
     Map<String, dynamic>? filters,
-  }) => paginated<VoucherAllocationModel>(
+  }) => collection<VoucherAllocationModel>(
     ApiEndpoints.voucherAllocations,
     filters: filters,
     fromJson: VoucherAllocationModel.fromJson,
@@ -442,9 +442,9 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteVoucherAllocation(int id) =>
       destroy('${ApiEndpoints.voucherAllocations}/$id');
 
-  Future<ApiResponse<List<CashSessionModel>>> cashSessions({
+  Future<PaginatedResponse<CashSessionModel>> cashSessions({
     Map<String, dynamic>? filters,
-  }) => collection<CashSessionModel>(
+  }) => paginated<CashSessionModel>(
     ApiEndpoints.cashSessions,
     filters: filters,
     fromJson: CashSessionModel.fromJson,
@@ -482,9 +482,9 @@ class AccountsService extends ErpModuleService {
     fromJson: CashSessionModel.fromJson,
   );
 
-  Future<ApiResponse<List<BankReconciliationModel>>> bankReconciliation({
+  Future<PaginatedResponse<BankReconciliationModel>> bankReconciliation({
     Map<String, dynamic>? filters,
-  }) => collection<BankReconciliationModel>(
+  }) => paginated<BankReconciliationModel>(
     ApiEndpoints.bankReconciliation,
     filters: filters,
     fromJson: BankReconciliationModel.fromJson,

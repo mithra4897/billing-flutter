@@ -102,7 +102,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
 
-    final applied = await showDialog<bool>(
+    await showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) {
@@ -146,7 +146,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                           ),
                           IconButton(
                             onPressed: () =>
-                                Navigator.of(dialogContext).pop(false),
+                                Navigator.of(dialogContext).pop(),
                             tooltip: 'Close',
                             icon: const Icon(Icons.close),
                             color: appTheme.mutedText,
@@ -194,16 +194,10 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          FilledButton.icon(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(true),
-                            icon: const Icon(Icons.search),
-                            label: const Text('Apply Filters'),
-                          ),
                           OutlinedButton.icon(
                             onPressed: () {
                               controller.clearFilters();
-                              Navigator.of(dialogContext).pop(true);
+                              Navigator.of(dialogContext).pop();
                             },
                             icon: const Icon(Icons.clear),
                             label: const Text('Clear'),
@@ -219,11 +213,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         );
       },
     );
-
-    if (applied == true) {
-      await controller.loadAccountsForCompany();
-      await controller.fetch(resetPage: true);
-    }
   }
 
   @override

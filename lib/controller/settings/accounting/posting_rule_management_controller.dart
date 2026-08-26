@@ -33,6 +33,10 @@ class PostingRuleManagementController extends GetxController {
   List<PostingRuleModel> filtered = const <PostingRuleModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
   PostingRuleModel? selected;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   int? groupId;
   String entrySide = 'debit';
   String accountSourceType = 'fixed_account';
@@ -61,6 +65,7 @@ class PostingRuleManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -75,7 +80,8 @@ class PostingRuleManagementController extends GetxController {
   Map<String, dynamic> json(PostingRuleModel? model) =>
       model?.toJson() ?? const <String, dynamic>{};
 
-  Future<void> load({int? selectId}) async {
+  Future<void> load({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = rows.isEmpty && groups.isEmpty;
     pageError = null;
     update();
@@ -87,7 +93,14 @@ class PostingRuleManagementController extends GetxController {
           filters: const {'sort_by': 'group_name', 'per_page': 500},
         ),
         _accountsService.postingRules(
-          filters: const {'per_page': 500, 'sort_by': 'line_no'},
+          filters: <String, dynamic>{
+            'page': currentPage,
+            'per_page': pageSize,
+            'sort_by': 'line_no',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
       ]);
       final nextGroups =
@@ -98,7 +111,9 @@ class PostingRuleManagementController extends GetxController {
           const <PostingRuleModel>[];
       groups = nextGroups;
       rows = nextRows;
-      filtered = _filter(nextRows, searchController.text);
+      paginationMeta =
+          (results[1] as PaginatedResponse<PostingRuleModel>).meta;
+      filtered = nextRows;
       accounts = cache.activeAccounts;
       initialLoading = false;
       if (groupId == null && nextGroups.isNotEmpty) {
@@ -130,20 +145,19 @@ class PostingRuleManagementController extends GetxController {
     update();
   }
 
-  List<PostingRuleModel> _filter(List<PostingRuleModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      final data = item.toJson();
-      return [
-        stringValue(data, 'entry_side'),
-        stringValue(data, 'account_source_type'),
-        stringValue(data, 'amount_source'),
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(load(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filtered = _filter(rows, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await load();
   }
 
   void applySelection(PostingRuleModel item, {bool notify = true}) {

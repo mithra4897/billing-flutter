@@ -98,6 +98,8 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
         items: controller.filteredAccounts,
         selectedItem: controller.selectedAccount,
         emptyMessage: 'No accounts found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.accountName ?? '',
           subtitle: [

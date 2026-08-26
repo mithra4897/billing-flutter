@@ -303,6 +303,8 @@ class SettingsListCard<T> extends StatefulWidget {
     required this.selectedItem,
     required this.emptyMessage,
     required this.itemBuilder,
+    this.paginationMeta,
+    this.onPageChanged,
   });
 
   final TextEditingController? searchController;
@@ -314,6 +316,8 @@ class SettingsListCard<T> extends StatefulWidget {
   final T? selectedItem;
   final String emptyMessage;
   final Widget Function(T item, bool selected) itemBuilder;
+  final PaginationMeta? paginationMeta;
+  final ValueChanged<int>? onPageChanged;
 
   static const double listViewportHeight = 520;
 
@@ -417,7 +421,10 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
     return GetBuilder<_SettingsListCardController>(
       tag: _controllerTag,
       builder: (controller) {
-        final visibleItems = _pagedItems(controller.currentPage);
+        final usesServerPagination = widget.paginationMeta != null;
+        final visibleItems = usesServerPagination
+            ? widget.items
+            : _pagedItems(controller.currentPage);
 
         return AppSectionCard(
           child: Column(
@@ -456,11 +463,19 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
                     ),
                   ),
                 ),
-              LocalPageNavigation(
-                totalItems: widget.items.length,
-                currentPage: controller.currentPage,
-                onPageChanged: controller.setPage,
-              ),
+              if (usesServerPagination)
+                LocalPageNavigation(
+                  totalItems: widget.paginationMeta!.total,
+                  currentPage: widget.paginationMeta!.currentPage,
+                  pageSize: widget.paginationMeta!.perPage,
+                  onPageChanged: widget.onPageChanged ?? (_) {},
+                )
+              else
+                LocalPageNavigation(
+                  totalItems: widget.items.length,
+                  currentPage: controller.currentPage,
+                  onPageChanged: controller.setPage,
+                ),
             ],
           ),
         );

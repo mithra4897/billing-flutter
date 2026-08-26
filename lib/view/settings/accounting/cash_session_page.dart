@@ -101,6 +101,8 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
         items: controller.filteredSessions,
         selectedItem: controller.selectedSession,
         emptyMessage: 'No cash sessions found.',
+        paginationMeta: controller.paginationMeta,
+        onPageChanged: controller.setPage,
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.cashAccountName ?? item.cashAccountCode ?? '',
           subtitle: [

@@ -28,6 +28,10 @@ class PostingRuleGroupManagementController extends GetxController {
   List<AppDropdownItem<String>> documentTypeItems =
       const <AppDropdownItem<String>>[];
   PostingRuleGroupModel? selected;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
   String? documentType;
   String triggerEvent = 'on_post';
   bool isActive = true;
@@ -53,6 +57,7 @@ class PostingRuleGroupManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -67,7 +72,8 @@ class PostingRuleGroupManagementController extends GetxController {
   Map<String, dynamic> json(PostingRuleGroupModel? model) =>
       model?.toJson() ?? const <String, dynamic>{};
 
-  Future<void> load({int? selectId}) async {
+  Future<void> load({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = rows.isEmpty;
     pageError = null;
     update();
@@ -76,12 +82,20 @@ class PostingRuleGroupManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait([
         _accountsService.postingRuleGroups(
-          filters: const {'per_page': 300, 'sort_by': 'group_name'},
+          filters: <String, dynamic>{
+            'page': currentPage,
+            'per_page': pageSize,
+            'sort_by': 'group_name',
+            'sort_order': 'asc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
         ),
       ]);
       final items = responses[0].data ?? const <PostingRuleGroupModel>[];
       rows = items;
-      filtered = _filter(items, searchController.text);
+      paginationMeta = responses[0].meta;
+      filtered = items;
       documentTypeItems = buildDocumentTypeDropdownItems(
         cache.activeDocumentSeries,
       );
@@ -113,23 +127,19 @@ class PostingRuleGroupManagementController extends GetxController {
     update();
   }
 
-  List<PostingRuleGroupModel> _filter(
-    List<PostingRuleGroupModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      final data = item.toJson();
-      return [
-        stringValue(data, 'group_code'),
-        stringValue(data, 'group_name'),
-        stringValue(data, 'document_type'),
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(load(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filtered = _filter(rows, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await load();
   }
 
   void applySelection(PostingRuleGroupModel item, {bool notify = true}) {

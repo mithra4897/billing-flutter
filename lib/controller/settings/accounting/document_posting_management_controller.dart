@@ -70,6 +70,10 @@ class DocumentPostingManagementController extends GetxController {
   List<AppDropdownItem<String>> documentTableItems =
       const <AppDropdownItem<String>>[];
   DocumentPostingModel? selectedPosting;
+  PaginationMeta? paginationMeta;
+  int currentPage = 1;
+  static const int pageSize = 20;
+  Timer? _searchDebounce;
 
   List<FinancialYearModel> years = const <FinancialYearModel>[];
   List<PostingRuleGroupModel> groups = const <PostingRuleGroupModel>[];
@@ -107,6 +111,7 @@ class DocumentPostingManagementController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _searchDebounce?.cancel();
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
@@ -131,7 +136,8 @@ class DocumentPostingManagementController extends GetxController {
   Map<String, dynamic> json(DocumentPostingModel? model) =>
       model?.toJson() ?? const <String, dynamic>{};
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) currentPage = 1;
     initialLoading = rows.isEmpty;
     pageError = null;
     update();
@@ -165,8 +171,12 @@ class DocumentPostingManagementController extends GetxController {
 
       final postings = await _accountsService.documentPostings(
         filters: <String, dynamic>{
-          'per_page': 200,
+          'page': currentPage,
+          'per_page': pageSize,
           'sort_by': 'document_date',
+          'sort_order': 'desc',
+          if (searchController.text.trim().isNotEmpty)
+            'search': searchController.text.trim(),
           if (contextSelection.companyId != null)
             'company_id': contextSelection.companyId,
         },
@@ -180,7 +190,8 @@ class DocumentPostingManagementController extends GetxController {
       groups = nextGroups;
       accounts = nextAccounts.where((item) => item.isActive).toList();
       rows = postings.data ?? const <DocumentPostingModel>[];
-      filteredRows = _filter(rows, searchController.text);
+      paginationMeta = postings.meta;
+      filteredRows = rows;
       documentModuleItems = _buildDropdownItems(
         rows.map((item) => item.documentModule),
       );
@@ -214,24 +225,19 @@ class DocumentPostingManagementController extends GetxController {
     update();
   }
 
-  List<DocumentPostingModel> _filter(
-    List<DocumentPostingModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      final data = item.toJson();
-      return [
-        stringValue(data, 'document_module'),
-        stringValue(data, 'document_table'),
-        stringValue(data, 'document_no'),
-        stringValue(data, 'posting_status'),
-      ];
-    });
+  void _applySearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(loadPage(resetPage: true)),
+    );
   }
 
-  void _applySearch() {
-    filteredRows = _filter(rows, searchController.text);
-    update();
+  Future<void> setPage(int page) async {
+    final lastPage = paginationMeta?.lastPage ?? 1;
+    if (page < 1 || page > lastPage || page == currentPage) return;
+    currentPage = page;
+    await loadPage();
   }
 
   Future<void> selectPosting(
