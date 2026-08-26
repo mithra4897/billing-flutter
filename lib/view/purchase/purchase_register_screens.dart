@@ -2,7 +2,15 @@ import '../../screen.dart';
 import '../../controller/purchase/purchase_module_refresh_controller.dart';
 
 typedef PurchaseRegisterLoader<T> =
-    Future<dynamic> Function(PurchaseService service);
+    Future<dynamic> Function(
+      PurchaseService service,
+      Map<String, dynamic> filters,
+    );
+typedef PurchaseRegisterAllLoader<T> =
+    Future<dynamic> Function(
+      PurchaseService service,
+      Map<String, dynamic> filters,
+    );
 typedef PurchaseRegisterMatcher<T> =
     bool Function(
       T row,
@@ -61,6 +69,21 @@ const _purchaseInvoiceRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'balance_desc', label: 'High outstanding to low'),
 ];
 
+Map<String, dynamic> _purchaseServerFilters(
+  Map<String, dynamic> filters, {
+  required String dateField,
+  required String documentField,
+  String? balanceField,
+}) {
+  final requested = filters['sort_by']?.toString();
+  final sortField = switch (requested) {
+    'document' => documentField,
+    'balance_amount' when balanceField != null => balanceField,
+    _ => dateField,
+  };
+  return <String, dynamic>{...filters, 'sort_by': sortField};
+}
+
 int _comparePurchaseRegisterStrings(String? left, String? right) {
   final leftValue = (left ?? '').trim().toLowerCase();
   final rightValue = (right ?? '').trim().toLowerCase();
@@ -102,22 +125,50 @@ String _nestedName(
   return '';
 }
 
+String _purchaseInvoiceEffectiveStatus(PurchaseInvoiceModel invoice) {
+  final stored = (invoice.invoiceStatus ?? '').trim().toLowerCase();
+  if (<String>{
+    'draft',
+    'cancelled',
+    'returned',
+    'partially_returned',
+  }.contains(stored)) {
+    return stored;
+  }
+  final balance = invoice.balanceAmount ?? invoice.totalAmount ?? 0;
+  if (balance <= 0 && (invoice.totalAmount ?? 0) > 0) return 'paid';
+  final paid = doubleValue(invoice.toJson(), 'paid_amount') ?? 0;
+  final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  if (dueDate != null &&
+      DateTime(dueDate.year, dueDate.month, dueDate.day).isBefore(today)) {
+    return 'overdue';
+  }
+  if (paid > 0) return 'partially_paid';
+  return 'posted';
+}
+
 class PurchaseListRegisterController<T> extends GetxController {
   PurchaseListRegisterController({
     required this.loader,
+    required this.allLoader,
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
+    required this.statusFilterKey,
   });
 
   final PurchaseRegisterLoader<T> loader;
+  final PurchaseRegisterAllLoader<T> allLoader;
   final PurchaseRegisterMatcher<T> matches;
   final PurchaseRegisterDashboardMatcher<T> dashboardMatches;
   final PurchaseRegisterDateValue<T> dateValueOf;
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
+  final String statusFilterKey;
   final PurchaseService _service = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
@@ -132,11 +183,21 @@ class PurchaseListRegisterController<T> extends GetxController {
   String dashboardFilter = '';
   Map<String, dynamic> customFilters = <String, dynamic>{};
   List<T> rows = <T>[];
+  List<T> allRows = <T>[];
+  final Map<int, String> supplierOptions = <int, String>{};
+  PaginationMeta? pagination;
   Worker? _refreshWorker;
+  Timer? _filterDebounce;
 
   List<T> get filteredRows {
+    return _filterRows(rows);
+  }
+
+  List<T> get allFilteredRows => _filterRows(allRows);
+
+  List<T> _filterRows(List<T> source) {
     final query = searchController.text.trim().toLowerCase();
-    final filtered = rows
+    final filtered = source
         .where(
           (row) =>
               matches(row, query, selectedStatuses, this) &&
@@ -150,9 +211,9 @@ class PurchaseListRegisterController<T> extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(update);
-    dateFromController.addListener(update);
-    dateToController.addListener(update);
+    searchController.addListener(_scheduleFilterReload);
+    dateFromController.addListener(_scheduleFilterReload);
+    dateToController.addListener(_scheduleFilterReload);
     _refreshWorker = ever<PurchaseModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -168,14 +229,15 @@ class PurchaseListRegisterController<T> extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    _filterDebounce?.cancel();
     searchController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     dateFromController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     dateToController
-      ..removeListener(update)
+      ..removeListener(_scheduleFilterReload)
       ..dispose();
     super.onClose();
   }
@@ -183,11 +245,13 @@ class PurchaseListRegisterController<T> extends GetxController {
   void setStatuses(Set<String> values) {
     selectedStatuses = Set<String>.from(values);
     update();
+    _scheduleFilterReload();
   }
 
   void setSort(String value) {
     sort = value;
     update();
+    _scheduleFilterReload();
   }
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
@@ -201,6 +265,7 @@ class PurchaseListRegisterController<T> extends GetxController {
     dateFromController.clear();
     dateToController.clear();
     update();
+    unawaited(load(page: 1));
   }
 
   void setCustomFilter(String key, dynamic value) {
@@ -212,6 +277,21 @@ class PurchaseListRegisterController<T> extends GetxController {
       customFilters[key] = value;
     }
     update();
+    _scheduleFilterReload();
+  }
+
+  void _scheduleFilterReload() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(load(page: 1)),
+    );
+  }
+
+  void goToPage(int page) {
+    if (page >= 1 && page != pagination?.currentPage) {
+      unawaited(load(page: page));
+    }
   }
 
   int _compareRows(T left, T right) {
@@ -257,18 +337,71 @@ class PurchaseListRegisterController<T> extends GetxController {
     return leftValue.compareTo(rightValue);
   }
 
-  Future<void> load() async {
+  Future<void> load({int page = 1}) async {
+    _filterDebounce?.cancel();
     loading = true;
     error = null;
     update();
     try {
-      final response = await loader(_service);
+      final filters = <String, dynamic>{
+        'per_page': 50,
+        'page': page,
+        if (searchController.text.trim().isNotEmpty)
+          'search': searchController.text.trim(),
+        if (dateFromController.text.trim().isNotEmpty)
+          'date_from': dateFromController.text.trim(),
+        if (dateToController.text.trim().isNotEmpty)
+          'date_to': dateToController.text.trim(),
+      };
+      if (selectedStatuses.isNotEmpty) {
+        if (selectedStatuses.length == 1) {
+          filters[statusFilterKey] = selectedStatuses.single;
+        } else {
+          filters['${statusFilterKey}es'] = selectedStatuses.join(',');
+        }
+      }
+      final supplierIds = _purchaseSelectedSet<int>(
+        customFilters['supplier_ids'],
+      );
+      if (supplierIds.length == 1) {
+        filters['supplier_party_id'] = supplierIds.single;
+      }
+      final sortValues = _serverSortValues();
+      filters
+        ..['sort_by'] = sortValues.$1
+        ..['sort_order'] = sortValues.$2;
+      final responses = await Future.wait<dynamic>([
+        loader(_service, filters),
+        if (page == 1) allLoader(_service, filters),
+      ]);
+      final response = responses.first;
       final data = response.data;
+      pagination = response.meta as PaginationMeta?;
       rows = data is List<T>
           ? data
           : data is List
           ? data.whereType<T>().toList(growable: false)
           : <T>[];
+      if (page == 1) {
+        final allData = responses[1].data;
+        allRows = allData is List<T>
+            ? allData
+            : allData is List
+            ? allData.whereType<T>().toList(growable: false)
+            : <T>[];
+        for (final row in allRows) {
+          if (row is! JsonModel) continue;
+          final json = row.toJson();
+          final id = intValue(json, 'supplier_party_id');
+          final name = _nestedName(
+            json,
+            'supplier_name',
+            'supplier',
+            'party_name',
+          );
+          if (id != null && name.isNotEmpty) supplierOptions[id] = name;
+        }
+      }
       loading = false;
       update();
     } catch (err) {
@@ -276,6 +409,17 @@ class PurchaseListRegisterController<T> extends GetxController {
       loading = false;
       update();
     }
+  }
+
+  (String, String) _serverSortValues() {
+    return switch (sort) {
+      'date_asc' => ('date', 'asc'),
+      'doc_asc' => ('document', 'asc'),
+      'doc_desc' => ('document', 'desc'),
+      'balance_desc' => ('balance_amount', 'desc'),
+      'balance_asc' => ('balance_amount', 'asc'),
+      _ => ('date', 'desc'),
+    };
   }
 }
 
@@ -285,6 +429,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     required this.title,
     required this.embedded,
     required this.loader,
+    required this.allLoader,
     required this.matches,
     required this.dashboardMatches,
     required this.dateValueOf,
@@ -305,12 +450,14 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     this.filterTrailingActionsBuilder,
     this.filtersMaxWidth,
     this.footerBuilder,
+    required this.statusFilterKey,
   });
 
   final String controllerName;
   final String title;
   final bool embedded;
   final PurchaseRegisterLoader<T> loader;
+  final PurchaseRegisterAllLoader<T> allLoader;
   final PurchaseRegisterMatcher<T> matches;
   final PurchaseRegisterDashboardMatcher<T> dashboardMatches;
   final PurchaseRegisterDateValue<T> dateValueOf;
@@ -352,6 +499,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     int currentPage,
   )?
   footerBuilder;
+  final String statusFilterKey;
 
   @override
   State<_PurchaseRegisterShell<T>> createState() =>
@@ -402,11 +550,13 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
       Get.put(
         PurchaseListRegisterController<T>(
           loader: widget.loader,
+          allLoader: widget.allLoader,
           matches: widget.matches,
           dashboardMatches: widget.dashboardMatches,
           dateValueOf: widget.dateValueOf,
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
+          statusFilterKey: widget.statusFilterKey,
         ),
         tag: _controllerTag,
       );
@@ -494,11 +644,12 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
-          footerBuilder: (context, currentPage) => widget.footerBuilder?.call(
-            context,
-            controller,
-            currentPage,
-          ),
+          footerBuilder: (context, currentPage) =>
+              widget.footerBuilder?.call(context, controller, currentPage),
+          remoteTotalItems: controller.pagination?.total,
+          remoteCurrentPage: controller.pagination?.currentPage,
+          remotePerPage: controller.pagination?.perPage,
+          onRemotePageChanged: controller.goToPage,
         );
       },
     );
@@ -540,66 +691,53 @@ class _PurchaseRegisterSummaryFooter extends StatelessWidget {
       ),
       child: Row(
         children: cells
-            .map(
-              (cell) {
-                final textStyle = theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                );
-                final displayText = cell.text == 'Total'
-                    ? 'Page total:\nOverall total:'
-                    : cell.text;
-                final isSummary = displayText.contains('\n');
-                return Expanded(
-                  flex: cell.flex,
-                  child: isSummary
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: displayText
-                              .split('\n')
-                              .expand(
-                                (line) => <Widget>[
-                                  if (line != displayText.split('\n').first)
-                                    Divider(
-                                      height: 8,
-                                      thickness: 1,
-                                      color: theme.dividerColor,
-                                    ),
-                                  Text(
-                                    line,
-                                    textAlign: cell.text.contains('\n')
-                                        ? TextAlign.right
-                                        : TextAlign.left,
-                                    style: textStyle,
+            .map((cell) {
+              final textStyle = theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              );
+              final displayText = cell.text == 'Total'
+                  ? 'Page total:\nOverall total:'
+                  : cell.text;
+              final isSummary = displayText.contains('\n');
+              return Expanded(
+                flex: cell.flex,
+                child: isSummary
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: displayText
+                            .split('\n')
+                            .expand(
+                              (line) => <Widget>[
+                                if (line != displayText.split('\n').first)
+                                  Divider(
+                                    height: 8,
+                                    thickness: 1,
+                                    color: theme.dividerColor,
                                   ),
-                                ],
-                              )
-                              .toList(growable: false),
-                        )
-                      : Text(
-                          displayText,
-                          textAlign: cell.alignRight
-                              ? TextAlign.right
-                              : TextAlign.left,
-                          style: textStyle,
-                        ),
-                );
-              },
-            )
+                                Text(
+                                  line,
+                                  textAlign: cell.text.contains('\n')
+                                      ? TextAlign.right
+                                      : TextAlign.left,
+                                  style: textStyle,
+                                ),
+                              ],
+                            )
+                            .toList(growable: false),
+                      )
+                    : Text(
+                        displayText,
+                        textAlign: cell.alignRight
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        style: textStyle,
+                      ),
+              );
+            })
             .toList(growable: false),
       ),
     );
   }
-}
-
-List<T> _purchaseCurrentPageRows<T>(List<T> rows, int currentPage) {
-  final start = (currentPage - 1) * kLocalListPageSize;
-  if (start >= rows.length) {
-    return <T>[];
-  }
-  final end = start + kLocalListPageSize > rows.length
-      ? rows.length
-      : start + kLocalListPageSize;
-  return rows.sublist(start, end);
 }
 
 String _purchaseTotalSummary(double overall, double page) =>
@@ -643,9 +781,21 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       title: 'Purchase Requisitions',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.requisitions(
-        filters: {'per_page': 200, 'sort_by': 'requisition_date'},
+      loader: (service, filters) => service.requisitions(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'requisition_date',
+          documentField: 'requisition_no',
+        ),
       ),
+      allLoader: (service, filters) => service.requisitionsAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'requisition_date',
+          documentField: 'requisition_no',
+        ),
+      ),
+      statusFilterKey: 'requisition_status',
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'pending_request':
@@ -747,8 +897,8 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final estimatedTotal = rows.fold<double>(
           0,
           (sum, row) => sum + _purchaseRequisitionEstimatedTotal(row),
@@ -807,8 +957,21 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       title: 'Purchase Orders',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) =>
-          service.ordersAll(filters: {'sort_by': 'order_date'}),
+      loader: (service, filters) => service.orders(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'order_date',
+          documentField: 'order_no',
+        ),
+      ),
+      allLoader: (service, filters) => service.ordersAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'order_date',
+          documentField: 'order_no',
+        ),
+      ),
+      statusFilterKey: 'order_status',
       dashboardMatches: (row, dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'submitted':
@@ -919,8 +1082,8 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
@@ -969,9 +1132,21 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
       controllerName: 'PurchaseReceiptRegisterController',
       title: 'Purchase Receipts',
       embedded: embedded,
-      loader: (service) => service.receipts(
-        filters: {'per_page': 200, 'sort_by': 'receipt_date'},
+      loader: (service, filters) => service.receipts(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'receipt_date',
+          documentField: 'receipt_no',
+        ),
       ),
+      allLoader: (service, filters) => service.receiptsAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'receipt_date',
+          documentField: 'receipt_no',
+        ),
+      ),
+      statusFilterKey: 'receipt_status',
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'receipt_no'),
@@ -1061,8 +1236,8 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + _purchaseReceiptTotal(row),
@@ -1120,22 +1295,37 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       title: 'Purchase Invoices',
       embedded: embedded,
       queryParameters: queryParameters,
-      loader: (service) => service.invoices(
-        filters: {'per_page': 200, 'sort_by': 'invoice_date'},
+      loader: (service, filters) => service.invoices(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'invoice_date',
+          documentField: 'invoice_no',
+          balanceField: 'balance_amount',
+        ),
       ),
+      allLoader: (service, filters) => service.invoicesAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'invoice_date',
+          documentField: 'invoice_no',
+          balanceField: 'balance_amount',
+        ),
+      ),
+      statusFilterKey: 'invoice_status',
       dateValueOf: (row) => row.invoiceDate,
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       matches: (row, query, statuses, controller) {
+        final effectiveStatus = _purchaseInvoiceEffectiveStatus(row);
         final statusOk = _purchaseMatchesSelectedStatus(
-          row.invoiceStatus,
+          effectiveStatus,
           statuses,
         );
         final searchOk =
             query.isEmpty ||
             [
               row.invoiceNo ?? '',
-              purchaseInvoiceStatusLabel(row.invoiceStatus),
+              purchaseInvoiceStatusLabel(effectiveStatus),
               _nestedName(
                 row.toJson(),
                 'supplier_name',
@@ -1255,8 +1445,8 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
@@ -1321,9 +1511,21 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
       controllerName: 'PurchasePaymentRegisterController',
       title: 'Purchase Payments',
       embedded: embedded,
-      loader: (service) => service.payments(
-        filters: {'per_page': 200, 'sort_by': 'payment_date'},
+      loader: (service, filters) => service.payments(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'payment_date',
+          documentField: 'payment_no',
+        ),
       ),
+      allLoader: (service, filters) => service.paymentsAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'payment_date',
+          documentField: 'payment_no',
+        ),
+      ),
+      statusFilterKey: 'payment_status',
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'payment_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'payment_no'),
@@ -1419,8 +1621,8 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final paidAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.paidAmount ?? 0),
@@ -1484,8 +1686,21 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
       controllerName: 'PurchaseReturnRegisterController',
       title: 'Purchase Returns',
       embedded: embedded,
-      loader: (service) =>
-          service.returns(filters: {'per_page': 200, 'sort_by': 'return_date'}),
+      loader: (service, filters) => service.returns(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'return_date',
+          documentField: 'return_no',
+        ),
+      ),
+      allLoader: (service, filters) => service.returnsAll(
+        filters: _purchaseServerFilters(
+          filters,
+          dateField: 'return_date',
+          documentField: 'return_no',
+        ),
+      ),
+      statusFilterKey: 'return_status',
       dashboardMatches: (row, dashboardFilter) => true,
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'return_no'),
@@ -1575,8 +1790,8 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
         ),
       ],
       footerBuilder: (context, controller, currentPage) {
-        final rows = controller.filteredRows;
-        final pageRows = _purchaseCurrentPageRows(rows, currentPage);
+        final rows = controller.allFilteredRows;
+        final pageRows = controller.filteredRows;
         final totalAmount = rows.fold<double>(
           0,
           (sum, row) => sum + (row.totalAmount ?? 0),
@@ -1657,20 +1872,8 @@ class _RegisterFilters extends StatelessWidget {
 List<AppDropdownItem<int>> _mappedSupplierItems<T>(
   PurchaseListRegisterController<T> controller,
 ) {
-  final uniqueSuppliers = <int, String>{};
-  for (final row in controller.rows) {
-    if (row is! JsonModel) {
-      continue;
-    }
-    final data = row.toJson();
-    final id = intValue(data, 'supplier_party_id');
-    final name = _nestedName(data, 'supplier_name', 'supplier', 'party_name');
-    if (id != null && name.isNotEmpty) {
-      uniqueSuppliers[id] = name;
-    }
-  }
   return <AppDropdownItem<int>>[
-    ...uniqueSuppliers.entries.map(
+    ...controller.supplierOptions.entries.map(
       (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
     ),
   ];
@@ -1734,15 +1937,17 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _supplierField() {
+    final selected = _purchaseSelectedSet<int>(
+      controller.customFilters['supplier_ids'],
+    );
     return AppDropdownField<int>.fromMapped(
       labelText: 'Supplier',
       mappedItems: supplierItemsBuilder!(controller),
-      multiInitialValues: _purchaseSelectedSet<int>(
-        controller.customFilters['supplier_ids'],
+      initialValue: selected.isEmpty ? null : selected.first,
+      onChanged: (value) => controller.setCustomFilter(
+        'supplier_ids',
+        value == null ? <int>{} : <int>{value},
       ),
-      multiHintText: 'Select suppliers',
-      onMultiChanged: (values) =>
-          controller.setCustomFilter('supplier_ids', values),
     );
   }
 
@@ -1923,21 +2128,8 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
   final List<AppDropdownItem<String>> statusItems;
 
   List<AppDropdownItem<int>> _supplierItems() {
-    final Map<int, String> uniqueSuppliers = <int, String>{};
-    for (final row in controller.rows) {
-      final name = _nestedName(
-        row.toJson(),
-        'supplier_name',
-        'supplier',
-        'party_name',
-      );
-      if (name.isNotEmpty) {
-        uniqueSuppliers[row.supplierPartyId] = name;
-      }
-    }
-
     return <AppDropdownItem<int>>[
-      ...uniqueSuppliers.entries.map(
+      ...controller.supplierOptions.entries.map(
         (entry) => AppDropdownItem<int>(value: entry.key, label: entry.value),
       ),
     ];
@@ -1986,15 +2178,17 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
   }
 
   Widget _supplierField() {
+    final selected = _purchaseSelectedSet<int>(
+      controller.customFilters['supplier_ids'],
+    );
     return AppDropdownField<int>.fromMapped(
       labelText: 'Supplier',
       mappedItems: _supplierItems(),
-      multiInitialValues: _purchaseSelectedSet<int>(
-        controller.customFilters['supplier_ids'],
+      initialValue: selected.isEmpty ? null : selected.first,
+      onChanged: (value) => controller.setCustomFilter(
+        'supplier_ids',
+        value == null ? <int>{} : <int>{value},
       ),
-      multiHintText: 'Select suppliers',
-      onMultiChanged: (values) =>
-          controller.setCustomFilter('supplier_ids', values),
     );
   }
 

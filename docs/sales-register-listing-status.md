@@ -13,7 +13,7 @@
 | Module | Registers included | API list support | Flutter server filters | Server pagination UI | Status |
 |---|---|---|---|---|---|
 | Sales | Quotations, Proformas, Orders, Deliveries, Invoices, Returns, Receipts | Done | Done | Done | Complete |
-| Purchase | Requisitions, Orders, Receipts, Invoices, Returns, Payments | Partial | Pending | Pending | Pending |
+| Purchase | Requisitions, Orders, Receipts, Invoices, Returns, Payments | Done | Done | Done | Complete |
 | Accounts | Vouchers, Party Account Register, financial registers | Partial | Partial | Partial | In progress |
 | Inventory | Items, movements, transfers, adjustments, opening stock, batches, serials, physical counts | Partial | Pending | Pending | Pending |
 | HR | Payslips, leave requests, expense claims, attendance | Partial | Pending | Pending | Pending |
@@ -47,6 +47,32 @@
 - Customer choices, register totals and invoice export use the complete filtered
   result while the visible register continues to use API pagination.
 - Flutter Sales analysis and PHP syntax verification pass.
+
+## Purchase detailed progress
+
+| Register | Server filtering | Server pagination | Page controls | Status |
+|---|---:|---:|---:|---|
+| Purchase Requisitions | Done | Done | Done | Complete |
+| Purchase Orders | Done | Done | Done | Complete |
+| Purchase Receipts | Done | Done | Done | Complete |
+| Purchase Invoices | Done | Done | Done | Complete |
+| Purchase Returns | Done | Done | Done | Complete |
+| Purchase Payments | Done | Done | Done | Complete |
+
+### Purchase verification completed
+
+- Search and date fields reload page 1 after a short debounce.
+- Supplier, status and sort changes reload page 1 automatically; Clear resets
+  the filters.
+- Date, document-number and invoice outstanding sorting run on the API before
+  pagination.
+- Multi-status dashboard filters are processed by the API.
+- Purchase invoice Paid, Partially paid and Overdue filters use effective
+  business status.
+- Supplier choices and register totals use the complete filtered result while
+  visible rows use API pagination.
+- Flutter Purchase analysis has no errors, and all modified PHP files pass
+  syntax verification.
 
 ## Update rule
 

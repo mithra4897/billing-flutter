@@ -481,6 +481,7 @@ class PurchaseListCard<T> extends StatefulWidget {
   final ValueChanged<String?>? onStatusChanged;
   final bool showInlineFilters;
   final List<Widget> headerActions;
+
   /// When supplied, the enclosing register owns pagination and [items] is the
   /// already-paged server result.  This prevents a partial API result being
   /// paged a second time in the client.
@@ -581,7 +582,8 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
     return GetBuilder<_PurchaseListCardController>(
       tag: _controllerTag,
       builder: (controller) {
-        final usesRemotePagination = widget.onRemotePageChanged != null &&
+        final usesRemotePagination =
+            widget.onRemotePageChanged != null &&
             widget.remoteTotalItems != null &&
             widget.remoteCurrentPage != null &&
             widget.remotePerPage != null;
@@ -612,7 +614,7 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                 transitionBuilder: (child, animation) {
                   return SizeTransition(
                     sizeFactor: animation,
-                    axisAlignment: -1,
+                    alignment: Alignment.topCenter,
                     child: FadeTransition(opacity: animation, child: child),
                   );
                 },

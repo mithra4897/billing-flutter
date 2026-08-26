@@ -110,7 +110,8 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   @override
   void didUpdateWidget(covariant PurchaseRegisterPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.onRemotePageChanged == null && !identical(oldWidget.rows, widget.rows)) {
+    if (widget.onRemotePageChanged == null &&
+        !identical(oldWidget.rows, widget.rows)) {
       _controller.resetPage();
     }
 
@@ -167,7 +168,8 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
     BuildContext context,
     PurchaseRegisterPageController controller,
   ) {
-    final remote = widget.onRemotePageChanged != null &&
+    final remote =
+        widget.onRemotePageChanged != null &&
         widget.remoteTotalItems != null &&
         widget.remoteCurrentPage != null &&
         widget.remotePerPage != null;
@@ -201,7 +203,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             transitionBuilder: (child, animation) {
               return SizeTransition(
                 sizeFactor: animation,
-                axisAlignment: -1,
+                alignment: Alignment.topCenter,
                 child: FadeTransition(opacity: animation, child: child),
               );
             },
@@ -248,9 +250,19 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             ),
                           ),
                         ),
-                        if (_footerForPage(context, remote ? widget.remoteCurrentPage! : controller.currentPage) !=
+                        if (_footerForPage(
+                              context,
+                              remote
+                                  ? widget.remoteCurrentPage!
+                                  : controller.currentPage,
+                            ) !=
                             null)
-                          _footerForPage(context, remote ? widget.remoteCurrentPage! : controller.currentPage)!,
+                          _footerForPage(
+                            context,
+                            remote
+                                ? widget.remoteCurrentPage!
+                                : controller.currentPage,
+                          )!,
                         Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppUiConstants.spacingSm,
@@ -259,10 +271,18 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                             AppUiConstants.spacingSm,
                           ),
                           child: LocalPageNavigation(
-                            totalItems: remote ? widget.remoteTotalItems! : widget.rows.length,
-                            pageSize: remote ? widget.remotePerPage! : kLocalListPageSize,
-                            currentPage: remote ? widget.remoteCurrentPage! : controller.currentPage,
-                            onPageChanged: remote ? widget.onRemotePageChanged! : controller.setPage,
+                            totalItems: remote
+                                ? widget.remoteTotalItems!
+                                : widget.rows.length,
+                            pageSize: remote
+                                ? widget.remotePerPage!
+                                : kLocalListPageSize,
+                            currentPage: remote
+                                ? widget.remoteCurrentPage!
+                                : controller.currentPage,
+                            onPageChanged: remote
+                                ? widget.onRemotePageChanged!
+                                : controller.setPage,
                           ),
                         ),
                       ],
@@ -295,7 +315,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
             transitionBuilder: (child, animation) {
               return SizeTransition(
                 sizeFactor: animation,
-                axisAlignment: -1,
+                alignment: Alignment.topCenter,
                 child: FadeTransition(opacity: animation, child: child),
               );
             },
@@ -336,18 +356,35 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                   children: [
                     if (useTable)
                       _buildDesktopTable(context, visibleRows)
-                      else
+                    else
                       _buildMobileCards(context, visibleRows, appTheme),
-                    if (_footerForPage(context, widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage) !=
+                    if (_footerForPage(
+                          context,
+                          widget.onRemotePageChanged != null
+                              ? widget.remoteCurrentPage!
+                              : controller.currentPage,
+                        ) !=
                         null) ...[
-                      _footerForPage(context, widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage)!,
+                      _footerForPage(
+                        context,
+                        widget.onRemotePageChanged != null
+                            ? widget.remoteCurrentPage!
+                            : controller.currentPage,
+                      )!,
                       const SizedBox(height: AppUiConstants.spacingMd),
                     ],
                     LocalPageNavigation(
-                      totalItems: widget.onRemotePageChanged != null ? widget.remoteTotalItems! : widget.rows.length,
-                      pageSize: widget.onRemotePageChanged != null ? widget.remotePerPage! : kLocalListPageSize,
-                      currentPage: widget.onRemotePageChanged != null ? widget.remoteCurrentPage! : controller.currentPage,
-                      onPageChanged: widget.onRemotePageChanged ?? controller.setPage,
+                      totalItems: widget.onRemotePageChanged != null
+                          ? widget.remoteTotalItems!
+                          : widget.rows.length,
+                      pageSize: widget.onRemotePageChanged != null
+                          ? widget.remotePerPage!
+                          : kLocalListPageSize,
+                      currentPage: widget.onRemotePageChanged != null
+                          ? widget.remoteCurrentPage!
+                          : controller.currentPage,
+                      onPageChanged:
+                          widget.onRemotePageChanged ?? controller.setPage,
                     ),
                   ],
                 ),
@@ -546,7 +583,8 @@ class _RegisterRow<T> extends StatelessWidget {
 
     return Material(
       key: ValueKey<String>('register-table-row-$index'),
-      color: rowColor ??
+      color:
+          rowColor ??
           (index.isOdd ? appTheme.tableRowAlternate : appTheme.cardBackground),
       child: InkWell(
         onTap: onTap,
@@ -628,7 +666,8 @@ class _RegisterCell<T> extends StatelessWidget {
                 : column.alignRight
                 ? TextAlign.right
                 : TextAlign.left,
-            style: column.textStyle ??
+            style:
+                column.textStyle ??
                 (emphasizeRows
                     ? Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
@@ -689,7 +728,8 @@ class _MobileRegisterField<T> extends StatelessWidget {
                 padding: column.padding ?? EdgeInsets.zero,
                 child: Text(
                   '${column.label}: $displayValue',
-                  style: column.textStyle ??
+                  style:
+                      column.textStyle ??
                       (emphasizeRows
                           ? textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
