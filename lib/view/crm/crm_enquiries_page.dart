@@ -535,86 +535,89 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     BuildContext context,
     CrmEnquiriesController controller,
   ) {
-    return SettingsFormWrap(
-      maxWidth: double.infinity,
-      maxColumns: 6,
-      children: [
-        AppDropdownField<int>.fromMapped(
-          labelText: 'Customer',
-          mappedItems: controller.customers
-              .where((item) => item.id != null)
-              .map(
-                (item) => AppDropdownItem<int>(
-                  value: item.id!,
-                  label: item.toString(),
-                ),
-              )
-              .toList(growable: false),
-          multiInitialValues: controller.filterCustomerPartyIds,
-          multiHintText: 'Select customers',
-          onMultiChanged: controller.setFilterCustomerPartyIds,
-        ),
-        AppDropdownField<int>.fromMapped(
-          labelText: 'Stage',
-          mappedItems: controller.stages
-              .where((item) => intValue(item.toJson(), 'id') != null)
-              .map(
-                (item) => AppDropdownItem<int>(
-                  value: intValue(item.toJson(), 'id')!,
-                  label: _crmStageLabel(item.toString()),
-                ),
-              )
-              .toList(growable: false),
-          multiInitialValues: controller.filterStageIds,
-          multiHintText: 'Select stages',
-          onMultiChanged: controller.setFilterStageIds,
-        ),
-        if (_isSuperAdmin)
+    return SizedBox(
+      width: double.infinity,
+      child: SettingsFormWrap(
+        maxWidth: double.infinity,
+        maxColumns: 6,
+        children: [
           AppDropdownField<int>.fromMapped(
-            labelText: 'Employee',
-            mappedItems: controller.users
+            labelText: 'Customer',
+            mappedItems: controller.customers
                 .where((item) => item.id != null)
                 .map(
                   (item) => AppDropdownItem<int>(
                     value: item.id!,
-                    label: item.displayName ?? item.username ?? '',
+                    label: item.toString(),
                   ),
                 )
                 .toList(growable: false),
-            multiInitialValues: controller.filterAssignedToIds,
-            multiHintText: 'Select employees',
-            onMultiChanged: controller.setFilterAssignedToIds,
+            multiInitialValues: controller.filterCustomerPartyIds,
+            multiHintText: 'Select customers',
+            onMultiChanged: controller.setFilterCustomerPartyIds,
           ),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Status',
-          mappedItems: CrmEnquiriesController.filterStatusItems,
-          multiInitialValues: controller.filterEnquiryStatuses,
-          multiHintText: 'Select statuses',
-          onMultiChanged: controller.setFilterEnquiryStatuses,
-        ),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Sort',
-          mappedItems: CrmEnquiriesController.sortItems,
-          initialValue: controller.sort,
-          onChanged: (value) => controller.setSort(value ?? ''),
-        ),
-        AppDateField(
-          labelText: 'Date From',
-          controller: controller.filterDateFromController,
-        ),
-        AppDateField(
-          labelText: 'Date To',
-          controller: controller.filterDateToController,
-        ),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: controller.clearFilters,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Stage',
+            mappedItems: controller.stages
+                .where((item) => intValue(item.toJson(), 'id') != null)
+                .map(
+                  (item) => AppDropdownItem<int>(
+                    value: intValue(item.toJson(), 'id')!,
+                    label: _crmStageLabel(item.toString()),
+                  ),
+                )
+                .toList(growable: false),
+            multiInitialValues: controller.filterStageIds,
+            multiHintText: 'Select stages',
+            onMultiChanged: controller.setFilterStageIds,
           ),
-        ),
-      ],
+          if (_isSuperAdmin)
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Employee',
+              mappedItems: controller.users
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem<int>(
+                      value: item.id!,
+                      label: item.displayName ?? item.username ?? '',
+                    ),
+                  )
+                  .toList(growable: false),
+              multiInitialValues: controller.filterAssignedToIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: controller.setFilterAssignedToIds,
+            ),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Status',
+            mappedItems: CrmEnquiriesController.filterStatusItems,
+            multiInitialValues: controller.filterEnquiryStatuses,
+            multiHintText: 'Select statuses',
+            onMultiChanged: controller.setFilterEnquiryStatuses,
+          ),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Sort',
+            mappedItems: CrmEnquiriesController.sortItems,
+            initialValue: controller.sort,
+            onChanged: (value) => controller.setSort(value ?? ''),
+          ),
+          AppDateField(
+            labelText: 'Date From',
+            controller: controller.filterDateFromController,
+          ),
+          AppDateField(
+            labelText: 'Date To',
+            controller: controller.filterDateToController,
+          ),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: controller.clearFilters,
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

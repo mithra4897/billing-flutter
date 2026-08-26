@@ -614,7 +614,7 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                 transitionBuilder: (child, animation) {
                   return SizeTransition(
                     sizeFactor: animation,
-                    alignment: Alignment.topCenter,
+                    axisAlignment: -1,
                     child: FadeTransition(opacity: animation, child: child),
                   );
                 },

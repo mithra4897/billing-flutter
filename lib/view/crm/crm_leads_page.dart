@@ -326,42 +326,45 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SettingsFormWrap(
-      maxWidth: double.infinity,
-      maxColumns: 6,
-      children: [
-        AppDateField(labelText: 'From Date', controller: dateFromController),
-        AppDateField(labelText: 'To Date', controller: dateToController),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Status',
-          mappedItems: statusItems,
-          multiInitialValues: statuses,
-          multiHintText: 'Select statuses',
-          onMultiChanged: onStatusesChanged,
-        ),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Sort',
-          mappedItems: sortItems,
-          initialValue: sort,
-          onChanged: onSortChanged,
-        ),
-        if (employeeItems.isNotEmpty)
-          AppDropdownField<int>.fromMapped(
-            labelText: 'Employee',
-            mappedItems: employeeItems,
-            multiInitialValues: employeeIds,
-            multiHintText: 'Select employees',
-            onMultiChanged: onEmployeeChanged,
+    return SizedBox(
+      width: double.infinity,
+      child: SettingsFormWrap(
+        maxWidth: double.infinity,
+        maxColumns: 6,
+        children: [
+          AppDateField(labelText: 'From Date', controller: dateFromController),
+          AppDateField(labelText: 'To Date', controller: dateToController),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Status',
+            mappedItems: statusItems,
+            multiInitialValues: statuses,
+            multiHintText: 'Select statuses',
+            onMultiChanged: onStatusesChanged,
           ),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: onClear,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Sort',
+            mappedItems: sortItems,
+            initialValue: sort,
+            onChanged: onSortChanged,
           ),
-        ),
-      ],
+          if (employeeItems.isNotEmpty)
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Employee',
+              mappedItems: employeeItems,
+              multiInitialValues: employeeIds,
+              multiHintText: 'Select employees',
+              onMultiChanged: onEmployeeChanged,
+            ),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
