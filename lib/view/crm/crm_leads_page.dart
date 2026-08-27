@@ -185,6 +185,10 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
                 )
               : null,
           rows: controller.filteredRows,
+          rowColorBuilder: (_, row) => documentAgeZoneColor(
+            row.createdAt,
+            isPending: controller.isPendingLead(row),
+          ),
           columns: [
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Lead',

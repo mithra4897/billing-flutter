@@ -18,6 +18,7 @@ class CrmLeadRegisterController extends GetxController {
         AppDropdownItem(value: 'date_desc', label: 'Newest first'),
         AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
         AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+        kPendingRedFirstSortItem,
       ];
 
   final CrmService _service = CrmService();
@@ -164,6 +165,11 @@ class CrmLeadRegisterController extends GetxController {
     return true;
   }
 
+  bool isPendingLead(CrmLeadModel row) {
+    final status = stringValue(row.toJson(), 'lead_status').trim().toLowerCase();
+    return !const <String>{'converted', 'own', 'lost'}.contains(status);
+  }
+
   List<CrmLeadModel> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
     final filtered = rows
@@ -191,7 +197,9 @@ class CrmLeadRegisterController extends GetxController {
                 stringValue(data, 'email'),
                 stringValue(data, 'lead_status'),
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && assignedOk && dateOk && searchOk;
+          final pendingOk =
+              sort != kPendingRedFirstSort || isPendingLead(row);
+          return statusOk && assignedOk && dateOk && searchOk && pendingOk;
         })
         .toList(growable: false);
     final sorted = List<CrmLeadModel>.from(filtered);
@@ -200,6 +208,17 @@ class CrmLeadRegisterController extends GetxController {
         return stringValue(left.toJson(), 'lead_name').toLowerCase().compareTo(
           stringValue(right.toJson(), 'lead_name').toLowerCase(),
         );
+      }
+      if (sort == kPendingRedFirstSort) {
+        final leftPending = isPendingLead(left);
+        final rightPending = isPendingLead(right);
+        if (leftPending && !rightPending) return -1;
+        if (!leftPending && rightPending) return 1;
+        // Within pending, oldest first (red at top)
+        final leftDate = nullableStringValue(left.toJson(), 'created_at') ?? '';
+        final rightDate =
+            nullableStringValue(right.toJson(), 'created_at') ?? '';
+        return leftDate.compareTo(rightDate);
       }
       final leftDate = nullableStringValue(left.toJson(), 'created_at') ?? '';
       final rightDate = nullableStringValue(right.toJson(), 'created_at') ?? '';

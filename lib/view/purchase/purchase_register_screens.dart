@@ -58,6 +58,7 @@ const _purchaseRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
   AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+  kPendingRedFirstSortItem,
 ];
 
 const _purchaseInvoiceRegisterSortItems = <AppDropdownItem<String>>[
@@ -67,6 +68,7 @@ const _purchaseInvoiceRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
   AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
   AppDropdownItem(value: 'balance_desc', label: 'High outstanding to low'),
+  kPendingRedFirstSortItem,
 ];
 
 Map<String, dynamic> _purchaseServerFilters(
@@ -158,6 +160,7 @@ class PurchaseListRegisterController<T> extends GetxController {
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
+    this.isPending,
     required this.statusFilterKey,
   });
 
@@ -168,6 +171,7 @@ class PurchaseListRegisterController<T> extends GetxController {
   final PurchaseRegisterDateValue<T> dateValueOf;
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
+  final bool Function(T row)? isPending;
   final String statusFilterKey;
   final PurchaseService _service = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
@@ -201,7 +205,10 @@ class PurchaseListRegisterController<T> extends GetxController {
         .where(
           (row) =>
               matches(row, query, selectedStatuses, this) &&
-              dashboardMatches(row, dashboardFilter),
+              dashboardMatches(row, dashboardFilter) &&
+              (sort != kPendingRedFirstSort ||
+                  isPending == null ||
+                  isPending!(row)),
         )
         .toList(growable: false);
     filtered.sort(_compareRows);
@@ -326,6 +333,17 @@ class PurchaseListRegisterController<T> extends GetxController {
           balanceValueOf?.call(left),
           balanceValueOf?.call(right),
         );
+      case kPendingRedFirstSort:
+        if (isPending != null) {
+          final leftPending = isPending!(left);
+          final rightPending = isPending!(right);
+          if (leftPending && !rightPending) return -1;
+          if (!leftPending && rightPending) return 1;
+        }
+        return _comparePurchaseRegisterStrings(
+          dateValueOf(left),
+          dateValueOf(right),
+        );
       default:
         return 0;
     }
@@ -418,6 +436,7 @@ class PurchaseListRegisterController<T> extends GetxController {
       'doc_desc' => ('document', 'desc'),
       'balance_desc' => ('balance_amount', 'desc'),
       'balance_asc' => ('balance_amount', 'asc'),
+      kPendingRedFirstSort => ('date', 'asc'),
       _ => ('date', 'desc'),
     };
   }
@@ -450,6 +469,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     this.filterTrailingActionsBuilder,
     this.filtersMaxWidth,
     this.footerBuilder,
+    this.isPending,
     required this.statusFilterKey,
   });
 
@@ -499,6 +519,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     int currentPage,
   )?
   footerBuilder;
+  final bool Function(T row)? isPending;
   final String statusFilterKey;
 
   @override
@@ -556,6 +577,7 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           dateValueOf: widget.dateValueOf,
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
+          isPending: widget.isPending,
           statusFilterKey: widget.statusFilterKey,
         ),
         tag: _controllerTag,
@@ -648,6 +670,15 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
+          rowColorBuilder: widget.isPending != null
+              ? (_, row) => documentAgeZoneColor(
+                    row is JsonModel
+                        ? (row.toJson()['created_at']?.toString() ??
+                            widget.dateValueOf(row))
+                        : widget.dateValueOf(row),
+                    isPending: widget.isPending!(row),
+                  )
+              : null,
           footerBuilder: (context, currentPage) =>
               widget.footerBuilder?.call(context, controller, currentPage),
           remoteTotalItems: controller.pagination?.total,
@@ -816,6 +847,14 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
       dateValueOf: (row) =>
           nullableStringValue(row.toJson(), 'requisition_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'requisition_no'),
+      isPending: (row) {
+        final status = stringValue(
+          row.toJson(),
+          'requisition_status',
+        ).trim().toLowerCase();
+        return status.isNotEmpty &&
+            !const {'approved', 'closed', 'cancelled'}.contains(status);
+      },
       matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
@@ -991,6 +1030,14 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
+      isPending: (row) {
+        final status = stringValue(
+          row.toJson(),
+          'order_status',
+        ).trim().toLowerCase();
+        return status.isNotEmpty &&
+            !const {'closed', 'cancelled', 'fully_invoiced'}.contains(status);
+      },
       matches: (row, query, statuses, controller) {
         final data = row.toJson();
         final statusOk = _purchaseMatchesSelectedStatus(
@@ -1319,6 +1366,10 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
       dateValueOf: (row) => row.invoiceDate,
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
+      isPending: (row) {
+        final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+        return status != 'cancelled' && (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
+      },
       matches: (row, query, statuses, controller) {
         final effectiveStatus = _purchaseInvoiceEffectiveStatus(row);
         final statusOk = _purchaseMatchesSelectedStatus(

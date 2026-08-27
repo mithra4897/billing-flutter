@@ -78,6 +78,7 @@ export 'helper/cancel_reason_dialog.dart';
 export 'helper/document_terms_defaults.dart';
 export 'helper/document_type_dropdown_helper.dart';
 export 'helper/reload_selected_row_helper.dart';
+export 'helper/document_age_zone_helper.dart';
 export 'helper/status_color_helper.dart';
 export 'helper/validators.dart';
 export 'main.dart' show appNavigatorKey, appScaffoldMessengerKey;

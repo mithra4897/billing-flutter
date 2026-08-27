@@ -113,21 +113,16 @@ Widget salesStatusBadge(
 
 /// Returns an age-based background color for a sales quotation row.
 ///
-/// Returns `null` (no color) when the quotation has already been converted to
-/// a next-stage document (order or proforma) or is in a terminal status
-/// (accepted, rejected, expired, cancelled).  Only open/pending quotations
-/// receive a color highlight so that the age zone is meaningful.
+/// Delegates to [documentAgeZoneColor]. Returns `null` when the quotation has
+/// been converted to a next-stage document (order / proforma) or is in a
+/// terminal status (accepted, rejected, expired, cancelled).
 Color? salesQuotationAgeZoneColor(
   String? createdAt, {
   String? quotationStatus,
   bool isConverted = false,
 }) {
-  // No color for quotations that have progressed to the next stage.
-  if (isConverted) {
-    return null;
-  }
+  if (isConverted) return null;
 
-  // No color for terminal statuses – the quotation is no longer "open".
   const terminalStatuses = <String>{
     'accepted',
     'rejected',
@@ -135,28 +130,9 @@ Color? salesQuotationAgeZoneColor(
     'cancelled',
   };
   final normalizedStatus = (quotationStatus ?? '').trim().toLowerCase();
-  if (terminalStatuses.contains(normalizedStatus)) {
-    return null;
-  }
+  if (terminalStatuses.contains(normalizedStatus)) return null;
 
-  final parsed = DateTime.tryParse((createdAt ?? '').trim());
-  if (parsed == null) {
-    return null;
-  }
-
-  final today = DateTime.now();
-  final createdDate = DateTime(parsed.year, parsed.month, parsed.day);
-  final todayDate = DateTime(today.year, today.month, today.day);
-  final ageInDays = todayDate.difference(createdDate).inDays;
-  final color = ageInDays <= 7
-      ? appStatusColorSuccess
-      : ageInDays <= 15
-      ? appStatusColorInfo
-      : ageInDays <= 30
-      ? appStatusColorWarning
-      : appStatusColorDanger;
-
-  return color.withValues(alpha: 0.22);
+  return documentAgeZoneColor(createdAt, isPending: true);
 }
 
 String salesListDetailWithCancelReason(

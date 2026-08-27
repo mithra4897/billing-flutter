@@ -54,7 +54,7 @@ const _salesRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
   AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
-  AppDropdownItem(value: 'pending_red_first', label: 'Pending'),
+  kPendingRedFirstSortItem,
 ];
 
 const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
@@ -63,6 +63,7 @@ const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
   AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
   AppDropdownItem(value: 'balance_desc', label: 'High outstanding'),
+  kPendingRedFirstSortItem,
 ];
 
 Map<String, dynamic> _salesServerFilters(
@@ -203,7 +204,7 @@ class SalesRegisterController<T> extends GetxController {
                 toValue: dateToController.text,
               ) &&
               dashboardMatches(row, dashboardFilter) &&
-              (sort != 'pending_red_first' || isPending == null || isPending!(row)),
+              (sort != kPendingRedFirstSort || isPending == null || isPending!(row)),
         )
         .toList(growable: false);
     filtered.sort(_compareRows);
@@ -326,7 +327,7 @@ class SalesRegisterController<T> extends GetxController {
           balanceValueOf?.call(left),
           balanceValueOf?.call(right),
         );
-      case 'pending_red_first':
+      case kPendingRedFirstSort:
         if (isPending != null) {
           final leftPending = isPending!(left);
           final rightPending = isPending!(right);
@@ -439,7 +440,7 @@ class SalesRegisterController<T> extends GetxController {
       'doc_desc' => ('document', 'desc'),
       'balance_desc' => ('balance_amount', 'desc'),
       'balance_asc' => ('balance_amount', 'asc'),
-      'pending_red_first' => ('date', 'asc'),
+      kPendingRedFirstSort => ('date', 'asc'),
       _ => ('date', 'desc'),
     };
   }
@@ -1131,6 +1132,16 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
       ),
       statusFilterKey: 'proforma_status',
       documentValueOf: (row) => row.proformaInvoiceNo ?? '',
+      isPending: (row) {
+        final status = (row.proformaInvoiceStatus ?? '').trim().toLowerCase();
+        return status.isNotEmpty &&
+            !const {'cancelled', 'converted'}.contains(status);
+      },
+      rowColorBuilder: (_, row) => documentAgeZoneColor(
+        row.createdAt,
+        isPending: !const {'cancelled', 'converted'}
+            .contains((row.proformaInvoiceStatus ?? '').trim().toLowerCase()),
+      ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final status = row.proformaInvoiceStatus ?? '';
@@ -1308,6 +1319,16 @@ class SalesOrderRegisterPage extends StatelessWidget {
       ),
       statusFilterKey: 'order_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
+      isPending: (row) {
+        final status = stringValue(row.toJson(), 'order_status').trim().toLowerCase();
+        return status.isNotEmpty &&
+            !const {'fully_delivered', 'fully_invoiced', 'closed', 'cancelled'}.contains(status);
+      },
+      rowColorBuilder: (_, row) => documentAgeZoneColor(
+        row.createdAt,
+        isPending: !const {'fully_delivered', 'fully_invoiced', 'closed', 'cancelled'}
+            .contains(stringValue(row.toJson(), 'order_status').trim().toLowerCase()),
+      ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'order_status');
@@ -1552,6 +1573,15 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       statusFilterKey: 'invoice_status',
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
+      isPending: (row) {
+        final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+        return status != 'cancelled' && (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
+      },
+      rowColorBuilder: (_, row) => documentAgeZoneColor(
+        row.invoiceDate,
+        isPending: (row.invoiceStatus ?? '').trim().toLowerCase() != 'cancelled' &&
+            (row.balanceAmount ?? row.totalAmount ?? 0) > 0,
+      ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = _salesInvoiceEffectiveStatus(row);
@@ -1765,6 +1795,16 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
       ),
       statusFilterKey: 'delivery_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
+      isPending: (row) {
+        final status = stringValue(row.toJson(), 'delivery_status').trim().toLowerCase();
+        return status.isNotEmpty &&
+            !const {'fully_invoiced', 'cancelled'}.contains(status);
+      },
+      rowColorBuilder: (_, row) => documentAgeZoneColor(
+        row.createdAt,
+        isPending: !const {'fully_invoiced', 'cancelled'}
+            .contains(stringValue(row.toJson(), 'delivery_status').trim().toLowerCase()),
+      ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'delivery_status');

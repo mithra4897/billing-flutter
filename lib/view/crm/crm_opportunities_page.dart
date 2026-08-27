@@ -52,6 +52,7 @@ class _CrmOpportunityRegisterPageState
         AppDropdownItem(value: 'date_desc', label: 'Newest first'),
         AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
         AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+        kPendingRedFirstSortItem,
       ];
 
   final CrmService _service = CrmService();
@@ -212,7 +213,9 @@ class _CrmOpportunityRegisterPageState
             stringValue(stage, 'stage_name'),
             stringValue(lead, 'lead_name'),
           ].join(' ').toLowerCase().contains(query);
-      return statusOk && assignedOk && dateOk && searchOk;
+      final isPending = stringValue(data, 'status').trim().toLowerCase() == 'open';
+      final pendingOk = _sort != kPendingRedFirstSort || isPending;
+      return statusOk && assignedOk && dateOk && searchOk && pendingOk;
     }).toList();
     filtered.sort((left, right) {
       final leftData = left.toJson();
@@ -224,6 +227,18 @@ class _CrmOpportunityRegisterPageState
         ).toLowerCase().compareTo(
           stringValue(rightData, 'opportunity_name').toLowerCase(),
         );
+      }
+      if (_sort == kPendingRedFirstSort) {
+        final leftPending =
+            stringValue(leftData, 'status').trim().toLowerCase() == 'open';
+        final rightPending =
+            stringValue(rightData, 'status').trim().toLowerCase() == 'open';
+        if (leftPending && !rightPending) return -1;
+        if (!leftPending && rightPending) return 1;
+        // Within pending, oldest first (red at top) by created_at
+        final leftDate = nullableStringValue(leftData, 'created_at') ?? '';
+        final rightDate = nullableStringValue(rightData, 'created_at') ?? '';
+        return leftDate.compareTo(rightDate);
       }
       final leftDate = nullableStringValue(leftData, 'enquiry_date') ?? '';
       final rightDate = nullableStringValue(rightData, 'enquiry_date') ?? '';
@@ -348,6 +363,11 @@ class _CrmOpportunityRegisterPageState
             )
           : null,
       rows: _filtered,
+      rowColorBuilder: (_, row) => documentAgeZoneColor(
+        row.createdAt,
+        isPending:
+            stringValue(row.toJson(), 'status').trim().toLowerCase() == 'open',
+      ),
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Enquiry No',
