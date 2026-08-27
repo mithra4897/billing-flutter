@@ -126,6 +126,7 @@ class LeaveRequestManagementController extends GetxController {
       );
       final ctx = ctxRes.data ?? const <String, dynamic>{};
       final viewAll =
+          isSuperAdmin ||
           ctx['can_view_all_hr_records'] == true ||
           ctx['can_view_all_hr_records'] == 1 ||
           ctx['can_view_all_claims'] == true ||
@@ -520,6 +521,11 @@ class LeaveRequestManagementController extends GetxController {
 
   void setLeaveTypeId(int? value) {
     leaveTypeId = value;
+    update();
+  }
+
+  void setEmployeeId(int? value) {
+    employeeId = value;
     update();
   }
 

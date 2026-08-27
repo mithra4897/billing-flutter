@@ -197,13 +197,25 @@ class _LeaveRequestManagementPageState
               ],
               SettingsFormWrap(
                 children: [
-                  AppFormTextField(
-                    labelText: 'Employee',
-                    initialValue:
-                        controller.formEmployee?.toString() ??
-                        'No employee linked to this user',
-                    readOnly: true,
-                  ),
+                  if (controller.canViewAllHr)
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Employee',
+                      mappedItems: controller.employees
+                          .where((e) => e.companyId == controller.sessionCompanyId && e.id != null)
+                          .map((e) => AppDropdownItem<int>(value: e.id!, label: e.toString()))
+                          .toList(growable: false),
+                      initialValue: controller.employeeId,
+                      onChanged: controller.setEmployeeId,
+                      validator: Validators.requiredSelection('Employee'),
+                    )
+                  else
+                    AppFormTextField(
+                      labelText: 'Employee',
+                      initialValue:
+                          controller.formEmployee?.toString() ??
+                          'No employee linked to this user',
+                      readOnly: true,
+                    ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Leave Type',
                     mappedItems: controller.leaveTypes

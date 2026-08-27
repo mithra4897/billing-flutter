@@ -243,7 +243,12 @@ class ExpenseClaimsManagementController extends GetxController {
   PaginationMeta? paginationMeta;
   Timer? _filterDebounce;
 
-  bool get employeeFieldReadOnly => true;
+  bool get employeeFieldReadOnly {
+    if (editorEditable && canViewAllClaims) {
+      return false;
+    }
+    return true;
+  }
 
   bool get isSelfServiceUser => canSelfServiceClaims;
 
@@ -309,7 +314,7 @@ class ExpenseClaimsManagementController extends GetxController {
     final base = employees
         .where((item) => item.companyId == companyId && item.id != null)
         .toList(growable: false);
-    if (isNewClaim && linkedEmployeeId != null) {
+    if (isNewClaim && linkedEmployeeId != null && !canViewAllClaims) {
       return base
           .where((item) => item.id == linkedEmployeeId)
           .toList(growable: false);
@@ -343,11 +348,18 @@ class ExpenseClaimsManagementController extends GetxController {
         return;
       }
 
+      final currentUser = await SessionStorage.getCurrentUser();
+      final isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1 ||
+          currentUser?['is_super_admin'] == '1';
+
       final contextResponse = await hrService.expenseClaimsLinkedEmployee(
         companyId: sessionCompanyId,
       );
       final contextData = contextResponse.data ?? const <String, dynamic>{};
       final allowViewAll =
+          isSuperAdmin ||
           contextData['can_view_all_claims'] == true ||
           contextData['can_view_all_claims'] == 1 ||
           contextData['can_view_all_hr_records'] == true ||
