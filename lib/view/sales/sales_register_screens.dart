@@ -180,6 +180,7 @@ class SalesRegisterController<T> extends GetxController {
   PaginationMeta? pagination;
   Worker? _refreshWorker;
   Timer? _filterDebounce;
+  int _loadRevision = 0;
 
   List<T> get filteredRows {
     return _filterRows(rows);
@@ -334,8 +335,12 @@ class SalesRegisterController<T> extends GetxController {
 
   Future<void> load({int page = 1}) async {
     _filterDebounce?.cancel();
+    final loadRevision = ++_loadRevision;
     loading = true;
     error = null;
+    if (page == 1) {
+      allRows = <T>[];
+    }
     update();
     try {
       final filters = <String, dynamic>{
@@ -358,16 +363,17 @@ class SalesRegisterController<T> extends GetxController {
       final customerIds = _selectedSet<int>(customFilters['customer_ids']);
       if (customerIds.length == 1) {
         filters['customer_party_id'] = customerIds.single;
+      } else if (customerIds.length > 1) {
+        filters['customer_ids'] = customerIds.join(',');
       }
       final sortValues = _serverSortValues();
       filters
         ..['sort_by'] = sortValues.$1
         ..['sort_order'] = sortValues.$2;
-      final responses = await Future.wait<dynamic>([
-        loader(_service, filters),
-        if (page == 1) allLoader(_service, filters),
-      ]);
-      final response = responses.first;
+      final response = await loader(_service, filters);
+      if (loadRevision != _loadRevision) {
+        return;
+      }
       final data = response.data;
       pagination = response.meta as PaginationMeta?;
       rows = data is List<T>
@@ -375,26 +381,39 @@ class SalesRegisterController<T> extends GetxController {
           : data is List
           ? data.whereType<T>().toList(growable: false)
           : <T>[];
-      if (page == 1) {
-        final allData = responses[1].data;
-        allRows = allData is List<T>
-            ? allData
-            : allData is List
-            ? allData.whereType<T>().toList(growable: false)
-            : <T>[];
-        for (final row in allRows) {
-          if (row is! JsonModel) continue;
-          final json = row.toJson();
-          final id = intValue(json, 'customer_party_id');
-          final name = _salesCustomerName(json);
-          if (id != null && name.isNotEmpty) {
-            customerOptions[id] = name;
-          }
-        }
-      }
       loading = false;
       update();
+      if (page == 1) {
+        try {
+          final allResponse = await allLoader(_service, filters);
+          if (loadRevision != _loadRevision) {
+            return;
+          }
+          final allData = allResponse.data;
+          allRows = allData is List<T>
+              ? allData
+              : allData is List
+              ? allData.whereType<T>().toList(growable: false)
+              : <T>[];
+          for (final row in allRows) {
+            if (row is! JsonModel) continue;
+            final json = row.toJson();
+            final id = intValue(json, 'customer_party_id');
+            final name = _salesCustomerName(json);
+            if (id != null && name.isNotEmpty) {
+              customerOptions[id] = name;
+            }
+          }
+          update();
+        } catch (_) {
+          // The paginated register remains usable if optional aggregate/export
+          // data cannot be loaded.
+        }
+      }
     } catch (err) {
+      if (loadRevision != _loadRevision) {
+        return;
+      }
       error = err.toString();
       loading = false;
       update();
@@ -758,30 +777,27 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
   }
 
   Widget _customerField() {
-    final selected = _selectedSet<int>(
-      controller.customFilters['customer_ids'],
-    );
     return AppDropdownField<int>.fromMapped(
       labelText: 'Customer',
       mappedItems: customerItemsBuilder!(controller),
-      initialValue: selected.isEmpty ? null : selected.first,
-      onChanged: (value) => controller.setCustomFilter(
-        'customer_ids',
-        value == null ? <int>{} : <int>{value},
+      multiInitialValues: _selectedSet<int>(
+        controller.customFilters['customer_ids'],
       ),
+      multiHintText: 'Select customers',
+      onMultiChanged: (values) =>
+          controller.setCustomFilter('customer_ids', values),
     );
   }
 
   Widget _statusField() {
-    final selected = controller.selectedStatuses;
     return AppDropdownField<String>.fromMapped(
       labelText: 'Status',
       mappedItems: statusItems
           .where((item) => item.value.trim().isNotEmpty)
           .toList(growable: false),
-      initialValue: selected.isEmpty ? null : selected.first,
-      onChanged: (value) =>
-          controller.setStatuses(value == null ? <String>{} : <String>{value}),
+      multiInitialValues: controller.selectedStatuses,
+      multiHintText: 'Select statuses',
+      onMultiChanged: controller.setStatuses,
     );
   }
 
@@ -1800,7 +1816,9 @@ class SalesReceiptRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Finished'),
+    AppDropdownItem(value: 'partially_allocated', label: 'Partially Completed'),
+    AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
@@ -1853,7 +1871,11 @@ class SalesReceiptRegisterPage extends StatelessWidget {
               row.toJson(),
               'receipt_status',
             ).trim().toLowerCase();
-            return status == 'posted';
+            return const <String>{
+              'posted',
+              'partially_allocated',
+              'fully_allocated',
+            }.contains(status);
           default:
             return true;
         }
