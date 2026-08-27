@@ -832,36 +832,17 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   Widget _buildDateFilter(BuildContext context) {
     return AppSectionCard(
       showShadow: false,
-      child: SettingsFormWrap(
-        children: [
-          AppDateField(
-            labelText: 'Followup Date',
-            controller: _filterDateFromController,
-            hintText: 'From date',
-          ),
-          AppDateField(
-            labelText: 'To Date',
-            controller: _filterDateToController,
-            hintText: 'To date',
-          ),
-          if (_isSuperAdmin)
-            AppDropdownField<int>.fromMapped(
-              labelText: 'Employee',
-              mappedItems: _employeeItems,
-              multiInitialValues: _employeeFilterIds,
-              multiHintText: 'Select employees',
-              onMultiChanged: (values) =>
-                  setState(() => _employeeFilterIds = Set<int>.from(values)),
-            ),
-          SizedBox(
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _clearDateFilter,
-              icon: const Icon(Icons.clear_outlined),
-              label: const Text('Clear'),
-            ),
-          ),
-        ],
+      child: AppRegisterFilters(
+        dateFromController: _filterDateFromController,
+        dateToController: _filterDateToController,
+        partyLabel: _isSuperAdmin ? 'Employee' : null,
+        partyItems: _isSuperAdmin ? _employeeItems : null,
+        selectedPartyIds: _isSuperAdmin ? _employeeFilterIds : null,
+        onPartyChanged: _isSuperAdmin
+            ? (values) =>
+                setState(() => _employeeFilterIds = Set<int>.from(values))
+            : null,
+        onClear: _clearDateFilter,
       ),
     );
   }

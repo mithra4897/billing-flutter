@@ -793,97 +793,22 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     unawaited(controller.applyFilters());
   }
 
-  Widget _customerField() {
-    return AppDropdownField<int>.fromMapped(
-      labelText: 'Customer',
-      mappedItems: customerItemsBuilder!(controller),
-      multiInitialValues: _selectedSet<int>(
-        controller.customFilters['customer_ids'],
-      ),
-      multiHintText: 'Select customers',
-      onMultiChanged: (values) =>
-          controller.setCustomFilter('customer_ids', values),
-    );
-  }
-
-  Widget _statusField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Status',
-      mappedItems: statusItems
-          .where((item) => item.value.trim().isNotEmpty)
-          .toList(growable: false),
-      multiInitialValues: controller.selectedStatuses,
-      multiHintText: 'Select statuses',
-      onMultiChanged: controller.setStatuses,
-    );
-  }
-
-  Widget _sortField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Sort',
-      mappedItems: sortItems,
-      initialValue: controller.sort,
-      onChanged: (value) => controller.setSort(value ?? ''),
-    );
-  }
-
-  Widget _dateField({
-    required String label,
-    required TextEditingController textController,
-  }) {
-    return AppFormTextField(
-      labelText: label,
-      controller: textController,
-      hintText: dateFormatHint(),
-      keyboardType: TextInputType.datetime,
-      inputFormatters: const [DateInputFormatter()],
-      validator: Validators.optionalDate(label),
-    );
-  }
-
-  Widget _actionField(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppUiConstants.spacingXs),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: controller.loading ? null : _clearFilters,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final hasCustomer = customerItemsBuilder != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SettingsFormWrap(
-          maxWidth: double.infinity,
-          maxColumns: 6,
-          expandChildren: true,
-          children: [
-            if (hasCustomer) _customerField(),
-            _statusField(),
-            _sortField(),
-            _dateField(
-              label: 'Date From',
-              textController: controller.dateFromController,
-            ),
-            _dateField(
-              label: 'Date To',
-              textController: controller.dateToController,
-            ),
-            _actionField(context),
-          ],
-        ),
-      ],
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      statusItems: statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      sortItems: sortItems,
+      sort: controller.sort,
+      onSortChanged: (value) => controller.setSort(value ?? ''),
+      partyLabel: customerItemsBuilder != null ? 'Customer' : null,
+      partyItems: customerItemsBuilder?.call(controller),
+      selectedPartyIds: _selectedSet<int>(controller.customFilters['customer_ids']),
+      onPartyChanged: (values) => controller.setCustomFilter('customer_ids', values),
+      onClear: _clearFilters,
     );
   }
 }

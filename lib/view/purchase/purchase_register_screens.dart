@@ -1957,107 +1957,22 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     controller.setSort('');
   }
 
-  Widget _statusField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Status',
-      mappedItems: statusItems
-          .where((item) => item.value.trim().isNotEmpty)
-          .toList(growable: false),
-      multiInitialValues: controller.selectedStatuses,
-      multiHintText: 'Select statuses',
-      onMultiChanged: controller.setStatuses,
-    );
-  }
-
-  Widget _sortField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Sort',
-      mappedItems: _purchaseRegisterSortItems,
-      initialValue: controller.sort,
-      onChanged: (value) => controller.setSort(value ?? ''),
-    );
-  }
-
-  Widget _supplierField() {
-    final selected = _purchaseSelectedSet<int>(
-      controller.customFilters['supplier_ids'],
-    );
-    return AppDropdownField<int>.fromMapped(
-      labelText: 'Supplier',
-      mappedItems: supplierItemsBuilder!(controller),
-      initialValue: selected.isEmpty ? null : selected.first,
-      onChanged: (value) => controller.setCustomFilter(
-        'supplier_ids',
-        value == null ? <int>{} : <int>{value},
-      ),
-    );
-  }
-
-  Widget _dateField({
-    required String label,
-    required TextEditingController textController,
-  }) {
-    return AppFormTextField(
-      labelText: label,
-      controller: textController,
-      hintText: dateFormatHint(),
-      keyboardType: TextInputType.datetime,
-      inputFormatters: const [DateInputFormatter()],
-      validator: Validators.optionalDate(label),
-    );
-  }
-
-  Widget _actionField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppUiConstants.spacingXs),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: _clearFilters,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
-            style: OutlinedButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final hasSupplier = supplierItemsBuilder != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SettingsFormWrap(
-          maxWidth: double.infinity,
-          maxColumns: 6,
-          expandChildren: true,
-          children: [
-            if (hasSupplier) _supplierField(),
-            _statusField(),
-            _sortField(),
-            _dateField(
-              label: 'Date From',
-              textController: controller.dateFromController,
-            ),
-            _dateField(
-              label: 'Date To',
-              textController: controller.dateToController,
-            ),
-            _actionField(context),
-          ],
-        ),
-      ],
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      statusItems: statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      sortItems: _purchaseRegisterSortItems,
+      sort: controller.sort,
+      onSortChanged: (value) => controller.setSort(value ?? ''),
+      partyLabel: supplierItemsBuilder != null ? 'Supplier' : null,
+      partyItems: supplierItemsBuilder?.call(controller),
+      selectedPartyIds: _purchaseSelectedSet<int>(controller.customFilters['supplier_ids']),
+      onPartyChanged: (values) => controller.setCustomFilter('supplier_ids', values),
+      onClear: _clearFilters,
     );
   }
 }
@@ -2088,108 +2003,22 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     controller.setSort('');
   }
 
-  Widget _actionField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppUiConstants.spacingXs),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: _clearFilters,
-            icon: const Icon(Icons.clear_outlined),
-            label: const Text('Clear'),
-            style: OutlinedButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _supplierField() {
-    final selected = _purchaseSelectedSet<int>(
-      controller.customFilters['supplier_ids'],
-    );
-    return AppDropdownField<int>.fromMapped(
-      labelText: 'Supplier',
-      mappedItems: _supplierItems(),
-      initialValue: selected.isEmpty ? null : selected.first,
-      onChanged: (value) => controller.setCustomFilter(
-        'supplier_ids',
-        value == null ? <int>{} : <int>{value},
-      ),
-    );
-  }
-
-  Widget _statusField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Status',
-      mappedItems: statusItems
-          .where((item) => item.value.trim().isNotEmpty)
-          .toList(growable: false),
-      multiInitialValues: controller.selectedStatuses,
-      multiHintText: 'Select statuses',
-      onMultiChanged: controller.setStatuses,
-    );
-  }
-
-  Widget _sortField() {
-    return AppDropdownField<String>.fromMapped(
-      labelText: 'Sort',
-      mappedItems: _purchaseInvoiceRegisterSortItems,
-      initialValue: controller.sort,
-      onChanged: (value) => controller.setSort(value ?? ''),
-    );
-  }
-
-  Widget _dateFromField() {
-    return AppFormTextField(
-      labelText: 'Date From',
-      controller: controller.dateFromController,
-      hintText: dateFormatHint(),
-      keyboardType: TextInputType.datetime,
-      inputFormatters: const [DateInputFormatter()],
-      validator: Validators.optionalDate('Date From'),
-    );
-  }
-
-  Widget _dateToField() {
-    return AppFormTextField(
-      labelText: 'Date To',
-      controller: controller.dateToController,
-      hintText: dateFormatHint(),
-      keyboardType: TextInputType.datetime,
-      inputFormatters: const [DateInputFormatter()],
-      validator: Validators.optionalDate('Date To'),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SettingsFormWrap(
-          maxWidth: double.infinity,
-          maxColumns: 6,
-          expandChildren: true,
-          children: [
-            _supplierField(),
-            _statusField(),
-            _sortField(),
-            _dateFromField(),
-            _dateToField(),
-            _actionField(context),
-          ],
-        ),
-      ],
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      statusItems: statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      sortItems: _purchaseInvoiceRegisterSortItems,
+      sort: controller.sort,
+      onSortChanged: (value) => controller.setSort(value ?? ''),
+      partyLabel: 'Supplier',
+      partyItems: _supplierItems(),
+      selectedPartyIds: _purchaseSelectedSet<int>(controller.customFilters['supplier_ids']),
+      onPartyChanged: (values) => controller.setCustomFilter('supplier_ids', values),
+      onClear: _clearFilters,
     );
   }
 }
