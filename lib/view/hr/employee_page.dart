@@ -3062,7 +3062,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
           itemCount: structure.components.length,
-          onReorderItem: _saving
+          onReorder: _saving
               ? (_, _) {}
               : (oldIndex, newIndex) => _reorderComponents(
                   structure,

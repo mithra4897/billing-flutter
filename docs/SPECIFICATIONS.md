@@ -1,5 +1,22 @@
 # Specifications
 
+## Employee salary-component drag reorder Flutter compatibility
+
+- Date: 2026-08-27
+- Status: Implemented
+
+The Employee Salary Components tab must use Flutter's supported
+`ReorderableListView.builder` callback while preserving the existing drag-order
+and persistence behavior. No API, database, or salary calculation behavior is
+changed.
+
+Acceptance criteria:
+
+1. The Flutter web build accepts the salary-component reorder list constructor.
+2. Moving a component upward or downward still persists the intended order.
+3. Saving-state interaction remains disabled and unrelated salary behavior is
+   unchanged.
+
 ## CRM lead completion after delivery or invoice
 
 - Date: 2026-08-26

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-27 — Fix salary-component reorder callback
+
+- Replaced the unsupported `onReorderItem` argument with Flutter's
+  `ReorderableListView.builder` `onReorder` callback.
+- Preserved the existing reorder-index conversion, drag disabling while saving,
+  and salary-order persistence behavior.
+- No database, API, security, or payroll-calculation impact.
+- Focused formatting and analysis passed.
+
 ## 2026-08-26 — Consistent payslip PDF salary-table borders
 
 - Payslip PDF salary-table row, column, and outer borders now use one stroked

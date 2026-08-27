@@ -1,5 +1,15 @@
 # Testing
 
+## Employee salary-component drag reorder Flutter compatibility — 2026-08-27
+
+- Updated the salary-component list to use Flutter's `onReorder` callback.
+- `dart format lib/view/hr/employee_page.dart` completed.
+- Focused `flutter analyze lib/view/hr/employee_page.dart` passed with no
+  issues.
+- The previously documented
+  `test/controller/hr/employee_salary_component_order_test.dart` path is not
+  present in this checkout, so that focused test command could not run.
+
 ## Payroll deletion dashboard refresh — 2026-08-26
 
 - Delete a draft or processed payroll run, return to the HR dashboard, and
