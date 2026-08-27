@@ -21,6 +21,9 @@ class PayslipModel extends JsonModel {
     this.leaveDays,
     this.paidDays,
     this.lopDays,
+    this.lopDeduction,
+    this.lopCalculationBasis,
+    this.lopPercentage,
     this.basicSalary,
     this.grossSalary,
     this.totalDeductions,
@@ -53,6 +56,9 @@ class PayslipModel extends JsonModel {
   final double? leaveDays;
   final double? paidDays;
   final double? lopDays;
+  final double? lopDeduction;
+  final String? lopCalculationBasis;
+  final double? lopPercentage;
   final double? basicSalary;
   final double? grossSalary;
   final double? totalDeductions;
@@ -139,6 +145,9 @@ class PayslipModel extends JsonModel {
       leaveDays: JsonModel.nullableDouble(json['leave_days']),
       paidDays: JsonModel.nullableDouble(json['paid_days']),
       lopDays: JsonModel.nullableDouble(json['lop_days']),
+      lopDeduction: JsonModel.nullableDouble(json['lop_deduction']),
+      lopCalculationBasis: json['lop_calculation_basis']?.toString(),
+      lopPercentage: JsonModel.nullableDouble(json['lop_percentage']),
       basicSalary: JsonModel.nullableDouble(json['basic_salary']),
       grossSalary: JsonModel.nullableDouble(json['gross_salary']),
       totalDeductions: JsonModel.nullableDouble(json['total_deductions']),
@@ -216,6 +225,10 @@ class PayslipModel extends JsonModel {
     if (leaveDays != null) 'leave_days': leaveDays,
     if (paidDays != null) 'paid_days': paidDays,
     if (lopDays != null) 'lop_days': lopDays,
+    if (lopDeduction != null) 'lop_deduction': lopDeduction,
+    if (lopCalculationBasis != null)
+      'lop_calculation_basis': lopCalculationBasis,
+    if (lopPercentage != null) 'lop_percentage': lopPercentage,
     if (basicSalary != null) 'basic_salary': basicSalary,
     if (grossSalary != null) 'gross_salary': grossSalary,
     if (totalDeductions != null) 'total_deductions': totalDeductions,

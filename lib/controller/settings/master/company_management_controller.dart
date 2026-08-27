@@ -41,6 +41,9 @@ class CompanyManagementController extends GetxController {
   final TextEditingController currencyController = TextEditingController();
   final TextEditingController logoPathController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  final TextEditingController lopPercentageController = TextEditingController(
+    text: '100',
+  );
   final Map<int, TextEditingController> leaveEntitlementControllers =
       <int, TextEditingController>{};
   final Map<int, String> leaveAccrualMethods = <int, String>{};
@@ -60,6 +63,7 @@ class CompanyManagementController extends GetxController {
   String companyType = 'private_limited';
   int activeTabIndex = 0;
   double lopMultiplier = 1;
+  String lopCalculationBasis = 'working_days';
 
   String formatDate = 'dd/MM/yyyy';
   String formatAmountGrouping = 'indian';
@@ -98,6 +102,7 @@ class CompanyManagementController extends GetxController {
     currencyController.dispose();
     logoPathController.dispose();
     remarksController.dispose();
+    lopPercentageController.dispose();
     for (final controller in leaveEntitlementControllers.values) {
       controller.dispose();
     }
@@ -183,6 +188,10 @@ class CompanyManagementController extends GetxController {
     companyType = company.companyType ?? 'private_limited';
     isActive = company.isActive;
     lopMultiplier = company.lopMultiplier;
+    lopCalculationBasis = company.lopCalculationBasis;
+    lopPercentageController.text = company.lopPercentage.toStringAsFixed(
+      company.lopPercentage % 1 == 0 ? 0 : 2,
+    );
     _setLeavePolicies(company.leavePolicies);
     // Format settings
     formatDate = company.dateFormat ?? 'dd/MM/yyyy';
@@ -219,6 +228,8 @@ class CompanyManagementController extends GetxController {
     companyType = 'private_limited';
     isActive = true;
     lopMultiplier = 1;
+    lopCalculationBasis = 'working_days';
+    lopPercentageController.text = '100';
     _setLeavePolicies(const <CompanyLeavePolicyModel>[]);
     formatDate = 'dd/MM/yyyy';
     formatAmountGrouping = 'indian';
@@ -291,6 +302,9 @@ class CompanyManagementController extends GetxController {
       amountGrouping: formatAmountGrouping,
       decimalPlaces: formatDecimalPlaces,
       lopMultiplier: lopMultiplier,
+      lopCalculationBasis: lopCalculationBasis,
+      lopPercentage:
+          Validators.parseFlexibleNumber(lopPercentageController.text) ?? 100,
       leavePolicies: _leavePoliciesForSave(),
     );
 
@@ -367,6 +381,11 @@ class CompanyManagementController extends GetxController {
 
   void setLopMultiplier(double? value) {
     if (value != null) lopMultiplier = value;
+    update();
+  }
+
+  void setLopCalculationBasis(String? value) {
+    if (value != null) lopCalculationBasis = value;
     update();
   }
 

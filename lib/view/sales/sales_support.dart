@@ -111,7 +111,34 @@ Widget salesStatusBadge(
   return AppStatusBadge(label: displayLabel, color: color);
 }
 
-Color? salesQuotationAgeZoneColor(String? createdAt) {
+/// Returns an age-based background color for a sales quotation row.
+///
+/// Returns `null` (no color) when the quotation has already been converted to
+/// a next-stage document (order or proforma) or is in a terminal status
+/// (accepted, rejected, expired, cancelled).  Only open/pending quotations
+/// receive a color highlight so that the age zone is meaningful.
+Color? salesQuotationAgeZoneColor(
+  String? createdAt, {
+  String? quotationStatus,
+  bool isConverted = false,
+}) {
+  // No color for quotations that have progressed to the next stage.
+  if (isConverted) {
+    return null;
+  }
+
+  // No color for terminal statuses – the quotation is no longer "open".
+  const terminalStatuses = <String>{
+    'accepted',
+    'rejected',
+    'expired',
+    'cancelled',
+  };
+  final normalizedStatus = (quotationStatus ?? '').trim().toLowerCase();
+  if (terminalStatuses.contains(normalizedStatus)) {
+    return null;
+  }
+
   final parsed = DateTime.tryParse((createdAt ?? '').trim());
   if (parsed == null) {
     return null;

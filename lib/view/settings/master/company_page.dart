@@ -487,6 +487,39 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                   ],
                   onChanged: controller.setLopMultiplier,
                 ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'LOP calculation basis',
+                  initialValue: controller.lopCalculationBasis,
+                  mappedItems: const <AppDropdownItem<String>>[
+                    AppDropdownItem(
+                      value: 'percentage',
+                      label: 'Percentage-based',
+                    ),
+                    AppDropdownItem(value: 'month', label: 'Month-based'),
+                    AppDropdownItem(
+                      value: 'working_days',
+                      label: 'Working-days-based',
+                    ),
+                  ],
+                  onChanged: controller.setLopCalculationBasis,
+                ),
+                if (controller.lopCalculationBasis == 'percentage')
+                  AppFormTextField(
+                    controller: controller.lopPercentageController,
+                    labelText: 'LOP percentage per day',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (value) {
+                      final parsed = Validators.parseFlexibleNumber(
+                        value ?? '',
+                      );
+                      if (parsed == null || parsed < 0 || parsed > 100) {
+                        return 'Enter a percentage from 0 to 100';
+                      }
+                      return null;
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingLg),

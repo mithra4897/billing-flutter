@@ -77,6 +77,11 @@ components are reused. Run and line JSON snapshots preserve the selected policy,
 structure, components, statutory result, and earned values. Payslips prefer the
 snapshot and use current salary settings only for legacy rows.
 
+Company Settings stores the LOP calculation basis and percentage on the company
+record. Payroll applies that basis to monthly gross when deriving earned salary;
+the selected basis, percentage, and calculated LOP amount are retained in the
+payroll snapshot and exposed to the payslip summary.
+
 The period algorithm is `O(E + A + L + D)` for employees, attendance, leave,
 and bounded dates. Employee/date maps avoid repeated database queries and
 duplicate counting.

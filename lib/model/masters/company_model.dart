@@ -34,6 +34,8 @@ class CompanyModel extends JsonModel {
     this.amountGrouping,
     this.decimalPlaces,
     this.lopMultiplier = 1,
+    this.lopCalculationBasis = 'working_days',
+    this.lopPercentage = 100,
     this.leavePolicies = const <CompanyLeavePolicyModel>[],
   });
   final String? code;
@@ -68,6 +70,8 @@ class CompanyModel extends JsonModel {
   final String? amountGrouping;
   final int? decimalPlaces;
   final double lopMultiplier;
+  final String lopCalculationBasis;
+  final double lopPercentage;
   final List<CompanyLeavePolicyModel> leavePolicies;
 
   @override
@@ -110,6 +114,10 @@ class CompanyModel extends JsonModel {
           : int.tryParse(json['decimal_places']?.toString() ?? ''),
       lopMultiplier:
           double.tryParse(json['lop_multiplier']?.toString() ?? '') ?? 1,
+      lopCalculationBasis:
+          json['lop_calculation_basis']?.toString() ?? 'working_days',
+      lopPercentage:
+          double.tryParse(json['lop_percentage']?.toString() ?? '') ?? 100,
       leavePolicies: (json['leave_policies'] as List? ?? const <dynamic>[])
           .whereType<Map>()
           .map(
@@ -156,6 +164,8 @@ class CompanyModel extends JsonModel {
       if (amountGrouping != null) 'amount_grouping': amountGrouping,
       if (decimalPlaces != null) 'decimal_places': decimalPlaces,
       'lop_multiplier': lopMultiplier,
+      'lop_calculation_basis': lopCalculationBasis,
+      'lop_percentage': lopPercentage,
       if (leavePolicies.isNotEmpty)
         'leave_policies': leavePolicies
             .map((policy) => policy.toJson())

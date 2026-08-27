@@ -952,7 +952,11 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         }
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
-      rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(row.createdAt),
+      rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(
+        row.createdAt,
+        quotationStatus: row.quotationStatus,
+        isConverted: row.hasActiveOrder || row.hasActiveProforma,
+      ),
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       customFiltersBuilder: (context, controller) => _SalesRegisterFilters(
         controller: controller,

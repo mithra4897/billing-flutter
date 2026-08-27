@@ -1,5 +1,17 @@
 # Testing
 
+## Configurable LOP calculation basis and payslip summary — 2026-08-27
+
+- Backend coverage verifies percentage-based (5% of ₹12,000 = ₹600),
+  calendar-month-based, and scheduled-working-days-based salary calculations.
+- Apply `billing-api/doc/sql/patch_company_lop_calculation_settings.sql` before
+  backend deployment. Focused PHP syntax checks and the HR payroll test cover
+  the backend; Flutter formatting and analysis cover the settings, model, and
+  payslip summary changes.
+- Manual verification remains recommended: set each Company Settings basis,
+  process a payroll with one LOP day, and confirm the payslip summary shows the
+  matching LOP amount.
+
 ## Employee salary-component drag reorder Flutter compatibility — 2026-08-27
 
 - Updated the salary-component list to use Flutter's `onReorder` callback.

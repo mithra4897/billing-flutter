@@ -128,6 +128,7 @@ DocumentPrintDataModel _payslipTemplateSampleData(CompanyModel? company) {
       'salary_summary': <String, dynamic>{
         'basic_salary': 15000,
         'gross_salary': 30000,
+        'lop_deduction': 0,
         'total_deductions': 1800,
         'ctc_monthly': 36000,
         'net_salary': 28200,
@@ -341,6 +342,9 @@ DocumentPrintDataModel buildPayslipPrintData(PayslipModel payslip) {
       'salary_summary': <String, dynamic>{
         'basic_salary': payslip.basicSalary ?? 0,
         'gross_salary': gross,
+        'lop_deduction': payslip.lopDeduction ?? 0,
+        'lop_calculation_basis': payslip.lopCalculationBasis ?? 'working_days',
+        'lop_percentage': payslip.lopPercentage ?? 100,
         'total_deductions': deductions,
         'ctc_monthly': payslip.ctcMonthly ?? 0,
         'net_salary': net,

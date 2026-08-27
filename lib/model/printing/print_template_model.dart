@@ -628,14 +628,18 @@ class DocumentPrintTemplate {
               shape.text.contains('{{salary_summary.gross_salary}}') ||
               shape.text.contains('{{salary_summary.net_salary}}');
           if (!isSalarySummary ||
-              shape.text.contains('{{salary_summary.ctc_monthly}}')) {
+              shape.text.contains('{{salary_summary.lop_deduction}}')) {
             return shape;
           }
-          return shape.copyWith(
-            text:
-                '${shape.text}\nCTC Monthly: '
-                '{{salary_summary.ctc_monthly}}',
-          );
+          var summaryText =
+              '${shape.text}\nLOP Deduction: '
+              '{{salary_summary.lop_deduction}}';
+          if (!shape.text.contains('{{salary_summary.ctc_monthly}}')) {
+            summaryText =
+                '$summaryText\nCTC Monthly: '
+                '{{salary_summary.ctc_monthly}}';
+          }
+          return shape.copyWith(text: summaryText);
         })
         .toList(growable: false);
     final hasSalarySummary = normalizedShapes.any(
@@ -657,7 +661,7 @@ class DocumentPrintTemplate {
           x: 308,
           y: 618,
           width: 248,
-          height: 90,
+          height: 104,
           strokeColor: 0xFF38BDF8,
           fillColor: 0xFFE0F2FE,
           fillAlpha: 1,
@@ -669,9 +673,10 @@ class DocumentPrintTemplate {
           x: 322,
           y: 632,
           width: 220,
-          height: 62,
+          height: 76,
           text:
               'Gross Salary: {{salary_summary.gross_salary}}\n'
+              'LOP Deduction: {{salary_summary.lop_deduction}}\n'
               'CTC Monthly: {{salary_summary.ctc_monthly}}\n'
               'Total Deductions: {{salary_summary.total_deductions}}\n'
               'Net Salary: {{salary_summary.net_salary}}',

@@ -1,5 +1,25 @@
 # Specifications
 
+## Configurable LOP calculation basis and payslip summary
+
+- Date: 2026-08-27
+- Status: Implemented
+
+Company Settings provides three LOP calculation bases: Percentage-based,
+Month-based, and Working-days-based. Percentage-based uses the configured
+percentage of monthly gross per LOP day; for example, 5% of ₹12,000 is ₹600
+for one LOP day. Existing companies retain Working-days-based behavior by
+default. Payslip salary summaries include the calculated LOP deduction.
+
+Acceptance criteria:
+
+1. The selected basis is saved per company and used when a payroll is processed.
+2. Percentage-based calculation applies the configured percentage once per
+   effective LOP day.
+3. Month-based divides monthly gross by calendar days; Working-days-based
+   divides by scheduled working days.
+4. Payslip summary data displays LOP deduction alongside salary totals.
+
 ## Employee salary-component drag reorder Flutter compatibility
 
 - Date: 2026-08-27
