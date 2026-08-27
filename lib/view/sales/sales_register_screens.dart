@@ -54,6 +54,7 @@ const _salesRegisterSortItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'date_asc', label: 'Oldest first'),
   AppDropdownItem(value: 'doc_asc', label: 'Number A-Z'),
   AppDropdownItem(value: 'doc_desc', label: 'Number Z-A'),
+  AppDropdownItem(value: 'pending_red_first', label: 'Pending'),
 ];
 
 const _salesInvoiceRegisterSortItems = <AppDropdownItem<String>>[
@@ -148,6 +149,7 @@ class SalesRegisterController<T> extends GetxController {
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
+    this.isPending,
     this.initialSort = 'date_desc',
     this.statusFilterKey = '',
   });
@@ -159,6 +161,7 @@ class SalesRegisterController<T> extends GetxController {
   final SalesRegisterDateValue<T> dateValueOf;
   final SalesRegisterDocumentValue<T> documentValueOf;
   final SalesRegisterBalanceValue<T>? balanceValueOf;
+  final bool Function(T row)? isPending;
   final String initialSort;
   final String statusFilterKey;
   final SalesService _service = SalesService();
@@ -199,7 +202,8 @@ class SalesRegisterController<T> extends GetxController {
                 fromValue: dateFromController.text,
                 toValue: dateToController.text,
               ) &&
-              dashboardMatches(row, dashboardFilter),
+              dashboardMatches(row, dashboardFilter) &&
+              (sort != 'pending_red_first' || isPending == null || isPending!(row)),
         )
         .toList(growable: false);
     filtered.sort(_compareRows);
@@ -322,6 +326,14 @@ class SalesRegisterController<T> extends GetxController {
           balanceValueOf?.call(left),
           balanceValueOf?.call(right),
         );
+      case 'pending_red_first':
+        if (isPending != null) {
+          final leftPending = isPending!(left);
+          final rightPending = isPending!(right);
+          if (leftPending && !rightPending) return -1;
+          if (!leftPending && rightPending) return 1;
+        }
+        return _compareRegisterStrings(dateValueOf(left), dateValueOf(right));
       default:
         return 0;
     }
@@ -427,6 +439,7 @@ class SalesRegisterController<T> extends GetxController {
       'doc_desc' => ('document', 'desc'),
       'balance_desc' => ('balance_amount', 'desc'),
       'balance_asc' => ('balance_amount', 'asc'),
+      'pending_red_first' => ('date', 'asc'),
       _ => ('date', 'desc'),
     };
   }
@@ -444,6 +457,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.dateValueOf,
     required this.documentValueOf,
     this.balanceValueOf,
+    this.isPending,
     this.initialSort = 'date_desc',
     required this.emptyMessage,
     required this.newRoute,
@@ -471,6 +485,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final SalesRegisterDateValue<T> dateValueOf;
   final SalesRegisterDocumentValue<T> documentValueOf;
   final SalesRegisterBalanceValue<T>? balanceValueOf;
+  final bool Function(T row)? isPending;
   final String initialSort;
   final String emptyMessage;
   final String newRoute;
@@ -552,6 +567,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           dateValueOf: widget.dateValueOf,
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
+          isPending: widget.isPending,
           initialSort: widget.initialSort,
           statusFilterKey: widget.statusFilterKey,
         ),
@@ -915,6 +931,12 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       ),
       statusFilterKey: 'quotation_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
+      isPending: (row) {
+        final status = stringValue(row.toJson(), 'quotation_status').trim().toLowerCase();
+        if (const {'accepted', 'rejected', 'expired', 'cancelled'}.contains(status)) return false;
+        if (row.hasActiveOrder || row.hasActiveProforma) return false;
+        return true;
+      },
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
         final rowStatus = stringValue(data, 'quotation_status');
