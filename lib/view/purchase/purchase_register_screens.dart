@@ -161,6 +161,8 @@ class PurchaseListRegisterController<T> extends GetxController {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
+    this.initialSort = 'date_asc',
+    this.initialStatuses = const <String>{},
     required this.statusFilterKey,
   });
 
@@ -172,6 +174,8 @@ class PurchaseListRegisterController<T> extends GetxController {
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
   final bool Function(T row)? isPending;
+  final String initialSort;
+  final Set<String> initialStatuses;
   final String statusFilterKey;
   final PurchaseService _service = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
@@ -218,6 +222,8 @@ class PurchaseListRegisterController<T> extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    sort = initialSort;
+    selectedStatuses = Set<String>.from(initialStatuses);
     searchController.addListener(_scheduleFilterReload);
     dateFromController.addListener(_scheduleFilterReload);
     dateToController.addListener(_scheduleFilterReload);
@@ -263,11 +269,14 @@ class PurchaseListRegisterController<T> extends GetxController {
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
     dashboardFilter = value.trim();
-    selectedStatuses = statusOverride
-        .split(',')
-        .map((status) => status.trim().toLowerCase())
-        .where((status) => status.isNotEmpty)
-        .toSet();
+    selectedStatuses = dashboardFilter.isEmpty && statusOverride.trim().isEmpty
+        ? Set<String>.from(initialStatuses)
+        : statusOverride
+              .split(',')
+              .map((status) => status.trim().toLowerCase())
+              .where((status) => status.isNotEmpty)
+              .toSet();
+    sort = initialSort;
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
@@ -470,6 +479,8 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     this.filtersMaxWidth,
     this.footerBuilder,
     this.isPending,
+    this.initialSort = 'date_asc',
+    this.initialStatuses = const <String>{},
     required this.statusFilterKey,
   });
 
@@ -483,6 +494,8 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
   final PurchaseRegisterDateValue<T> dateValueOf;
   final PurchaseRegisterDocumentValue<T> documentValueOf;
   final PurchaseRegisterBalanceValue<T>? balanceValueOf;
+  final String initialSort;
+  final Set<String> initialStatuses;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -578,6 +591,8 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           documentValueOf: widget.documentValueOf,
           balanceValueOf: widget.balanceValueOf,
           isPending: widget.isPending,
+          initialSort: widget.initialSort,
+          initialStatuses: widget.initialStatuses,
           statusFilterKey: widget.statusFilterKey,
         ),
         tag: _controllerTag,
@@ -672,12 +687,12 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
           rowColorBuilder: widget.isPending != null
               ? (_, row) => documentAgeZoneColor(
-                    row is JsonModel
-                        ? (row.toJson()['created_at']?.toString() ??
+                  row is JsonModel
+                      ? (row.toJson()['created_at']?.toString() ??
                             widget.dateValueOf(row))
-                        : widget.dateValueOf(row),
-                    isPending: widget.isPending!(row),
-                  )
+                      : widget.dateValueOf(row),
+                  isPending: widget.isPending!(row),
+                )
               : null,
           footerBuilder: (context, currentPage) =>
               widget.footerBuilder?.call(context, controller, currentPage),
@@ -1363,12 +1378,19 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
       ),
       statusFilterKey: 'invoice_status',
+      initialStatuses: const <String>{
+        'draft',
+        'posted',
+        'partially_paid',
+        'overdue',
+      },
       dateValueOf: (row) => row.invoiceDate,
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       isPending: (row) {
         final status = (row.invoiceStatus ?? '').trim().toLowerCase();
-        return status != 'cancelled' && (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
+        return status != 'cancelled' &&
+            (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
       },
       matches: (row, query, statuses, controller) {
         final effectiveStatus = _purchaseInvoiceEffectiveStatus(row);
@@ -1954,7 +1976,7 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
     controller.setCustomFilter('supplier_ids', <int>{});
     controller.setCustomFilter('balance_filter', '');
     controller.setStatuses(<String>{});
-    controller.setSort('');
+    controller.setSort('date_asc');
   }
 
   @override
@@ -1970,8 +1992,11 @@ class _PurchaseRegisterFilters<T> extends StatelessWidget {
       onSortChanged: (value) => controller.setSort(value ?? ''),
       partyLabel: supplierItemsBuilder != null ? 'Supplier' : null,
       partyItems: supplierItemsBuilder?.call(controller),
-      selectedPartyIds: _purchaseSelectedSet<int>(controller.customFilters['supplier_ids']),
-      onPartyChanged: (values) => controller.setCustomFilter('supplier_ids', values),
+      selectedPartyIds: _purchaseSelectedSet<int>(
+        controller.customFilters['supplier_ids'],
+      ),
+      onPartyChanged: (values) =>
+          controller.setCustomFilter('supplier_ids', values),
       onClear: _clearFilters,
     );
   }
@@ -2000,7 +2025,7 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('supplier_ids', <int>{});
     controller.setStatuses(<String>{});
-    controller.setSort('');
+    controller.setSort('date_asc');
   }
 
   @override
@@ -2016,8 +2041,11 @@ class _PurchaseInvoiceFilters extends StatelessWidget {
       onSortChanged: (value) => controller.setSort(value ?? ''),
       partyLabel: 'Supplier',
       partyItems: _supplierItems(),
-      selectedPartyIds: _purchaseSelectedSet<int>(controller.customFilters['supplier_ids']),
-      onPartyChanged: (values) => controller.setCustomFilter('supplier_ids', values),
+      selectedPartyIds: _purchaseSelectedSet<int>(
+        controller.customFilters['supplier_ids'],
+      ),
+      onPartyChanged: (values) =>
+          controller.setCustomFilter('supplier_ids', values),
       onClear: _clearFilters,
     );
   }

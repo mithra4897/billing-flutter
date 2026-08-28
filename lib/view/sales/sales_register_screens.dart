@@ -151,7 +151,8 @@ class SalesRegisterController<T> extends GetxController {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
-    this.initialSort = 'date_desc',
+    this.initialSort = 'date_asc',
+    this.initialStatuses = const <String>{},
     this.statusFilterKey = '',
   });
 
@@ -164,6 +165,7 @@ class SalesRegisterController<T> extends GetxController {
   final SalesRegisterBalanceValue<T>? balanceValueOf;
   final bool Function(T row)? isPending;
   final String initialSort;
+  final Set<String> initialStatuses;
   final String statusFilterKey;
   final SalesService _service = SalesService();
   final SalesModuleRefreshController _refreshController =
@@ -204,7 +206,9 @@ class SalesRegisterController<T> extends GetxController {
                 toValue: dateToController.text,
               ) &&
               dashboardMatches(row, dashboardFilter) &&
-              (sort != kPendingRedFirstSort || isPending == null || isPending!(row)),
+              (sort != kPendingRedFirstSort ||
+                  isPending == null ||
+                  isPending!(row)),
         )
         .toList(growable: false);
     filtered.sort(_compareRows);
@@ -215,6 +219,7 @@ class SalesRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     sort = initialSort;
+    selectedStatuses = Set<String>.from(initialStatuses);
     searchController.addListener(_scheduleFilterReload);
     dateFromController.addListener(_scheduleFilterReload);
     dateToController.addListener(_scheduleFilterReload);
@@ -288,11 +293,13 @@ class SalesRegisterController<T> extends GetxController {
 
   void applyDashboardFilter(String value, {String statusOverride = ''}) {
     dashboardFilter = value.trim();
-    selectedStatuses = statusOverride
-        .split(',')
-        .map((status) => status.trim().toLowerCase())
-        .where((status) => status.isNotEmpty)
-        .toSet();
+    selectedStatuses = dashboardFilter.isEmpty && statusOverride.trim().isEmpty
+        ? Set<String>.from(initialStatuses)
+        : statusOverride
+              .split(',')
+              .map((status) => status.trim().toLowerCase())
+              .where((status) => status.isNotEmpty)
+              .toSet();
     sort = initialSort;
     searchController.clear();
     dateFromController.clear();
@@ -459,7 +466,8 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
-    this.initialSort = 'date_desc',
+    this.initialSort = 'date_asc',
+    this.initialStatuses = const <String>{},
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -488,6 +496,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final SalesRegisterBalanceValue<T>? balanceValueOf;
   final bool Function(T row)? isPending;
   final String initialSort;
+  final Set<String> initialStatuses;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -570,6 +579,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           balanceValueOf: widget.balanceValueOf,
           isPending: widget.isPending,
           initialSort: widget.initialSort,
+          initialStatuses: widget.initialStatuses,
           statusFilterKey: widget.statusFilterKey,
         ),
         tag: _controllerTag,
@@ -789,7 +799,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('customer_ids', <int>{});
     controller.setStatuses(<String>{});
-    controller.setSort('date_desc');
+    controller.setSort('date_asc');
     unawaited(controller.applyFilters());
   }
 
@@ -806,8 +816,11 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
       onSortChanged: (value) => controller.setSort(value ?? ''),
       partyLabel: customerItemsBuilder != null ? 'Customer' : null,
       partyItems: customerItemsBuilder?.call(controller),
-      selectedPartyIds: _selectedSet<int>(controller.customFilters['customer_ids']),
-      onPartyChanged: (values) => controller.setCustomFilter('customer_ids', values),
+      selectedPartyIds: _selectedSet<int>(
+        controller.customFilters['customer_ids'],
+      ),
+      onPartyChanged: (values) =>
+          controller.setCustomFilter('customer_ids', values),
       onClear: _clearFilters,
     );
   }
@@ -858,9 +871,21 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       statusFilterKey: 'quotation_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'quotation_no'),
       isPending: (row) {
-        final status = stringValue(row.toJson(), 'quotation_status').trim().toLowerCase();
-        if (const {'accepted', 'rejected', 'expired', 'cancelled'}.contains(status)) return false;
-        if (row.hasActiveOrder || row.hasActiveProforma) return false;
+        final status = stringValue(
+          row.toJson(),
+          'quotation_status',
+        ).trim().toLowerCase();
+        if (const {
+          'accepted',
+          'rejected',
+          'expired',
+          'cancelled',
+        }.contains(status)) {
+          return false;
+        }
+        if (row.hasActiveOrder || row.hasActiveProforma) {
+          return false;
+        }
         return true;
       },
       matches: (row, query, statuses, customFilters) {
@@ -1064,8 +1089,10 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
         row.createdAt,
-        isPending: !const {'cancelled', 'converted'}
-            .contains((row.proformaInvoiceStatus ?? '').trim().toLowerCase()),
+        isPending: !const {
+          'cancelled',
+          'converted',
+        }.contains((row.proformaInvoiceStatus ?? '').trim().toLowerCase()),
       ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1245,14 +1272,29 @@ class SalesOrderRegisterPage extends StatelessWidget {
       statusFilterKey: 'order_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'order_no'),
       isPending: (row) {
-        final status = stringValue(row.toJson(), 'order_status').trim().toLowerCase();
+        final status = stringValue(
+          row.toJson(),
+          'order_status',
+        ).trim().toLowerCase();
         return status.isNotEmpty &&
-            !const {'fully_delivered', 'fully_invoiced', 'closed', 'cancelled'}.contains(status);
+            !const {
+              'fully_delivered',
+              'fully_invoiced',
+              'closed',
+              'cancelled',
+            }.contains(status);
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
         row.createdAt,
-        isPending: !const {'fully_delivered', 'fully_invoiced', 'closed', 'cancelled'}
-            .contains(stringValue(row.toJson(), 'order_status').trim().toLowerCase()),
+        isPending:
+            !const {
+              'fully_delivered',
+              'fully_invoiced',
+              'closed',
+              'cancelled',
+            }.contains(
+              stringValue(row.toJson(), 'order_status').trim().toLowerCase(),
+            ),
       ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
@@ -1496,15 +1538,23 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         ),
       ),
       statusFilterKey: 'invoice_status',
+      initialStatuses: const <String>{
+        'draft',
+        'posted',
+        'partially_paid',
+        'overdue',
+      },
       documentValueOf: (row) => row.invoiceNo ?? '',
       balanceValueOf: (row) => row.balanceAmount,
       isPending: (row) {
         final status = (row.invoiceStatus ?? '').trim().toLowerCase();
-        return status != 'cancelled' && (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
+        return status != 'cancelled' &&
+            (row.balanceAmount ?? row.totalAmount ?? 0) > 0;
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
         row.invoiceDate,
-        isPending: (row.invoiceStatus ?? '').trim().toLowerCase() != 'cancelled' &&
+        isPending:
+            (row.invoiceStatus ?? '').trim().toLowerCase() != 'cancelled' &&
             (row.balanceAmount ?? row.totalAmount ?? 0) > 0,
       ),
       matches: (row, query, statuses, customFilters) {
@@ -1721,14 +1771,18 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
       statusFilterKey: 'delivery_status',
       documentValueOf: (row) => stringValue(row.toJson(), 'delivery_no'),
       isPending: (row) {
-        final status = stringValue(row.toJson(), 'delivery_status').trim().toLowerCase();
+        final status = stringValue(
+          row.toJson(),
+          'delivery_status',
+        ).trim().toLowerCase();
         return status.isNotEmpty &&
             !const {'fully_invoiced', 'cancelled'}.contains(status);
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
         row.createdAt,
-        isPending: !const {'fully_invoiced', 'cancelled'}
-            .contains(stringValue(row.toJson(), 'delivery_status').trim().toLowerCase()),
+        isPending: !const {'fully_invoiced', 'cancelled'}.contains(
+          stringValue(row.toJson(), 'delivery_status').trim().toLowerCase(),
+        ),
       ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
