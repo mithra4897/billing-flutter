@@ -152,6 +152,8 @@ class ProduceTrackingLineDraft {
 class ProduceTrackingViewModel extends GetxController {
   ProduceTrackingViewModel({this.initialId}) {
     searchController.addListener(update);
+    dateFromController.addListener(applyFilters);
+    dateToController.addListener(applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 

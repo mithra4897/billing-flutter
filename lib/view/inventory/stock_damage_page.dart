@@ -24,6 +24,7 @@ class _StockDamagePageState extends State<StockDamagePage> {
       SettingsWorkspaceController();
   late final String _controllerTag;
   late final StockDamageViewModel _viewModel;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -51,11 +52,19 @@ class _StockDamagePageState extends State<StockDamagePage> {
       builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: _viewModel.searchController,
+            hintText: 'Search stock damage entries',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
@@ -94,37 +103,6 @@ class _StockDamagePageState extends State<StockDamagePage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _openFilterPanel(BuildContext context) {
-    return openInventorySearchStatusCategoryFilterPanel(
-      context: context,
-      title: 'Filter Stock Damage',
-      searchController: _viewModel.searchController,
-      dateFromController: _viewModel.dateFromController,
-      dateToController: _viewModel.dateToController,
-      searchHint: 'Search by damage no, type, status',
-      status: _viewModel.statusFilter,
-      statusItems: StockDamageViewModel.listStatusFilter,
-      category: _viewModel.categoryFilter,
-      categoryItems: _viewModel.categoryItems,
-      onApply: (search, status, dateFrom, dateTo, category) {
-        _viewModel.searchController.text = search;
-        _viewModel.dateFromController.text = dateFrom;
-        _viewModel.dateToController.text = dateTo;
-        _viewModel.statusFilter = status;
-        _viewModel.categoryFilter = category;
-        _viewModel.applyFilters();
-      },
-      onClear: () {
-        _viewModel.searchController.clear();
-        _viewModel.dateFromController.clear();
-        _viewModel.dateToController.clear();
-        _viewModel.statusFilter = '';
-        _viewModel.categoryFilter = '';
-        _viewModel.applyFilters();
-      },
-    );
-  }
-
   Widget _buildContent(BuildContext context) {
     if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading stock damage entries...');
@@ -143,6 +121,32 @@ class _StockDamagePageState extends State<StockDamagePage> {
       editorTitle: _viewModel.selected?.toString() ?? 'New Stock Damage',
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
+      fullWidthHeader: _filtersVisible && !widget.editorOnly
+          ? buildInventoryRegisterFilters(
+              dateFromController: _viewModel.dateFromController,
+              dateToController: _viewModel.dateToController,
+              status: _viewModel.statusFilter,
+              statusItems: StockDamageViewModel.listStatusFilter,
+              category: _viewModel.categoryFilter,
+              categoryItems: _viewModel.categoryItems,
+              onStatusChanged: (value) {
+                _viewModel.statusFilter = value;
+                _viewModel.applyFilters();
+              },
+              onCategoryChanged: (value) {
+                _viewModel.categoryFilter = value;
+                _viewModel.applyFilters();
+              },
+              onClear: () {
+                _viewModel.searchController.clear();
+                _viewModel.dateFromController.clear();
+                _viewModel.dateToController.clear();
+                _viewModel.statusFilter = '';
+                _viewModel.categoryFilter = '';
+                _viewModel.applyFilters();
+              },
+            )
+          : null,
       list: SettingsListCard<StockDamageEntryModel>(
         searchController: _viewModel.searchController,
         searchHint: 'Search stock damage entries',

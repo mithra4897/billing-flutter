@@ -196,31 +196,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) {
-              return SizeTransition(
-                sizeFactor: animation,
-                axisAlignment: -1,
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
-            child: widget.filters == null
-                ? const SizedBox.shrink(
-                    key: ValueKey<String>('register-filters-hidden'),
-                  )
-                : Padding(
-                    key: const ValueKey<String>('register-filters-visible'),
-                    padding: const EdgeInsets.only(
-                      bottom: AppUiConstants.spacingLg,
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: AppSectionCard(child: widget.filters!),
-                    ),
-                  ),
+          AppRegisterFiltersSection(
+            filters: widget.filters,
+            keyPrefix: 'register',
           ),
           SizedBox(
             width: double.infinity,
@@ -308,30 +286,9 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) {
-              return SizeTransition(
-                sizeFactor: animation,
-                axisAlignment: -1,
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
-            child: widget.filters == null
-                ? const SizedBox.shrink(
-                    key: ValueKey<String>('full-register-filters-hidden'),
-                  )
-                : Padding(
-                    key: const ValueKey<String>(
-                      'full-register-filters-visible',
-                    ),
-                    padding: const EdgeInsets.only(
-                      bottom: AppUiConstants.spacingLg,
-                    ),
-                    child: AppSectionCard(child: widget.filters!),
-                  ),
+          AppRegisterFiltersSection(
+            filters: widget.filters,
+            keyPrefix: 'full-register',
           ),
           if (widget.rows.isEmpty)
             Container(

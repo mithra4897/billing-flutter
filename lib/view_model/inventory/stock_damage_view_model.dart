@@ -65,6 +65,8 @@ class StockDamageLineDraft {
 class StockDamageViewModel extends GetxController {
   StockDamageViewModel({this.initialItemId}) {
     searchController.addListener(update);
+    dateFromController.addListener(applyFilters);
+    dateToController.addListener(applyFilters);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 

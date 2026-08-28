@@ -1,12 +1,49 @@
 import '../screen.dart';
 
+class AppRegisterFiltersSection extends StatelessWidget {
+  const AppRegisterFiltersSection({
+    super.key,
+    required this.filters,
+    this.keyPrefix = 'register',
+  });
+
+  final Widget? filters;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return SizeTransition(
+          sizeFactor: animation,
+          alignment: Alignment.topCenter,
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: filters == null
+          ? SizedBox.shrink(key: ValueKey<String>('$keyPrefix-filters-hidden'))
+          : Padding(
+              key: ValueKey<String>('$keyPrefix-filters-visible'),
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingLg),
+              child: SizedBox(
+                width: double.infinity,
+                child: AppSectionCard(child: filters!),
+              ),
+            ),
+    );
+  }
+}
+
 /// A reusable, responsive register filters panel shared across
-/// Sales, Purchase, and CRM modules.
+/// Sales, Purchase, Inventory, and CRM modules.
 class AppRegisterFilters extends StatelessWidget {
   const AppRegisterFilters({
     super.key,
-    required this.dateFromController,
-    required this.dateToController,
+    this.dateFromController,
+    this.dateToController,
     this.statusItems,
     this.selectedStatuses,
     this.onStatusesChanged,
@@ -17,12 +54,16 @@ class AppRegisterFilters extends StatelessWidget {
     this.partyItems,
     this.selectedPartyIds,
     this.onPartyChanged,
+    this.categoryItems,
+    this.selectedCategories,
+    this.onCategoriesChanged,
+    this.showDateFilters = true,
     required this.onClear,
     this.maxWidth,
   });
 
-  final TextEditingController dateFromController;
-  final TextEditingController dateToController;
+  final TextEditingController? dateFromController;
+  final TextEditingController? dateToController;
   final List<AppDropdownItem<String>>? statusItems;
   final Set<String>? selectedStatuses;
   final ValueChanged<Set<String>>? onStatusesChanged;
@@ -33,6 +74,10 @@ class AppRegisterFilters extends StatelessWidget {
   final List<AppDropdownItem<int>>? partyItems;
   final Set<int>? selectedPartyIds;
   final ValueChanged<Set<int>>? onPartyChanged;
+  final List<AppDropdownItem<String>>? categoryItems;
+  final Set<String>? selectedCategories;
+  final ValueChanged<Set<String>>? onCategoriesChanged;
+  final bool showDateFilters;
   final VoidCallback onClear;
   final double? maxWidth;
 
@@ -73,21 +118,30 @@ class AppRegisterFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasParty = partyLabel != null &&
+    final hasParty =
+        partyLabel != null &&
         partyItems != null &&
         partyItems!.isNotEmpty &&
         selectedPartyIds != null &&
         onPartyChanged != null;
 
-    final hasStatus = statusItems != null &&
+    final hasStatus =
+        statusItems != null &&
         statusItems!.isNotEmpty &&
         selectedStatuses != null &&
         onStatusesChanged != null;
 
-    final hasSort = sortItems != null &&
+    final hasSort =
+        sortItems != null &&
         sortItems!.isNotEmpty &&
         sort != null &&
         onSortChanged != null;
+
+    final hasCategory =
+        categoryItems != null &&
+        categoryItems!.isNotEmpty &&
+        selectedCategories != null &&
+        onCategoriesChanged != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,14 +176,23 @@ class AppRegisterFilters extends StatelessWidget {
                 initialValue: sort!,
                 onChanged: onSortChanged,
               ),
-            _dateField(
-              label: 'Date From',
-              textController: dateFromController,
-            ),
-            _dateField(
-              label: 'Date To',
-              textController: dateToController,
-            ),
+            if (hasCategory)
+              AppDropdownField<String>.fromMapped(
+                labelText: 'Category',
+                mappedItems: categoryItems!
+                    .where((item) => item.value.trim().isNotEmpty)
+                    .toList(growable: false),
+                multiInitialValues: selectedCategories!,
+                multiHintText: 'Select categories',
+                onMultiChanged: onCategoriesChanged,
+              ),
+            if (showDateFilters && dateFromController != null)
+              _dateField(
+                label: 'Date From',
+                textController: dateFromController!,
+              ),
+            if (showDateFilters && dateToController != null)
+              _dateField(label: 'Date To', textController: dateToController!),
             _actionField(context),
           ],
         ),

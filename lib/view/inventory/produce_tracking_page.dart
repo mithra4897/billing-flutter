@@ -18,6 +18,7 @@ class ProduceTrackingPage extends StatefulWidget {
 
 class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   ProduceTrackingViewModel get _controller =>
       Get.find<ProduceTrackingViewModel>(tag: _controllerTag);
@@ -58,11 +59,19 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search produce tracking',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: controller.loading
@@ -87,36 +96,6 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
           actions: actions,
           child: content,
         );
-      },
-    );
-  }
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    ProduceTrackingViewModel controller,
-  ) {
-    return openSalesSearchStatusFilterPanel(
-      context: context,
-      title: 'Filter Produce Tracking',
-      searchController: controller.searchController,
-      dateFromController: controller.dateFromController,
-      dateToController: controller.dateToController,
-      searchHint: 'Search by tracking no, location or vehicle',
-      status: controller.statusFilter,
-      statusItems: ProduceTrackingViewModel.listStatusFilter,
-      onApply: (search, status, dateFrom, dateTo) {
-        controller.searchController.text = search;
-        controller.dateFromController.text = dateFrom;
-        controller.dateToController.text = dateTo;
-        controller.statusFilter = status;
-        controller.applyFilters();
-      },
-      onClear: () {
-        controller.searchController.clear();
-        controller.dateFromController.clear();
-        controller.dateToController.clear();
-        controller.statusFilter = '';
-        controller.applyFilters();
       },
     );
   }
@@ -152,6 +131,28 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
       editorTitle: controller.selected?.toString() ?? 'New Produce Tracking',
       editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
+      fullWidthHeader: _filtersVisible && !widget.editorOnly
+          ? buildInventoryRegisterFilters(
+              dateFromController: controller.dateFromController,
+              dateToController: controller.dateToController,
+              status: controller.statusFilter,
+              statusItems: ProduceTrackingViewModel.listStatusFilter,
+              category: '',
+              categoryItems: const <AppDropdownItem<String>>[],
+              onStatusChanged: (value) {
+                controller.statusFilter = value;
+                controller.applyFilters();
+              },
+              onCategoryChanged: (_) {},
+              onClear: () {
+                controller.searchController.clear();
+                controller.dateFromController.clear();
+                controller.dateToController.clear();
+                controller.statusFilter = '';
+                controller.applyFilters();
+              },
+            )
+          : null,
       list: PurchaseListCard<ProduceTrackingModel>(
         items: controller.filteredItems,
         selectedItem: controller.selected,

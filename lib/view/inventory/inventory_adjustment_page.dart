@@ -25,6 +25,7 @@ class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
       SettingsWorkspaceController();
   late final String _controllerTag;
   late final InventoryAdjustmentViewModel _viewModel;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -52,11 +53,19 @@ class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
       builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: _viewModel.searchController,
+            hintText: 'Search adjustments',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context),
+            onPressed: () {
+              setState(() {
+                _filtersVisible = !_filtersVisible;
+              });
+            },
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
@@ -94,37 +103,6 @@ class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _openFilterPanel(BuildContext context) {
-    return openInventorySearchStatusCategoryFilterPanel(
-      context: context,
-      title: 'Filter Inventory Adjustments',
-      searchController: _viewModel.searchController,
-      dateFromController: _viewModel.dateFromController,
-      dateToController: _viewModel.dateToController,
-      searchHint: 'Search by adjustment no, type, status',
-      status: _viewModel.statusFilter,
-      statusItems: InventoryAdjustmentViewModel.listStatusFilter,
-      category: _viewModel.categoryFilter,
-      categoryItems: _viewModel.categoryItems,
-      onApply: (search, status, dateFrom, dateTo, category) {
-        _viewModel.searchController.text = search;
-        _viewModel.dateFromController.text = dateFrom;
-        _viewModel.dateToController.text = dateTo;
-        _viewModel.statusFilter = status;
-        _viewModel.categoryFilter = category;
-        _viewModel.applyFilters();
-      },
-      onClear: () {
-        _viewModel.searchController.clear();
-        _viewModel.dateFromController.clear();
-        _viewModel.dateToController.clear();
-        _viewModel.statusFilter = '';
-        _viewModel.categoryFilter = '';
-        _viewModel.applyFilters();
-      },
-    );
-  }
-
   Widget _buildContent(BuildContext context) {
     if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading inventory adjustments...');
@@ -142,6 +120,32 @@ class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
       editorTitle: _viewModel.selected?.toString() ?? 'New Adjustment',
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
+      fullWidthHeader: _filtersVisible && !widget.editorOnly
+          ? buildInventoryRegisterFilters(
+              dateFromController: _viewModel.dateFromController,
+              dateToController: _viewModel.dateToController,
+              status: _viewModel.statusFilter,
+              statusItems: InventoryAdjustmentViewModel.listStatusFilter,
+              category: _viewModel.categoryFilter,
+              categoryItems: _viewModel.categoryItems,
+              onStatusChanged: (value) {
+                _viewModel.statusFilter = value;
+                _viewModel.applyFilters();
+              },
+              onCategoryChanged: (value) {
+                _viewModel.categoryFilter = value;
+                _viewModel.applyFilters();
+              },
+              onClear: () {
+                _viewModel.searchController.clear();
+                _viewModel.dateFromController.clear();
+                _viewModel.dateToController.clear();
+                _viewModel.statusFilter = '';
+                _viewModel.categoryFilter = '';
+                _viewModel.applyFilters();
+              },
+            )
+          : null,
       list: SettingsListCard<InventoryAdjustmentModel>(
         searchController: _viewModel.searchController,
         searchHint: 'Search adjustments',
