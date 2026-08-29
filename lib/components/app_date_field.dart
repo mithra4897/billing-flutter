@@ -12,6 +12,7 @@ class AppDateField extends StatelessWidget {
     this.firstDate,
     this.lastDate,
     this.allowType = true,
+    this.showClearButton = false,
   });
 
   final String labelText;
@@ -23,6 +24,7 @@ class AppDateField extends StatelessWidget {
   final DateTime? firstDate;
   final DateTime? lastDate;
   final bool allowType;
+  final bool showClearButton;
 
   String get _dateHint {
     final format = Get.isRegistered<AppFormatSettings>()
@@ -31,11 +33,9 @@ class AppDateField extends StatelessWidget {
     return format.replaceAll('yyyy', 'YYYY').replaceAll('dd', 'DD');
   }
 
-  DateTime get _effectiveFirstDate =>
-      firstDate ?? appCalendarFirstDate();
+  DateTime get _effectiveFirstDate => firstDate ?? appCalendarFirstDate();
 
-  DateTime get _effectiveLastDate =>
-      lastDate ?? appCalendarLastDate();
+  DateTime get _effectiveLastDate => lastDate ?? appCalendarLastDate();
 
   DateTime get _initialPickerDate {
     final parsed = tryParseCalendarDate(controller.text);
@@ -73,11 +73,27 @@ class AppDateField extends StatelessWidget {
       inputFormatters: const [DateInputFormatter()],
       validator: validator,
       allowType: allowType,
-      suffixIcon: GestureDetector(
-        onTap: () => _openPicker(context),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppUiConstants.spacingSm),
-          child: Icon(Icons.calendar_month_outlined, size: 18),
+      suffixIcon: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showClearButton && value.text.trim().isNotEmpty)
+              IconButton(
+                tooltip: 'Clear $labelText',
+                visualDensity: VisualDensity.compact,
+                iconSize: 18,
+                onPressed: controller.clear,
+                icon: const Icon(Icons.close),
+              ),
+            IconButton(
+              tooltip: 'Select $labelText',
+              visualDensity: VisualDensity.compact,
+              iconSize: 18,
+              onPressed: () => _openPicker(context),
+              icon: const Icon(Icons.calendar_month_outlined),
+            ),
+          ],
         ),
       ),
     );

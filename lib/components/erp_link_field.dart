@@ -45,6 +45,7 @@ class ErpLinkField<T> extends StatefulWidget {
     this.multiInitialSelections,
     this.onMultiChanged,
     this.multiHintText,
+    this.onClear,
   });
 
   final String labelText;
@@ -75,6 +76,7 @@ class ErpLinkField<T> extends StatefulWidget {
   final Set<T>? multiInitialSelections;
   final ValueChanged<Set<T>>? onMultiChanged;
   final String? multiHintText;
+  final VoidCallback? onClear;
 
   @override
   State<ErpLinkField<T>> createState() => _ErpLinkFieldState<T>();
@@ -772,7 +774,20 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         )
-                      : const Icon(Icons.arrow_drop_down, size: 18),
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.onClear != null)
+                              IconButton(
+                                tooltip: 'Clear ${widget.labelText}',
+                                visualDensity: VisualDensity.compact,
+                                iconSize: 18,
+                                onPressed: widget.onClear,
+                                icon: const Icon(Icons.close),
+                              ),
+                            const Icon(Icons.arrow_drop_down, size: 18),
+                          ],
+                        ),
                 ),
                 onTap: () {
                   if (!widget.enabled) {

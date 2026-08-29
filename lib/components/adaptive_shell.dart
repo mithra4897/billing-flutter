@@ -348,7 +348,7 @@ class AdaptiveShellMenuAction<T> extends StatelessWidget {
 }
 
 /// Compact search field for the shell header row ([ShellPageActions] / [AdaptiveShell]).
-class AdaptiveShellSearchField extends StatelessWidget {
+class AdaptiveShellSearchField extends StatefulWidget {
   const AdaptiveShellSearchField({
     super.key,
     required this.controller,
@@ -361,17 +361,48 @@ class AdaptiveShellSearchField extends StatelessWidget {
   final double width;
 
   @override
+  State<AdaptiveShellSearchField> createState() =>
+      _AdaptiveShellSearchFieldState();
+}
+
+class _AdaptiveShellSearchFieldState extends State<AdaptiveShellSearchField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant AdaptiveShellSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleTextChanged);
+      widget.controller.addListener(_handleTextChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleTextChanged);
+    super.dispose();
+  }
+
+  void _handleTextChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return SizedBox(
-      width: width,
+      width: widget.width,
       height: 44,
       child: TextField(
-        controller: controller,
+        controller: widget.controller,
         style: theme.textTheme.bodyMedium,
         decoration: InputDecoration(
-          hintText: hintText,
+          hintText: widget.hintText,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
@@ -386,6 +417,15 @@ class AdaptiveShellSearchField extends StatelessWidget {
             minWidth: 40,
             minHeight: 40,
           ),
+          suffixIcon: widget.controller.text.trim().isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: widget.controller.clear,
+                  icon: const Icon(Icons.close),
+                ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
           ),

@@ -19,7 +19,7 @@ class AppRegisterFiltersSection extends StatelessWidget {
       transitionBuilder: (child, animation) {
         return SizeTransition(
           sizeFactor: animation,
-          axisAlignment: -1,
+          alignment: Alignment.topCenter,
           child: FadeTransition(opacity: animation, child: child),
         );
       },
@@ -89,6 +89,7 @@ class AppRegisterFilters extends StatelessWidget {
       labelText: label,
       controller: textController,
       validator: Validators.optionalDate(label),
+      showClearButton: true,
     );
   }
 
@@ -158,6 +159,9 @@ class AppRegisterFilters extends StatelessWidget {
                 multiInitialValues: selectedPartyIds!,
                 multiHintText: 'Select ${partyLabel!.toLowerCase()}s',
                 onMultiChanged: onPartyChanged,
+                onClear: selectedPartyIds!.isEmpty
+                    ? null
+                    : () => onPartyChanged!(<int>{}),
               ),
             if (hasStatus)
               AppDropdownField<String>.fromMapped(
@@ -168,6 +172,9 @@ class AppRegisterFilters extends StatelessWidget {
                 multiInitialValues: selectedStatuses!,
                 multiHintText: 'Select statuses',
                 onMultiChanged: onStatusesChanged,
+                onClear: selectedStatuses!.isEmpty
+                    ? null
+                    : () => onStatusesChanged!(<String>{}),
               ),
             if (hasSort)
               AppDropdownField<String>.fromMapped(
@@ -185,6 +192,9 @@ class AppRegisterFilters extends StatelessWidget {
                 multiInitialValues: selectedCategories!,
                 multiHintText: 'Select categories',
                 onMultiChanged: onCategoriesChanged,
+                onClear: selectedCategories!.isEmpty
+                    ? null
+                    : () => onCategoriesChanged!(<String>{}),
               ),
             if (showDateFilters && dateFromController != null)
               _dateField(

@@ -37,6 +37,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
+    this.onClear,
   }) : records = null,
        mappedItems = null,
        valueKey = null,
@@ -61,6 +62,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
+    this.onClear,
   }) : items = null,
        records = null,
        valueKey = null,
@@ -87,6 +89,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
+    this.onClear,
   }) : items = null,
        mappedItems = null;
 
@@ -110,6 +113,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final Set<T>? multiInitialValues;
   final ValueChanged<Set<T>>? onMultiChanged;
   final String? multiHintText;
+  final VoidCallback? onClear;
   final String Function(String query, String doctypeLabel)?
   createNewLabelBuilder;
 
@@ -139,6 +143,7 @@ class AppDropdownField<T> extends StatelessWidget {
       multiInitialSelections: multiInitialValues,
       onMultiChanged: onMultiChanged,
       multiHintText: multiHintText,
+      onClear: onClear,
     );
   }
 
