@@ -647,41 +647,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   enabled: controller.canEdit,
                   validator: Validators.optionalDate('Customer Ref Date'),
                 ),
-                AppFormTextField(
-                  labelText: 'Notes (shown to customer)',
-                  controller: controller.notesController,
-                  maxLines: 3,
-                  enabled: controller.canEdit,
-                  suffixIcon: controller.canEdit
-                      ? (controller.uploadingNotesImage
-                            ? const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              )
-                            : IconButton(
-                                tooltip: 'Upload image',
-                                onPressed: () => unawaited(
-                                  controller.uploadNotesImage(context),
-                                ),
-                                icon: const Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                ),
-                              ))
-                      : null,
-                ),
-                _buildNotesImagePreview(context, controller),
-                AppFormTextField(
-                  labelText: 'Terms & Conditions',
-                  controller: controller.termsController,
-                  maxLines: 3,
-                  enabled: controller.canEdit,
-                ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'From quotation (optional)',
                   mappedItems: controller.quotationChoiceDropdownItems,
@@ -719,8 +684,43 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       ? controller.setApplyRoundOff
                       : null,
                 ),
+                AppFormTextField(
+                  labelText: 'Notes (shown to customer)',
+                  controller: controller.notesController,
+                  maxLines: 3,
+                  enabled: controller.canEdit,
+                  suffixIcon: controller.canEdit
+                      ? (controller.uploadingNotesImage
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : IconButton(
+                                tooltip: 'Upload image',
+                                onPressed: () => unawaited(
+                                  controller.uploadNotesImage(context),
+                                ),
+                                icon: const Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                ),
+                              ))
+                      : null,
+                ),
+                AppFormTextField(
+                  labelText: 'Terms & Conditions',
+                  controller: controller.termsController,
+                  maxLines: 3,
+                  enabled: controller.canEdit,
+                ),
               ],
             ),
+            _buildNotesImagePreview(context, controller),
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
               label: 'Active',
