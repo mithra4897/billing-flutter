@@ -57,10 +57,21 @@ class AppFormTextField extends StatefulWidget {
 }
 
 class _AppFormTextFieldState extends State<AppFormTextField> {
+  static const double _resizableFieldMinHeight = 88;
+  static const double _resizableFieldMaxHeight = 360;
+
   final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
   TextEditingController? _displayController;
   String? _pendingDisplayValue;
   bool _isNormalizingAmountZero = false;
+  double _resizableFieldHeight = _resizableFieldMinHeight;
+  double? _resizableFieldWidth;
+
+  bool get _isResizableMultilineField {
+    final label = widget.labelText.trim().toLowerCase();
+    return widget.maxLines > 1 &&
+        (label.startsWith('notes') || label == 'terms & conditions');
+  }
 
   bool get _isAutoDateField =>
       !widget.readOnly &&
@@ -442,67 +453,117 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         ? _sanitizedReadOnlyValue(widget.initialValue)
         : _sanitizedEditableInitialValue(widget.initialValue);
 
-    return AppFieldBox(
-      width: widget.width,
-      child: TextFormField(
-        key: effectiveController != null
-            ? ObjectKey(effectiveController)
-            : null,
-        controller: effectiveController,
-        focusNode: _numericBinding.focusNode,
-        initialValue: effectiveController == null
-            ? effectiveInitialValue
-            : null,
-        maxLines: widget.maxLines,
-        keyboardType: widget.keyboardType,
-        textInputAction: widget.textInputAction,
-        obscureText: widget.obscureText,
-        validator: widget.validator,
-        onChanged: widget.onChanged,
-        onFieldSubmitted: widget.onFieldSubmitted,
-        onEditingComplete: widget.onEditingComplete,
-        readOnly: effectiveReadOnly,
-        enabled: true,
-        textAlign: _effectiveTextAlign,
-        onTap: (!visuallyReadOnly && autoPickerEnabled && !widget.allowType)
-            ? () => _handlePickerTap(context)
-            : null,
-        inputFormatters: _effectiveInputFormatters(),
-        textCapitalization: widget.textCapitalization,
-        decoration: InputDecoration(
-          labelText: widget.labelText,
-          hintText: _effectiveHintText,
-          alignLabelWithHint: widget.maxLines > 1,
-          prefixIcon: widget.prefixIcon,
-          suffixIcon:
-              widget.suffixIcon ??
-              (autoPickerEnabled
-                  ? (!visuallyReadOnly && widget.allowType
-                        ? MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: () => _handlePickerTap(context),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0,
-                                ),
-                                child: Icon(
-                                  _isAutoDateTimeField
-                                      ? Icons.schedule_outlined
-                                      : Icons.calendar_month_outlined,
-                                  size: 18,
-                                ),
+    final textField = TextFormField(
+      key: effectiveController != null
+          ? ObjectKey(effectiveController)
+          : null,
+      controller: effectiveController,
+      focusNode: _numericBinding.focusNode,
+      initialValue: effectiveController == null
+          ? effectiveInitialValue
+          : null,
+      minLines: _isResizableMultilineField ? 3 : null,
+      maxLines: _isResizableMultilineField ? null : widget.maxLines,
+      keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction,
+      obscureText: widget.obscureText,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      onFieldSubmitted: widget.onFieldSubmitted,
+      onEditingComplete: widget.onEditingComplete,
+      readOnly: effectiveReadOnly,
+      enabled: true,
+      textAlign: _effectiveTextAlign,
+      onTap: (!visuallyReadOnly && autoPickerEnabled && !widget.allowType)
+          ? () => _handlePickerTap(context)
+          : null,
+      inputFormatters: _effectiveInputFormatters(),
+      textCapitalization: widget.textCapitalization,
+      decoration: InputDecoration(
+        labelText: widget.labelText,
+        hintText: _effectiveHintText,
+        alignLabelWithHint: widget.maxLines > 1,
+        prefixIcon: widget.prefixIcon,
+        suffixIcon:
+            widget.suffixIcon ??
+            (autoPickerEnabled
+                ? (!visuallyReadOnly && widget.allowType
+                      ? MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _handlePickerTap(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
+                              ),
+                              child: Icon(
+                                _isAutoDateTimeField
+                                    ? Icons.schedule_outlined
+                                    : Icons.calendar_month_outlined,
+                                size: 18,
                               ),
                             ),
-                          )
-                        : Icon(
-                            _isAutoDateTimeField
-                                ? Icons.schedule_outlined
-                                : Icons.calendar_month_outlined,
-                          ))
-                  : null),
-        ),
+                          ),
+                        )
+                      : Icon(
+                          _isAutoDateTimeField
+                              ? Icons.schedule_outlined
+                              : Icons.calendar_month_outlined,
+                        ))
+                : null),
       ),
+    );
+
+    final fieldContent = _isResizableMultilineField
+        ? SizedBox(
+            width: _resizableFieldWidth,
+            height: _resizableFieldHeight,
+            child: Stack(
+              children: [
+                Positioned.fill(child: textField),
+                if (!effectiveReadOnly)
+                  Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeUpLeftDownRight,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onPanUpdate: (details) {
+                          final currentWidth =
+                              _resizableFieldWidth ?? context.size?.width;
+                          setState(() {
+                            _resizableFieldHeight = (_resizableFieldHeight +
+                                    details.delta.dy)
+                                .clamp(
+                                  _resizableFieldMinHeight,
+                                  _resizableFieldMaxHeight,
+                                )
+                                .toDouble();
+                            if (currentWidth != null) {
+                              _resizableFieldWidth = (currentWidth +
+                                      details.delta.dx)
+                                  .clamp(240.0, 600.0)
+                                  .toDouble();
+                            }
+                          });
+                        },
+                        child: const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Icon(Icons.drag_handle, size: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          )
+        : textField;
+
+    return AppFieldBox(
+      width: widget.width,
+      child: fieldContent,
     );
   }
 }
