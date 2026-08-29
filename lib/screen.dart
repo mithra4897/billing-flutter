@@ -73,6 +73,7 @@ export 'helper/party_code_helper.dart';
 export 'helper/string_extensions.dart';
 export 'helper/getx_page_state.dart';
 export 'helper/hr_selection_helper.dart';
+export 'helper/item_transaction_eligibility.dart';
 export 'helper/disposable_draft_list.dart';
 export 'helper/date_value_helper.dart';
 export 'helper/cancel_reason_dialog.dart';

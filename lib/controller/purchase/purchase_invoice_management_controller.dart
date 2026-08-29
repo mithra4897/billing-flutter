@@ -444,6 +444,11 @@ class PurchaseInvoiceManagementController extends GetxController {
   ItemModel? itemById(int? itemId) =>
       itemId == null ? null : itemLookupById[itemId];
 
+  List<ItemModel> get purchaseableItemOptions => purchaseableItemsForEditor(
+    itemsLookup,
+    retainedItemIds: lines.map((line) => line.itemId),
+  );
+
   PartyModel? supplierById(int? supplierId) =>
       supplierId == null ? null : supplierLookupById[supplierId];
 

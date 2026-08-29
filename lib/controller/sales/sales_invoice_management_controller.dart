@@ -158,6 +158,11 @@ class SalesInvoiceManagementController extends GetxController {
 
   Map<String, dynamic> rowJson(SalesInvoiceModel row) => row.toJson();
 
+  List<ItemModel> get saleableItemOptions => saleableItemsForEditor(
+    itemsLookup,
+    retainedItemIds: lines.map((line) => line.itemId),
+  );
+
   String _defaultDueDateFrom(String? baseDate) {
     final normalized = (baseDate ?? '').trim();
     final parsed = DateTime.tryParse(normalized);

@@ -412,6 +412,11 @@ class PurchaseReceiptManagementController extends GetxController {
     );
   }
 
+  List<ItemModel> get purchaseableItemOptions => purchaseableItemsForEditor(
+    itemsLookup,
+    retainedItemIds: lines.map((line) => line.itemId),
+  );
+
   bool lineUsesInventory(int? itemId) =>
       itemById(itemId)?.trackInventory == true;
 

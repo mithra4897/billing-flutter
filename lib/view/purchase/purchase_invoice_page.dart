@@ -128,7 +128,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   }
 
   Widget _buildLineItemTable(PurchaseInvoiceManagementController controller) {
-    final itemOptions = controller.itemsLookup
+    final itemOptions = controller.purchaseableItemOptions
         .where((item) => item.id != null)
         .map(
           (item) => ErpLinkFieldOption<int>(

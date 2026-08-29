@@ -147,6 +147,11 @@ class PurchaseRequisitionManagementController extends GetxController {
   bool get isSelectedRequisitionReadOnly =>
       selectedItem != null && !canEditSelectedRequisition;
 
+  List<ItemModel> get purchaseableItemOptions => purchaseableItemsForEditor(
+    itemsLookup,
+    retainedItemIds: lines.map((line) => line.itemId),
+  );
+
   @override
   void onInit() {
     super.onInit();

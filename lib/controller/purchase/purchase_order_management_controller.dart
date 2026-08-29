@@ -949,7 +949,10 @@ class PurchaseOrderManagementController extends GetxController {
     if (allowedIds.isEmpty) {
       return const <ItemModel>[];
     }
-    return itemsLookup
+    return purchaseableItemsForEditor(
+          itemsLookup,
+          retainedItemIds: currentLineItemIds(),
+        )
         .where((item) => item.id != null && allowedIds.contains(item.id))
         .toList(growable: false);
   }

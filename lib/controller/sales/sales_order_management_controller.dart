@@ -376,17 +376,21 @@ class SalesOrderManagementController extends GetxController {
         ),
   ];
 
-  List<AppSearchPickerOption<int>> get itemPickerOptions => itemsLookup
-      .where((item) => item.id != null)
-      .map(
-        (item) => AppSearchPickerOption<int>(
-          value: item.id!,
-          label: item.toString(),
-          subtitle: item.itemCode,
-          searchText: item.pickerSearchText,
-        ),
-      )
-      .toList(growable: false);
+  List<AppSearchPickerOption<int>> get itemPickerOptions =>
+      saleableItemsForEditor(
+            itemsLookup,
+            retainedItemIds: lines.map((line) => line.itemId),
+          )
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppSearchPickerOption<int>(
+              value: item.id!,
+              label: item.toString(),
+              subtitle: item.itemCode,
+              searchText: item.pickerSearchText,
+            ),
+          )
+          .toList(growable: false);
 
   List<AppDropdownItem<int>> get warehouseDropdownItems => warehouses
       .where((item) => item.id != null)

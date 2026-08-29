@@ -176,7 +176,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   Widget _buildLineItemTable(SalesInvoiceManagementController controller) {
     final showWarehouseField = controller.warehouses.length > 1;
-    final itemOptions = controller.itemsLookup
+    final itemOptions = controller.saleableItemOptions
         .where((item) => item.id != null)
         .map(
           (item) => ErpLinkFieldOption<int>(
