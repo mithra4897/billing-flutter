@@ -458,6 +458,11 @@ class SalesInvoiceManagementController extends GetxController {
     InvoiceLineDraft line,
     Set<int> allowedWarehouseIds,
   ) {
+    // A delivery has already consumed/assigned its stock. Keep the warehouse
+    // carried by that source line even when current availability is now zero.
+    if (line.salesDeliveryLineId != null) {
+      return false;
+    }
     if (lineSerialNumbers(line).isNotEmpty || line.serialId != null) {
       return false;
     }
@@ -1803,7 +1808,9 @@ class SalesInvoiceManagementController extends GetxController {
       final dateFrom = dateFromController.text.trim();
       final dateTo = dateToController.text.trim();
       if (search.isNotEmpty) invoiceFilters['search'] = search;
-      if (statusFilter.isNotEmpty) invoiceFilters['invoice_status'] = statusFilter;
+      if (statusFilter.isNotEmpty) {
+        invoiceFilters['invoice_status'] = statusFilter;
+      }
       if (dateFrom.isNotEmpty) invoiceFilters['date_from'] = dateFrom;
       if (dateTo.isNotEmpty) invoiceFilters['date_to'] = dateTo;
       if (effectiveDeliveryId != null) {

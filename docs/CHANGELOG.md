@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-08-29 — Require warehouses on stock-tracked sales invoice lines
+
+- Added a reusable warehouse validator to the line-item table and enabled it
+  for Sales Invoice and Sales Delivery stock-tracked rows.
+- Preserved warehouses inherited from delivery lines when refreshing current
+  stock availability after delivery consumption.
+- Service and non-stock rows remain exempt, and existing source-line
+  prefill/warehouse selection behavior is unchanged.
+- Focused Flutter analysis and all tests passed; backend enforcement is recorded
+  in the sibling API changelog.
+
+## 2026-08-29 — Fix Flutter hot-restart compilation
+
+- Restored the deterministic local API host fallback in `AppConfig.baseHost`,
+  while retaining `API_BASE_URL` dart-define overrides.
+- Updated the shared register filter animation to the current Flutter
+  `SizeTransition` API and preserved top-aligned expansion.
+- Added a regression test covering the non-null `AppConfig.baseHost` contract.
+- No database, API contract, security, or business-rule changes.
+- `dart format`, focused/full Flutter analysis, all Flutter tests, and
+  the web release build completed successfully; full analysis retains one
+  unrelated unused-element warning in the CRM follow-ups page.
+
 ## 2026-08-27 — Fix salary-component reorder callback
 
 - Replaced the unsupported `onReorderItem` argument with Flutter's

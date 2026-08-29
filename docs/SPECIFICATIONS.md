@@ -1694,3 +1694,44 @@ Acceptance criteria:
 2. Explicit API probability values are honored and safely clamped.
 3. Missing values use the documented status fallback without API writes.
 4. The indicator exposes semantic text for assistive technologies.
+
+## Flutter SDK compatibility for shared transitions and API configuration
+
+Status: Implemented (2026-08-29)
+
+The frontend must compile against the Flutter SDK declared by the project. The
+shared register filter transition uses the SDK's `SizeTransition` constructor
+contract (`axisAlignment`), and `AppConfig.baseHost` always returns a usable
+non-null host when `API_BASE_URL` is not supplied. Existing animation behavior,
+API path composition, and runtime URL override behavior remain unchanged.
+
+Acceptance criteria:
+
+1. `AppRegisterFiltersSection` compiles with the current `SizeTransition` API
+   and expands from the top edge.
+2. `AppConfig.baseHost` has a deterministic development fallback while still
+   honoring `--dart-define=API_BASE_URL=...`.
+3. Focused formatting and Flutter analysis pass without errors.
+
+## Sales invoice warehouse parity with deliveries
+
+Status: Implemented (2026-08-29)
+
+Stock-tracked sales invoice lines must retain a warehouse when they are created
+from a delivery or entered directly. A warehouse inherited from a delivery
+must not be cleared merely because the delivered stock is no longer currently
+available. The invoice editor must show the same
+required-field feedback as the delivery editor, and the API must reject a
+missing warehouse instead of persisting an incomplete stock line. Service and
+non-stock lines remain exempt, as does the existing incomplete inventory
+selection path used for draft proforma conversion.
+
+Acceptance criteria:
+
+1. A stock-tracked invoice line with no warehouse shows a field validation
+   message and cannot be saved by the Flutter editor.
+2. The sales invoice API rejects a missing warehouse on a stock-tracked line,
+   including lines mapped to a sales delivery line.
+3. Non-stock/service lines and the existing draft proforma incomplete-selection
+   flow remain compatible.
+4. Focused Flutter analysis/tests and backend syntax/tests pass.

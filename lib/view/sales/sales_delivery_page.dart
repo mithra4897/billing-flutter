@@ -208,6 +208,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         onWarehouseChanged: canEdit
             ? (value) => unawaited(controller.setLineWarehouseId(index, value))
             : null,
+        warehouseValidator: (_) => requiresWarehouse && line.warehouseId == null
+            ? 'Warehouse is required'
+            : null,
         uomId: line.uomId,
         uomOptions: uomOptions,
         onUomChanged: canEdit

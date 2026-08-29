@@ -322,6 +322,13 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 unawaited(controller.syncSerialOptionsForLine(line));
               }
             : null,
+        warehouseValidator: (_) {
+          if (line.itemId == null ||
+              !controller.isStockTrackedItem(line.itemId)) {
+            return null;
+          }
+          return line.warehouseId == null ? 'Warehouse is required' : null;
+        },
         qtyController: line.qtyController,
         onQtyChanged: controller.canEdit
             ? (_) => controller.State(() {})

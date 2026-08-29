@@ -1158,6 +1158,29 @@ been packaged successfully.
 - After simplifying the schedule choices, focused analysis passed and the
   company leave-policy model test passed (2 tests).
 
+## Flutter SDK compatibility fixes — 2026-08-29
+
+- `dart format lib/app/constants/app_config.dart
+  lib/components/app_register_filters.dart`: passed.
+- Focused `flutter analyze` for both changed files: passed with no issues.
+- Full `flutter analyze`: completed with one unrelated pre-existing warning in
+  `lib/view/crm/crm_followups_page.dart` (`_buildGapList` is unused).
+- `flutter test --no-pub`: all 4 tests passed, including the `AppConfig`
+  non-null host regression test.
+- `flutter build web --no-wasm-dry-run`: completed successfully after allowing
+  Flutter to update its SDK cache.
+
+## Sales invoice warehouse parity with deliveries — 2026-08-29
+
+- Focused formatting and analysis cover the shared line-item table, Sales
+  Invoice page, and Sales Delivery page warehouse validators.
+- The Flutter test suite continues to pass; the backend service syntax check
+  passes for the new stock-line warehouse guard.
+- Manual verification remains recommended: clear a stock item warehouse on an
+  invoice created from a delivery and confirm both the field error and the API
+  HTTP 422 response. Also verify a delivery-created invoice keeps its source
+  warehouse after the availability refresh completes.
+
 ## Print summary rupee typography
 
 - Verify quotation, sales invoice, and another document type with a `₹` text

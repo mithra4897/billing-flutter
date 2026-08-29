@@ -404,6 +404,7 @@ class ErpLineItemTableRow {
     this.warehouseId,
     this.warehouseOptions = const <AppDropdownItem<int>>[],
     this.onWarehouseChanged,
+    this.warehouseValidator,
     this.taxCodeId,
     this.taxOptions = const <AppDropdownItem<int>>[],
     this.onTaxCodeChanged,
@@ -445,6 +446,7 @@ class ErpLineItemTableRow {
   final int? warehouseId;
   final List<AppDropdownItem<int>> warehouseOptions;
   final ValueChanged<int?>? onWarehouseChanged;
+  final FormFieldValidator<int?>? warehouseValidator;
   final int? taxCodeId;
   final List<AppDropdownItem<int>> taxOptions;
   final ValueChanged<int?>? onTaxCodeChanged;
@@ -1148,6 +1150,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                       _notifyChanged();
                     }
                   : null,
+              validator: row.warehouseValidator,
               enabled: widget.enabled && row.onWarehouseChanged != null,
             ),
           ),
