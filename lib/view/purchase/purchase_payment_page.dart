@@ -387,7 +387,8 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                             children: [
                               AppSearchPickerField<int>(
                                 labelText: 'Purchase Invoice',
-                                selectedLabel: controller.invoiceOptions
+                                selectedLabel: controller
+                                    .invoiceOptionsForAllocation(index)
                                     .cast<PurchaseInvoiceModel?>()
                                     .firstWhere(
                                       (item) =>
@@ -396,7 +397,8 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                       orElse: () => null,
                                     )
                                     ?.invoiceNo,
-                                options: controller.invoiceOptions
+                                options: controller
+                                    .invoiceOptionsForAllocation(index)
                                     .where((item) => item.id != null)
                                     .map(
                                       (item) => AppSearchPickerOption<int>(
@@ -422,7 +424,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                     const TextInputType.numberWithOptions(
                                       decimal: true,
                                     ),
-                                validator: Validators.optionalNonNegativeNumber(
+                                validator: Validators.requiredPositiveNumber(
                                   'Allocated Amount',
                                 ),
                                 onChanged: (_) =>

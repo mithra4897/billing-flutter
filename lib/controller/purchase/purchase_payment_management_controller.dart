@@ -561,9 +561,7 @@ class PurchasePaymentManagementController extends GetxController {
     final total = totalAllocatedAmount();
     final current =
         Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
-    final nextAmount = _paidAmountManuallyEdited && current > total
-        ? current
-        : total;
+    final nextAmount = _paidAmountManuallyEdited ? current : total;
     _syncingPaidAmountController = true;
     paidAmountController.text = nextAmount > 0 ? nextAmount.appFixed() : '';
     _syncingPaidAmountController = false;
@@ -588,6 +586,33 @@ class PurchasePaymentManagementController extends GetxController {
     if (invoice == null) return;
 
     final outstanding = invoiceOutstanding(invoice);
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final allocatedOnOtherLines = allocations
+        .asMap()
+        .entries
+        .where((entry) => entry.key != index)
+        .fold<double>(
+          0,
+          (sum, entry) =>
+              sum +
+              (Validators.parseFlexibleNumber(
+                    entry.value.amountController.text,
+                  ) ??
+                  0),
+        );
+    final remainingPayment = paidAmount > 0
+        ? paidAmount - allocatedOnOtherLines
+        : outstanding;
+    if (remainingPayment <= 0) {
+      allocations[index].purchaseInvoiceId = null;
+      allocations[index].amountController.clear();
+      formError =
+          'The full paid amount is already allocated. Increase Paid Amount or reduce another allocation.';
+      update();
+      return;
+    }
+
     allocations[index].purchaseInvoiceId = purchaseInvoiceId;
     allocations[index].allocationType = 'against_invoice';
     final currentAllocated =
@@ -595,9 +620,14 @@ class PurchasePaymentManagementController extends GetxController {
           allocations[index].amountController.text,
         ) ??
         0;
+    final maximumAllocation = remainingPayment < outstanding
+        ? remainingPayment
+        : outstanding;
     final nextAllocated = currentAllocated <= 0
-        ? outstanding
-        : (currentAllocated > outstanding ? outstanding : currentAllocated);
+        ? maximumAllocation
+        : (currentAllocated > maximumAllocation
+              ? maximumAllocation
+              : currentAllocated);
     allocations[index].amountController.text = nextAllocated > 0
         ? nextAllocated.appFixed()
         : '';
@@ -630,6 +660,35 @@ class PurchasePaymentManagementController extends GetxController {
       )
       .toList(growable: false);
 
+  List<PurchaseInvoiceModel> invoiceOptionsForAllocation(int index) {
+    final currentInvoiceId = index >= 0 && index < allocations.length
+        ? allocations[index].purchaseInvoiceId
+        : null;
+    final selectedOnOtherLines = allocations
+        .asMap()
+        .entries
+        .where((entry) => entry.key != index)
+        .map((entry) => entry.value.purchaseInvoiceId)
+        .whereType<int>()
+        .toSet();
+
+    return invoiceOptions
+        .where((invoice) {
+          final id = invoice.id;
+          if (id == null || selectedOnOtherLines.contains(id)) {
+            return false;
+          }
+          if (id == currentInvoiceId) {
+            return true;
+          }
+          final status = (invoice.invoiceStatus ?? '').toLowerCase();
+          return status != 'draft' &&
+              status != 'cancelled' &&
+              invoiceOutstanding(invoice) > 0;
+        })
+        .toList(growable: false);
+  }
+
   void addAllocation() {
     allocations = List<PaymentAllocationDraft>.from(allocations)
       ..add(PaymentAllocationDraft());
@@ -659,6 +718,12 @@ class PurchasePaymentManagementController extends GetxController {
   }
 
   void setSupplierPartyId(int? value) {
+    if (supplierPartyId != value && allocations.isNotEmpty) {
+      _replaceAllocations(const <PaymentAllocationDraft>[], notify: false);
+      syncPaidAmountFromAllocations();
+      formError =
+          'Existing allocations were cleared because the supplier changed.';
+    }
     supplierPartyId = value;
     update();
   }
@@ -680,6 +745,9 @@ class PurchasePaymentManagementController extends GetxController {
 
   void setAllocationType(PaymentAllocationDraft allocation, String value) {
     allocation.allocationType = value;
+    if (value == 'advance' || value == 'on_account') {
+      allocation.purchaseInvoiceId = null;
+    }
     update();
   }
 
@@ -709,6 +777,39 @@ class PurchasePaymentManagementController extends GetxController {
       formError = 'Paid amount cannot be less than the total allocated amount.';
       update();
       return;
+    }
+    final selectedInvoiceIds = <int>{};
+    for (var index = 0; index < allocations.length; index++) {
+      final allocation = allocations[index];
+      final lineNumber = index + 1;
+      final allocatedAmount =
+          Validators.parseFlexibleNumber(allocation.amountController.text) ?? 0;
+      if (allocatedAmount <= 0) {
+        formError = 'Allocation line $lineNumber must have an amount.';
+        update();
+        return;
+      }
+
+      final requiresInvoice =
+          allocation.allocationType == 'against_invoice' ||
+          allocation.allocationType == 'adjustment';
+      final invoiceId = allocation.purchaseInvoiceId;
+      if (requiresInvoice && invoiceId == null) {
+        formError = 'Select an invoice for allocation line $lineNumber.';
+        update();
+        return;
+      }
+      if (!requiresInvoice && invoiceId != null) {
+        formError =
+            'Allocation line $lineNumber cannot contain an invoice for ${allocation.allocationType.replaceAll('_', ' ')}.';
+        update();
+        return;
+      }
+      if (invoiceId != null && !selectedInvoiceIds.add(invoiceId)) {
+        formError = 'The same invoice cannot be allocated more than once.';
+        update();
+        return;
+      }
     }
     saving = true;
     formError = null;
