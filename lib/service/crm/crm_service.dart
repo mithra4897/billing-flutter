@@ -135,10 +135,27 @@ class CrmService extends ErpModuleService {
         fromJson: CrmFollowupModel.fromJson,
       );
 
-  Future<ApiResponse<Map<String, dynamic>>> opportunityFollowupsBoard() =>
-      object<Map<String, dynamic>>(
+  Future<ApiResponse<Map<String, dynamic>>> opportunityFollowupsBoard({
+    String? employeeId,
+  }) =>
+      client.get<Map<String, dynamic>>(
         ApiEndpoints.crmOpportunityFollowups,
-        fromJson: (json) => json,
+        queryParameters: employeeId != null
+            ? <String, dynamic>{'employee_id': employeeId}
+            : null,
+        fromData: (json) => json,
+      );
+
+  Future<ApiResponse<List<Map<String, dynamic>>>> crmDashboardEmployees() =>
+      client.get<List<Map<String, dynamic>>>(
+        ApiEndpoints.crmDashboardEmployees,
+        fromData: (json) {
+          if (json is! List) return <Map<String, dynamic>>[];
+          return json
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(growable: false);
+        },
       );
 
   Future<ApiResponse<Map<String, dynamic>>> createOpportunityFollowup(

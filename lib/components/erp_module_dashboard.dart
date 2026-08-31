@@ -274,11 +274,9 @@ class ErpModuleDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final showTwoColumn = width >= AppUiConstants.dashboardSplitBreakpoint;
-    final hasPrimarySections = snapshot.primarySections.any(
-      (section) => section.items.isNotEmpty,
-    );
+    final hasPrimarySections = snapshot.primarySections.isNotEmpty;
     final hasInsights =
-        snapshot.trend?.points.isNotEmpty == true ||
+        snapshot.trend != null ||
         snapshot.distribution?.segments.any((segment) => segment.value > 0) ==
             true ||
         snapshot.highlights?.entries.isNotEmpty == true;
@@ -631,11 +629,7 @@ class _DashboardPrimaryColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleSections = sections
-        .where((section) => section.items.isNotEmpty)
-        .toList(growable: false);
-
-    if (visibleSections.isEmpty) {
+    if (sections.isEmpty) {
       return const _DashboardEmptyState(
         title: 'No operational sections',
         message:
@@ -644,11 +638,11 @@ class _DashboardPrimaryColumn extends StatelessWidget {
     }
 
     return Column(
-      children: visibleSections
+      children: sections
           .map(
             (section) => Padding(
               padding: EdgeInsets.only(
-                bottom: section == visibleSections.last
+                bottom: section == sections.last
                     ? 0
                     : AppUiConstants.spacingLg,
               ),
@@ -681,7 +675,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
-      if (snapshot.trend?.points.isNotEmpty == true)
+      if (snapshot.trend != null)
         _DashboardTrendCard(
           data: snapshot.trend!,
           trendControlValue: trendControlValue,
@@ -764,13 +758,27 @@ class _DashboardListCardState extends State<_DashboardListCard> {
   Widget build(BuildContext context) {
     final filteredItems = section.items
         .where((item) {
-          if (_selectedFilter.trim().isNotEmpty &&
-              !item.filterTags.contains(_selectedFilter)) {
-            return false;
+          if (_selectedFilter.trim().isNotEmpty) {
+            final selectedTags = _selectedFilter
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toSet();
+            if (selectedTags.isNotEmpty &&
+                !item.filterTags.any((tag) => selectedTags.contains(tag))) {
+              return false;
+            }
           }
-          if (_selectedSecondaryFilter.trim().isNotEmpty &&
-              !item.secondaryFilterTags.contains(_selectedSecondaryFilter)) {
-            return false;
+          if (_selectedSecondaryFilter.trim().isNotEmpty) {
+            final selectedSecondaryTags = _selectedSecondaryFilter
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toSet();
+            if (selectedSecondaryTags.isNotEmpty &&
+                !item.secondaryFilterTags.any((tag) => selectedSecondaryTags.contains(tag))) {
+              return false;
+            }
           }
           return true;
         })
@@ -1248,9 +1256,10 @@ class _DashboardTrendCardState extends State<_DashboardTrendCard> {
                 ),
               ),
             )
-          else if (data.points.isEmpty)
+          else if (data.points.isEmpty ||
+              data.points.every((point) => point.value == 0))
             _DashboardInlineEmptyState(
-              title: 'No trend points yet',
+              title: 'No activity for this selection',
               message: data.emptyMessage,
             )
           else ...[

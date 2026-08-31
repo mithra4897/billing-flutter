@@ -217,13 +217,19 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       currentUser?['is_super_admin'] == 1 ||
       currentUser?['is_super_admin'] == '1';
   final selectedEmployeeFilter = activeFilter.secondaryFilterValue.trim();
-  final selectedEmployeeIds = selectedEmployeeFilter.startsWith('employee:')
-      ? selectedEmployeeFilter
-            .substring('employee:'.length)
-            .split(',')
-            .where((item) => item.trim().isNotEmpty)
-            .toSet()
-      : <String>{};
+  final selectedEmployeeIds = <String>{};
+  if (selectedEmployeeFilter.isNotEmpty) {
+    for (final rawPart in selectedEmployeeFilter.split(',')) {
+      var part = rawPart.trim();
+      while (part.startsWith('employee:')) {
+        part = part.substring('employee:'.length).trim();
+      }
+      final numId = int.tryParse(part);
+      if (numId != null && numId > 0) {
+        selectedEmployeeIds.add('$numId');
+      }
+    }
+  }
   final employeeFilters = selectedEmployeeIds.isEmpty
       ? <String?>[null]
       : selectedEmployeeIds.toList(growable: false);
@@ -282,22 +288,57 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
           )
           .toList(growable: false);
   final dashboardAssignedEmployees = <String, String>{};
-  for (final row in followupBoardRows) {
-    final assignedUser = JsonModel.mapOf(row['assigned_user']);
-    if (assignedUser == null) {
-      continue;
+
+  void addFromUserMap(dynamic userMap) {
+    final map = JsonModel.mapOf(userMap);
+    if (map == null) return;
+    final id = intValue(map, 'id');
+    if (id == null || id <= 0) return;
+    final name = stringValue(map, 'display_name').trim();
+    final uname = stringValue(map, 'username').trim();
+    final label = name.isNotEmpty ? name : (uname.isNotEmpty ? uname : 'Employee $id');
+    dashboardAssignedEmployees['$id'] = label;
+  }
+
+  if (isSuperAdmin) {
+    try {
+      final crmEmployeesResponse = await crmService.crmDashboardEmployees();
+      for (final emp in crmEmployeesResponse.data ?? const <Map<String, dynamic>>[]) {
+        final id = intValue(emp, 'id');
+        if (id == null || id <= 0) continue;
+        final name = stringValue(emp, 'name').trim();
+        dashboardAssignedEmployees['$id'] =
+            name.isNotEmpty ? name : 'Employee $id';
+      }
+    } catch (_) {}
+
+    for (final key in const [
+      'followups',
+      'next_followups',
+      'completed_followups',
+      'opportunities_without_followups',
+    ]) {
+      final list = followupBoardData[key] as List<dynamic>? ?? const <dynamic>[];
+      for (final item in list) {
+        if (item is! Map) continue;
+        addFromUserMap(item['assigned_user']);
+        addFromUserMap(item['created_user']);
+      }
     }
-    final employeeId = intValue(assignedUser, 'id');
-    if (employeeId == null) {
-      continue;
+
+    for (final resp in openOpportunityResponses) {
+      for (final opp in resp.data ?? const <CrmOpportunityModel>[]) {
+        addFromUserMap(opp.assignedUser);
+        addFromUserMap(opp.creator);
+      }
     }
-    final employeeName = stringValue(assignedUser, 'display_name').trim();
-    final employeeUsername = stringValue(assignedUser, 'username').trim();
-    dashboardAssignedEmployees['$employeeId'] = employeeName.isNotEmpty
-        ? employeeName
-        : employeeUsername.isNotEmpty
-        ? employeeUsername
-        : 'Employee $employeeId';
+
+    for (final resp in pendingLeadResponses) {
+      for (final lead in resp.data ?? const <CrmLeadModel>[]) {
+        addFromUserMap(lead.assignedUser);
+        addFromUserMap(lead.creator);
+      }
+    }
   }
   bool matchesSelectedEmployee(Map<String, dynamic> row) {
     if (selectedEmployeeIds.isEmpty) {
@@ -444,7 +485,9 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                   value: '',
                   label: 'All employees',
                 ),
-                ...dashboardAssignedEmployees.entries.map(
+                ...dashboardAssignedEmployees.entries
+                    .where((employee) => int.tryParse(employee.key) != null && !employee.value.toLowerCase().contains('employee employee'))
+                    .map(
                   (employee) => ErpDashboardListFilterOption(
                     value: 'employee:${employee.key}',
                     label: employee.value,
