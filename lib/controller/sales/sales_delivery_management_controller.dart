@@ -409,6 +409,7 @@ class SalesDeliveryManagementController extends GetxController {
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             const <PartyGstDetailModel>[];
+        update();
       }
     } catch (_) {}
   }
@@ -720,6 +721,7 @@ class SalesDeliveryManagementController extends GetxController {
       final deliveryFilters = <String, dynamic>{
         'per_page': 200,
         'sort_by': 'delivery_date',
+        'sort_order': 'desc',
       };
       if (editorOnly && initialOrderId != null) {
         deliveryFilters['sales_order_id'] = initialOrderId;
@@ -738,7 +740,9 @@ class SalesDeliveryManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _salesService.ordersAll(filters: const {'sort_by': 'order_date'}),
+        _salesService.ordersAll(
+          filters: const {'sort_by': 'order_date', 'sort_order': 'desc'},
+        ),
         _inventoryService.itemPrices(
           filters: const {
             'per_page': 1000,
@@ -1316,6 +1320,10 @@ class SalesDeliveryManagementController extends GetxController {
       applyLinesFromOrderJson(data);
       formError = null;
       update();
+      // The order response can contain a customer that is not present in the
+      // cached customer subset. Hydrate it before the DC form is rendered so
+      // the carried customer name is available in the dropdown and print data.
+      unawaited(ensureCustomerPrintContext(customerPartyId));
       syncInventoryOptionsForLines(lines);
     } catch (error) {
       formError = error.toString();

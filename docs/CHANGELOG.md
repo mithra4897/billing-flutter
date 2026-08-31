@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-31 — Default sales lists to newest first
+
+- Standardized sales quotation, proforma, order, delivery, invoice, receipt,
+  return, and ledger source requests to send descending date/ID sorting.
+- Changed the shared register controller default from oldest-first to
+  `date_desc`, so the UI ordering matches the API ordering on first load.
+- Clear Filters now restores the same newest-first default instead of resetting
+  the list to oldest-first.
+- Existing register sort controls and user-selected filters remain unchanged.
+
 ## 2026-08-31 — Carry CRM customer into new quotations
 
 - Fixed the CRM enquiry/opportunity to quotation bootstrap so it reads the

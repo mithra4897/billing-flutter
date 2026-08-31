@@ -294,10 +294,18 @@ class SalesReturnManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.returns(
-          filters: const {'per_page': 200, 'sort_by': 'return_date'},
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'return_date',
+            'sort_order': 'desc',
+          },
         ),
         _salesService.invoices(
-          filters: const {'per_page': 300, 'sort_by': 'invoice_date'},
+          filters: const {
+            'per_page': 300,
+            'sort_by': 'invoice_date',
+            'sort_order': 'desc',
+          },
         ),
       ]);
 

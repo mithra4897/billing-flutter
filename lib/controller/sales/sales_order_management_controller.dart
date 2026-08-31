@@ -576,6 +576,7 @@ class SalesOrderManagementController extends GetxController {
       final orderFilters = <String, dynamic>{
         'per_page': 200,
         'sort_by': 'order_date',
+        'sort_order': 'desc',
       };
       if (editorOnly && initialQuotationId != null) {
         orderFilters['sales_quotation_id'] = initialQuotationId;
@@ -601,7 +602,10 @@ class SalesOrderManagementController extends GetxController {
           },
         ),
         _salesService.quotationsAll(
-          filters: const {'sort_by': 'quotation_date'},
+          filters: const {
+            'sort_by': 'quotation_date',
+            'sort_order': 'desc',
+          },
         ),
       ]);
       final contextSelection = await WorkingContextService.instance
@@ -996,6 +1000,7 @@ class SalesOrderManagementController extends GetxController {
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             const <PartyGstDetailModel>[];
+        update();
       }
     } catch (_) {}
   }

@@ -151,7 +151,7 @@ class SalesRegisterController<T> extends GetxController {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
-    this.initialSort = 'date_asc',
+    this.initialSort = 'date_desc',
     this.initialStatuses = const <String>{},
     this.statusFilterKey = '',
   });
@@ -466,7 +466,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
-    this.initialSort = 'date_asc',
+    this.initialSort = 'date_desc',
     this.initialStatuses = const <String>{},
     required this.emptyMessage,
     required this.newRoute,
@@ -799,7 +799,7 @@ class _SalesRegisterFilters<T> extends StatelessWidget {
     controller.dateToController.clear();
     controller.setCustomFilter('customer_ids', <int>{});
     controller.setStatuses(<String>{});
-    controller.setSort('date_asc');
+    controller.setSort(controller.initialSort);
     unawaited(controller.applyFilters());
   }
 

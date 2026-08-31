@@ -237,10 +237,18 @@ class SalesReceiptManagementController extends GetxController {
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
         _salesService.receipts(
-          filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'receipt_date',
+            'sort_order': 'desc',
+          },
         ),
         _salesService.invoices(
-          filters: const {'per_page': 300, 'sort_by': 'invoice_date'},
+          filters: const {
+            'per_page': 300,
+            'sort_by': 'invoice_date',
+            'sort_order': 'desc',
+          },
         ),
       ]);
 

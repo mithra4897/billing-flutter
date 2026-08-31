@@ -998,6 +998,7 @@ class SalesInvoiceManagementController extends GetxController {
             'company_id': companyId,
             'is_active': 1,
             'sort_by': 'quotation_date',
+            'sort_order': 'desc',
           },
         ),
         salesService.ordersAll(
@@ -1005,6 +1006,7 @@ class SalesInvoiceManagementController extends GetxController {
             'company_id': companyId,
             'is_active': 1,
             'sort_by': 'order_date',
+            'sort_order': 'desc',
           },
         ),
         salesService.deliveriesAll(
@@ -1012,6 +1014,7 @@ class SalesInvoiceManagementController extends GetxController {
             'company_id': companyId,
             'is_active': 1,
             'sort_by': 'delivery_date',
+            'sort_order': 'desc',
           },
         ),
       ]);
@@ -1864,6 +1867,7 @@ class SalesInvoiceManagementController extends GetxController {
                 'company_id': sourceCompanyId,
                 'is_active': 1,
                 'sort_by': 'quotation_date',
+                'sort_order': 'desc',
               },
             ),
             salesService.ordersAll(
@@ -1871,6 +1875,7 @@ class SalesInvoiceManagementController extends GetxController {
                 'company_id': sourceCompanyId,
                 'is_active': 1,
                 'sort_by': 'order_date',
+                'sort_order': 'desc',
               },
             ),
             salesService.deliveriesAll(
@@ -1878,6 +1883,7 @@ class SalesInvoiceManagementController extends GetxController {
                 'company_id': sourceCompanyId,
                 'is_active': 1,
                 'sort_by': 'delivery_date',
+                'sort_order': 'desc',
               },
             ),
           ]);
