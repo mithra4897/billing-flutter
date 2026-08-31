@@ -174,7 +174,8 @@ CrmFollowupTimingBucket? _crmBoardFollowupBucket(
   Map<String, dynamic> row,
   DateTime currentDate,
 ) {
-  final rawDate = nullableStringValue(row, 'followup_date');
+  final rawDate = nullableStringValue(row, 'next_followup') ??
+      nullableStringValue(row, 'followup_date');
   final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
   if (parsed == null) {
     return null;
@@ -268,8 +269,10 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   final followupBoardResponse = await crmService.opportunityFollowupsBoard();
   final followupBoardData =
       followupBoardResponse.data ?? const <String, dynamic>{};
-  final followupBoardRows =
-      (followupBoardData['followups'] as List<dynamic>? ?? const <dynamic>[])
+  final followupBoardRows = <Map<String, dynamic>>[
+    ...(followupBoardData['followups'] as List<dynamic>? ?? const <dynamic>[]),
+    ...(followupBoardData['next_followups'] as List<dynamic>? ?? const <dynamic>[]),
+  ]
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .where(

@@ -69,7 +69,8 @@ class CrmPendingFollowupItem {
       customerName: customerName,
       leadName: leadName,
       subjectName: resolvedSubjectName,
-      followupDateRaw: nullableStringValue(json, 'followup_date'),
+      followupDateRaw: nullableStringValue(json, 'next_followup') ??
+          nullableStringValue(json, 'followup_date'),
       priority: crmNormalizePriority(
         nullableStringValue(json, 'priority') ??
             nullableStringValue(json, 'priority_level') ??

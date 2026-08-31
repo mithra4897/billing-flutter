@@ -49,6 +49,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   final Map<int, TextEditingController> _notesControllers =
       <int, TextEditingController>{};
   final Set<int> _savingOpportunityIds = <int>{};
+  final Set<String> _collapsedSections = <String>{};
 
   String get _dashboardFilter =>
       (widget.queryParameters['dashboard_filter'] ?? '').trim();
@@ -853,12 +854,22 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     required Widget child,
   }) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final isCollapsed = _collapsedSections.contains(title);
     return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
+          InkWell(
+            onTap: () => setState(() {
+              if (isCollapsed) {
+                _collapsedSections.remove(title);
+              } else {
+                _collapsedSections.add(title);
+              }
+            }),
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+            child: Row(
+              children: [
               Container(
                 width: 28,
                 height: 28,
@@ -868,7 +879,12 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                     AppUiConstants.buttonRadius,
                   ),
                 ),
-                child: const Icon(Icons.keyboard_arrow_down, size: 18),
+                child: Icon(
+                  isCollapsed
+                      ? Icons.keyboard_arrow_right
+                      : Icons.keyboard_arrow_down,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: AppUiConstants.spacingXs),
               Expanded(
@@ -880,9 +896,12 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                 ),
               ),
             ],
+            ),
           ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          child,
+          if (!isCollapsed) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            child,
+          ],
         ],
       ),
     );
@@ -1304,6 +1323,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
             _buildDateFilter(context),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
+          if (!_filtersVisible)
+            const SizedBox(height: AppUiConstants.spacingMd),
           if (_filterDateFrom != null || _filterDateTo != null)
             _buildTimelineSection(
               context: context,
