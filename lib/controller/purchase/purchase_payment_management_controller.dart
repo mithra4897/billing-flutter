@@ -17,6 +17,11 @@ class PaymentAllocationDraft {
     this.allocationType = 'against_invoice',
     String? allocatedAmount,
     String? remarks,
+    this.isAutoAllocated = false,
+    this.sourcePaymentNo,
+    this.allocatedAt,
+    this.allocatedByName,
+    this.purchaseInvoiceNo,
   }) : amountController = TextEditingController(text: allocatedAmount ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
@@ -28,11 +33,40 @@ class PaymentAllocationDraft {
         Validators.parseFlexibleNumber(json['allocated_amount']?.toString()),
       ),
       remarks: stringValue(json, 'remarks'),
+      isAutoAllocated: boolValue(json, 'is_auto_allocated'),
+      sourcePaymentNo: json['source_payment'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['source_payment'] as Map),
+              'payment_no',
+            )
+          : null,
+      allocatedAt: nullableStringValue(json, 'allocated_at'),
+      allocatedByName: json['allocated_by_user'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['allocated_by_user'] as Map),
+              'display_name',
+              stringValue(
+                Map<String, dynamic>.from(json['allocated_by_user'] as Map),
+                'username',
+              ),
+            )
+          : null,
+      purchaseInvoiceNo: json['invoice'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['invoice'] as Map),
+              'invoice_no',
+            )
+          : null,
     );
   }
 
   int? purchaseInvoiceId;
   String allocationType;
+  final bool isAutoAllocated;
+  final String? sourcePaymentNo;
+  final String? allocatedAt;
+  final String? allocatedByName;
+  final String? purchaseInvoiceNo;
   final TextEditingController amountController;
   final TextEditingController remarksController;
 

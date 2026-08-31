@@ -8,6 +8,10 @@ class PurchasePaymentAllocationModel extends JsonModel {
     this.allocatedAmount,
     this.allocationType,
     this.remarks,
+    this.isAutoAllocated,
+    this.sourcePaymentId,
+    this.allocatedBy,
+    this.allocatedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -16,6 +20,10 @@ class PurchasePaymentAllocationModel extends JsonModel {
   final double? allocatedAmount;
   final String? allocationType;
   final String? remarks;
+  final bool? isAutoAllocated;
+  final int? sourcePaymentId;
+  final int? allocatedBy;
+  final String? allocatedAt;
   final String? createdAt;
   final String? updatedAt;
 
@@ -27,6 +35,12 @@ class PurchasePaymentAllocationModel extends JsonModel {
       allocatedAmount: JsonModel.nullableDouble(json['allocated_amount']),
       allocationType: json['allocation_type']?.toString(),
       remarks: json['remarks']?.toString(),
+      isAutoAllocated: json['is_auto_allocated'] == null
+          ? null
+          : JsonModel.boolOf(json['is_auto_allocated']),
+      sourcePaymentId: JsonModel.nullableInt(json['source_payment_id']),
+      allocatedBy: JsonModel.nullableInt(json['allocated_by']),
+      allocatedAt: json['allocated_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
@@ -36,7 +50,6 @@ class PurchasePaymentAllocationModel extends JsonModel {
     allocationType,
   ], defaultValue: 'Purchase Payment Allocation');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -45,6 +58,10 @@ class PurchasePaymentAllocationModel extends JsonModel {
     if (allocatedAmount != null) 'allocated_amount': allocatedAmount,
     if (allocationType != null) 'allocation_type': allocationType,
     if (remarks != null) 'remarks': remarks,
+    if (isAutoAllocated != null) 'is_auto_allocated': isAutoAllocated,
+    if (sourcePaymentId != null) 'source_payment_id': sourcePaymentId,
+    if (allocatedBy != null) 'allocated_by': allocatedBy,
+    if (allocatedAt != null) 'allocated_at': allocatedAt,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };

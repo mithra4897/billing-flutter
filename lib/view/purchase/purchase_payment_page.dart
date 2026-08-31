@@ -383,83 +383,107 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                           index: index,
                           total: controller.allocations.length,
                           onRemove: () => controller.removeAllocation(index),
-                          child: PurchaseCompactFieldGrid(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              AppSearchPickerField<int>(
-                                labelText: 'Purchase Invoice',
-                                selectedLabel: controller
-                                    .invoiceOptionsForAllocation(index)
-                                    .cast<PurchaseInvoiceModel?>()
-                                    .firstWhere(
-                                      (item) =>
-                                          item?.id ==
-                                          allocation.purchaseInvoiceId,
-                                      orElse: () => null,
-                                    )
-                                    ?.invoiceNo,
-                                options: controller
-                                    .invoiceOptionsForAllocation(index)
-                                    .where((item) => item.id != null)
-                                    .map(
-                                      (item) => AppSearchPickerOption<int>(
-                                        value: item.id!,
-                                        label: item.invoiceNo ?? 'Invoice',
-                                        subtitle: controller
-                                            .nestedInvoiceSubtitle(item),
+                              if (allocation.isAutoAllocated) ...[
+                                Text(
+                                  'Automatically allocated${allocation.sourcePaymentNo?.trim().isNotEmpty == true ? ' while posting ${allocation.sourcePaymentNo}' : ''}${allocation.allocatedByName?.trim().isNotEmpty == true ? ' by ${allocation.allocatedByName}' : ''}${allocation.allocatedAt?.trim().isNotEmpty == true ? ' · ${displayDateTime(allocation.allocatedAt)}' : ''}',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
                                       ),
-                                    )
-                                    .toList(growable: false),
-                                onChanged: (value) async {
-                                  await controller
-                                      .handleAllocationInvoiceChanged(
-                                        index,
-                                        value,
-                                      );
-                                },
-                              ),
-                              AppFormTextField(
-                                labelText: 'Allocated Amount',
-                                controller: allocation.amountController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                validator: Validators.requiredPositiveNumber(
-                                  'Allocated Amount',
                                 ),
-                                onChanged: (_) =>
-                                    controller.syncPaidAmountFromAllocations(),
-                              ),
-                              AppDropdownField<String>.fromMapped(
-                                labelText: 'Allocation Type',
-                                mappedItems: const <AppDropdownItem<String>>[
-                                  AppDropdownItem(
-                                    value: 'against_invoice',
-                                    label: 'Against Invoice',
+                                const SizedBox(
+                                  height: AppUiConstants.spacingSm,
+                                ),
+                              ],
+                              PurchaseCompactFieldGrid(
+                                children: [
+                                  AppSearchPickerField<int>(
+                                    labelText: 'Purchase Invoice',
+                                    selectedLabel:
+                                        controller
+                                            .invoiceOptionsForAllocation(index)
+                                            .cast<PurchaseInvoiceModel?>()
+                                            .firstWhere(
+                                              (item) =>
+                                                  item?.id ==
+                                                  allocation.purchaseInvoiceId,
+                                              orElse: () => null,
+                                            )
+                                            ?.invoiceNo ??
+                                        allocation.purchaseInvoiceNo,
+                                    options: controller
+                                        .invoiceOptionsForAllocation(index)
+                                        .where((item) => item.id != null)
+                                        .map(
+                                          (item) => AppSearchPickerOption<int>(
+                                            value: item.id!,
+                                            label: item.invoiceNo ?? 'Invoice',
+                                            subtitle: controller
+                                                .nestedInvoiceSubtitle(item),
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                    onChanged: (value) async {
+                                      await controller
+                                          .handleAllocationInvoiceChanged(
+                                            index,
+                                            value,
+                                          );
+                                    },
                                   ),
-                                  AppDropdownItem(
-                                    value: 'advance',
-                                    label: 'Advance',
+                                  AppFormTextField(
+                                    labelText: 'Allocated Amount',
+                                    controller: allocation.amountController,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    validator:
+                                        Validators.requiredPositiveNumber(
+                                          'Allocated Amount',
+                                        ),
+                                    onChanged: (_) => controller
+                                        .syncPaidAmountFromAllocations(),
                                   ),
-                                  AppDropdownItem(
-                                    value: 'on_account',
-                                    label: 'On Account',
+                                  AppDropdownField<String>.fromMapped(
+                                    labelText: 'Allocation Type',
+                                    mappedItems:
+                                        const <AppDropdownItem<String>>[
+                                          AppDropdownItem(
+                                            value: 'against_invoice',
+                                            label: 'Against Invoice',
+                                          ),
+                                          AppDropdownItem(
+                                            value: 'advance',
+                                            label: 'Advance',
+                                          ),
+                                          AppDropdownItem(
+                                            value: 'on_account',
+                                            label: 'On Account',
+                                          ),
+                                          AppDropdownItem(
+                                            value: 'adjustment',
+                                            label: 'Adjustment',
+                                          ),
+                                        ],
+                                    initialValue: allocation.allocationType,
+                                    onChanged: (value) =>
+                                        controller.setAllocationType(
+                                          allocation,
+                                          value ?? 'against_invoice',
+                                        ),
                                   ),
-                                  AppDropdownItem(
-                                    value: 'adjustment',
-                                    label: 'Adjustment',
+                                  AppFormTextField(
+                                    labelText: 'Remarks',
+                                    controller: allocation.remarksController,
                                   ),
                                 ],
-                                initialValue: allocation.allocationType,
-                                onChanged: (value) =>
-                                    controller.setAllocationType(
-                                      allocation,
-                                      value ?? 'against_invoice',
-                                    ),
-                              ),
-                              AppFormTextField(
-                                labelText: 'Remarks',
-                                controller: allocation.remarksController,
                               ),
                             ],
                           ),
