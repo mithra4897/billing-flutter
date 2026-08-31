@@ -73,6 +73,7 @@ class _DocumentPrintDesignerController extends GetxController {
   bool uploadingImage = false;
   bool uploadingBackground = false;
   bool editMode = false;
+  bool showPdfViewerInEditMode = true;
   bool loading = true;
   bool saving = false;
   bool printingPdf = false;
@@ -241,6 +242,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       _controller.uploadingBackground = value;
   bool get _editMode => _controller.editMode;
   set _editMode(bool value) => _controller.editMode = value;
+  bool get _showPdfViewerInEditMode => _controller.showPdfViewerInEditMode;
+  set _showPdfViewerInEditMode(bool value) =>
+      _controller.showPdfViewerInEditMode = value;
   bool get _loading => _controller.loading;
   set _loading(bool value) => _controller.loading = value;
   bool get _saving => _controller.saving;
@@ -1235,17 +1239,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     if (_editMode) {
-      if (widget.documentType == 'sales_quotation' &&
-          (_documentDataJson['quotation_content']
-                  ?.toString()
-                  .trim()
-                  .isNotEmpty ??
-              false)) {
+      if (widget.documentType == 'sales_quotation') {
         actions.add(
           AdaptiveShellActionButton(
-            onPressed: _openPdfPreviewDialog,
-            icon: Icons.picture_as_pdf_outlined,
-            label: 'PDF Preview',
+            onPressed: () => _controller.updateState(() {
+              _showPdfViewerInEditMode = !_showPdfViewerInEditMode;
+            }),
+            icon: _showPdfViewerInEditMode
+                ? Icons.design_services_outlined
+                : Icons.picture_as_pdf_outlined,
+            label: _showPdfViewerInEditMode ? 'Design Canvas' : 'PDF Preview',
             filled: false,
           ),
         );
@@ -1312,25 +1315,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return actions;
   }
 
-  Future<void> _openPdfPreviewDialog() async {
-    final template = _template;
-    if (template == null || !mounted) {
-      return;
-    }
-    await showDialog<void>(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: math.min(1100, MediaQuery.sizeOf(dialogContext).width - 48),
-          height: math.min(900, MediaQuery.sizeOf(dialogContext).height - 48),
-          child: _buildQuotationPdfPreview(template),
-        ),
-      ),
-    );
-  }
-
   /// The single PDF viewer used by both preview mode and quotation editing.
   /// Keeping this configuration in one place prevents the two screens from
   /// drifting apart (page size, margins, decorations and loading behavior).
@@ -1394,7 +1378,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             final isMobileLayout = constraints.maxWidth < 760;
             final showSideInspector = _editMode && !isMobileLayout;
             final useQuotationPdfViewer =
-                _editMode && widget.documentType == 'sales_quotation';
+                _editMode &&
+                _showPdfViewerInEditMode &&
+                widget.documentType == 'sales_quotation';
             final pagePadding = isMobileLayout
                 ? AppUiConstants.spacingSm
                 : AppUiConstants.pagePadding;
