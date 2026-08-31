@@ -1,5 +1,17 @@
 # Architecture
 
+## CRM enquiry quotation bootstrap
+
+`SalesQuotationManagementController.applyOpportunityBootstrap` reads the typed
+`CrmOpportunityModel` fields returned by the CRM opportunity endpoint. It
+copies the company and customer identifiers to the new quotation state, keeps
+the `crm_opportunity_id` for persistence, and adds an empty-only linkage note.
+If the linked party is absent from the initial Sales lookup, the quotation
+controller adds the fetched party to its local customer options and refreshes
+the editor after the detail request completes.
+This avoids relying on an unmodelled nested enquiry object while preserving the
+existing CRM sales-chain API and editable quotation form.
+
 ## Global status toast
 
 `AppToast` owns one overlay entry above the active navigator and replaces it

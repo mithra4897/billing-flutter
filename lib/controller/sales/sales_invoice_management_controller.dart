@@ -418,6 +418,9 @@ class SalesInvoiceManagementController extends GetxController {
       State(() {
         final party = (responses[0] as ApiResponse<PartyModel>).data;
         if (party != null) {
+          if (!customers.any((item) => item.id == partyId)) {
+            customers = <PartyModel>[...customers, party];
+          }
           customerDetailsById[partyId] = party.copyWith(
             addresses:
                 (responses[1] as PaginatedResponse<PartyAddressModel>).data ??

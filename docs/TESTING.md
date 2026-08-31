@@ -1,5 +1,15 @@
 # Testing
 
+## CRM enquiry quotation bootstrap — 2026-08-31
+
+- Verify the CRM enquiry "New quotation" action opens a new quotation with
+  the linked customer already selected and the opportunity link retained.
+- Verify the linked company and empty-only opportunity note are carried into
+  the quotation draft, while the customer remains editable.
+- `dart format` and focused `flutter analyze` are required for the quotation
+  controller change; authenticated API-backed browser verification remains
+  dependent on the configured CRM API being reachable.
+
 ## Configurable LOP calculation basis and payslip summary — 2026-08-27
 
 - Backend coverage verifies percentage-based (5% of ₹12,000 = ₹600),

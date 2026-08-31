@@ -143,7 +143,14 @@ String _purchaseInvoiceDashboardRoute(
 }
 
 bool _crmIsCompletedBoardFollowupStatus(String? status) {
-  return crmIsCompletedFollowupStatus(status);
+  final normalized = (status ?? '').trim().toLowerCase();
+  return crmIsCompletedFollowupStatus(status) ||
+      normalized == 'won' ||
+      normalized == 'own' ||
+      normalized == 'converted' ||
+      normalized == 'closed_won' ||
+      normalized == 'closed_lost' ||
+      normalized == 'lost';
 }
 
 bool _crmIsBoardFollowupDueToday(

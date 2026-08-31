@@ -572,28 +572,21 @@ class SalesQuotationManagementController extends GetxController {
   Future<void> applyOpportunityBootstrap(int opportunityId) async {
     try {
       final response = await _crmService.opportunity(opportunityId);
-      if (response.data == null) {
+      final opportunity = response.data;
+      if (opportunity == null) {
         return;
       }
-      final opportunityData = response.data!.toJson();
-      final enquiry = opportunityData['enquiry'];
-      if (enquiry is! Map) {
-        return;
-      }
-      final enquiryData = Map<String, dynamic>.from(enquiry);
-      final nextCompanyId = intValue(enquiryData, 'company_id');
-      final partyId = intValue(enquiryData, 'customer_party_id');
+
       crmOpportunityId = opportunityId;
-      if (nextCompanyId != null) {
-        companyId = nextCompanyId;
+      if (opportunity.companyId != null) {
+        companyId = opportunity.companyId;
       }
-      if (partyId != null) {
-        customerPartyId = partyId;
-        unawaited(ensureCustomerPrintContext(partyId));
+      if (opportunity.customerPartyId != null) {
+        customerPartyId = opportunity.customerPartyId;
+        unawaited(ensureCustomerPrintContext(opportunity.customerPartyId));
       }
-      final note =
-          'Linked CRM enquiry: ${stringValue(opportunityData, 'opportunity_name')}'
-              .trim();
+      final note = 'Linked CRM enquiry: ${opportunity.opportunityName ?? ''}'
+          .trim();
       if (note.isNotEmpty && notesController.text.trim().isEmpty) {
         notesController.text = note;
       }
@@ -726,6 +719,9 @@ class SalesQuotationManagementController extends GetxController {
       }
       final party = (responses[0] as ApiResponse<PartyModel>).data;
       if (party != null) {
+        if (!customers.any((item) => item.id == partyId)) {
+          customers = <PartyModel>[...customers, party];
+        }
         customerDetailsById[partyId] = party.copyWith(
           addresses:
               (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
@@ -740,6 +736,7 @@ class SalesQuotationManagementController extends GetxController {
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             const <PartyGstDetailModel>[];
+        update();
       }
     } catch (_) {}
   }

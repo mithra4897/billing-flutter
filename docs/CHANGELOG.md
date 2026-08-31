@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-31 — Carry CRM customer into new quotations
+
+- Fixed the CRM enquiry/opportunity to quotation bootstrap so it reads the
+  typed opportunity fields returned by the API.
+- New quotations now retain the CRM opportunity link and preselect the linked
+  customer and company; the customer remains editable.
+- A linked customer missing from the initial Sales lookup is fetched and added
+  to the quotation customer options before the editor refreshes.
+- No database or API contract change.
+- Focused formatting and analysis are pending verification.
+
 ## 2026-08-29 — Require warehouses on stock-tracked sales invoice lines
 
 - Added a reusable warehouse validator to the line-item table and enabled it

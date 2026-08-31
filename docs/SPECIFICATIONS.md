@@ -1,5 +1,28 @@
 # Specifications
 
+## CRM enquiry quotation bootstrap
+
+- Date: 2026-08-31
+- Status: Implemented
+
+Creating a quotation from an existing CRM enquiry/opportunity must retain the
+CRM link and preselect the enquiry's customer. The sales user must not need to
+choose the same customer again. The quotation remains editable, so the user can
+replace the customer deliberately before saving when business circumstances
+require it.
+
+Acceptance criteria:
+
+1. The CRM "New quotation" action opens a quotation with the opportunity id
+   retained in the save payload.
+2. The quotation customer defaults to the linked opportunity's
+   `customer_party_id` when one exists, including when the party is not present
+   in the initial Sales customer lookup response.
+3. The quotation's company defaults to the linked opportunity's company and
+   the notes identify the linked opportunity without overwriting entered notes.
+4. Missing or unavailable CRM bootstrap data leaves a normal editable new
+   quotation; it does not block quotation creation.
+
 ## Configurable LOP calculation basis and payslip summary
 
 - Date: 2026-08-27
