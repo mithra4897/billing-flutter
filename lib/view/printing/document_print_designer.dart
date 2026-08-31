@@ -1917,11 +1917,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Quotation content — page ${index + 2}',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const Divider(),
-                  Text(
                     pages[index]
                         .replaceAll(RegExp(r'<!--.*?-->'), '')
                         .replaceAllMapped(
@@ -2681,111 +2676,100 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       ),
     );
 
-    // Quotation content is intentionally rendered as continuation pages. The
-    // legacy template remains the first fixed-layout page; long-form content
-    // uses MultiPage so it can flow without clipping. Manual page breaks are
-    // represented by the marker inserted by the quotation editor.
     if (widget.documentType == 'sales_quotation') {
       final quotationContent = (data['quotation_content']?.toString() ?? '')
           .trim();
       if (quotationContent.isNotEmpty) {
         final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
         final rupeeFallbackFont = await _loadPdfRupeeFallbackFont();
-        final contentFont = await _pdfFontBundleForFamily(
-          _shapeFontFamily(
-            template,
+        final bodyShape = template.shapes
+            .where((shape) => shape.type == 'text' && shape.y >= 450)
+            .fold<DocumentPrintShape?>(null, (best, shape) {
+          if (best == null || shape.height > best.height) return shape;
+          return best;
+        }) ??
             template.shapes.firstWhere(
               (shape) => shape.type == 'text',
-              orElse: () => template.shapes.first,
-            ),
-          ),
+              orElse: () => const DocumentPrintShape(
+                id: 'quotation-body-style',
+                type: 'text',
+                x: 0,
+                y: 0,
+                width: 120,
+                height: 24,
+              ),
+            );
+        final contentFont = await _pdfFontBundleForFamily(
+          _shapeFontFamily(template, bodyShape),
         );
-        final contentWidgets = _quotationContinuationWidgets(
+        final chunks = _quotationContinuationChunks(
           quotationContent,
           contentFont,
+          bodyShape: bodyShape,
           fallbackFonts: <pw.Font>[unicodeFallbackFont, rupeeFallbackFont],
+          availableHeight: math.max(120, template.pageHeight - 110),
         );
-        if (contentWidgets.isNotEmpty) {
-          final continuationTheme = pw.PageTheme(
-            pageFormat: pageFormat,
-            margin: const pw.EdgeInsets.fromLTRB(42, 42, 42, 36),
-            buildBackground: (context) => pw.Container(
-              decoration: pw.BoxDecoration(
-                color: PdfColors.white,
-                border: pw.Border.all(
-                  color: PdfColor.fromHex('#90CAF9'),
-                  width: 0.8,
+        for (var index = 0; index < chunks.length; index++) {
+          final pageNumber = index + 2;
+          final continuation = buildContinuationPageFromTemplate(
+            template,
+            pageNumber,
+            chunks[index].map((entry) => entry.$1).join('\n'),
+          );
+          final pageChildren = <pw.Widget>[];
+          final continuationBackground = resolvePrintTemplateText(
+            continuation.backgroundImagePath ?? '',
+            data,
+          );
+          if (continuationBackground.trim().isNotEmpty) {
+            final image = await _pdfImageProviderForSource(
+              continuationBackground,
+              imageCache,
+            );
+            if (image != null) {
+              pageChildren.add(pw.Positioned.fill(
+                child: pw.Opacity(
+                  opacity: continuation.backgroundOpacity.clamp(0.0, 1.0),
+                  child: pw.Image(image, fit: pw.BoxFit.cover),
                 ),
-                borderRadius: pw.BorderRadius.circular(4),
+              ));
+            }
+          }
+          for (final shape in continuation.shapes) {
+            if (!shape.visible) continue;
+            final widget = await _buildPdfShapeWidget(
+              shape, data, imageCache, template: continuation,
+            );
+            if (widget == null) continue;
+            pageChildren.add(pw.Positioned(
+              left: shape.x,
+              top: shape.y,
+              child: pw.SizedBox(
+                width: math.max(1, shape.width),
+                height: math.max(1, shape.height),
+                child: widget,
               ),
-              child: pw.Stack(
-                children: [
-                  if (backgroundImage != null)
-                    pw.Positioned.fill(
-                      child: pw.Opacity(
-                        opacity: template.backgroundOpacity.clamp(0.0, 1.0),
-                        child: pw.Image(backgroundImage, fit: pw.BoxFit.cover),
-                      ),
-                    ),
-                  if (_watermarkText.isNotEmpty)
-                    pw.Positioned.fill(
-                      child: pw.Center(
-                        child: pw.Opacity(
-                          opacity: 0.18,
-                          child: pw.Transform.rotate(
-                            angle: -math.pi / 5,
-                            child: pw.Text(
-                              _watermarkText,
-                              style: pw.TextStyle(
-                                fontSize: math.max(
-                                  72,
-                                  math.min(
-                                        template.pageWidth,
-                                        template.pageHeight,
-                                      ) *
-                                      0.16,
-                                ),
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.red300,
-                                letterSpacing: 8,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+            ));
+          }
+          final contentTop = _continuationContentTop(continuation);
+          final contentWidgets = chunks[index].map((entry) => entry.$2).toList();
+          pageChildren.add(pw.Positioned(
+            left: 45,
+            top: contentTop,
+            child: pw.SizedBox(
+              width: continuation.pageWidth - 90,
+              height: continuation.pageHeight - contentTop - 42,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: contentWidgets,
               ),
             ),
-          );
-          pdf.addPage(
-            pw.MultiPage(
-              pageTheme: continuationTheme,
-              maxPages: 100,
-              header: (context) => pw.Text(
-                '${data['company_name'] ?? ''}  •  ${data['document_number'] ?? 'Quotation'}',
-                style: _pdfTextStyleForTemplate(
-                  contentFont,
-                  fontSize: 8,
-                  color: PdfColors.grey700,
-                  fontFallback: <pw.Font>[unicodeFallbackFont],
-                ),
-              ),
-              footer: (context) => pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text(
-                  'Page ${context.pageNumber}',
-                  style: _pdfTextStyleForTemplate(
-                    contentFont,
-                    fontSize: 8,
-                    color: PdfColors.grey700,
-                    fontFallback: <pw.Font>[unicodeFallbackFont],
-                  ),
-                ),
-              ),
-              build: (_) => contentWidgets,
-            ),
-          );
+          ));
+          pdf.addPage(pw.Page(
+            pageFormat: _pageFormatForTemplate(continuation),
+            margin: pw.EdgeInsets.zero,
+            build: (_) => pw.Stack(children: pageChildren),
+          ));
         }
       }
     }
@@ -2793,9 +2777,61 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return pdf.save();
   }
 
+  DocumentPrintTemplate buildContinuationPageFromTemplate(
+    DocumentPrintTemplate template,
+    int pageIndex,
+    String quotationContentChunk,
+  ) {
+    final cloned = DocumentPrintTemplate.fromJson(template.toJson());
+    final contentTop = _continuationContentTop(cloned);
+    final kept = cloned.shapes
+        .where((shape) => shape.visible && shape.id == 'pbs-outer-border')
+        .toList();
+    kept.add(DocumentPrintShape(
+      id: 'continuation-content-page-$pageIndex', type: 'text', x: 45,
+      y: contentTop + 32, width: cloned.pageWidth - 90, height: 1,
+      text: quotationContentChunk, visible: false,
+    ));
+    kept.add(DocumentPrintShape(
+      id: 'continuation-page-number-$pageIndex', type: 'text', x: 0,
+      y: cloned.pageHeight - 20, width: 1, height: 1, text: '$pageIndex',
+      visible: false,
+    ));
+    return cloned.copyWith(shapes: kept);
+  }
+
+  double _continuationContentTop(DocumentPrintTemplate template) {
+    return math.min(55, template.pageHeight - 120);
+  }
+
+  List<List<(String, pw.Widget)>> _quotationContinuationChunks(
+    String markdown,
+    _PdfFontBundle fontBundle, {
+    required DocumentPrintShape bodyShape,
+    required List<pw.Font> fallbackFonts,
+    required double availableHeight,
+  }) {
+    final widgets = _quotationContinuationWidgets(markdown, fontBundle,
+      bodyShape: bodyShape, fallbackFonts: fallbackFonts);
+    final lines = markdown.split('\n');
+    final chunks = <List<(String, pw.Widget)>>[];
+    var chunk = <(String, pw.Widget)>[];
+    var used = 0.0;
+    for (var i = 0; i < widgets.length; i++) {
+      final height = bodyShape.fontSize * (lines.isNotEmpty && i < lines.length && lines[i].trim().isNotEmpty ? 1.8 : 0.7);
+      if (chunk.isNotEmpty && used + height > availableHeight) {
+        chunks.add(chunk); chunk = <(String, pw.Widget)>[]; used = 0;
+      }
+      chunk.add(((i < lines.length ? lines[i] : ''), widgets[i])); used += height;
+    }
+    if (chunk.isNotEmpty) chunks.add(chunk);
+    return chunks;
+  }
+
   List<pw.Widget> _quotationContinuationWidgets(
     String markdown,
     _PdfFontBundle fontBundle, {
+    required DocumentPrintShape bodyShape,
     required List<pw.Font> fallbackFonts,
   }) {
     const pageBreak = '<!-- quotation-page-break -->';
@@ -2806,9 +2842,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         .toList(growable: false);
     final widgets = <pw.Widget>[];
     for (var segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-      if (segmentIndex > 0) {
-        widgets.add(pw.NewPage());
-      }
       for (final line in segments[segmentIndex].split('\n')) {
         final trimmed = line.trimRight();
         if (trimmed.trim().isEmpty) {
@@ -2825,18 +2858,27 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         final style = _pdfTextStyleForTemplate(
           fontBundle,
           fontSize: heading != null
-              ? 15 - (heading.group(1)!.length * 0.7)
-              : 10.5,
-          color: PdfColors.black,
+              ? math.max(
+                  10,
+                  bodyShape.fontSize +
+                      5 - (heading.group(1)!.length * 0.7),
+                ).toDouble()
+              : math.max(10, bodyShape.fontSize),
+          color: _pdfColor(bodyShape.bodyTextColor),
           fontFallback: fallbackFonts,
           bold: heading != null || isBullet || isNumbered,
-          lineHeight: 1.3,
+          italic: bodyShape.italic,
+          letterSpacing: bodyShape.letterSpacing,
+          lineHeight: bodyShape.lineHeight,
+          decoration: bodyShape.underline
+              ? pw.TextDecoration.underline
+              : pw.TextDecoration.none,
         );
         widgets.add(
           pw.Padding(
             padding: pw.EdgeInsets.only(
-              top: heading != null ? 8 : 1,
-              bottom: heading != null ? 4 : 2,
+              top: heading != null ? bodyShape.fontSize : bodyShape.fontSize * 0.15,
+              bottom: heading != null ? bodyShape.fontSize * 0.5 : bodyShape.fontSize * 0.25,
               left: isBullet || isNumbered ? 8 : 0,
             ),
             child: _quotationMarkdownRichText(

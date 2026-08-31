@@ -548,7 +548,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   enabled: controller.canEdit,
                   validator: Validators.optionalDate('Customer Ref Date'),
                 ),
-                _buildQuotationContentEditor(context, controller),
                 AppFormTextField(
                   labelText: 'Notes (shown to customer)',
                   controller: controller.notesController,
@@ -587,6 +586,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       ? controller.setApplyRoundOff
                       : null,
                 ),
+                _buildQuotationContentEditor(context, controller),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
