@@ -505,7 +505,6 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         secondaryFilterSearchable: isSuperAdmin,
         initialSecondaryFilterValue: selectedEmployeeFilter,
         items: pendingItems
-            .take(6)
             .map((item) {
               final opportunityName = (item.opportunityName ?? '').trim();
               final customerName = (item.customerName ?? '').trim();

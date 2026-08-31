@@ -759,10 +759,17 @@ class _DashboardListCardState extends State<_DashboardListCard> {
     final filteredItems = section.items
         .where((item) {
           if (_selectedFilter.trim().isNotEmpty) {
-            final selectedTags = _selectedFilter
+            final prefix = _selectedFilter.contains(':')
+                ? _selectedFilter.substring(0, _selectedFilter.indexOf(':') + 1)
+                : '';
+            final valuesPart = prefix.isNotEmpty
+                ? _selectedFilter.substring(prefix.length)
+                : _selectedFilter;
+            final selectedTags = valuesPart
                 .split(',')
                 .map((s) => s.trim())
                 .where((s) => s.isNotEmpty)
+                .map((s) => '$prefix$s')
                 .toSet();
             if (selectedTags.isNotEmpty &&
                 !item.filterTags.any((tag) => selectedTags.contains(tag))) {
@@ -770,10 +777,17 @@ class _DashboardListCardState extends State<_DashboardListCard> {
             }
           }
           if (_selectedSecondaryFilter.trim().isNotEmpty) {
-            final selectedSecondaryTags = _selectedSecondaryFilter
+            final prefix = _selectedSecondaryFilter.contains(':')
+                ? _selectedSecondaryFilter.substring(0, _selectedSecondaryFilter.indexOf(':') + 1)
+                : '';
+            final valuesPart = prefix.isNotEmpty
+                ? _selectedSecondaryFilter.substring(prefix.length)
+                : _selectedSecondaryFilter;
+            final selectedSecondaryTags = valuesPart
                 .split(',')
                 .map((s) => s.trim())
                 .where((s) => s.isNotEmpty)
+                .map((s) => '$prefix$s')
                 .toSet();
             if (selectedSecondaryTags.isNotEmpty &&
                 !item.secondaryFilterTags.any((tag) => selectedSecondaryTags.contains(tag))) {
@@ -1135,7 +1149,9 @@ class _DashboardSearchFilterField extends StatelessWidget {
         options: options
             .map(
               (option) => ErpLinkFieldOption<String>(
-                value: option.value,
+                value: option.value.startsWith('employee:') 
+                    ? option.value.substring(9) 
+                    : option.value,
                 label: option.label,
               ),
             )
@@ -1144,7 +1160,9 @@ class _DashboardSearchFilterField extends StatelessWidget {
         initialSelection: selected == null
             ? null
             : ErpLinkFieldOption<String>(
-                value: selected.value,
+                value: selected.value.startsWith('employee:') 
+                    ? selected.value.substring(9) 
+                    : selected.value,
                 label: selected.label,
               ),
         onChanged: (_) {},
