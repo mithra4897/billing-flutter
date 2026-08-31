@@ -39,6 +39,7 @@ class SalesQuotationModel extends JsonModel {
     this.cancelReason,
     this.notes,
     this.termsConditions,
+    this.quotationContent,
     this.approvedBy,
     this.approvedAt,
     this.isActive,
@@ -84,6 +85,7 @@ class SalesQuotationModel extends JsonModel {
   final String? cancelReason;
   final String? notes;
   final String? termsConditions;
+  final String? quotationContent;
   final int? approvedBy;
   final String? approvedAt;
   final bool? isActive;
@@ -136,6 +138,7 @@ class SalesQuotationModel extends JsonModel {
       cancelReason: json['cancel_reason']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
+      quotationContent: json['quotation_content']?.toString(),
       approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
       isActive: json['is_active'] == null
@@ -197,6 +200,7 @@ class SalesQuotationModel extends JsonModel {
     if (cancelReason != null) 'cancel_reason': cancelReason,
     if (notes != null) 'notes': notes,
     if (termsConditions != null) 'terms_conditions': termsConditions,
+    if (quotationContent != null) 'quotation_content': quotationContent,
     if (approvedBy != null) 'approved_by': approvedBy,
     if (approvedAt != null) 'approved_at': approvedAt,
     if (isActive != null) 'is_active': isActive,

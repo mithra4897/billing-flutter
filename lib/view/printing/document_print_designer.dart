@@ -1235,6 +1235,21 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     if (_editMode) {
+      if (widget.documentType == 'sales_quotation' &&
+          (_documentDataJson['quotation_content']
+                  ?.toString()
+                  .trim()
+                  .isNotEmpty ??
+              false)) {
+        actions.add(
+          AdaptiveShellActionButton(
+            onPressed: _openPdfPreviewDialog,
+            icon: Icons.picture_as_pdf_outlined,
+            label: 'PDF Preview',
+            filled: false,
+          ),
+        );
+      }
       actions.add(
         AdaptiveShellActionButton(
           onPressed: _saving ? null : _saveTemplate,
@@ -1297,6 +1312,62 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return actions;
   }
 
+  Future<void> _openPdfPreviewDialog() async {
+    final template = _template;
+    if (template == null || !mounted) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(24),
+        child: SizedBox(
+          width: math.min(1100, MediaQuery.sizeOf(dialogContext).width - 48),
+          height: math.min(900, MediaQuery.sizeOf(dialogContext).height - 48),
+          child: _buildQuotationPdfPreview(template),
+        ),
+      ),
+    );
+  }
+
+  /// The single PDF viewer used by both preview mode and quotation editing.
+  /// Keeping this configuration in one place prevents the two screens from
+  /// drifting apart (page size, margins, decorations and loading behavior).
+  Widget _buildQuotationPdfPreview(DocumentPrintTemplate template) {
+    return PdfPreview(
+      build: (_) async => await _buildPdfBytes() ?? Uint8List(0),
+      initialPageFormat: _pageFormatForTemplate(template),
+      allowPrinting: false,
+      allowSharing: false,
+      canChangePageFormat: false,
+      canChangeOrientation: false,
+      canDebug: false,
+      useActions: false,
+      dynamicLayout: false,
+      maxPageWidth: template.pageWidth,
+      previewPageMargin: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+      scrollViewDecoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
+      ),
+      pdfPreviewPageDecoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      loadingWidget: const AppLoadingView(
+        message: 'Preparing quotation pages...',
+      ),
+    );
+  }
+
   Widget _buildContent() {
     final template = _template;
     if (_loading) {
@@ -1309,6 +1380,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
     }
 
+    if (!widget.generateOnly &&
+        !_editMode &&
+        widget.documentType == 'sales_quotation') {
+      return _buildQuotationPdfPreview(template);
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -1316,6 +1393,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           builder: (context, constraints) {
             final isMobileLayout = constraints.maxWidth < 760;
             final showSideInspector = _editMode && !isMobileLayout;
+            final useQuotationPdfViewer =
+                _editMode && widget.documentType == 'sales_quotation';
             final pagePadding = isMobileLayout
                 ? AppUiConstants.spacingSm
                 : AppUiConstants.pagePadding;
@@ -1346,10 +1425,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                             children: [
                               Expanded(
                                 flex: 3,
-                                child: _buildCanvasCard(
-                                  template,
-                                  compact: isMobileLayout,
-                                ),
+                                child: useQuotationPdfViewer
+                                    ? _buildQuotationPdfPreview(template)
+                                    : _buildCanvasCard(
+                                        template,
+                                        compact: isMobileLayout,
+                                      ),
                               ),
                               SizedBox(width: sectionSpacing),
                               Expanded(
@@ -1367,10 +1448,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
-                                child: _buildCanvasCard(
-                                  template,
-                                  compact: isMobileLayout,
-                                ),
+                                child: useQuotationPdfViewer
+                                    ? _buildQuotationPdfPreview(template)
+                                    : _buildCanvasCard(
+                                        template,
+                                        compact: isMobileLayout,
+                                      ),
                               ),
                               if (_editMode) ...[
                                 SizedBox(height: sectionSpacing),
@@ -1692,94 +1775,192 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     return AppSectionCard(
       padding: EdgeInsets.all(cardPadding),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
-        ),
-        padding: EdgeInsets.all(canvasPadding),
-        alignment: Alignment.center,
-        child: KeyboardListener(
-          focusNode: _designerFocusNode,
-          autofocus: true,
-          onKeyEvent: (event) {
-            if (event is! KeyDownEvent) {
-              return;
-            }
-            final isCommand =
-                HardwareKeyboard.instance.isMetaPressed ||
-                HardwareKeyboard.instance.isControlPressed;
-            final isShift = HardwareKeyboard.instance.isShiftPressed;
-            if (isCommand && event.logicalKey == LogicalKeyboardKey.keyZ) {
-              if (isShift) {
-                _redoTemplateChange();
-              } else {
-                _undoTemplateChange();
-              }
-              return;
-            }
-            if (isCommand && event.logicalKey == LogicalKeyboardKey.keyY) {
-              _redoTemplateChange();
-              return;
-            }
-            final selectedIds = _selectedShapeIds;
-            final shapeId = _selectedShapeId;
-            if (selectedIds.isEmpty || shapeId == null) {
-              return;
-            }
-            final delta = isShift ? 10.0 : 1.0;
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
+              ),
+              padding: EdgeInsets.all(canvasPadding),
+              alignment: Alignment.center,
+              child: SizedBox(
+                height: template.pageHeight + (canvasPadding * 2),
+                child: KeyboardListener(
+                  focusNode: _designerFocusNode,
+                  autofocus: true,
+                  onKeyEvent: (event) {
+                    if (event is! KeyDownEvent) {
+                      return;
+                    }
+                    final isCommand =
+                        HardwareKeyboard.instance.isMetaPressed ||
+                        HardwareKeyboard.instance.isControlPressed;
+                    final isShift = HardwareKeyboard.instance.isShiftPressed;
+                    if (isCommand &&
+                        event.logicalKey == LogicalKeyboardKey.keyZ) {
+                      if (isShift) {
+                        _redoTemplateChange();
+                      } else {
+                        _undoTemplateChange();
+                      }
+                      return;
+                    }
+                    if (isCommand &&
+                        event.logicalKey == LogicalKeyboardKey.keyY) {
+                      _redoTemplateChange();
+                      return;
+                    }
+                    final selectedIds = _selectedShapeIds;
+                    final shapeId = _selectedShapeId;
+                    if (selectedIds.isEmpty || shapeId == null) {
+                      return;
+                    }
+                    final delta = isShift ? 10.0 : 1.0;
 
-            if (event.logicalKey == LogicalKeyboardKey.delete) {
-              _deleteSelectedShape();
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              _beginHistoryGesture();
-              _moveShape(shapeId, Offset(-delta, 0));
-              _endHistoryGesture();
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              _beginHistoryGesture();
-              _moveShape(shapeId, Offset(delta, 0));
-              _endHistoryGesture();
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              _beginHistoryGesture();
-              _moveShape(shapeId, Offset(0, -delta));
-              _endHistoryGesture();
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              _beginHistoryGesture();
-              _moveShape(shapeId, Offset(0, delta));
-              _endHistoryGesture();
-            }
-          },
-          child: RepaintBoundary(
-            key: _previewBoundaryKey,
-            child: _DesignerCanvas(
-              template: template,
-              documentData: _documentDataJson,
-              watermarkText: _watermarkText,
-              editMode: _editMode,
-              selectedShapeId: _selectedShapeId,
-              selectedShapeIds: _selectedShapeIds,
-              zoom: _canvasZoom,
-              onSelectShape: (shapeId) {
-                if (!_editMode) {
-                  return;
-                }
-                _handleShapeSelection(shapeId);
-              },
-              onMoveShape: _moveShape,
-              onResizeShape: _resizeShape,
-              onMoveStart: _beginHistoryGesture,
-              onMoveEnd: _endHistoryGesture,
-              onResizeStart: _beginHistoryGesture,
-              onResizeEnd: _endHistoryGesture,
-              operation: _operation,
-              draftShape: _activeDraftShape(template),
-              onDrawStart: _handleDrawStart,
-              onDrawUpdate: _handleDrawUpdate,
-              onDrawEnd: () => _handleDrawEnd(template),
-              onDrawTap: (point) => _handleDrawTap(template, point),
+                    if (event.logicalKey == LogicalKeyboardKey.delete) {
+                      _deleteSelectedShape();
+                    } else if (event.logicalKey ==
+                        LogicalKeyboardKey.arrowLeft) {
+                      _beginHistoryGesture();
+                      _moveShape(shapeId, Offset(-delta, 0));
+                      _endHistoryGesture();
+                    } else if (event.logicalKey ==
+                        LogicalKeyboardKey.arrowRight) {
+                      _beginHistoryGesture();
+                      _moveShape(shapeId, Offset(delta, 0));
+                      _endHistoryGesture();
+                    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                      _beginHistoryGesture();
+                      _moveShape(shapeId, Offset(0, -delta));
+                      _endHistoryGesture();
+                    } else if (event.logicalKey ==
+                        LogicalKeyboardKey.arrowDown) {
+                      _beginHistoryGesture();
+                      _moveShape(shapeId, Offset(0, delta));
+                      _endHistoryGesture();
+                    }
+                  },
+                  child: RepaintBoundary(
+                    key: _previewBoundaryKey,
+                    child: _DesignerCanvas(
+                      template: template,
+                      documentData: _documentDataJson,
+                      watermarkText: _watermarkText,
+                      editMode: _editMode,
+                      selectedShapeId: _selectedShapeId,
+                      selectedShapeIds: _selectedShapeIds,
+                      zoom: _canvasZoom,
+                      onSelectShape: (shapeId) {
+                        if (!_editMode) {
+                          return;
+                        }
+                        _handleShapeSelection(shapeId);
+                      },
+                      onMoveShape: _moveShape,
+                      onResizeShape: _resizeShape,
+                      onMoveStart: _beginHistoryGesture,
+                      onMoveEnd: _endHistoryGesture,
+                      onResizeStart: _beginHistoryGesture,
+                      onResizeEnd: _endHistoryGesture,
+                      operation: _operation,
+                      draftShape: _activeDraftShape(template),
+                      onDrawStart: _handleDrawStart,
+                      onDrawUpdate: _handleDrawUpdate,
+                      onDrawEnd: () => _handleDrawEnd(template),
+                      onDrawTap: (point) => _handleDrawTap(template, point),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+            _buildQuotationContinuationPreview(
+              compact: compact,
+              canvasPadding: canvasPadding,
+              pageHeight: template.pageHeight,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuotationContinuationPreview({
+    required bool compact,
+    required double canvasPadding,
+    required double pageHeight,
+  }) {
+    if (widget.documentType != 'sales_quotation') {
+      return const SizedBox.shrink();
+    }
+    final content = (_documentDataJson['quotation_content']?.toString() ?? '')
+        .trim();
+    if (content.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    const marker = '<!-- quotation-page-break -->';
+    final pages = content
+        .split(marker)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    return IgnorePointer(
+      child: Column(
+        children: [
+          for (var index = 0; index < pages.length; index++) ...[
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(maxWidth: 820, minHeight: pageHeight),
+              padding: EdgeInsets.all(canvasPadding),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFF90CAF9)),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x18000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quotation content — page ${index + 2}',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const Divider(),
+                  Text(
+                    pages[index]
+                        .replaceAll(RegExp(r'<!--.*?-->'), '')
+                        .replaceAllMapped(
+                          RegExp(r'(^|\n)#{1,6}\s*'),
+                          (match) => match.group(1) ?? '',
+                        )
+                        .replaceAll(RegExp(r'\*\*|__'), '')
+                        .replaceAllMapped(
+                          RegExp(r'(^|\n)[-*+]\s+'),
+                          (match) => '${match.group(1) ?? ''}• ',
+                        )
+                        .replaceAllMapped(
+                          RegExp(r'(^|\n)\d+[.)]\s+'),
+                          (match) => match.group(1) ?? '',
+                        ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.black87,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -2514,7 +2695,213 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       ),
     );
 
+    // Quotation content is intentionally rendered as continuation pages. The
+    // legacy template remains the first fixed-layout page; long-form content
+    // uses MultiPage so it can flow without clipping. Manual page breaks are
+    // represented by the marker inserted by the quotation editor.
+    if (widget.documentType == 'sales_quotation') {
+      final quotationContent = (data['quotation_content']?.toString() ?? '')
+          .trim();
+      if (quotationContent.isNotEmpty) {
+        final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
+        final rupeeFallbackFont = await _loadPdfRupeeFallbackFont();
+        final contentFont = await _pdfFontBundleForFamily(
+          _shapeFontFamily(
+            template,
+            template.shapes.firstWhere(
+              (shape) => shape.type == 'text',
+              orElse: () => template.shapes.first,
+            ),
+          ),
+        );
+        final contentWidgets = _quotationContinuationWidgets(
+          quotationContent,
+          contentFont,
+          fallbackFonts: <pw.Font>[unicodeFallbackFont, rupeeFallbackFont],
+        );
+        if (contentWidgets.isNotEmpty) {
+          final continuationTheme = pw.PageTheme(
+            pageFormat: pageFormat,
+            margin: const pw.EdgeInsets.fromLTRB(42, 42, 42, 36),
+            buildBackground: (context) => pw.Container(
+              decoration: pw.BoxDecoration(
+                color: PdfColors.white,
+                border: pw.Border.all(
+                  color: PdfColor.fromHex('#90CAF9'),
+                  width: 0.8,
+                ),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Stack(
+                children: [
+                  if (backgroundImage != null)
+                    pw.Positioned.fill(
+                      child: pw.Opacity(
+                        opacity: template.backgroundOpacity.clamp(0.0, 1.0),
+                        child: pw.Image(backgroundImage, fit: pw.BoxFit.cover),
+                      ),
+                    ),
+                  if (_watermarkText.isNotEmpty)
+                    pw.Positioned.fill(
+                      child: pw.Center(
+                        child: pw.Opacity(
+                          opacity: 0.18,
+                          child: pw.Transform.rotate(
+                            angle: -math.pi / 5,
+                            child: pw.Text(
+                              _watermarkText,
+                              style: pw.TextStyle(
+                                fontSize: math.max(
+                                  72,
+                                  math.min(
+                                        template.pageWidth,
+                                        template.pageHeight,
+                                      ) *
+                                      0.16,
+                                ),
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.red300,
+                                letterSpacing: 8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+          pdf.addPage(
+            pw.MultiPage(
+              pageTheme: continuationTheme,
+              maxPages: 100,
+              header: (context) => pw.Text(
+                '${data['company_name'] ?? ''}  •  ${data['document_number'] ?? 'Quotation'}',
+                style: _pdfTextStyleForTemplate(
+                  contentFont,
+                  fontSize: 8,
+                  color: PdfColors.grey700,
+                  fontFallback: <pw.Font>[unicodeFallbackFont],
+                ),
+              ),
+              footer: (context) => pw.Align(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(
+                  'Page ${context.pageNumber}',
+                  style: _pdfTextStyleForTemplate(
+                    contentFont,
+                    fontSize: 8,
+                    color: PdfColors.grey700,
+                    fontFallback: <pw.Font>[unicodeFallbackFont],
+                  ),
+                ),
+              ),
+              build: (_) => contentWidgets,
+            ),
+          );
+        }
+      }
+    }
+
     return pdf.save();
+  }
+
+  List<pw.Widget> _quotationContinuationWidgets(
+    String markdown,
+    _PdfFontBundle fontBundle, {
+    required List<pw.Font> fallbackFonts,
+  }) {
+    const pageBreak = '<!-- quotation-page-break -->';
+    final segments = markdown
+        .split(pageBreak)
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    final widgets = <pw.Widget>[];
+    for (var segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+      if (segmentIndex > 0) {
+        widgets.add(pw.NewPage());
+      }
+      for (final line in segments[segmentIndex].split('\n')) {
+        final trimmed = line.trimRight();
+        if (trimmed.trim().isEmpty) {
+          widgets.add(pw.SizedBox(height: 7));
+          continue;
+        }
+        final heading = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(trimmed);
+        final isBullet = RegExp(r'^[-*+]\s+').hasMatch(trimmed);
+        final isNumbered = RegExp(r'^\d+[.)]\s+').hasMatch(trimmed);
+        final display = trimmed
+            .replaceFirst(RegExp(r'^#{1,6}\s+'), '')
+            .replaceFirst(RegExp(r'^[-*+]\s+'), '• ')
+            .replaceFirst(RegExp(r'^\d+[.)]\s+'), '');
+        final style = _pdfTextStyleForTemplate(
+          fontBundle,
+          fontSize: heading != null
+              ? 15 - (heading.group(1)!.length * 0.7)
+              : 10.5,
+          color: PdfColors.black,
+          fontFallback: fallbackFonts,
+          bold: heading != null || isBullet || isNumbered,
+          lineHeight: 1.3,
+        );
+        widgets.add(
+          pw.Padding(
+            padding: pw.EdgeInsets.only(
+              top: heading != null ? 8 : 1,
+              bottom: heading != null ? 4 : 2,
+              left: isBullet || isNumbered ? 8 : 0,
+            ),
+            child: _quotationMarkdownRichText(
+              display,
+              style,
+              align: _pdfTextAlign('left'),
+            ),
+          ),
+        );
+      }
+    }
+    return widgets;
+  }
+
+  pw.RichText _quotationMarkdownRichText(
+    String text,
+    pw.TextStyle style, {
+    required pw.TextAlign align,
+  }) {
+    final tokenPattern = RegExp(r'(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_)');
+    final spans = <pw.InlineSpan>[];
+    var cursor = 0;
+    for (final match in tokenPattern.allMatches(text)) {
+      if (match.start > cursor) {
+        spans.add(
+          pw.TextSpan(text: text.substring(cursor, match.start), style: style),
+        );
+      }
+      final token = match.group(0)!;
+      final strong = token.startsWith('**') || token.startsWith('__');
+      spans.add(
+        pw.TextSpan(
+          text: token.substring(
+            strong ? 2 : 1,
+            token.length - (strong ? 2 : 1),
+          ),
+          style: style.copyWith(
+            fontWeight: strong ? pw.FontWeight.bold : style.fontWeight,
+            fontStyle: strong ? style.fontStyle : pw.FontStyle.italic,
+          ),
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < text.length) {
+      spans.add(pw.TextSpan(text: text.substring(cursor), style: style));
+    }
+    return pw.RichText(
+      text: pw.TextSpan(children: spans, style: style),
+      textAlign: align,
+    );
   }
 
   Future<_PdfFontBundle> _pdfFontBundleForFamily(String? fontFamily) {

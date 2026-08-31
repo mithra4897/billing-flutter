@@ -136,6 +136,8 @@ class SalesQuotationManagementController extends GetxController {
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
+  final TextEditingController quotationContentController =
+      TextEditingController();
 
   bool initialLoading = true;
   bool saving = false;
@@ -180,6 +182,7 @@ class SalesQuotationManagementController extends GetxController {
   int? crmOpportunityId;
   Map<String, dynamic>? salesChain;
   List<QuotationLineDraft> lines = <QuotationLineDraft>[];
+  bool _newFormRequested = false;
 
   bool _initialized = false;
 
@@ -212,6 +215,7 @@ class SalesQuotationManagementController extends GetxController {
     roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
+    quotationContentController.dispose();
     _disposeLines(lines);
     super.onClose();
   }
@@ -411,11 +415,19 @@ class SalesQuotationManagementController extends GetxController {
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : (editorOnly
+          : (editorOnly || _newFormRequested
                 ? null
                 : (selectedItem == null
                       ? (items.isNotEmpty ? items.first : null)
-                      : null));
+                      : items.cast<SalesQuotationModel?>().firstWhere(
+                          (item) =>
+                              intValue(item?.toJson() ?? const {}, 'id') ==
+                              intValue(
+                                selectedItem?.toJson() ?? const {},
+                                'id',
+                              ),
+                          orElse: () => selectedItem,
+                        )));
       if (selected == null && selectId != null) {
         try {
           final detail = (await _salesService.quotation(selectId)).data;
@@ -458,6 +470,7 @@ class SalesQuotationManagementController extends GetxController {
         .map(QuotationLineDraft.fromJson)
         .toList(growable: true);
     selectedItem = full;
+    _newFormRequested = false;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -489,6 +502,7 @@ class SalesQuotationManagementController extends GetxController {
         0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
+    quotationContentController.text = stringValue(data, 'quotation_content');
     isActive = boolValue(data, 'is_active', fallback: true);
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
     _replaceLines(nextLines, notify: false);
@@ -501,6 +515,7 @@ class SalesQuotationManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
+    _newFormRequested = true;
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -521,6 +536,7 @@ class SalesQuotationManagementController extends GetxController {
     applyRoundOff = true;
     notesController.clear();
     termsController.text = documentTermsDefault('sales_quotation');
+    quotationContentController.clear();
     isActive = true;
     _replaceLines(const <QuotationLineDraft>[], notify: false);
     formError = null;
@@ -961,6 +977,7 @@ class SalesQuotationManagementController extends GetxController {
         'igst_amount': roundToDouble(summary.igst, 2),
         'cess_amount': roundToDouble(summary.cess, 2),
         'taxable_total_amount': roundToDouble(summary.taxable, 2),
+        'quotation_content': quotationContentController.text.trim(),
       },
     );
   }
@@ -1186,6 +1203,7 @@ class SalesQuotationManagementController extends GetxController {
       ),
       'notes': nullIfEmpty(notesController.text),
       'terms_conditions': nullIfEmpty(termsController.text),
+      'quotation_content': nullIfEmpty(quotationContentController.text),
       'is_active': isActive,
       'lines': lines.map(linePayload).toList(growable: false),
     };
@@ -1455,6 +1473,7 @@ class SalesQuotationManagementController extends GetxController {
         ? revisionHeader
         : '$revisionHeader\n\n$originalNotes';
     termsController.text = stringValue(data, 'terms_conditions');
+    quotationContentController.text = stringValue(data, 'quotation_content');
     isActive = boolValue(data, 'is_active', fallback: true);
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
     salesChain = null;

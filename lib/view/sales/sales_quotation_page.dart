@@ -548,6 +548,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   enabled: controller.canEdit,
                   validator: Validators.optionalDate('Customer Ref Date'),
                 ),
+                _buildQuotationContentEditor(context, controller),
                 AppFormTextField(
                   labelText: 'Notes (shown to customer)',
                   controller: controller.notesController,
@@ -758,6 +759,146 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         ),
       ),
       editor: const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildQuotationContentEditor(
+    BuildContext context,
+    SalesQuotationManagementController controller,
+  ) {
+    final enabled = controller.canEdit;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quotation Content',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Wrap(
+          spacing: 4,
+          children: [
+            IconButton(
+              tooltip: 'Heading',
+              onPressed: enabled
+                  ? () => _wrapSelection(controller, '# ', '')
+                  : null,
+              icon: const Icon(Icons.title_outlined),
+            ),
+            IconButton(
+              tooltip: 'Bold',
+              onPressed: enabled
+                  ? () => _wrapSelection(controller, '**', '**')
+                  : null,
+              icon: const Icon(Icons.format_bold),
+            ),
+            IconButton(
+              tooltip: 'Italic',
+              onPressed: enabled
+                  ? () => _wrapSelection(controller, '*', '*')
+                  : null,
+              icon: const Icon(Icons.format_italic),
+            ),
+            IconButton(
+              tooltip: 'Bullet list',
+              onPressed: enabled
+                  ? () => _prefixSelectedLines(controller, '- ')
+                  : null,
+              icon: const Icon(Icons.format_list_bulleted),
+            ),
+            IconButton(
+              tooltip: 'Numbered list',
+              onPressed: enabled
+                  ? () => _prefixSelectedLines(controller, '1. ')
+                  : null,
+              icon: const Icon(Icons.format_list_numbered),
+            ),
+            IconButton(
+              tooltip: 'Insert page break',
+              onPressed: enabled ? () => _insertPageBreak(controller) : null,
+              icon: const Icon(Icons.insert_page_break_outlined),
+            ),
+          ],
+        ),
+        AppFormTextField(
+          labelText: 'Markdown content',
+          controller: controller.quotationContentController,
+          maxLines: 14,
+          enabled: enabled,
+          hintText:
+              '# Project Proposal\n\n**Scope of Work**\n\n- Website design',
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Text(
+          'Use the page-break button to force a new quotation page. Long content flows automatically.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  void _wrapSelection(
+    SalesQuotationManagementController controller,
+    String prefix,
+    String suffix,
+  ) {
+    final value = controller.quotationContentController;
+    final selection = value.selection;
+    final start = selection.start < 0 ? value.text.length : selection.start;
+    final end = selection.end < 0 ? start : selection.end;
+    final selected = value.text.substring(start, end);
+    final replacement = '$prefix${selected.isEmpty ? 'text' : selected}$suffix';
+    value.value = _replaceValue(value, start, end, replacement);
+  }
+
+  void _prefixSelectedLines(
+    SalesQuotationManagementController controller,
+    String prefix,
+  ) {
+    final value = controller.quotationContentController;
+    final selection = value.selection;
+    final start = selection.start < 0 ? value.text.length : selection.start;
+    final end = selection.end < 0 ? start : selection.end;
+    final lineStart = value.text.lastIndexOf('\n', start - 1) + 1;
+    final lineEnd = value.text.indexOf('\n', end);
+    final boundedEnd = lineEnd < 0 ? value.text.length : lineEnd;
+    final selected = value.text.substring(lineStart, boundedEnd);
+    final replacement = selected
+        .split('\n')
+        .map((line) => '$prefix$line')
+        .join('\n');
+    value.value = _replaceValue(value, lineStart, boundedEnd, replacement);
+  }
+
+  void _insertPageBreak(SalesQuotationManagementController controller) {
+    final value = controller.quotationContentController;
+    final caret = value.selection.end < 0
+        ? value.text.length
+        : value.selection.end;
+    final before = caret > 0 && !value.text.substring(0, caret).endsWith('\n')
+        ? '\n\n'
+        : '';
+    const marker = '<!-- quotation-page-break -->';
+    final after =
+        caret < value.text.length &&
+            !value.text.substring(caret).startsWith('\n')
+        ? '\n\n'
+        : '';
+    value.value = _replaceValue(value, caret, caret, '$before$marker$after');
+  }
+
+  TextEditingValue _replaceValue(
+    TextEditingController controller,
+    int start,
+    int end,
+    String replacement,
+  ) {
+    final text = controller.text;
+    final next = text.substring(0, start) + replacement + text.substring(end);
+    final caret = start + replacement.length;
+    return TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: caret),
     );
   }
 

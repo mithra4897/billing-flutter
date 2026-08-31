@@ -683,10 +683,20 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                                 return;
                               }
                               if (_highlightedIndex != index) {
-                                setState(() {
-                                  _highlightedIndex = index;
+                                // MouseRegion callbacks run during Flutter's
+                                // device-update phase on Web. Defer the state
+                                // change so MouseTracker is not re-entered.
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (!mounted || _highlightedIndex == index) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _highlightedIndex = index;
+                                  });
+                                  _markOverlayNeedsBuild();
                                 });
-                                _markOverlayNeedsBuild();
                               }
                             },
                             onTap: entry.selectable && _fieldState != null
