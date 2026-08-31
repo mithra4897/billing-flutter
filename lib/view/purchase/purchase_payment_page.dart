@@ -356,6 +356,19 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                       ),
                       const Spacer(),
                       AppActionButton(
+                        icon: Icons.auto_fix_high_outlined,
+                        label: controller.autoAllocating
+                            ? 'Allocating...'
+                            : 'Auto Allocate',
+                        onPressed:
+                            controller.isSelectedPaymentReadOnly ||
+                                controller.autoAllocating
+                            ? null
+                            : controller.autoAllocateOldestInvoices,
+                        filled: false,
+                      ),
+                      const SizedBox(width: AppUiConstants.spacingSm),
+                      AppActionButton(
                         icon: Icons.add_outlined,
                         label: 'Add Allocation',
                         onPressed: controller.isSelectedPaymentReadOnly

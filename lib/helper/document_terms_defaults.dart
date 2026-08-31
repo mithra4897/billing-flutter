@@ -1,6 +1,12 @@
 String documentTermsDefault(String documentType) {
   switch (documentType) {
     case 'sales_quotation':
+      return '''
+1. Prototype works do not carry any warranty.
+2. Damaged products are not covered under warranty. Warranty applies only if it is specified in the description.
+3. Subject to Vellore jurisdiction.
+4.This Quotation Excludes 18% GST. Confirm your order to add 18% GST.
+''';
     case 'sales_proforma_invoice':
     case 'sales_order':
       return '''

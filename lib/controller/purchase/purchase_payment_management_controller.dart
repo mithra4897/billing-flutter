@@ -56,7 +56,7 @@ class PaymentAllocationDraft {
               Map<String, dynamic>.from(json['invoice'] as Map),
               'invoice_no',
             )
-          : null,
+          : nullableStringValue(json, 'invoice_no'),
     );
   }
 
@@ -133,6 +133,7 @@ class PurchasePaymentManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool autoAllocating = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -727,6 +728,82 @@ class PurchasePaymentManagementController extends GetxController {
     allocations = List<PaymentAllocationDraft>.from(allocations)
       ..add(PaymentAllocationDraft());
     syncPaidAmountFromAllocations();
+  }
+
+  Future<void> autoAllocateOldestInvoices() async {
+    if (isSelectedPaymentReadOnly || autoAllocating) {
+      return;
+    }
+    if (allocations.isNotEmpty) {
+      formError =
+          'Remove the existing allocation lines before using Auto Allocate.';
+      update();
+      return;
+    }
+
+    final selectedCompanyId = companyId;
+    final selectedSupplierId = supplierPartyId;
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    if (selectedCompanyId == null) {
+      formError = 'Select a company context before auto allocation.';
+      update();
+      return;
+    }
+    if (selectedSupplierId == null) {
+      formError = 'Select a supplier before auto allocation.';
+      update();
+      return;
+    }
+    if (paidAmount <= 0) {
+      formError =
+          'Enter a paid amount greater than zero before auto allocation.';
+      update();
+      return;
+    }
+
+    autoAllocating = true;
+    formError = null;
+    update();
+    try {
+      final response = await _purchaseService.previewPaymentAutoAllocation(
+        companyId: selectedCompanyId,
+        supplierPartyId: selectedSupplierId,
+        paidAmount: paidAmount,
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      final previewLines = (data['allocations'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (line) => PaymentAllocationDraft.fromJson(
+              Map<String, dynamic>.from(line),
+            ),
+          )
+          .toList(growable: true);
+      if (previewLines.isEmpty) {
+        formError = 'No outstanding purchase invoices were found.';
+      } else {
+        _replaceAllocations(previewLines, notify: false);
+        final allocated =
+            Validators.parseFlexibleNumber(
+              data['allocated_amount']?.toString(),
+            ) ??
+            0;
+        final unallocated =
+            Validators.parseFlexibleNumber(
+              data['unallocated_amount']?.toString(),
+            ) ??
+            0;
+        _showMessage(
+          'Allocated ${allocated.appFixed()} to the oldest invoices. ${unallocated.appFixed()} remains on account.',
+        );
+      }
+    } catch (errorValue) {
+      formError = errorValue.toString();
+    } finally {
+      autoAllocating = false;
+      update();
+    }
   }
 
   void removeAllocation(int index) {

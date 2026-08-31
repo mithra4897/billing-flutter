@@ -327,6 +327,23 @@ class PurchaseService extends ErpModuleService {
         fromJson: PurchasePaymentModel.fromJson,
       );
 
+  Future<ApiResponse<Map<String, dynamic>>> previewPaymentAutoAllocation({
+    required int companyId,
+    required int supplierPartyId,
+    required double paidAmount,
+  }) {
+    return client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.purchasePayments}/auto-allocation-preview',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        'supplier_party_id': supplierPartyId,
+        'paid_amount': paidAmount,
+      },
+      fromData: (dynamic json) =>
+          json is Map ? Map<String, dynamic>.from(json) : <String, dynamic>{},
+    );
+  }
+
   Future<ApiResponse<PurchasePaymentModel>> createPayment(
     PurchasePaymentModel body,
   ) => createModel<PurchasePaymentModel>(
