@@ -1,5 +1,19 @@
 # Testing
 
+## Stage-based Sales lifecycle badges — 2026-09-01
+
+- Focused helper tests cover draft, waiting, partial, converted, terminal, and
+  allocation label mappings in `test/view/sales/sales_support_status_test.dart`.
+- `dart format` completed for all changed Dart sources.
+- Focused `flutter analyze` passed for the Sales status/register/detail/pipeline
+  files and delivery model.
+- `flutter test test/view/sales/sales_support_status_test.dart --no-pub`
+  passed (2 tests).
+- PHP syntax checks passed for the changed quotation/delivery repositories,
+  delivery model, and delivery list query service.
+- Authenticated visual QA remains recommended for each register and detail
+  header at mobile and desktop widths.
+
 ## CRM enquiry quotation bootstrap — 2026-08-31
 
 - Verify the CRM enquiry "New quotation" action opens a new quotation with

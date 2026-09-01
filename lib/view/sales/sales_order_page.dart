@@ -488,6 +488,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             trailing: salesStatusBadge(
               context,
               stringValue(data, 'order_status'),
+              labelBuilder: salesOrderStatusLabel,
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -537,7 +538,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    salesStatusBadge(context, controller.status),
+                    salesStatusBadge(
+                      context,
+                      controller.status,
+                      labelBuilder: salesOrderStatusLabel,
+                    ),
                   ],
                 ),
               ),

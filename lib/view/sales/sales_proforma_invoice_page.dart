@@ -371,6 +371,12 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
             trailing: salesStatusBadge(
               context,
               stringValue(data, 'proforma_status'),
+              labelBuilder: (status) => salesProformaStatusLabel(
+                status,
+                isConverted:
+                    JsonModel.nullableInt(data['converted_sales_invoice_id']) !=
+                    null,
+              ),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -420,7 +426,16 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    salesStatusBadge(context, controller.status),
+                    salesStatusBadge(
+                      context,
+                      controller.status,
+                      labelBuilder: (status) => salesProformaStatusLabel(
+                        status,
+                        isConverted:
+                            controller.selectedItem?.convertedSalesInvoiceId !=
+                            null,
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -1829,3 +1829,66 @@ Acceptance criteria:
 3. Non-stock/service lines and the existing draft proforma incomplete-selection
    flow remain compatible.
 4. Focused Flutter analysis/tests and backend syntax/tests pass.
+## Stage-based Sales lifecycle badges
+
+Status: Approved for implementation (2026-09-01)
+
+Sales document badges must describe the next business action instead of
+treating every posted document as finished. The stored backend status remains
+the lifecycle source of truth; Flutter derives only a presentation label and
+semantic badge color from that status and the relationship flags returned by
+the API.
+
+Business rules:
+
+- Draft documents display `Draft` in grey.
+- A posted/submitted quotation without a non-cancelled order or proforma
+  displays `Waiting for Sales Order` in amber. An accepted or converted
+  quotation displays `Finished` in green.
+- A posted proforma displays `Waiting for Sales Order` in amber; a converted
+  proforma displays `Finished` in green.
+- A confirmed/posted order displays `Waiting for Delivery`; a partially
+  delivered order remains orange; a fully delivered order displays
+  `Waiting for Invoice`; and a fully invoiced or closed order displays
+  `Finished`.
+- A posted delivery displays `Waiting for Invoice`; a partially invoiced
+  delivery remains orange; and a fully invoiced delivery displays `Finished`.
+- A posted sales invoice displays `Payment pending`; partially paid is orange,
+  paid is green, and overdue is red.
+- A posted receipt displays `Waiting for Allocation`; partially allocated
+  displays `Partially Completed`; and fully allocated displays `Completed`.
+- Cancelled, rejected, expired, returned, and overdue outcomes keep their
+  terminal/error wording and color semantics.
+- Registers, legacy list panes, document headers, and CRM pipeline subtitles
+  use the same shared helpers. Filter labels are friendly presentation text,
+  while filter values remain existing backend status values.
+
+API contract:
+
+- Quotation list and detail payloads expose `has_active_order` and
+  `has_active_proforma`, excluding cancelled downstream documents.
+- Delivery list and detail payloads expose `has_active_invoice`, excluding
+  cancelled invoices, and `is_fully_invoiced`, derived from the stored
+  delivery status. No schema or request-payload change is required.
+
+Edge cases and compatibility:
+
+- Empty and unknown statuses continue to use the existing empty/title-cased
+  fallback behavior.
+- Existing stored statuses, lifecycle transitions, routes, and write payloads
+  are unchanged.
+- Date-based invoice overdue detection continues to override the posted badge.
+
+Acceptance criteria:
+
+1. A posted unconverted quotation shows `Waiting for Sales Order`; linking a
+   non-cancelled order/proforma changes it to `Finished` in list and detail.
+2. Confirmed orders, posted deliveries, posted invoices, and posted receipts
+   show their documented waiting labels in registers and document pages.
+3. Partial and terminal lifecycle states retain their documented labels and
+   orange/green/red semantics.
+4. CRM sales-pipeline subtitles match the relevant document helper.
+5. Quotation/delivery detail payload flags match their corresponding list
+   payload flags without N+1 relationship queries.
+6. Focused formatting, static analysis, helper tests, and backend syntax checks
+   pass.

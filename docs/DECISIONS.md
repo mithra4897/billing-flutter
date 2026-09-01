@@ -1,5 +1,27 @@
 # Architecture decisions
 
+## ADR-0032: Keep Sales lifecycle labels presentation-only
+
+- Date: 2026-09-01
+- Status: Accepted
+- Context: Generic status rendering mapped every posted/submitted Sales
+  document to `Finished`, hiding the next required lifecycle action.
+- Decision: Preserve canonical stored statuses and derive document-specific
+  labels/colors through shared Flutter helpers. Add bounded relationship
+  existence flags to quotation and delivery read payloads so list and detail
+  screens make identical decisions without additional client requests.
+- Reason: This avoids duplicating or mutating backend lifecycle state for UI
+  wording, keeps filters/request payloads compatible, and prevents per-row
+  relationship queries.
+- Alternatives considered: Rewrite persisted statuses to display phrases;
+  infer conversion only from client-side pipeline collections; duplicate label
+  switches in every page.
+- Consequences: Read payloads gain boolean fields; database schema and write
+  contracts are unchanged. Every Sales status surface must use the
+  document-specific shared helper where one exists.
+- Related files: Sales status helpers/register/detail/pipeline views; API Sales
+  quotation and delivery models, list-query services, and repositories.
+
 ## ADR-0031: Complete CRM leads at delivery or invoice
 
 - Date: 2026-08-26

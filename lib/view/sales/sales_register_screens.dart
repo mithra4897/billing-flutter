@@ -839,9 +839,9 @@ class SalesQuotationRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Finished'),
-    AppDropdownItem(value: 'sent', label: 'Sent'),
-    AppDropdownItem(value: 'accepted', label: 'Accepted'),
+    AppDropdownItem(value: 'posted', label: 'Waiting for Sales Order'),
+    AppDropdownItem(value: 'sent', label: 'Waiting for Sales Order'),
+    AppDropdownItem(value: 'accepted', label: 'Finished'),
     AppDropdownItem(value: 'rejected', label: 'Rejected'),
     AppDropdownItem(value: 'expired', label: 'Expired'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -1012,11 +1012,17 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              salesStatusLabel(stringValue(row.toJson(), 'quotation_status')),
+          valueBuilder: (row) => salesQuotationStatusLabel(
+            stringValue(row.toJson(), 'quotation_status'),
+            isConverted: row.hasActiveOrder || row.hasActiveProforma,
+          ),
           widgetBuilder: (context, row) => salesStatusBadge(
             context,
             stringValue(row.toJson(), 'quotation_status'),
+            labelBuilder: (status) => salesQuotationStatusLabel(
+              status,
+              isConverted: row.hasActiveOrder || row.hasActiveProforma,
+            ),
           ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
@@ -1054,8 +1060,8 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Finished'),
-    AppDropdownItem(value: 'converted', label: 'Converted'),
+    AppDropdownItem(value: 'posted', label: 'Waiting for Sales Order'),
+    AppDropdownItem(value: 'converted', label: 'Finished'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
@@ -1205,10 +1211,18 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              salesStatusLabel(row.proformaInvoiceStatus ?? ''),
-          widgetBuilder: (context, row) =>
-              salesStatusBadge(context, row.proformaInvoiceStatus ?? ''),
+          valueBuilder: (row) => salesProformaStatusLabel(
+            row.proformaInvoiceStatus ?? '',
+            isConverted: row.convertedSalesInvoiceId != null,
+          ),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            row.proformaInvoiceStatus ?? '',
+            labelBuilder: (status) => salesProformaStatusLabel(
+              status,
+              isConverted: row.convertedSalesInvoiceId != null,
+            ),
+          ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'proforma_status',
@@ -1239,12 +1253,12 @@ class SalesOrderRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'confirmed', label: 'Confirmed'),
+    AppDropdownItem(value: 'confirmed', label: 'Waiting for Delivery'),
     AppDropdownItem(value: 'partially_delivered', label: 'Partially delivered'),
-    AppDropdownItem(value: 'fully_delivered', label: 'Fully delivered'),
+    AppDropdownItem(value: 'fully_delivered', label: 'Waiting for Invoice'),
     AppDropdownItem(value: 'partially_invoiced', label: 'Partially invoiced'),
-    AppDropdownItem(value: 'fully_invoiced', label: 'Fully invoiced'),
-    AppDropdownItem(value: 'closed', label: 'Closed'),
+    AppDropdownItem(value: 'fully_invoiced', label: 'Finished'),
+    AppDropdownItem(value: 'closed', label: 'Finished'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
@@ -1466,10 +1480,11 @@ class SalesOrderRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) =>
-              salesStatusLabel(stringValue(row.toJson(), 'order_status')),
+              salesOrderStatusLabel(stringValue(row.toJson(), 'order_status')),
           widgetBuilder: (context, row) => salesStatusBadge(
             context,
             stringValue(row.toJson(), 'order_status'),
+            labelBuilder: salesOrderStatusLabel,
           ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
@@ -1742,9 +1757,9 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
+    AppDropdownItem(value: 'posted', label: 'Waiting for Invoice'),
     AppDropdownItem(value: 'partially_invoiced', label: 'Partially invoiced'),
-    AppDropdownItem(value: 'fully_invoiced', label: 'Fully invoiced'),
+    AppDropdownItem(value: 'fully_invoiced', label: 'Finished'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
@@ -1834,9 +1849,12 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => salesStatusLabel(row.deliveryStatus),
-          widgetBuilder: (context, row) =>
-              salesStatusBadge(context, row.deliveryStatus),
+          valueBuilder: (row) => salesDeliveryStatusLabel(row.deliveryStatus),
+          widgetBuilder: (context, row) => salesStatusBadge(
+            context,
+            row.deliveryStatus,
+            labelBuilder: salesDeliveryStatusLabel,
+          ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'delivery_status',
@@ -1861,7 +1879,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Finished'),
+    AppDropdownItem(value: 'posted', label: 'Waiting for Allocation'),
     AppDropdownItem(value: 'partially_allocated', label: 'Partially Completed'),
     AppDropdownItem(value: 'fully_allocated', label: 'Completed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -1994,11 +2012,13 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              salesStatusLabel(stringValue(row.toJson(), 'receipt_status')),
+          valueBuilder: (row) => salesReceiptStatusLabel(
+            stringValue(row.toJson(), 'receipt_status'),
+          ),
           widgetBuilder: (context, row) => salesStatusBadge(
             context,
             stringValue(row.toJson(), 'receipt_status'),
+            labelBuilder: salesReceiptStatusLabel,
           ),
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),

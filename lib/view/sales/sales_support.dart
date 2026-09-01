@@ -26,6 +26,69 @@ String salesInvoiceStatusLabel(String? status) {
   return salesStatusLabel(status);
 }
 
+String salesQuotationStatusLabel(String? status, {bool isConverted = false}) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  if (normalized == 'draft') return 'Draft';
+  if (isConverted || normalized == 'accepted') return 'Finished';
+  if (normalized == 'posted' || normalized == 'submitted') {
+    return 'Waiting for Sales Order';
+  }
+  return salesStatusLabel(status);
+}
+
+String salesProformaStatusLabel(String? status, {bool isConverted = false}) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  if (normalized == 'draft') return 'Draft';
+  if (isConverted || normalized == 'converted') return 'Finished';
+  if (normalized == 'posted' || normalized == 'submitted') {
+    return 'Waiting for Sales Order';
+  }
+  return salesStatusLabel(status);
+}
+
+String salesOrderStatusLabel(String? status) {
+  switch ((status ?? '').trim().toLowerCase()) {
+    case 'draft':
+      return 'Draft';
+    case 'confirmed':
+    case 'posted':
+      return 'Waiting for Delivery';
+    case 'fully_delivered':
+      return 'Waiting for Invoice';
+    case 'fully_invoiced':
+    case 'closed':
+      return 'Finished';
+    default:
+      return salesStatusLabel(status);
+  }
+}
+
+String salesDeliveryStatusLabel(String? status) {
+  switch ((status ?? '').trim().toLowerCase()) {
+    case 'draft':
+      return 'Draft';
+    case 'posted':
+      return 'Waiting for Invoice';
+    case 'fully_invoiced':
+      return 'Finished';
+    default:
+      return salesStatusLabel(status);
+  }
+}
+
+String salesReceiptStatusLabel(String? status) {
+  switch ((status ?? '').trim().toLowerCase()) {
+    case 'draft':
+      return 'Draft';
+    case 'posted':
+      return 'Waiting for Allocation';
+    case 'fully_allocated':
+      return 'Completed';
+    default:
+      return salesStatusLabel(status);
+  }
+}
+
 Widget salesStatusBadge(
   BuildContext context,
   String? status, {
@@ -75,12 +138,18 @@ Widget salesStatusBadge(
     case 'partially_returned':
     case 'partially_invoiced':
     case 'partially_delivered':
+      color = Colors.orange.shade600;
+      break;
     case 'pending':
     case 'payment_pending':
     case 'due':
     case 'due_soon':
-    case 'draft':
       color = Colors.amber.shade700;
+      break;
+    case 'draft':
+      color =
+          Theme.of(context).extension<AppThemeExtension>()?.mutedText ??
+          Colors.grey;
       break;
     case 'partially_allocated':
       color = Colors.orange.shade600;
@@ -100,8 +169,16 @@ Widget salesStatusBadge(
       break;
   }
 
-  if (displayLabel.toLowerCase().contains('pending')) {
+  final lowerDisplayLabel = displayLabel.toLowerCase();
+  if (lowerDisplayLabel.contains('pending') ||
+      lowerDisplayLabel.contains('waiting')) {
     color = Colors.amber.shade700;
+  } else if (lowerDisplayLabel == 'finished' ||
+      lowerDisplayLabel == 'completed' ||
+      lowerDisplayLabel == 'paid') {
+    color = Colors.teal.shade600;
+  } else if (lowerDisplayLabel.contains('partially')) {
+    color = Colors.orange.shade600;
   }
 
   if (displayLabel.isEmpty) {

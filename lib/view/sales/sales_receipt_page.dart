@@ -188,6 +188,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
             trailing: salesStatusBadge(
               context,
               stringValue(data, 'receipt_status'),
+              labelBuilder: salesReceiptStatusLabel,
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

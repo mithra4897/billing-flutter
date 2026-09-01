@@ -593,6 +593,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             trailing: salesStatusBadge(
               context,
               stringValue(data, 'delivery_status'),
+              labelBuilder: salesDeliveryStatusLabel,
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),

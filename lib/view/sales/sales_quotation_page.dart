@@ -389,6 +389,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             trailing: salesStatusBadge(
               context,
               stringValue(data, 'quotation_status'),
+              labelBuilder: (status) => salesQuotationStatusLabel(
+                status,
+                isConverted:
+                    JsonModel.boolOf(data['has_active_order']) ||
+                    JsonModel.boolOf(data['has_active_proforma']),
+              ),
             ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
@@ -438,7 +444,16 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    salesStatusBadge(context, controller.status),
+                    salesStatusBadge(
+                      context,
+                      controller.status,
+                      labelBuilder: (status) => salesQuotationStatusLabel(
+                        status,
+                        isConverted:
+                            controller.selectedItem?.hasActiveOrder == true ||
+                            controller.selectedItem?.hasActiveProforma == true,
+                      ),
+                    ),
                   ],
                 ),
               ),

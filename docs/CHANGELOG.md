@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-01 — Stage-based Sales lifecycle badges
+
+- Replaced premature `Finished` labels with next-action statuses for
+  quotations, proformas, orders, deliveries, invoices, and receipts across
+  registers, document panes, headers, and CRM pipeline subtitles.
+- Reused one shared helper set for document-specific wording and amber/orange/
+  green/red badge semantics; stored statuses and write payloads are unchanged.
+- Added focused lifecycle label tests and API read flags for quotation
+  conversion and delivery invoice progression.
+- No database migration or security impact. Backend details are recorded in
+  `billing-api/doc/CHANGELOG.md` under the same ADR date.
+- Sales status filter dropdowns now show the same waiting/finished names as
+  badges while retaining canonical status values for API filtering.
+
 ## 2026-08-31 — Default sales lists to newest first
 
 - Standardized sales quotation, proforma, order, delivery, invoice, receipt,

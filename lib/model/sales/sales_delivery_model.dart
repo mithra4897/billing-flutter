@@ -39,6 +39,8 @@ class SalesDeliveryModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.hasActiveInvoice = false,
+    this.isFullyInvoiced = false,
   });
   final int? companyId;
   final int? branchId;
@@ -76,6 +78,8 @@ class SalesDeliveryModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final bool hasActiveInvoice;
+  final bool isFullyInvoiced;
 
   factory SalesDeliveryModel.fromJson(Map<String, dynamic> json) {
     return SalesDeliveryModel(
@@ -119,6 +123,8 @@ class SalesDeliveryModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      hasActiveInvoice: JsonModel.boolOf(json['has_active_invoice']),
+      isFullyInvoiced: JsonModel.boolOf(json['is_fully_invoiced']),
     );
   }
   @override
@@ -168,6 +174,8 @@ class SalesDeliveryModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    'has_active_invoice': hasActiveInvoice,
+    'is_fully_invoiced': isFullyInvoiced,
   };
 
   static List<Map<String, dynamic>> _mapLines(dynamic value) {

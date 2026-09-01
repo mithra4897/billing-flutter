@@ -178,7 +178,12 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideQuotationChip && intValue(q, 'id') != null)
           _PipelineChip(
             label: _docLabel('Quote', q, 'quotation_no'),
-            subtitle: salesStatusLabel(stringValue(q, 'quotation_status')),
+            subtitle: salesQuotationStatusLabel(
+              stringValue(q, 'quotation_status'),
+              isConverted:
+                  JsonModel.boolOf(q['has_active_order']) ||
+                  JsonModel.boolOf(q['has_active_proforma']),
+            ),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/quotations/${intValue(q, 'id')}',
@@ -188,8 +193,10 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideProformaInvoiceChip && intValue(proforma, 'id') != null)
           _PipelineChip(
             label: _docLabel('Proforma', proforma, 'proforma_no'),
-            subtitle: salesStatusLabel(
+            subtitle: salesProformaStatusLabel(
               stringValue(proforma, 'proforma_status'),
+              isConverted:
+                  intValue(proforma, 'converted_sales_invoice_id') != null,
             ),
             onTap: () => openModuleShellRoute(
               context,
@@ -200,7 +207,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideOrderChip && intValue(o, 'id') != null)
           _PipelineChip(
             label: _docLabel('Order', o, 'order_no'),
-            subtitle: salesStatusLabel(stringValue(o, 'order_status')),
+            subtitle: salesOrderStatusLabel(stringValue(o, 'order_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/orders/${intValue(o, 'id')}',
@@ -210,7 +217,9 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideDeliveryChip && intValue(d, 'id') != null)
           _PipelineChip(
             label: _docLabel('Delivery', d, 'delivery_no'),
-            subtitle: salesStatusLabel(stringValue(d, 'delivery_status')),
+            subtitle: salesDeliveryStatusLabel(
+              stringValue(d, 'delivery_status'),
+            ),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/deliveries/${intValue(d, 'id')}',
@@ -220,7 +229,9 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideInvoiceChip && intValue(inv, 'id') != null)
           _PipelineChip(
             label: _docLabel('Invoice', inv, 'invoice_no'),
-            subtitle: salesStatusLabel(stringValue(inv, 'invoice_status')),
+            subtitle: salesInvoiceStatusLabel(
+              stringValue(inv, 'invoice_status'),
+            ),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/invoices/${intValue(inv, 'id')}',
@@ -230,7 +241,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
         if (!hideReceiptChip && intValue(r, 'id') != null)
           _PipelineChip(
             label: _docLabel('Receipt', r, 'receipt_no'),
-            subtitle: salesStatusLabel(stringValue(r, 'receipt_status')),
+            subtitle: salesReceiptStatusLabel(stringValue(r, 'receipt_status')),
             onTap: () => openModuleShellRoute(
               context,
               '/sales/receipts/${intValue(r, 'id')}',

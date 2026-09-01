@@ -1,5 +1,14 @@
 # Architecture
 
+## Sales lifecycle status presentation
+
+The shared `sales_support.dart` helpers map canonical Sales statuses to
+document-specific next-action labels and semantic colors. Registers, document
+list panes, headers, and `CrmSalesPipelineBar` all call these helpers; they do
+not write or reinterpret lifecycle state. Quotation and delivery read APIs
+provide relationship existence flags through Eloquent `withExists`, keeping
+list/detail conversion decisions consistent without N+1 queries.
+
 ## CRM enquiry quotation bootstrap
 
 `SalesQuotationManagementController.applyOpportunityBootstrap` reads the typed
