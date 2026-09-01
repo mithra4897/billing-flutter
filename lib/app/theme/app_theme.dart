@@ -172,7 +172,7 @@ class AppTheme {
       tableMutedText: Color(0xFF9AA8BC),
       tableLinkText: Color(0xFF9BAEF5),
       tableRowAlternate: Color(0xFF16263B),
-      tableRowHover: Color(0xFF1D334F),
+      tableRowHover: Color(0x33000000),
       tableRowSelected: Color(0xFF263F78),
       tableCellText: Color(0xFFE2E9F3),
       tableInputBorder: Color(0xFF3B4F69),

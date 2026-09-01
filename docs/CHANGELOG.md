@@ -172,6 +172,11 @@
 - Pending followups retain their existing date, assignee, and notes controls.
 - No backend or persistence contract changes are required.
 
+## 2026-09-01 — Dark table hover color
+
+- Changed dark-theme table mouse hover to black at 20% opacity.
+- Light-theme hover, selected rows, and ColorsZone colors remain unchanged.
+
 ## 2026-08-25 — CRM inline filter bars
 
 - Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,

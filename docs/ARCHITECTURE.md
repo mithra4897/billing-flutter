@@ -433,7 +433,7 @@ surface to legacy list wrappers that still use `DecoratedBox`.
 
 Sales and purchase register screens converge on `PurchaseRegisterPage<T>`.
 Its desktop table performs one indexed O(n) render pass and resolves header,
-alternating-row, hover, pressed, text, and divider colors from
+uniform ordinary-row, hover, pressed, text, and divider colors from
 `AppThemeExtension`. Editable sales, purchase, inventory, manufacturing, and
 job-work document lines converge on `ErpLineItemTable`; it consumes the same
 semantic roles while retaining its editing controls, validation, calculations,

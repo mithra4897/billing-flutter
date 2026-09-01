@@ -1545,7 +1545,7 @@ In scope:
 - Configure Flutter `DataTable` defaults for a distinct header band, compact
   header/body typography, bounded row heights, cell spacing, row dividers,
   hover state, and selected state.
-- Apply the same table header, row, border, hover, selected, and alternating-row
+- Apply the same table header, row, border, hover, and selected-row
   semantics to the shared sales/purchase register renderer and the shared
   editable `ErpLineItemTable` used by document forms.
 - Apply the same border/radius language to shared settings and purchase list
@@ -1567,11 +1567,13 @@ Design and accessibility rules:
 - Light cards use the existing light surface with border near `#DEE1E5`; dark
   cards use the existing blue-slate surface and `#33405D` border.
 - Table headers use the existing semantic `tableHeaderBackground`; body text,
-  links, alternating rows, selected rows, hover rows, and dividers use
+  links, ordinary rows, selected rows, hover rows, and dividers use
   `AppThemeExtension` roles.
 - Card and row outlines must remain visible without relying only on shadows.
 - Selected and hovered rows must remain distinguishable in both brightness
   modes, while ordinary rows keep adequate text contrast.
+- Dark-theme mouse hover uses black at 20% opacity; light-theme hover remains
+  unchanged.
 - Pagination controls require tooltips and disabled states and must not expose
   an impossible extra page at exact page-size boundaries.
 
@@ -1599,7 +1601,7 @@ Acceptance criteria:
 7. Sales and purchase register lists use the shared StaffU-inspired header and
    row treatment, including the invoice list shown in the supplied screenshot.
 8. Shared editable document line-item tables use the same bordered surface,
-   header band, alternating rows, hover state, and selected state.
+   header band, uniform ordinary rows, hover state, and selected state.
 
 ## CRM follow-up timeline presentation
 
