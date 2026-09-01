@@ -1493,6 +1493,38 @@ class PurchaseInvoiceManagementController extends GetxController {
     }
   }
 
+  Future<bool?> confirmSupplierAdvanceChoice(BuildContext context) async {
+    final selectedCompanyId = companyId;
+    final selectedSupplierId = supplierPartyId;
+    if (selectedCompanyId == null || selectedSupplierId == null) {
+      return true;
+    }
+
+    try {
+      final response = await _purchaseService.availableSupplierAdvance(
+        companyId: selectedCompanyId,
+        supplierPartyId: selectedSupplierId,
+      );
+      final available =
+          doubleValue(
+            response.data ?? const <String, dynamic>{},
+            'available_advance',
+          ) ??
+          0;
+      if (available <= 0) {
+        return true;
+      }
+      if (!context.mounted) {
+        return null;
+      }
+      return promptUseSupplierAdvance(context, availableAmount: available);
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+      return null;
+    }
+  }
+
   void _upsertInvoice(PurchaseInvoiceModel invoice, {bool notify = true}) {
     final id = invoice.id;
     if (id == null) {

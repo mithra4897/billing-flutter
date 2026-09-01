@@ -285,9 +285,13 @@ class PurchaseService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<PurchaseInvoiceModel>> postInvoice(int id) {
+  Future<ApiResponse<PurchaseInvoiceModel>> postInvoice(
+    int id, {
+    bool useSupplierAdvance = true,
+  }) {
     return client.post<PurchaseInvoiceModel>(
       '${ApiEndpoints.purchaseInvoices}/$id/post',
+      body: <String, dynamic>{'use_supplier_advance': useSupplierAdvance},
       fromData: (json) =>
           PurchaseInvoiceModel.fromJson(json as Map<String, dynamic>),
     );
@@ -344,6 +348,21 @@ class PurchaseService extends ErpModuleService {
     );
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> availableSupplierAdvance({
+    required int companyId,
+    required int supplierPartyId,
+  }) {
+    return client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.purchasePayments}/available-supplier-advance',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        'supplier_party_id': supplierPartyId,
+      },
+      fromData: (dynamic json) =>
+          json is Map ? Map<String, dynamic>.from(json) : <String, dynamic>{},
+    );
+  }
+
   Future<ApiResponse<PurchasePaymentModel>> createPayment(
     PurchasePaymentModel body,
   ) => createModel<PurchasePaymentModel>(
@@ -369,7 +388,16 @@ class PurchaseService extends ErpModuleService {
     PurchasePaymentModel body,
   ) => actionModel<PurchasePaymentModel>(
     '${ApiEndpoints.purchasePayments}/$id/post',
-    body: body,
+    body: body.toJson(),
+    fromJson: PurchasePaymentModel.fromJson,
+  );
+
+  Future<ApiResponse<PurchasePaymentModel>> allocateRemainingPayment(
+    int id,
+    List<Map<String, dynamic>> allocations,
+  ) => actionModel<PurchasePaymentModel>(
+    '${ApiEndpoints.purchasePayments}/$id/allocate-remaining',
+    body: <String, dynamic>{'allocations': allocations},
     fromJson: PurchasePaymentModel.fromJson,
   );
 

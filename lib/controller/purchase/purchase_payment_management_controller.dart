@@ -161,6 +161,7 @@ class PurchasePaymentManagementController extends GetxController {
   int? accountId;
   bool isActive = true;
   List<PaymentAllocationDraft> allocations = <PaymentAllocationDraft>[];
+  int persistedAllocationCount = 0;
   bool _paidAmountManuallyEdited = false;
   bool _syncingPaidAmountController = false;
 
@@ -177,6 +178,27 @@ class PurchasePaymentManagementController extends GetxController {
 
   bool get isSelectedPaymentReadOnly =>
       selectedItem != null && !canEditSelectedPayment;
+
+  double get remainingUnallocatedAmount =>
+      Validators.parseFlexibleNumber(
+        selectedItem?.toJson()['unallocated_amount']?.toString(),
+      ) ??
+      0;
+
+  bool get canAllocateRemainingAdvance {
+    final status = stringValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'payment_status',
+    );
+    return selectedItem != null &&
+        (status == 'posted' || status == 'partially_allocated') &&
+        remainingUnallocatedAmount > 0;
+  }
+
+  bool isPersistedAllocation(int index) => index < persistedAllocationCount;
+
+  List<PaymentAllocationDraft> get newRemainingAllocations =>
+      allocations.skip(persistedAllocationCount).toList(growable: false);
 
   @override
   void onInit() {
@@ -352,6 +374,7 @@ class PurchasePaymentManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceAllocations(nextAllocations, notify: false);
+    persistedAllocationCount = nextAllocations.length;
     formError = null;
     _upsertPayment(full, notify: false);
     await refreshPurchaseChain(notify: false);
@@ -379,6 +402,7 @@ class PurchasePaymentManagementController extends GetxController {
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
     _replaceAllocations(const <PaymentAllocationDraft>[], notify: false);
+    persistedAllocationCount = 0;
     selectedItem = null;
     purchaseChain = null;
     companyId = contextCompanyId;
@@ -593,6 +617,10 @@ class PurchasePaymentManagementController extends GetxController {
   }
 
   void syncPaidAmountFromAllocations() {
+    if (canAllocateRemainingAdvance) {
+      update();
+      return;
+    }
     final total = totalAllocatedAmount();
     final current =
         Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
@@ -621,12 +649,37 @@ class PurchasePaymentManagementController extends GetxController {
     if (invoice == null) return;
 
     final outstanding = invoiceOutstanding(invoice);
-    final paidAmount =
-        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final paidAmount = canAllocateRemainingAdvance
+        ? remainingUnallocatedAmount
+        : Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
     final allocatedOnOtherLines = allocations
         .asMap()
         .entries
-        .where((entry) => entry.key != index)
+        .where(
+          (entry) =>
+              entry.key != index &&
+              (!canAllocateRemainingAdvance ||
+                  entry.key >= persistedAllocationCount),
+        )
+        .fold<double>(
+          0,
+          (sum, entry) =>
+              sum +
+              (Validators.parseFlexibleNumber(
+                    entry.value.amountController.text,
+                  ) ??
+                  0),
+        );
+    final allocatedToInvoiceOnOtherLines = allocations
+        .asMap()
+        .entries
+        .where(
+          (entry) =>
+              entry.key != index &&
+              entry.value.purchaseInvoiceId == purchaseInvoiceId &&
+              (!canAllocateRemainingAdvance ||
+                  entry.key >= persistedAllocationCount),
+        )
         .fold<double>(
           0,
           (sum, entry) =>
@@ -655,9 +708,10 @@ class PurchasePaymentManagementController extends GetxController {
           allocations[index].amountController.text,
         ) ??
         0;
-    final maximumAllocation = remainingPayment < outstanding
+    final remainingInvoice = outstanding - allocatedToInvoiceOnOtherLines;
+    final maximumAllocation = remainingPayment < remainingInvoice
         ? remainingPayment
-        : outstanding;
+        : remainingInvoice;
     final nextAllocated = currentAllocated <= 0
         ? maximumAllocation
         : (currentAllocated > maximumAllocation
@@ -699,32 +753,43 @@ class PurchasePaymentManagementController extends GetxController {
     final currentInvoiceId = index >= 0 && index < allocations.length
         ? allocations[index].purchaseInvoiceId
         : null;
-    final selectedOnOtherLines = allocations
-        .asMap()
-        .entries
-        .where((entry) => entry.key != index)
-        .map((entry) => entry.value.purchaseInvoiceId)
-        .whereType<int>()
-        .toSet();
-
     return invoiceOptions
         .where((invoice) {
           final id = invoice.id;
-          if (id == null || selectedOnOtherLines.contains(id)) {
+          if (id == null) {
             return false;
           }
           if (id == currentInvoiceId) {
             return true;
           }
           final status = (invoice.invoiceStatus ?? '').toLowerCase();
-          return status != 'draft' &&
-              status != 'cancelled' &&
+          return const <String>{
+                'posted',
+                'overdue',
+                'partially_paid',
+                'partially_returned',
+              }.contains(status) &&
               invoiceOutstanding(invoice) > 0;
         })
         .toList(growable: false);
   }
 
   void addAllocation() {
+    if (isSelectedPaymentReadOnly && !canAllocateRemainingAdvance) {
+      return;
+    }
+    final newlyAllocated = newRemainingAllocations.fold<double>(
+      0,
+      (sum, item) =>
+          sum +
+          (Validators.parseFlexibleNumber(item.amountController.text) ?? 0),
+    );
+    if (canAllocateRemainingAdvance &&
+        newlyAllocated >= remainingUnallocatedAmount) {
+      formError = 'The remaining advance is already fully allocated.';
+      update();
+      return;
+    }
     allocations = List<PaymentAllocationDraft>.from(allocations)
       ..add(PaymentAllocationDraft());
     syncPaidAmountFromAllocations();
@@ -807,6 +872,9 @@ class PurchasePaymentManagementController extends GetxController {
   }
 
   void removeAllocation(int index) {
+    if (isPersistedAllocation(index)) {
+      return;
+    }
     final updated = List<PaymentAllocationDraft>.from(allocations);
     final removed = updated.removeAt(index);
     allocations = updated;
@@ -889,7 +957,7 @@ class PurchasePaymentManagementController extends GetxController {
       update();
       return;
     }
-    final selectedInvoiceIds = <int>{};
+    final allocatedByInvoice = <int, double>{};
     for (var index = 0; index < allocations.length; index++) {
       final allocation = allocations[index];
       final lineNumber = index + 1;
@@ -916,8 +984,21 @@ class PurchasePaymentManagementController extends GetxController {
         update();
         return;
       }
-      if (invoiceId != null && !selectedInvoiceIds.add(invoiceId)) {
-        formError = 'The same invoice cannot be allocated more than once.';
+      if (invoiceId != null) {
+        allocatedByInvoice[invoiceId] =
+            (allocatedByInvoice[invoiceId] ?? 0) + allocatedAmount;
+      }
+    }
+    for (final entry in allocatedByInvoice.entries) {
+      final invoice = invoices.cast<PurchaseInvoiceModel?>().firstWhere(
+        (item) => item?.id == entry.key,
+        orElse: () => null,
+      );
+      if (invoice != null &&
+          roundToDouble(entry.value, 2) >
+              roundToDouble(invoiceOutstanding(invoice), 2)) {
+        formError =
+            'Total allocation for ${invoice.invoiceNo ?? 'invoice'} cannot exceed its outstanding amount.';
         update();
         return;
       }
@@ -971,6 +1052,90 @@ class PurchasePaymentManagementController extends GetxController {
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
+    } finally {
+      saving = false;
+      update();
+    }
+  }
+
+  Future<void> saveRemainingAllocations(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final paymentId = intValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'id',
+    );
+    final newLines = newRemainingAllocations;
+    if (paymentId == null || !canAllocateRemainingAdvance) {
+      return;
+    }
+    if (newLines.isEmpty) {
+      formError = 'Add at least one invoice allocation.';
+      update();
+      return;
+    }
+
+    final allocatedByInvoice = <int, double>{};
+    var total = 0.0;
+    for (var index = 0; index < newLines.length; index++) {
+      final line = newLines[index];
+      final lineNo = index + 1;
+      final amount =
+          Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
+      if (line.purchaseInvoiceId == null) {
+        formError = 'Select an invoice for new allocation line $lineNo.';
+        update();
+        return;
+      }
+      if (amount <= 0) {
+        formError = 'Enter an amount for new allocation line $lineNo.';
+        update();
+        return;
+      }
+      allocatedByInvoice[line.purchaseInvoiceId!] =
+          (allocatedByInvoice[line.purchaseInvoiceId!] ?? 0) + amount;
+      total += amount;
+    }
+    for (final entry in allocatedByInvoice.entries) {
+      final invoice = invoices.cast<PurchaseInvoiceModel?>().firstWhere(
+        (item) => item?.id == entry.key,
+        orElse: () => null,
+      );
+      if (invoice != null &&
+          roundToDouble(entry.value, 2) >
+              roundToDouble(invoiceOutstanding(invoice), 2)) {
+        formError =
+            'Total allocation for ${invoice.invoiceNo ?? 'invoice'} cannot exceed its outstanding amount.';
+        update();
+        return;
+      }
+    }
+    if (roundToDouble(total, 2) >
+        roundToDouble(remainingUnallocatedAmount, 2)) {
+      formError =
+          'Total allocation cannot exceed the remaining advance of ${remainingUnallocatedAmount.appFixed()}.';
+      update();
+      return;
+    }
+
+    saving = true;
+    formError = null;
+    update();
+    try {
+      final response = await _purchaseService.allocateRemainingPayment(
+        paymentId,
+        newLines.map((line) => line.toJson()).toList(growable: false),
+      );
+      _showMessage(response.message);
+      final updated = response.data;
+      if (updated != null) {
+        _upsertPayment(updated);
+        await selectDocument(updated, notify: false);
+      } else {
+        await loadPage(selectId: paymentId);
+      }
+      _refreshController.notifyChanged(source: 'purchase_payment');
+    } catch (errorValue) {
+      formError = errorValue.toString();
     } finally {
       saving = false;
       update();

@@ -873,12 +873,20 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             icon: Icons.publish_outlined,
                             label: 'Submit',
                             filled: false,
-                            onPressed: () => controller.docAction(
-                              context,
-                              () => PurchaseService().postInvoice(
-                                controller.selectedItem!.id!,
-                              ),
-                            ),
+                            onPressed: () async {
+                              final useAdvance = await controller
+                                  .confirmSupplierAdvanceChoice(context);
+                              if (useAdvance == null || !context.mounted) {
+                                return;
+                              }
+                              await controller.docAction(
+                                context,
+                                () => PurchaseService().postInvoice(
+                                  controller.selectedItem!.id!,
+                                  useSupplierAdvance: useAdvance,
+                                ),
+                              );
+                            },
                           ),
                         if (canCancel)
                           AppActionButton(
