@@ -24,6 +24,9 @@
   `billing-api/doc/CHANGELOG.md` under the same ADR date.
 - Sales status filter dropdowns now show the same waiting/finished names as
   badges while retaining canonical status values for API filtering.
+- Kept one visible option per stored status where lifecycle states share a
+  badge label (for example, `Sent` and `Closed`), avoiding duplicate filter
+  names while preserving precise filtering.
 
 ## 2026-08-31 — Default sales lists to newest first
 

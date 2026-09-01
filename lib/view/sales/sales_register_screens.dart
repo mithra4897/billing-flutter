@@ -840,7 +840,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Waiting for Sales Order'),
-    AppDropdownItem(value: 'sent', label: 'Waiting for Sales Order'),
+    AppDropdownItem(value: 'sent', label: 'Sent'),
     AppDropdownItem(value: 'accepted', label: 'Finished'),
     AppDropdownItem(value: 'rejected', label: 'Rejected'),
     AppDropdownItem(value: 'expired', label: 'Expired'),
@@ -1258,7 +1258,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
     AppDropdownItem(value: 'fully_delivered', label: 'Waiting for Invoice'),
     AppDropdownItem(value: 'partially_invoiced', label: 'Partially invoiced'),
     AppDropdownItem(value: 'fully_invoiced', label: 'Finished'),
-    AppDropdownItem(value: 'closed', label: 'Finished'),
+    AppDropdownItem(value: 'closed', label: 'Closed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
