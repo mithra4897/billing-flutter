@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-01 — Fix salary-component reorderable element identity
+
+- Scoped each salary-component `ReorderableListView` and item key by salary
+  structure, preventing Flutter inactive-element assertions during rebuilds.
+- Reordering behavior and persistence remain unchanged.
+
 ## 2026-09-01 — Sales detail action placement
 
 - Moved quotation, proforma, order, and delivery conversion actions to the

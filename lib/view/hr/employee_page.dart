@@ -55,7 +55,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   static const List<AppDropdownItem<String>> _componentRoleItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'standard', label: 'Standard component'),
-        AppDropdownItem(value: 'derived_gross', label: 'Derived gross (summary)'),
+        AppDropdownItem(
+          value: 'derived_gross',
+          label: 'Derived gross (summary)',
+        ),
         AppDropdownItem(value: 'derived_net', label: 'Derived net (summary)'),
       ];
 
@@ -3058,6 +3061,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           ),
         ),
         ReorderableListView.builder(
+          key: ValueKey('employee-components-${structure.key}'),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
@@ -3073,7 +3077,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             final component = structure.components[index];
             final expanded = component.key == _selectedComponentKey;
             return Padding(
-              key: ValueKey('employee-component-${component.key}'),
+              key: ValueKey(
+                'employee-component-${structure.key}-${component.key}',
+              ),
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: SettingsExpandableTile(
                 title: component.componentName,
@@ -3164,9 +3170,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               labelText: 'Component Role',
               mappedItems: _componentRoleItems,
               initialValue: _componentRole,
-              onChanged: (value) => _updateController(
-                () => _componentRole = value ?? 'standard',
-              ),
+              onChanged: (value) =>
+                  _updateController(() => _componentRole = value ?? 'standard'),
             ),
             AppDropdownField<String>.fromMapped(
               labelText: 'Calculation',

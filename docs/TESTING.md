@@ -1,5 +1,14 @@
 # Testing
 
+## Employee salary-component reorderable identity — 2026-09-01
+
+- Reorderable salary-component lists now have stable structure-scoped list and
+  item keys, preventing inactive-element retake assertions when multiple
+  salary structures rebuild together.
+- Focused `flutter analyze` is required for `lib/view/hr/employee_page.dart`;
+  manual drag/reorder verification remains recommended with one and multiple
+  salary structures.
+
 ## Sales detail action placement — 2026-09-01
 
 - `dart format` completed for all five Sales detail pages.
