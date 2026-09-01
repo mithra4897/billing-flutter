@@ -642,9 +642,7 @@ class _DashboardPrimaryColumn extends StatelessWidget {
           .map(
             (section) => Padding(
               padding: EdgeInsets.only(
-                bottom: section == sections.last
-                    ? 0
-                    : AppUiConstants.spacingLg,
+                bottom: section == sections.last ? 0 : AppUiConstants.spacingLg,
               ),
               child: _DashboardListCard(
                 section: section,
@@ -776,9 +774,13 @@ class _DashboardListCardState extends State<_DashboardListCard> {
               return false;
             }
           }
-          if (_selectedSecondaryFilter.trim().isNotEmpty) {
+          if (_selectedSecondaryFilter.trim().isNotEmpty &&
+              _selectedSecondaryFilter.trim() != 'employee:none') {
             final prefix = _selectedSecondaryFilter.contains(':')
-                ? _selectedSecondaryFilter.substring(0, _selectedSecondaryFilter.indexOf(':') + 1)
+                ? _selectedSecondaryFilter.substring(
+                    0,
+                    _selectedSecondaryFilter.indexOf(':') + 1,
+                  )
                 : '';
             final valuesPart = prefix.isNotEmpty
                 ? _selectedSecondaryFilter.substring(prefix.length)
@@ -790,7 +792,9 @@ class _DashboardListCardState extends State<_DashboardListCard> {
                 .map((s) => '$prefix$s')
                 .toSet();
             if (selectedSecondaryTags.isNotEmpty &&
-                !item.secondaryFilterTags.any((tag) => selectedSecondaryTags.contains(tag))) {
+                !item.secondaryFilterTags.any(
+                  (tag) => selectedSecondaryTags.contains(tag),
+                )) {
               return false;
             }
           }
@@ -1124,53 +1128,55 @@ class _DashboardSearchFilterField extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
 
+  static const String _allEmployeesValue = '__all_employees__';
+  static const String _noEmployeesValue = 'employee:none';
+
   @override
   Widget build(BuildContext context) {
-    final selectedValues = value.startsWith('employee:')
+    final linkOptions = options
+        .map(
+          (option) => ErpLinkFieldOption<String>(
+            value: option.value.isEmpty
+                ? _allEmployeesValue
+                : option.value.startsWith('employee:')
+                ? option.value.substring(9)
+                : option.value,
+            label: option.label,
+          ),
+        )
+        .toList(growable: false);
+    final selectedValues = value.isEmpty
+        ? linkOptions.map((option) => option.value).toSet()
+        : value == _noEmployeesValue
+        ? <String>{}
+        : value.startsWith('employee:')
         ? value
               .substring('employee:'.length)
               .split(',')
               .where((item) => item.trim().isNotEmpty)
               .toSet()
         : <String>{};
-    final selected = options.cast<ErpDashboardListFilterOption?>().firstWhere(
-      (option) =>
-          option?.value == value ||
-          (selectedValues.length == 1 &&
-              option?.value == 'employee:${selectedValues.first}'),
-      orElse: () => null,
-    );
     return SizedBox(
       width: 220,
       child: ErpLinkField<String>(
         labelText: 'Employee',
         doctypeLabel: 'Employee',
         hintText: 'Search employees',
-        options: options
-            .map(
-              (option) => ErpLinkFieldOption<String>(
-                value: option.value.startsWith('employee:') 
-                    ? option.value.substring(9) 
-                    : option.value,
-                label: option.label,
-              ),
-            )
-            .toList(growable: false),
+        options: linkOptions,
         multiInitialSelections: selectedValues,
-        initialSelection: selected == null
-            ? null
-            : ErpLinkFieldOption<String>(
-                value: selected.value.startsWith('employee:') 
-                    ? selected.value.substring(9) 
-                    : selected.value,
-                label: selected.label,
-              ),
+        multiSelectAllValue: _allEmployeesValue,
         onChanged: (_) {},
         onMultiChanged: (nextValues) {
+          if (nextValues.contains(_allEmployeesValue)) {
+            onChanged('');
+            return;
+          }
           final ids = nextValues
               .where((item) => item.isNotEmpty)
               .toList(growable: false);
-          onChanged(ids.isEmpty ? '' : 'employee:${ids.join(',')}');
+          onChanged(
+            ids.isEmpty ? _noEmployeesValue : 'employee:${ids.join(',')}',
+          );
         },
       ),
     );

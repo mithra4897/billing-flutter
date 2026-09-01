@@ -105,6 +105,9 @@
   timeline entries, and that Clear resets the employee and date filters.
 - Verify the CRM Dashboard Employee filter opens a searchable ERP link field,
   retains the selected employee, and still filters dashboard counts and lists.
+- Verify the CRM Dashboard Employee filter checks and displays All employees
+  when selected, clears named selections when All employees is chosen, and
+  reloads the unfiltered dashboard.
 - Verification performed: `dart format` completed and focused
   `flutter analyze` passed with no issues. The full `flutter test --no-pub`
   run is blocked by the repository's pre-existing missing

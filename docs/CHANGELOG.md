@@ -148,6 +148,20 @@
   desktop and narrow-width register layouts.
 - Follow-up work: None.
 
+## 2026-09-01 — CRM Dashboard all-employees filter selection
+
+- Fixed the searchable CRM Dashboard Employee filter so selecting All employees
+  checks the All employees checkbox and every employee-name checkbox.
+- Selecting a named employee clears the all-employees selection; selecting All
+  employees again checks every employee and preserves the existing unfiltered
+  API value.
+- Unchecking All employees now clears every employee checkbox while retaining
+  the unfiltered dashboard data view.
+- Extended the shared ERP link field with an optional select-all multi-select
+  value; no backend or database changes are required.
+- Verification: `dart format`, focused `flutter analyze`, and `git diff
+  --check` completed successfully.
+
 ## 2026-08-25 — CRM inline filter bars
 
 - Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,

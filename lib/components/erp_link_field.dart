@@ -44,6 +44,7 @@ class ErpLinkField<T> extends StatefulWidget {
     this.canNavigateToOption,
     this.multiInitialSelections,
     this.onMultiChanged,
+    this.multiSelectAllValue,
     this.multiHintText,
     this.onClear,
   });
@@ -75,6 +76,10 @@ class ErpLinkField<T> extends StatefulWidget {
   final bool Function(ErpLinkFieldOption<T> option)? canNavigateToOption;
   final Set<T>? multiInitialSelections;
   final ValueChanged<Set<T>>? onMultiChanged;
+
+  /// When set, selecting this value selects every local option. The value is
+  /// also kept selected while every option is selected.
+  final T? multiSelectAllValue;
   final String? multiHintText;
   final VoidCallback? onClear;
 
@@ -505,8 +510,27 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         }
         if (_isMultiSelect) {
           final next = Set<T>.from(_multiSelectedValues);
-          if (!next.add(option.value)) {
-            next.remove(option.value);
+          final allValue = widget.multiSelectAllValue;
+          final allOptions = widget.options ?? <ErpLinkFieldOption<T>>[];
+          final allValues = allOptions.map((item) => item.value).toSet();
+          if (allValue != null && option.value == allValue) {
+            if (next.contains(allValue) && allValues.every(next.contains)) {
+              next.clear();
+            } else {
+              next
+                ..clear()
+                ..addAll(allValues);
+            }
+          } else {
+            next.remove(allValue);
+            if (!next.add(option.value)) {
+              next.remove(option.value);
+            }
+            if (allValue != null &&
+                allValues.isNotEmpty &&
+                allValues.every(next.contains)) {
+              next.add(allValue);
+            }
           }
           setState(() {
             _multiSelectedValues = next;
@@ -822,7 +846,18 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
 
   String _displayValueText() {
     if (_isMultiSelect) {
-      final labels = (widget.options ?? <ErpLinkFieldOption<T>>[])
+      final options = widget.options ?? <ErpLinkFieldOption<T>>[];
+      final allValue = widget.multiSelectAllValue;
+      if (allValue != null && _multiSelectedValues.contains(allValue)) {
+        final allOption = options.cast<ErpLinkFieldOption<T>?>().firstWhere(
+          (option) => option?.value == allValue,
+          orElse: () => null,
+        );
+        if (allOption != null) {
+          return allOption.label;
+        }
+      }
+      final labels = options
           .where((option) => _multiSelectedValues.contains(option.value))
           .map((option) => option.label)
           .toList(growable: false);

@@ -161,6 +161,37 @@ Acceptance criteria:
   360 px desktop field while remaining horizontally scrollable on compact
   screens.
 
+## CRM Dashboard all-employees filter selection
+
+- Date: 2026-09-01
+- Status: Implemented
+
+- In the Super Admin CRM Dashboard employee filter, selecting **All employees**
+  checks and displays that option and checks every employee name in the
+  searchable employee field.
+- Selecting a specific employee clears the all-employees selection and leaves
+  only the selected employee checked; selecting **All employees** checks every
+  employee again.
+- Unchecking **All employees** clears the All employees checkbox and every
+  employee-name checkbox.
+- The dashboard's existing empty employee-filter value remains the canonical
+  value for loading unfiltered CRM data. No API, database, permission, or
+  persistence contract changes are required.
+- Clearing the employee field restores the same all-employees state and
+  reloads the unfiltered dashboard snapshot.
+
+Acceptance criteria:
+
+1. The All employees row and every employee-name row show checked states when
+   All employees is selected.
+2. The field displays All employees when no specific employee is selected.
+3. Choosing a named employee unchecks All employees and the other names, then
+   filters by that employee.
+4. Choosing All employees after a named employee checks every name and removes
+   the employee filter from dashboard requests.
+5. Unchecking All employees leaves all employee checkboxes unchecked without
+   preventing the dashboard from showing unfiltered data.
+
 ## Persistent authenticated browser session
 
 - Date: 2026-08-20
