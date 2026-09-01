@@ -1,5 +1,13 @@
 # Architecture
 
+## Sales detail action rows
+
+Sales detail editors use the shared `SalesDocumentActionRow` twice when a
+document has a conversion/payment action: the first row follows the pipeline
+and status summary, while the final row contains lifecycle and viewing actions.
+Action visibility remains owned by each management controller's existing
+status and relationship guards.
+
 ## Sales lifecycle status presentation
 
 The shared `sales_support.dart` helpers map canonical Sales statuses to

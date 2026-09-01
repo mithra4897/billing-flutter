@@ -1,5 +1,13 @@
 # Testing
 
+## Sales detail action placement — 2026-09-01
+
+- `dart format` completed for all five Sales detail pages.
+- Focused `flutter analyze` passed for quotation, proforma, order, delivery,
+  and invoice pages.
+- Manual authenticated visual verification remains recommended for top/bottom
+  action placement and responsive wrapping.
+
 ## Stage-based Sales lifecycle badges — 2026-09-01
 
 - Focused helper tests cover draft, waiting, partial, converted, terminal, and

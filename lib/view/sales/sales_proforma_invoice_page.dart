@@ -439,6 +439,20 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                   ],
                 ),
               ),
+            if (controller.selectedItem != null &&
+                controller.status == 'posted' &&
+                controller.selectedItem?.convertedSalesInvoiceId == null &&
+                !hasActiveSalesInvoice)
+              SalesDocumentActionRow(
+                actions: [
+                  AppActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Create Invoice',
+                    filled: false,
+                    onPressed: () => controller.convertSelected(context),
+                  ),
+                ],
+              ),
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
@@ -624,7 +638,7 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                     icon: controller.status == 'draft'
                         ? Icons.preview_outlined
                         : Icons.print_outlined,
-                    label: controller.status == 'draft' ? 'Preview' : 'Print',
+                    label: 'View Proforma Invoice',
                     filled: false,
                     onPressed: () => controller.openPrintPreview(
                       context,
@@ -661,16 +675,6 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                       label: 'Delete',
                       filled: false,
                       onPressed: () => controller.deleteSelected(context),
-                    ),
-                  if (controller.status == 'posted' &&
-                      controller.selectedItem?.convertedSalesInvoiceId ==
-                          null &&
-                      !hasActiveSalesInvoice)
-                    AppActionButton(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Create Invoice',
-                      filled: false,
-                      onPressed: () => controller.convertSelected(context),
                     ),
                   if (controller.status == 'posted' &&
                       controller.selectedItem?.convertedSalesInvoiceId ==

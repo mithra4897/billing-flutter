@@ -766,33 +766,35 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             if (controller.selectedItem != null &&
                 !const {'draft', 'cancelled'}.contains(controller.status) &&
                 controller.outstandingBalanceForSelectedInvoice() > 0.000001)
-              Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Outstanding: ${formatAmount(controller.outstandingBalanceForSelectedInvoice())} INR',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.primary,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingSm,
+                    ),
+                    child: Text(
+                      'Outstanding: ${formatAmount(controller.outstandingBalanceForSelectedInvoice())} INR',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  SalesDocumentActionRow(
+                    actions: [
+                      AppActionButton(
+                        icon: Icons.payments_outlined,
+                        label: 'Receive Payment',
+                        filled: false,
+                        onPressed: () => openModuleShellRoute(
+                          context,
+                          '/sales/receipts/new?invoice_id=${controller.selectedItem!.id}',
                         ),
                       ),
-                    ),
-                    AppActionButton(
-                      icon: Icons.payments_outlined,
-                      label: 'Receive payment',
-                      filled: false,
-                      onPressed: () => openModuleShellRoute(
-                        context,
-                        '/sales/receipts/new?invoice_id=${controller.selectedItem!.id}',
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             SettingsFormWrap(
               children: [
@@ -1101,7 +1103,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     icon: controller.status == 'draft'
                         ? Icons.preview_outlined
                         : Icons.print_outlined,
-                    label: controller.status == 'draft' ? 'Preview' : 'Print',
+                    label: 'View Invoice',
                     filled: false,
                     onPressed: () => controller.openPrintPreview(
                       context,

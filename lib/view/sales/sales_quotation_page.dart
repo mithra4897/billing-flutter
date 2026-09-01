@@ -457,6 +457,36 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   ],
                 ),
               ),
+            if (controller.selectedItem != null &&
+                !hasActiveProforma &&
+                !hasActiveOrder &&
+                const {
+                  'posted',
+                  'sent',
+                  'accepted',
+                }.contains(controller.status))
+              SalesDocumentActionRow(
+                actions: [
+                  AppActionButton(
+                    icon: Icons.request_page_outlined,
+                    label: 'Create Proforma Invoice',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/proforma-invoices/new?quotation_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
+                  AppActionButton(
+                    icon: Icons.shopping_cart_checkout_outlined,
+                    label: 'Create Order',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/orders/new?quotation_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
+                ],
+              ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -623,60 +653,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
-                    !hasActiveProforma &&
-                    !hasActiveOrder &&
-                    const {
-                      'posted',
-                      'sent',
-                      'accepted',
-                    }.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.request_page_outlined,
-                    label: 'Create Proforma Invoice',
-                    filled: false,
-                    onPressed: () {
-                      final quotationId = controller.selectedItem?.id;
-                      if (quotationId != null) {
-                        openModuleShellRoute(
-                          context,
-                          '/sales/proforma-invoices/new?quotation_id=$quotationId',
-                        );
-                      }
-                    },
-                  ),
-                if (controller.selectedItem != null &&
-                    !hasActiveOrder &&
-                    !hasActiveProforma &&
-                    const {
-                      'posted',
-                      'sent',
-                      'accepted',
-                    }.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.shopping_cart_checkout_outlined,
-                    label: 'Create order',
-                    filled: false,
-                    onPressed: () {
-                      final quotationId = intValue(
-                        controller.selectedItem?.toJson() ?? const {},
-                        'id',
-                      );
-                      if (quotationId == null) {
-                        return;
-                      }
-                      openModuleShellRoute(
-                        context,
-                        '/sales/orders/new?quotation_id=$quotationId',
-                      );
-                    },
-                  ),
-                if (controller.selectedItem != null &&
                     controller.status != 'cancelled')
                   AppActionButton(
                     icon: controller.status == 'draft'
                         ? Icons.preview_outlined
                         : Icons.print_outlined,
-                    label: controller.status == 'draft' ? 'Preview' : 'Print',
+                    label: 'View Quotation',
                     filled: false,
                     onPressed: () => controller.openPrintPreview(
                       context,

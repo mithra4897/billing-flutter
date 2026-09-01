@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-01 — Sales detail action placement
+
+- Moved quotation, proforma, order, and delivery conversion actions to the
+  top action row below the pipeline/status area.
+- Grouped invoice Receive Payment in the same top action-row pattern.
+- Renamed bottom Preview/Print actions to contextual View Quotation, View
+  Proforma Invoice, View Order, View Delivery, and View Invoice labels.
+- Lifecycle guards, routes, and preview/print behavior remain unchanged.
+- Sales document action rows now align buttons to the right while preserving
+  responsive wrapping.
+
 ## 2026-09-01 — Stage-based Sales lifecycle badges
 
 - Replaced premature `Finished` labels with next-action statuses for

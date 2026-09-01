@@ -546,6 +546,26 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   ],
                 ),
               ),
+            if (controller.selectedItem != null &&
+                !hasPostedDelivery &&
+                const {
+                  'confirmed',
+                  'partially_delivered',
+                  'partially_invoiced',
+                }.contains(controller.status))
+              SalesDocumentActionRow(
+                actions: [
+                  AppActionButton(
+                    icon: Icons.local_shipping_outlined,
+                    label: 'Create Delivery',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/deliveries/new?order_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
+                ],
+              ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -742,37 +762,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
-                    !hasPostedDelivery &&
-                    const {
-                      'confirmed',
-                      'partially_delivered',
-                      'partially_invoiced',
-                    }.contains(controller.status))
-                  AppActionButton(
-                    icon: Icons.local_shipping_outlined,
-                    label: 'Create delivery',
-                    filled: false,
-                    onPressed: () {
-                      final orderId = intValue(
-                        controller.selectedItem?.toJson() ?? const {},
-                        'id',
-                      );
-                      if (orderId == null) {
-                        return;
-                      }
-                      openModuleShellRoute(
-                        context,
-                        '/sales/deliveries/new?order_id=$orderId',
-                      );
-                    },
-                  ),
-                if (controller.selectedItem != null &&
                     !const {'cancelled'}.contains(controller.status))
                   AppActionButton(
                     icon: controller.status == 'draft'
                         ? Icons.preview_outlined
                         : Icons.print_outlined,
-                    label: controller.status == 'draft' ? 'Preview' : 'Print',
+                    label: 'View Order',
                     filled: false,
                     onPressed: () => controller.openPrintPreview(
                       context,

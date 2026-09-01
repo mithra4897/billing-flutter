@@ -1892,3 +1892,24 @@ Acceptance criteria:
    payload flags without N+1 relationship queries.
 6. Focused formatting, static analysis, helper tests, and backend syntax checks
    pass.
+## Sales detail action placement
+
+Status: Implemented (2026-09-01)
+
+Conversion actions are grouped in a `SalesDocumentActionRow` immediately below
+the document pipeline/status area. Save, submit, delete, cancel, revise,
+customer communication, and document viewing remain at the bottom of the form.
+Print/Preview labels use the contextual `View Quotation`, `View Proforma
+Invoice`, `View Order`, `View Delivery`, and `View Invoice` wording. Existing
+permissions, lifecycle guards, routes, and print-preview behavior are unchanged.
+
+Acceptance criteria:
+
+1. Quotation conversion actions appear only in the top action row.
+2. Proforma invoice, order, and delivery conversion actions appear only in the
+   top action row.
+3. Invoice payment action is grouped in the top action row.
+4. Bottom document actions contain contextual View labels and no conversion
+   action.
+5. Sales document action rows align their buttons to the right and wrap on
+   narrow layouts.
