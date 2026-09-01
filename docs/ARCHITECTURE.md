@@ -41,6 +41,13 @@ From Date and To Date controls only when the same Filter action is active. Exist
 page-owned filter state remains the source of truth; text-controller listeners
 update the filtered rows locally.
 
+The Enquiries Followups editor treats completed followup drafts as historical
+presentation data. It hides completed cards and promotes a completed draft's
+non-empty `next_followup` value to an editable followup card with a pending
+badge; the card edits the existing draft's next-date, assignee, and notes while
+draft serialization remains compatible and derives `done` from a
+non-empty next-date input. The editor does not expose a manual status control.
+
 ## Browser session restoration
 
 The existing shared-preference session store remains the single source of truth

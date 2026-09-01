@@ -162,6 +162,16 @@
 - Verification: `dart format`, focused `flutter analyze`, and `git diff
   --check` completed successfully.
 
+## 2026-09-01 — CRM Enquiries completed followup presentation
+
+- Completed Enquiries followups are now hidden from the active editable list.
+- A completed followup with a Next Followup date now shows that date in a
+  matching editable card with a pending badge.
+- Removed the manual followup Status field; entering a Next Followup date
+  automatically serializes the current followup as done.
+- Pending followups retain their existing date, assignee, and notes controls.
+- No backend or persistence contract changes are required.
+
 ## 2026-08-25 — CRM inline filter bars
 
 - Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,

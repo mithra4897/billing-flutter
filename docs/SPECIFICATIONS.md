@@ -192,6 +192,30 @@ Acceptance criteria:
 5. Unchecking All employees leaves all employee checkboxes unchecked without
    preventing the dashboard from showing unfiltered data.
 
+## CRM Enquiries completed followup presentation
+
+- Date: 2026-09-01
+- Status: Implemented
+
+- In the Enquiries Followups tab, a followup whose internal status is `done` or
+  `completed` is treated as history and hidden from the editable followup list.
+- If a completed followup has a Next Followup date, the tab shows that date in
+  an editable followup card matching the existing expandable-card
+  presentation, with a pending Next Followup badge.
+- The followup editor does not show a manual Status field. A non-empty Next
+  Followup date automatically sets the current followup status to `done`.
+- Existing save payloads and backend followup status rules remain compatible;
+  the frontend derives the status from the next-date input.
+
+Acceptance criteria:
+
+1. Marking a followup Done hides its previous followup card.
+2. A Done followup with a Next Followup date shows an editable matching
+   followup card with a Next Followup badge.
+3. The Done followup's Status dropdown is not visible.
+4. Pending and next followups show editable date, assignee, and notes fields
+   without a manual Status dropdown.
+
 ## Persistent authenticated browser session
 
 - Date: 2026-08-20

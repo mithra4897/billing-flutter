@@ -154,6 +154,17 @@
 - Authenticated manual visual QA against live CRM data remains recommended in
   both operating-system brightness modes.
 
+## CRM Enquiries completed followup presentation — 2026-09-01
+
+- Verify marking a followup Done hides its previous editable card.
+- Verify a Done followup with a Next Followup date displays a matching card,
+  pending badge, and no Status dropdown.
+- Verify the Next Followup card allows editing its date, assignee, and notes.
+- Verify entering a Next Followup date automatically hides the current card and
+  serializes its status as `done`.
+- Verify pending followups retain the existing date, assignee, and notes
+  controls without a manual Status dropdown.
+
 ## Bulk Attendance submit-only action — 2026-08-22
 
 - Focused Flutter analysis passed for the Bulk Attendance page. Existing

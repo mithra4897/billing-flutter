@@ -19,13 +19,6 @@ class CrmOpportunitiesController extends GetxController {
         AppDropdownItem(value: 'lost', label: 'Lost'),
         AppDropdownItem(value: 'won', label: 'Won'),
       ];
-  static const List<AppDropdownItem<String>> followupStatuses =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'done', label: 'Done'),
-        AppDropdownItem(value: 'skipped', label: 'Skipped'),
-      ];
-
   CrmOpportunitiesController({
     required this.instanceTag,
     required this.startInNewMode,
@@ -865,8 +858,11 @@ class CrmOpportunitiesController extends GetxController {
     update();
   }
 
-  void setFollowupStatus(OpportunityFollowupDraft followup, String? value) {
-    followup.status = value ?? 'pending';
+  void setFollowupNextFollowup(
+    OpportunityFollowupDraft followup,
+    String value,
+  ) {
+    followup.status = value.trim().isEmpty ? 'pending' : 'done';
     update();
   }
 
@@ -1064,6 +1060,9 @@ class OpportunityFollowupDraft {
     }
   }
 
+  bool get isCompleted =>
+      const <String>{'done', 'completed'}.contains(status.trim().toLowerCase());
+
   String assigneeLabel(List<UserModel> users) {
     final user = users.cast<UserModel?>().firstWhere(
       (entry) => entry?.id == assignedTo,
@@ -1076,7 +1075,7 @@ class OpportunityFollowupDraft {
     return {
       'id': id,
       'assigned_to': assignedTo,
-      'status': status,
+      'status': nextFollowupController.text.trim().isEmpty ? status : 'done',
       'followup_date': nullIfEmpty(followupDateController.text),
       'notes': nullIfEmpty(notesController.text),
       'next_followup': nullIfEmpty(nextFollowupController.text),
