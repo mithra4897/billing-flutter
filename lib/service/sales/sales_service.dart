@@ -129,11 +129,17 @@ class SalesService extends ErpModuleService {
   );
 
   Future<ApiResponse<SalesQuotationModel>> sendQuotation(
-    int id,
-    SalesQuotationModel body,
-  ) => actionModel<SalesQuotationModel>(
+    int id, {
+    Uint8List? pdfBytes,
+    String? fileName,
+  }) => actionModel<SalesQuotationModel>(
     '/sales/quotations/$id/send',
-    body: body,
+    body: pdfBytes == null
+        ? null
+        : <String, dynamic>{
+            'pdf_base64': base64Encode(pdfBytes),
+            'pdf_filename': fileName ?? 'quotation.pdf',
+          },
     fromJson: SalesQuotationModel.fromJson,
   );
 

@@ -1299,13 +1299,31 @@ class SalesQuotationManagementController extends GetxController {
   Future<void> sendSelected(BuildContext context) async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) return;
-    await docAction(
-      context,
-      () => _salesService.sendQuotation(
+    await docAction(context, () async {
+      await ensureCustomerPrintContext(customerPartyId);
+      if (!context.mounted) {
+        throw Exception('Quotation screen was closed before PDF generation.');
+      }
+      final pdfBytes = await generateDocumentPrintPdf(
+        context,
+        documentType: 'sales_quotation',
+        title: 'Quotation',
+        documentData: quotationPrintData(),
+      );
+      if (pdfBytes == null || pdfBytes.isEmpty) {
+        throw Exception('Unable to generate quotation PDF.');
+      }
+
+      final quotationNumber = selectedItem?.quotationNo?.trim();
+      final fileName = (quotationNumber == null || quotationNumber.isEmpty)
+          ? 'quotation_$id.pdf'
+          : '${quotationNumber.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf';
+      return _salesService.sendQuotation(
         id,
-        SalesQuotationModel.fromJson(const <String, dynamic>{}),
-      ),
-    );
+        pdfBytes: pdfBytes,
+        fileName: fileName,
+      );
+    });
   }
 
   Future<void> acceptSelected(BuildContext context) async {

@@ -165,6 +165,13 @@
 - Verify pending followups retain the existing date, assignee, and notes
   controls without a manual Status dropdown.
 
+## Sales quotation PDF email attachment — 2026-09-01
+
+- Focused Flutter analysis passed for the quotation controller and sales
+  service after wiring the shared PDF generator into email sending.
+- `flutter test --no-pub` passed with 7 tests. Manual verification against the
+  SMTP-enabled API is required to confirm the received attachment.
+
 ## Bulk Attendance submit-only action — 2026-08-22
 
 - Focused Flutter analysis passed for the Bulk Attendance page. Existing

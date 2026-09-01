@@ -216,6 +216,20 @@ Acceptance criteria:
 4. Pending and next followups show editable date, assignee, and notes fields
    without a manual Status dropdown.
 
+## Sales quotation PDF email attachment
+
+- Date: 2026-09-01
+- Status: Implemented
+
+- **Send to customer** generates the existing quotation print-template PDF and
+  includes it in the email attachment request.
+- PDF generation failure prevents a text-only email from being sent.
+
+Acceptance criteria:
+
+1. The received quotation email contains a PDF attachment.
+2. The emailed PDF uses the same template as quotation print/download.
+
 ## Persistent authenticated browser session
 
 - Date: 2026-08-20

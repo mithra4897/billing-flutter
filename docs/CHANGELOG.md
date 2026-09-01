@@ -177,6 +177,14 @@
 - Changed dark-theme table mouse hover to black at 20% opacity.
 - Light-theme hover, selected rows, and ColorsZone colors remain unchanged.
 
+## 2026-09-01 — Sales quotation PDF email attachment
+
+- **Send to customer** now generates the existing quotation PDF and includes it
+  in the email attachment request.
+- The backend uses the existing email attachment pipeline; no database or
+  quotation model change is required.
+- Verified with focused Flutter analysis and the 7-test Flutter suite.
+
 ## 2026-08-25 — CRM inline filter bars
 
 - Reused the Sales register filter-bar interaction for CRM Enquiries, Leads,

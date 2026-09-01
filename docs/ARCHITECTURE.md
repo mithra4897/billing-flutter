@@ -440,6 +440,11 @@ semantic roles while retaining its editing controls, validation, calculations,
 horizontal overflow, and O(n) row construction. No module-specific table copy
 is required for either family.
 
+Sales quotation email reuses the client-side document-print generator, sending
+the generated PDF as a base64 attachment through the existing backend email
+attachment pipeline. Generation is bounded to one selected quotation; the PDF
+is held only for that delivery attempt and is not persisted.
+
 `LocalPageNavigation`, settings lists, and purchase lists share
 `localListTotalPages()`. It uses exact integer ceiling division, runs in O(1)
 time and O(1) space, and prevents exact page-size totals from producing a
