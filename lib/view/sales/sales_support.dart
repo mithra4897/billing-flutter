@@ -1255,16 +1255,27 @@ class SalesDocumentLineSection extends StatelessWidget {
 }
 
 class SalesDocumentActionRow extends StatelessWidget {
-  const SalesDocumentActionRow({super.key, required this.actions});
+  const SalesDocumentActionRow({
+    super.key,
+    required this.actions,
+    this.alignment = WrapAlignment.end,
+  });
 
   final List<Widget> actions;
+  final WrapAlignment alignment;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppUiConstants.spacingSm,
-      runSpacing: AppUiConstants.spacingSm,
-      children: actions,
+    return Align(
+      alignment: alignment == WrapAlignment.end
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
+      child: Wrap(
+        alignment: alignment,
+        spacing: AppUiConstants.spacingSm,
+        runSpacing: AppUiConstants.spacingSm,
+        children: actions,
+      ),
     );
   }
 }

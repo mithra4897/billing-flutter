@@ -781,19 +781,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       ),
                     ),
                   ),
-                  SalesDocumentActionRow(
-                    actions: [
-                      AppActionButton(
-                        icon: Icons.payments_outlined,
-                        label: 'Receive Payment',
-                        filled: false,
-                        onPressed: () => openModuleShellRoute(
-                          context,
-                          '/sales/receipts/new?invoice_id=${controller.selectedItem!.id}',
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             SettingsFormWrap(
@@ -1094,10 +1081,20 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             const SizedBox(height: AppUiConstants.spacingLg),
             _buildLineItemTable(controller),
             const SizedBox(height: AppUiConstants.spacingMd),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
+            SalesDocumentActionRow(
+              actions: [
+                if (controller.selectedItem != null &&
+                    !const {'draft', 'cancelled'}.contains(controller.status) &&
+                    controller.outstandingBalanceForSelectedInvoice() > 0.000001)
+                  AppActionButton(
+                    icon: Icons.payments_outlined,
+                    label: 'Receive Payment',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/receipts/new?invoice_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
                 if (controller.selectedItem != null)
                   AppActionButton(
                     icon: controller.status == 'draft'

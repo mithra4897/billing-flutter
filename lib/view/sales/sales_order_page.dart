@@ -546,26 +546,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   ],
                 ),
               ),
-            if (controller.selectedItem != null &&
-                !hasPostedDelivery &&
-                const {
-                  'confirmed',
-                  'partially_delivered',
-                  'partially_invoiced',
-                }.contains(controller.status))
-              SalesDocumentActionRow(
-                actions: [
-                  AppActionButton(
-                    icon: Icons.local_shipping_outlined,
-                    label: 'Create Delivery',
-                    filled: false,
-                    onPressed: () => openModuleShellRoute(
-                      context,
-                      '/sales/deliveries/new?order_id=${controller.selectedItem!.id}',
-                    ),
-                  ),
-                ],
-              ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -761,6 +741,22 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    !hasPostedDelivery &&
+                    const {
+                      'confirmed',
+                      'partially_delivered',
+                      'partially_invoiced',
+                    }.contains(controller.status))
+                  AppActionButton(
+                    icon: Icons.local_shipping_outlined,
+                    label: 'Create Delivery',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/deliveries/new?order_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
                 if (controller.selectedItem != null &&
                     !const {'cancelled'}.contains(controller.status))
                   AppActionButton(

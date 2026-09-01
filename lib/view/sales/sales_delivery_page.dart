@@ -627,28 +627,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               data: controller.salesChain,
               hideDeliveryChip: true,
             ),
-            if (controller.selectedItem != null &&
-                deliveryKind == 'dc' &&
-                !hasExistingInvoice &&
-                const {'posted', 'partially_invoiced'}.contains(status))
-              SalesDocumentActionRow(
-                actions: [
-                  AppActionButton(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Create Invoice',
-                    filled: false,
-                    onPressed: () {
-                      final deliveryId = intValue(selectedData, 'id');
-                      if (deliveryId != null) {
-                        openModuleShellRoute(
-                          context,
-                          '/sales/invoices/new?delivery_id=$deliveryId',
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -796,6 +774,24 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    deliveryKind == 'dc' &&
+                    !hasExistingInvoice &&
+                    const {'posted', 'partially_invoiced'}.contains(status))
+                  AppActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Create Invoice',
+                    filled: false,
+                    onPressed: () {
+                      final deliveryId = intValue(selectedData, 'id');
+                      if (deliveryId != null) {
+                        openModuleShellRoute(
+                          context,
+                          '/sales/invoices/new?delivery_id=$deliveryId',
+                        );
+                      }
+                    },
+                  ),
                 if (controller.selectedItem != null &&
                     !const {'cancelled'}.contains(status))
                   AppActionButton(

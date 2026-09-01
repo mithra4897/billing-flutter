@@ -439,20 +439,6 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                   ],
                 ),
               ),
-            if (controller.selectedItem != null &&
-                controller.status == 'posted' &&
-                controller.selectedItem?.convertedSalesInvoiceId == null &&
-                !hasActiveSalesInvoice)
-              SalesDocumentActionRow(
-                actions: [
-                  AppActionButton(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Create Invoice',
-                    filled: false,
-                    onPressed: () => controller.convertSelected(context),
-                  ),
-                ],
-              ),
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
@@ -632,6 +618,16 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    controller.status == 'posted' &&
+                    controller.selectedItem?.convertedSalesInvoiceId == null &&
+                    !hasActiveSalesInvoice)
+                  AppActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Create Invoice',
+                    filled: false,
+                    onPressed: () => controller.convertSelected(context),
+                  ),
                 if (controller.selectedItem != null &&
                     controller.status != 'cancelled')
                   AppActionButton(

@@ -457,36 +457,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   ],
                 ),
               ),
-            if (controller.selectedItem != null &&
-                !hasActiveProforma &&
-                !hasActiveOrder &&
-                const {
-                  'posted',
-                  'sent',
-                  'accepted',
-                }.contains(controller.status))
-              SalesDocumentActionRow(
-                actions: [
-                  AppActionButton(
-                    icon: Icons.request_page_outlined,
-                    label: 'Create Proforma Invoice',
-                    filled: false,
-                    onPressed: () => openModuleShellRoute(
-                      context,
-                      '/sales/proforma-invoices/new?quotation_id=${controller.selectedItem!.id}',
-                    ),
-                  ),
-                  AppActionButton(
-                    icon: Icons.shopping_cart_checkout_outlined,
-                    label: 'Create Order',
-                    filled: false,
-                    onPressed: () => openModuleShellRoute(
-                      context,
-                      '/sales/orders/new?quotation_id=${controller.selectedItem!.id}',
-                    ),
-                  ),
-                ],
-              ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -652,6 +622,33 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    !hasActiveProforma &&
+                    !hasActiveOrder &&
+                    const {
+                      'posted',
+                      'sent',
+                      'accepted',
+                    }.contains(controller.status)) ...[
+                  AppActionButton(
+                    icon: Icons.request_page_outlined,
+                    label: 'Create Proforma Invoice',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/proforma-invoices/new?quotation_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
+                  AppActionButton(
+                    icon: Icons.shopping_cart_checkout_outlined,
+                    label: 'Create Order',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/orders/new?quotation_id=${controller.selectedItem!.id}',
+                    ),
+                  ),
+                ],
                 if (controller.selectedItem != null &&
                     controller.status != 'cancelled')
                   AppActionButton(
