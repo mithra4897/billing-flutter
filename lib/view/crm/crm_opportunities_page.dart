@@ -1628,14 +1628,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     CrmOpportunitiesController controller,
   ) {
     final isLocked = controller.isSelectedOpportunityReadOnly;
-    final hasVisibleFollowups = controller.followups.any(
-      (followup) => !followup.isCompleted,
-    );
-    final hasNextFollowupBadge = controller.followups.any(
-      (followup) =>
-          followup.isCompleted &&
-          followup.nextFollowupController.text.trim().isNotEmpty,
-    );
     if (!controller.canManageFollowups) {
       return _buildDependentTabPlaceholder(
         title: 'Save Enquiry First',
@@ -1669,8 +1661,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
-        ..._buildCompletedFollowupCards(controller),
-        if (!hasVisibleFollowups && !hasNextFollowupBadge)
+        if (controller.followups.isEmpty)
           const SettingsEmptyState(
             icon: Icons.alarm_outlined,
             title: 'No Followups',
@@ -1680,9 +1671,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         else
           ...List<Widget>.generate(controller.followups.length, (index) {
             final followup = controller.followups[index];
-            if (followup.isCompleted) {
-              return const SizedBox.shrink();
-            }
             final expanded = controller.expandedFollowupIndex == index;
             return Padding(
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -1770,88 +1758,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           }),
       ],
     );
-  }
-
-  List<Widget> _buildCompletedFollowupCards(
-    CrmOpportunitiesController controller,
-  ) {
-    final nextFollowups = controller.followups
-        .where((followup) => followup.isCompleted)
-        .where(
-          (followup) => followup.nextFollowupController.text.trim().isNotEmpty,
-        )
-        .toList(growable: false);
-    if (nextFollowups.isEmpty) {
-      return const <Widget>[];
-    }
-    return nextFollowups
-        .map(
-          (followup) => Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-            child: SettingsExpandableTile(
-              title: 'Next Followup',
-              subtitle: [
-                followup.nextFollowupController.text.trim(),
-                followup.assigneeLabel(controller.users),
-              ].where((value) => value.isNotEmpty).join(' • '),
-              detail: followup.notesController.text.trim(),
-              expanded: false,
-              highlighted: false,
-              leadingIcon: Icons.alarm_outlined,
-              trailing: AppStatusBadge(
-                label: 'Pending',
-                color: appStatusColor('pending'),
-              ),
-              onToggle: () {},
-              child: AbsorbPointer(
-                absorbing: controller.isSelectedOpportunityReadOnly,
-                child: PurchaseCompactFieldGrid(
-                  children: [
-                    AppFormTextField(
-                      controller: followup.nextFollowupController,
-                      labelText: 'Next Followup',
-                      hintText: 'Date and time',
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateTimeInputFormatter()],
-                      allowType: false,
-                      suffixIcon: AppDateTimeFieldSuffix(
-                        controller: followup.nextFollowupController,
-                        onCleared: () => controller.setFollowupNextFollowup(
-                          followup,
-                          followup.nextFollowupController.text,
-                        ),
-                      ),
-                      onChanged: (value) =>
-                          controller.setFollowupNextFollowup(followup, value),
-                    ),
-                    AppDropdownField<int>.fromMapped(
-                      labelText: 'Assigned To',
-                      mappedItems: controller.users
-                          .where((item) => item.id != null)
-                          .map(
-                            (item) => AppDropdownItem(
-                              value: item.id!,
-                              label: item.displayName ?? item.username ?? '',
-                            ),
-                          )
-                          .toList(growable: false),
-                      initialValue: followup.assignedTo,
-                      onChanged: (value) =>
-                          controller.setFollowupAssignedTo(followup, value),
-                    ),
-                    AppFormTextField(
-                      controller: followup.notesController,
-                      labelText: 'Notes',
-                      maxLines: 2,
-                      onChanged: (_) => controller.update(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        )
-        .toList(growable: false);
   }
 
   Widget _buildDependentTabPlaceholder({
