@@ -636,6 +636,7 @@ class CrmOpportunitiesController extends GetxController {
       createEmpty: () => OpportunityLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
+      allowEmpty: true,
       notify: notify ? update : null,
     );
   }
@@ -650,6 +651,7 @@ class CrmOpportunitiesController extends GetxController {
       createEmpty: () => OpportunityFollowupDraft(),
       assign: (entries) => followups = entries,
       dispose: (entry) => entry.dispose(),
+      allowEmpty: true,
       notify: notify ? update : null,
     );
   }
@@ -664,6 +666,7 @@ class CrmOpportunitiesController extends GetxController {
       createEmpty: () => OpportunityProductDraft(),
       assign: (entries) => products = entries,
       dispose: (entry) => entry.dispose(),
+      allowEmpty: true,
       notify: notify ? update : null,
     );
   }
@@ -704,8 +707,14 @@ class CrmOpportunitiesController extends GetxController {
         normalizeDateForApi(expectedCloseDateController.text),
       ),
       'status': status,
-      'lines': lines.map((item) => item.toJson()).toList(growable: false),
-      'products': products.map((item) => item.toJson()).toList(growable: false),
+      'lines': lines
+          .where((item) => item.hasUserData)
+          .map((item) => item.toJson())
+          .toList(growable: false),
+      'products': products
+          .where((item) => item.hasUserData)
+          .map((item) => item.toJson())
+          .toList(growable: false),
     };
 
     if (selectedItem != null) {
@@ -929,6 +938,8 @@ class OpportunityProductDraft {
   final TextEditingController qtyController;
   final TextEditingController estimatedPriceController;
 
+  bool get hasUserData => itemId != null;
+
   String itemLabel(List<ItemModel> items) {
     final item = items.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == itemId,
@@ -981,6 +992,11 @@ class OpportunityLineDraft {
   int? itemId;
   final TextEditingController descriptionController;
   final TextEditingController qtyController;
+
+  bool get hasUserData =>
+      itemId != null ||
+      descriptionController.text.trim().isNotEmpty ||
+      (double.tryParse(qtyController.text.trim()) ?? 0) != 0;
 
   String itemLabel(List<ItemModel> items) {
     final item = items.cast<ItemModel?>().firstWhere(

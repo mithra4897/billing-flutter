@@ -66,9 +66,12 @@ void replaceDisposableDraftEntries<T extends Object>({
   required T Function() createEmpty,
   required void Function(List<T> entries) assign,
   required void Function(T entry) dispose,
+  bool allowEmpty = false,
   VoidCallback? notify,
 }) {
-  final normalizedEntries = normalizeDisposableDraftEntries(next, createEmpty);
+  final normalizedEntries = allowEmpty
+      ? List<T>.from(next)
+      : normalizeDisposableDraftEntries(next, createEmpty);
   assign(normalizedEntries);
   notify?.call();
   final removedEntries = previous
