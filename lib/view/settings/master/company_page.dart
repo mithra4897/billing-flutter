@@ -497,11 +497,15 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                     ),
                     AppDropdownItem(
                       value: 'month',
-                      label: 'Net salary / calendar days',
+                      label: 'Actual calendar days',
                     ),
                     AppDropdownItem(
                       value: 'working_days',
                       label: 'Working-days-based',
+                    ),
+                    AppDropdownItem(
+                      value: 'fixed_days',
+                      label: 'Fixed divisor',
                     ),
                   ],
                   onChanged: controller.setLopCalculationBasis,
@@ -522,6 +526,74 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                       }
                       return null;
                     },
+                  ),
+                if (controller.lopCalculationBasis == 'fixed_days')
+                  AppFormTextField(
+                    controller: controller.lopFixedDivisorController,
+                    labelText: 'Fixed payroll divisor',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (value) {
+                      final parsed = Validators.parseFlexibleNumber(
+                        value ?? '',
+                      );
+                      if (parsed == null || parsed <= 0 || parsed > 366) {
+                        return 'Enter a divisor above 0 and up to 366';
+                      }
+                      return null;
+                    },
+                  ),
+                if (controller.lopCalculationBasis == 'month' ||
+                    controller.lopCalculationBasis == 'fixed_days')
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Weekly-off treatment',
+                    initialValue: controller.lopWeeklyOffPolicy,
+                    mappedItems: const <AppDropdownItem<String>>[
+                      AppDropdownItem(
+                        value: 'qualified',
+                        label: 'Attendance-qualified',
+                      ),
+                      AppDropdownItem(
+                        value: 'always_paid',
+                        label: 'Always payable',
+                      ),
+                      AppDropdownItem(
+                        value: 'unpaid',
+                        label: 'Exclude weekly offs',
+                      ),
+                    ],
+                    onChanged: controller.setLopWeeklyOffPolicy,
+                  ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Final net calculation',
+                  initialValue: controller.lopNetPayBasis,
+                  mappedItems: const <AppDropdownItem<String>>[
+                    AppDropdownItem(
+                      value: 'components',
+                      label: 'Earnings minus deductions',
+                    ),
+                    AppDropdownItem(
+                      value: 'contractual_net',
+                      label: 'Prorate contractual net',
+                    ),
+                  ],
+                  onChanged: controller.setLopNetPayBasis,
+                ),
+                if (controller.lopNetPayBasis == 'contractual_net')
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Final net rounding',
+                    initialValue: controller.lopRoundingMethod,
+                    mappedItems: const <AppDropdownItem<String>>[
+                      AppDropdownItem(value: 'floor', label: 'Round down'),
+                      AppDropdownItem(value: 'nearest', label: 'Nearest rupee'),
+                      AppDropdownItem(value: 'ceil', label: 'Round up'),
+                      AppDropdownItem(
+                        value: 'two_decimals',
+                        label: 'Keep two decimals',
+                      ),
+                    ],
+                    onChanged: controller.setLopRoundingMethod,
                   ),
               ],
             ),

@@ -36,6 +36,10 @@ class CompanyModel extends JsonModel {
     this.lopMultiplier = 1,
     this.lopCalculationBasis = 'working_days',
     this.lopPercentage = 100,
+    this.lopFixedDivisor,
+    this.lopNetPayBasis = 'components',
+    this.lopRoundingMethod = 'two_decimals',
+    this.lopWeeklyOffPolicy = 'qualified',
     this.leavePolicies = const <CompanyLeavePolicyModel>[],
   });
   final String? code;
@@ -72,6 +76,10 @@ class CompanyModel extends JsonModel {
   final double lopMultiplier;
   final String lopCalculationBasis;
   final double lopPercentage;
+  final double? lopFixedDivisor;
+  final String lopNetPayBasis;
+  final String lopRoundingMethod;
+  final String lopWeeklyOffPolicy;
   final List<CompanyLeavePolicyModel> leavePolicies;
 
   @override
@@ -118,6 +126,14 @@ class CompanyModel extends JsonModel {
           json['lop_calculation_basis']?.toString() ?? 'working_days',
       lopPercentage:
           double.tryParse(json['lop_percentage']?.toString() ?? '') ?? 100,
+      lopFixedDivisor: double.tryParse(
+        json['lop_fixed_divisor']?.toString() ?? '',
+      ),
+      lopNetPayBasis: json['lop_net_pay_basis']?.toString() ?? 'components',
+      lopRoundingMethod:
+          json['lop_rounding_method']?.toString() ?? 'two_decimals',
+      lopWeeklyOffPolicy:
+          json['lop_weekly_off_policy']?.toString() ?? 'qualified',
       leavePolicies: (json['leave_policies'] as List? ?? const <dynamic>[])
           .whereType<Map>()
           .map(
@@ -166,6 +182,10 @@ class CompanyModel extends JsonModel {
       'lop_multiplier': lopMultiplier,
       'lop_calculation_basis': lopCalculationBasis,
       'lop_percentage': lopPercentage,
+      'lop_fixed_divisor': lopFixedDivisor,
+      'lop_net_pay_basis': lopNetPayBasis,
+      'lop_rounding_method': lopRoundingMethod,
+      'lop_weekly_off_policy': lopWeeklyOffPolicy,
       if (leavePolicies.isNotEmpty)
         'leave_policies': leavePolicies
             .map((policy) => policy.toJson())

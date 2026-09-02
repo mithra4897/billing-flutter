@@ -114,15 +114,16 @@ structure, components, statutory result, and earned values. Payslips prefer the
 snapshot and use current salary settings only for legacy rows.
 
 Company Settings stores the LOP calculation basis and percentage on the company
-record. Working-day and percentage modes retain gross-based behavior. Month
-mode derives payable calendar days from paid scheduled units plus Sunday weekly
-offs adjacent to paid work, applies the factor to earnings, and prorates the
-salary structure's saved monthly net using a whole-rupee floor. A synthetic
-net-salary adjustment is snapshotted when needed so displayed deductions
-reconcile earned gross to that net target. The selected basis,
-working/calendar paid units, percentage, and
-calculated LOP amount are retained in the payroll snapshot and exposed to the
-payslip summary.
+record. The same record now holds an optional fixed divisor, component versus
+contractual-net method, contractual-net rounding mode, and weekly-off policy.
+Calendar/fixed modes derive payable and unpaid calendar units in one bounded
+date pass; fixed mode subtracts unpaid units using its configured divisor,
+working-day mode uses scheduled paid units, and percentage mode applies its
+configured per-LOP factor. A synthetic net-salary adjustment is snapshotted
+only for contractual-net reconciliation. The selected policies, actual divisor,
+working/calendar paid units, and calculated amounts are retained in the payroll
+snapshot. Existing effective-dated statutory profiles supply the PF/ESI ceilings
+to special salary-component formulas, avoiding another configuration table.
 
 The period algorithm is `O(E + A + L + D)` for employees, attendance, leave,
 and bounded dates. Employee/date maps avoid repeated database queries and

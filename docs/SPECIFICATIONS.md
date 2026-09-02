@@ -43,10 +43,11 @@ Acceptance criteria:
    Working-days-based prorates monthly gross by scheduled working days.
 4. Payslip summary data displays LOP deduction alongside salary totals.
 
-### Month-based net salary proration
+### Month-based contractual-net salary proration
 
-- Month-based payroll uses `floor(monthly net salary × payable calendar days ÷
-  calendar days)`, so final net pay is rounded down to a whole rupee.
+- When a company selects calendar-month, contractual net, and floor rounding,
+  payroll uses `floor(monthly net salary × payable calendar days ÷ calendar
+  days)`.
 - Payable calendar days include payable scheduled attendance units and weekly
   offs adjacent to at least one payable scheduled day. A weekly off surrounded
   by an ongoing LOP/absence period is not payable.
@@ -64,14 +65,61 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-1. Month-based processing uses the salary structure's saved monthly net.
+1. Month-based contractual-net processing uses the salary structure's saved
+   monthly net.
 2. Continuous LOP does not make every weekly off in the month payable.
 3. Payslip earnings minus displayed deductions equals final net salary.
-4. Working-days and percentage bases retain their existing behavior.
+4. Selecting component-calculated net uses earned gross less employee
+   deductions instead of the stored net target.
 5. Existing processed payroll and payslip snapshots remain unchanged until an
    eligible run is recalculated.
-6. Fractional month-based net results are always floored, never rounded to the
-   nearest rupee.
+6. The configured rounding method is applied deterministically.
+
+### Configurable company payroll proration policy
+
+Status: Approved (2026-09-02)
+
+Objective: Let a sellable ERP reproduce calendar-month, scheduled-working-day,
+fixed-divisor, and percentage LOP policies without changing application code.
+
+Requirements:
+
+- Company Leave Policy stores the LOP basis: percentage, actual calendar days,
+  scheduled working days, or a positive fixed divisor.
+- Calendar and fixed-divisor modes derive unpaid calendar units from payable
+  calendar days. Calendar mode uses payable days divided by month days; fixed
+  mode deducts each unpaid unit at `1 ÷ fixed divisor`. Weekly offs can be
+  always payable, attendance-qualified, or excluded.
+- Each company selects whether final net is calculated from prorated earnings
+  and deductions (`components`) or from the salary structure's contractual net
+  multiplied by the same factor (`contractual_net`).
+- Contractual-net results support floor, nearest-whole-rupee, ceiling, or
+  two-decimal rounding. Component-calculated net retains normal two-decimal
+  currency precision.
+- The processing snapshot records every selected policy value and the divisor
+  actually used. Historical processed snapshots are not rewritten.
+- Existing calendar-month companies retain contractual-net/floor behavior on
+  migration. Other existing companies retain component-calculated behavior.
+- PF and ESI component formulas consume the active effective-dated statutory
+  profile's configured wage ceilings. The existing INR 15,000 and INR 21,000
+  constants are fallback defaults only when a profile ceiling is absent.
+- Validation rejects an unsupported enum or a non-positive fixed divisor.
+- No additional table is introduced; company policy extends `companies`, while
+  statutory ceilings continue to use `hr_statutory_pf` and `hr_statutory_esi`.
+
+Acceptance criteria:
+
+1. A company can save, reload, and change every policy from Company Settings.
+2. Calendar + contractual net + floor produces EMP/00004 INR 10,872 and
+   EMP/00014 INR 7,570 for the approved May inputs.
+3. Calendar + components reproduces the supplied workbook pattern: earned
+   earnings less calculated employee deductions.
+4. Scheduled-working-day and fixed-divisor modes use their configured divisor.
+5. Always-pay, qualified, and exclude weekly-off policies produce distinct,
+   deterministic payable-day counts.
+6. Changing a statutory profile ceiling changes the special PF/ESI component
+   result for payroll periods covered by that profile.
+7. Focused backend syntax/tests and Flutter format/analyze/tests pass.
 
 ## Employee salary-component drag reorder Flutter compatibility
 
@@ -1954,8 +2002,8 @@ ESI through `% of basic` or `% of gross`.
 
 Requirements:
 
-- Calculation choices include `PF: % of EPF wage (50% gross, cap 15,000)` and
-  `ESI: % of Basic + DA (ceil, eligibility 21,000)`.
+- Calculation choices include `PF: % of EPF wage (configured ceiling)` and
+  `ESI: % of Basic + DA (configured eligibility limit)`.
 - Entering the component name `PF` selects deduction, employee contribution,
   12%, and the EPF-wage basis.
 - Entering the component name `ESI` selects deduction, employee contribution,

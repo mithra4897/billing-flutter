@@ -739,7 +739,7 @@
 ## ADR-0038: Prorate saved net salary for calendar-month payroll
 
 - Date: 2026-09-02
-- Status: Accepted
+- Status: Superseded by ADR-0039
 - Context: Month-based payroll subtracted scheduled-working-day LOP from every
   calendar day, implicitly paying all Sundays during a continuous LOP period.
   It also recomputed net solely from gross and explicit deductions even when
@@ -760,3 +760,25 @@
   attendance algorithm remains O(A + D) per employee for A records and D days.
 - Related files: backend payroll service/tests and Flutter company-setting
   labels, specifications, architecture, testing notes, and changelog.
+
+## ADR-0039: Configure payroll proration per company
+
+- Date: 2026-09-02
+- Status: Accepted
+- Context: The supplied workbook uses an actual-calendar-day divisor, while a
+  sellable ERP must also support scheduled-working-day, fixed-divisor, and
+  percentage policies. Statutory profiles already store effective-dated PF/ESI
+  ceilings, but special salary-component formulas bypassed them.
+- Decision: Extend the existing company record with divisor, net-target,
+  rounding, and weekly-off policy fields. Reuse effective-dated statutory
+  profiles for special component ceilings and snapshot all applied settings.
+- Reason: Company-level policy is simple to operate, avoids code forks and a
+  duplicate settings table, and keeps processed payroll auditable.
+- Alternatives considered: hard-coded formulas; employee-specific policies;
+  another payroll-policy table; continuing to hard-code statutory ceilings.
+- Consequences: A reviewed SQL patch/API/UI change is required. Existing month
+  companies retain contractual-net/floor behavior; historical snapshots remain immutable.
+  Company payroll policy is current-state configuration, while statutory limits
+  remain effective-dated through the existing profile model.
+- Related files: company schema/model/service/controller; payroll/statutory
+  services; Company Settings and statutory UI; tests and deployment docs.

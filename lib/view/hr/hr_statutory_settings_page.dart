@@ -300,7 +300,8 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                             ),
                             AppFormTextField(
                               controller: controller.pfCeilCtrl,
-                              labelText: 'Wage ceiling (optional, e.g. 15000)',
+                              labelText:
+                                  'EPF wage ceiling (optional, e.g. 15000)',
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -353,7 +354,8 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                             ),
                             AppFormTextField(
                               controller: controller.esiCeilCtrl,
-                              labelText: 'Gross ceiling (optional, e.g. 21000)',
+                              labelText:
+                                  'ESI coverage wage limit (optional, e.g. 21000)',
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,

@@ -75,11 +75,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'percent_ctc', label: '% of CTC'),
         AppDropdownItem(
           value: 'percent_epf_wage',
-          label: 'PF: % of EPF wage (50% gross, cap 15,000)',
+          label: 'PF: % of EPF wage (configured ceiling)',
         ),
         AppDropdownItem(
           value: 'percent_basic_da_ceil',
-          label: 'ESI: % of Basic + DA (ceil, eligibility 21,000)',
+          label: 'ESI: % of Basic + DA (configured eligibility limit)',
         ),
       ];
 

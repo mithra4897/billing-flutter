@@ -44,6 +44,9 @@ class CompanyManagementController extends GetxController {
   final TextEditingController lopPercentageController = TextEditingController(
     text: '100',
   );
+  final TextEditingController lopFixedDivisorController = TextEditingController(
+    text: '30',
+  );
   final Map<int, TextEditingController> leaveEntitlementControllers =
       <int, TextEditingController>{};
   final Map<int, String> leaveAccrualMethods = <int, String>{};
@@ -64,6 +67,9 @@ class CompanyManagementController extends GetxController {
   int activeTabIndex = 0;
   double lopMultiplier = 1;
   String lopCalculationBasis = 'working_days';
+  String lopNetPayBasis = 'components';
+  String lopRoundingMethod = 'two_decimals';
+  String lopWeeklyOffPolicy = 'qualified';
 
   String formatDate = 'dd/MM/yyyy';
   String formatAmountGrouping = 'indian';
@@ -103,6 +109,7 @@ class CompanyManagementController extends GetxController {
     logoPathController.dispose();
     remarksController.dispose();
     lopPercentageController.dispose();
+    lopFixedDivisorController.dispose();
     for (final controller in leaveEntitlementControllers.values) {
       controller.dispose();
     }
@@ -192,6 +199,13 @@ class CompanyManagementController extends GetxController {
     lopPercentageController.text = company.lopPercentage.toStringAsFixed(
       company.lopPercentage % 1 == 0 ? 0 : 2,
     );
+    lopFixedDivisorController.text = _formatOptionalNumber(
+      company.lopFixedDivisor,
+      fallback: '30',
+    );
+    lopNetPayBasis = company.lopNetPayBasis;
+    lopRoundingMethod = company.lopRoundingMethod;
+    lopWeeklyOffPolicy = company.lopWeeklyOffPolicy;
     _setLeavePolicies(company.leavePolicies);
     // Format settings
     formatDate = company.dateFormat ?? 'dd/MM/yyyy';
@@ -230,6 +244,10 @@ class CompanyManagementController extends GetxController {
     lopMultiplier = 1;
     lopCalculationBasis = 'working_days';
     lopPercentageController.text = '100';
+    lopFixedDivisorController.text = '30';
+    lopNetPayBasis = 'components';
+    lopRoundingMethod = 'two_decimals';
+    lopWeeklyOffPolicy = 'qualified';
     _setLeavePolicies(const <CompanyLeavePolicyModel>[]);
     formatDate = 'dd/MM/yyyy';
     formatAmountGrouping = 'indian';
@@ -305,6 +323,12 @@ class CompanyManagementController extends GetxController {
       lopCalculationBasis: lopCalculationBasis,
       lopPercentage:
           Validators.parseFlexibleNumber(lopPercentageController.text) ?? 100,
+      lopFixedDivisor: lopCalculationBasis == 'fixed_days'
+          ? Validators.parseFlexibleNumber(lopFixedDivisorController.text)
+          : null,
+      lopNetPayBasis: lopNetPayBasis,
+      lopRoundingMethod: lopRoundingMethod,
+      lopWeeklyOffPolicy: lopWeeklyOffPolicy,
       leavePolicies: _leavePoliciesForSave(),
     );
 
@@ -387,6 +411,26 @@ class CompanyManagementController extends GetxController {
   void setLopCalculationBasis(String? value) {
     if (value != null) lopCalculationBasis = value;
     update();
+  }
+
+  void setLopNetPayBasis(String? value) {
+    if (value != null) lopNetPayBasis = value;
+    update();
+  }
+
+  void setLopRoundingMethod(String? value) {
+    if (value != null) lopRoundingMethod = value;
+    update();
+  }
+
+  void setLopWeeklyOffPolicy(String? value) {
+    if (value != null) lopWeeklyOffPolicy = value;
+    update();
+  }
+
+  String _formatOptionalNumber(double? value, {required String fallback}) {
+    if (value == null) return fallback;
+    return value.toStringAsFixed(value % 1 == 0 ? 0 : 2);
   }
 
   TextEditingController leaveEntitlementController(int leaveTypeId) =>

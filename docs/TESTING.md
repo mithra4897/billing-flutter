@@ -68,6 +68,22 @@
 - Flutter verification covers formatting, focused static analysis of the
   updated company-setting label, and 3 salary-component controller tests.
 
+## Configurable company payroll proration policy — 2026-09-02
+
+- Backend PHP syntax checks passed for the company model/controller/service,
+  payroll/statutory services and focused tests.
+- Focused backend result: 28 tests and 98 assertions passed. Coverage includes
+  four net-rounding modes, fixed-divisor proration, three weekly-off policies,
+  existing EMP/00004 and EMP/00014 results, profile-to-component ceiling
+  mapping, and configured PF/ESI ceiling behavior.
+- `dart format` completed for all changed Flutter sources and focused tests.
+- Focused Flutter analysis passed with no issues.
+- Five focused Flutter tests passed: company policy API-model round-trip plus
+  salary-component basis/precision coverage.
+- Manual deployment verification remains: migrate a staging database, save each
+  Company Settings combination, process/recalculate a draft payroll, and inspect
+  its calculation snapshot and payslip totals.
+
 ## Employee salary-component drag reorder Flutter compatibility — 2026-08-27
 
 - Updated the salary-component list to use Flutter's `onReorder` callback.

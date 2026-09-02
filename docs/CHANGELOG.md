@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-02 — Configure payroll proration per company
+
+- Request: Support different customer LOP policies dynamically and remove
+  permanent PF/ESI ceiling hard-coding from salary-component calculation.
+- Implementation: Company Leave Policy now exposes four LOP bases, optional
+  fixed divisor, component/contractual net, four rounding modes, and three
+  weekly-off treatments. Statutory profile ceilings feed PF/ESI components.
+- Reuse: extended the existing Company Settings, company API/model, payroll
+  service, and effective-dated statutory profiles; no new table or duplicate
+  settings screen was introduced.
+- Database/API impact: four nullable/defaulted company columns; a rerunnable
+  SQL patch is provided. Existing month companies retain floor behavior.
+- Security impact: unchanged company access checks and payroll transaction.
+- Verification: backend syntax plus 28 tests/98 assertions; focused Flutter
+  analysis clean and 5 tests passed.
+- Known limitation: Sunday remains the only configured weekly-off weekday;
+  company-specific weekday calendars are outside this change.
+
 ## 2026-09-02 — Prorate month-based payroll from saved net salary
 
 - Request: Make EMP/00014 final net equal INR 7,570 using monthly net INR

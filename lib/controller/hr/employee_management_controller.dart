@@ -293,8 +293,8 @@ class EmployeeSalaryComponentDraft {
       'percent_basic' => 'basic',
       'percent_gross' => 'gross',
       'percent_ctc' => 'CTC',
-      'percent_epf_wage' => 'EPF wage (50% gross, cap 15,000)',
-      'percent_basic_da_ceil' => 'Basic + DA (ceil, eligibility 21,000)',
+      'percent_epf_wage' => 'EPF wage (configured ceiling)',
+      'percent_basic_da_ceil' => 'Basic + DA (configured eligibility limit)',
       _ => calculationBasis,
     };
     final percentage = percentValue;
