@@ -70,6 +70,7 @@ class SalesReceiptManagementController extends GetxController {
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
+  final PartiesService _partiesService = PartiesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -461,6 +462,15 @@ class SalesReceiptManagementController extends GetxController {
       customerPartyId = invoice.isDirectCustomer
           ? null
           : (invoice.customerPartyId > 0 ? invoice.customerPartyId : null);
+      final invoiceCustomer = invoice.customer;
+      if (customerPartyId != null &&
+          invoiceCustomer != null &&
+          !customers.any((customer) => customer.id == customerPartyId)) {
+        customers = <PartyModel>[
+          ...customers,
+          PartyModel.fromJson(invoiceCustomer),
+        ];
+      }
       directCustomerDetailsController.text =
           invoice.directCustomerDetails?.trim() ?? '';
       paidAmountController.text = allocationAmount;
@@ -611,6 +621,18 @@ class SalesReceiptManagementController extends GetxController {
     _pruneAllocationsForCurrentCustomer();
     update();
   }
+
+  Future<List<ErpLinkFieldOption<int>>> searchCustomerOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: customers,
+        onDiscovered: (party) {
+          if (!customers.any((customer) => customer.id == party.id)) {
+            customers = <PartyModel>[...customers, party];
+          }
+        },
+      );
 
   void setDirectCustomer(bool value) {
     isDirectCustomer = value;

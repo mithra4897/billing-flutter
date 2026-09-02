@@ -323,6 +323,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.documentSeriesId,
+                        enabled: !controller.isSelectedReturnReadOnly,
                         onChanged: controller.setDocumentSeriesId,
                       ),
                       GeneratedDocumentNumberField(
@@ -358,6 +359,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.purchaseInvoiceId,
+                        enabled: !controller.isSelectedReturnReadOnly,
                         onChanged: controller.handleInvoiceChanged,
                         validator: Validators.requiredSelection(
                           'Purchase Invoice',

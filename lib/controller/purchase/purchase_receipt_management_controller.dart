@@ -918,6 +918,18 @@ class PurchaseReceiptManagementController extends GetxController {
     update();
   }
 
+  Future<List<ErpLinkFieldOption<int>>> searchSupplierOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: suppliers,
+        onDiscovered: (party) {
+          if (!suppliers.any((item) => item.id == party.id)) {
+            suppliers = <PartyModel>[...suppliers, party];
+          }
+        },
+      );
+
   void setSupplierPartyId(int? value) {
     supplierPartyId = value;
     unawaited(ensureSupplierPrintContext(value));

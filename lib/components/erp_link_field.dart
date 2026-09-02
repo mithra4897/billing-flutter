@@ -140,6 +140,10 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   @override
   void didUpdateWidget(covariant ErpLinkField<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled) {
+      _focusNode.unfocus();
+      _closeDropdown();
+    }
     if (oldWidget.initialSelection?.value != widget.initialSelection?.value) {
       _selected = widget.initialSelection;
       if (!_focusNode.hasFocus) {
@@ -811,7 +815,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                       : Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (widget.onClear != null)
+                            if (widget.enabled && widget.onClear != null)
                               IconButton(
                                 tooltip: 'Clear ${widget.labelText}',
                                 visualDensity: VisualDensity.compact,
@@ -819,7 +823,12 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                                 onPressed: widget.onClear,
                                 icon: const Icon(Icons.close),
                               ),
-                            const Icon(Icons.arrow_drop_down, size: 18),
+                            Icon(
+                              widget.enabled
+                                  ? Icons.arrow_drop_down
+                                  : Icons.lock_outline,
+                              size: 18,
+                            ),
                           ],
                         ),
                 ),

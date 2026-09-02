@@ -87,6 +87,7 @@ class PaymentAllocationDraft {
 }
 
 class PurchasePaymentManagementController extends GetxController {
+  final PartiesService _partiesService = PartiesService();
   PurchasePaymentManagementController();
 
   static const List<AppDropdownItem<String>> statusItems =
@@ -895,6 +896,18 @@ class PurchasePaymentManagementController extends GetxController {
     documentSeriesId = value;
     update();
   }
+
+  Future<List<ErpLinkFieldOption<int>>> searchSupplierOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: suppliers,
+        onDiscovered: (party) {
+          if (!suppliers.any((item) => item.id == party.id)) {
+            suppliers = <PartyModel>[...suppliers, party];
+          }
+        },
+      );
 
   void setSupplierPartyId(int? value) {
     if (supplierPartyId != value && allocations.isNotEmpty) {

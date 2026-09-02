@@ -418,6 +418,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.documentSeriesId,
+                        enabled: !controller.isSelectedOrderReadOnly,
                         onChanged: controller.setDocumentSeriesId,
                       ),
                       GeneratedDocumentNumberField(
@@ -487,6 +488,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                               ),
                         ],
                         initialValue: controller.supplierPartyId,
+                        search: controller.searchSupplierOptions,
+                        enabled: !controller.isSelectedOrderReadOnly,
                         onChanged: controller.handleSupplierChanged,
                         validator: Validators.requiredSelection('Supplier'),
                       ),
@@ -514,6 +517,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                               ),
                         ],
                         initialValue: controller.purchaseRequisitionId,
+                        enabled: !controller.isSelectedOrderReadOnly,
                         onChanged: controller.handleRequisitionChanged,
                       ),
                       AppFormTextField(

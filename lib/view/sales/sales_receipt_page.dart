@@ -239,6 +239,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                         )
                         .toList(growable: false),
                     initialValue: controller.documentSeriesId,
+                    enabled: canEdit,
                     onChanged: canEdit
                         ? controller.setDocumentSeriesId
                         : (_) {},
@@ -315,6 +316,8 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                           )
                           .toList(growable: false),
                       initialValue: controller.customerPartyId,
+                      search: controller.searchCustomerOptions,
+                      enabled: canEdit,
                       onChanged: canEdit
                           ? controller.setCustomerPartyId
                           : (_) {},
@@ -329,6 +332,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     labelText: 'Payment Mode',
                     mappedItems: controller.paymentModeDropdownItems(),
                     initialValue: controller.paymentMode,
+                    enabled: canEdit,
                     onChanged: canEdit ? controller.setPaymentMode : (_) {},
                     validator: Validators.requiredSelection('Payment Mode'),
                   ),
@@ -344,6 +348,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                         )
                         .toList(growable: false),
                     initialValue: controller.accountId,
+                    enabled: canEdit,
                     onChanged: canEdit ? controller.setAccountId : (_) {},
                     validator: Validators.requiredSelection(
                       'Cash / bank ledger',
@@ -496,6 +501,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                               ),
                             ],
                             initialValue: allocation.allocationType,
+                            enabled: canEdit,
                             onChanged: canEdit
                                 ? (value) =>
                                       controller.setAllocationType(index, value)

@@ -798,6 +798,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       )
                       .toList(growable: false),
                   initialValue: controller.documentSeriesId,
+                  enabled: controller.canEdit,
                   onChanged: (value) {
                     if (!controller.canEdit) {
                       return;
@@ -890,6 +891,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         )
                         .toList(growable: false),
                     initialValue: controller.customerPartyId,
+                    search: controller.searchCustomerOptions,
+                    enabled: controller.canEdit,
                     onChanged: (value) {
                       if (!controller.canEdit) {
                         return;
@@ -918,6 +921,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesQuotationId,
+                  enabled: controller.canEdit,
                   onChanged: controller.isDirectCustomer
                       ? null
                       : (value) => unawaited(
@@ -939,6 +943,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesOrderId,
+                  enabled: controller.canEdit,
                   onChanged: controller.isDirectCustomer
                       ? null
                       : (value) => unawaited(
@@ -960,6 +965,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: controller.salesDeliveryId,
+                  enabled: controller.canEdit,
                   onChanged: controller.isDirectCustomer
                       ? null
                       : (value) => unawaited(
@@ -1085,7 +1091,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               actions: [
                 if (controller.selectedItem != null &&
                     !const {'draft', 'cancelled'}.contains(controller.status) &&
-                    controller.outstandingBalanceForSelectedInvoice() > 0.000001)
+                    controller.outstandingBalanceForSelectedInvoice() >
+                        0.000001)
                   AppActionButton(
                     icon: Icons.payments_outlined,
                     label: 'Receive Payment',

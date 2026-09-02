@@ -236,6 +236,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                   )
                                   .toList(growable: false),
                               initialValue: controller.documentSeriesId,
+                              enabled: !controller.isSelectedPaymentReadOnly,
                               onChanged: controller.setDocumentSeriesId,
                             ),
                             GeneratedDocumentNumberField(
@@ -285,6 +286,8 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                   )
                                   .toList(growable: false),
                               initialValue: controller.supplierPartyId,
+                              search: controller.searchSupplierOptions,
+                              enabled: !controller.isSelectedPaymentReadOnly,
                               onChanged: controller.setSupplierPartyId,
                               validator: Validators.requiredSelection(
                                 'Supplier',
@@ -295,6 +298,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                               mappedItems: PurchasePaymentManagementController
                                   .paymentModeItems,
                               initialValue: controller.paymentMode,
+                              enabled: !controller.isSelectedPaymentReadOnly,
                               onChanged: (value) =>
                                   controller.setPaymentMode(value ?? 'bank'),
                               validator: Validators.requiredSelection(
@@ -313,6 +317,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                   )
                                   .toList(growable: false),
                               initialValue: controller.accountId,
+                              enabled: !controller.isSelectedPaymentReadOnly,
                               onChanged: controller.setAccountId,
                               validator: Validators.requiredSelection(
                                 'Account',
@@ -510,6 +515,11 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                     ),
                                     AppDropdownField<String>.fromMapped(
                                       labelText: 'Allocation Type',
+                                      enabled:
+                                          !controller
+                                              .isSelectedPaymentReadOnly ||
+                                          controller
+                                              .canAllocateRemainingAdvance,
                                       mappedItems:
                                           controller.canAllocateRemainingAdvance
                                           ? const <AppDropdownItem<String>>[

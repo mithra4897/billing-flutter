@@ -463,6 +463,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
+                  enabled: controller.canEdit,
                 ),
                 GeneratedDocumentNumberField(
                   labelText: 'Quotation No',
@@ -541,6 +542,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     },
                     mappedItems: controller.customerDropdownItems,
                     initialValue: controller.customerPartyId,
+                    search: controller.searchCustomerOptions,
+                    enabled: controller.canEdit,
                     onChanged: controller.setCustomerPartyId,
                     validator: (value) {
                       if (controller.isDirectCustomer) {

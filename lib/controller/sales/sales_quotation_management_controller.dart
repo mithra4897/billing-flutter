@@ -1042,6 +1042,18 @@ class SalesQuotationManagementController extends GetxController {
     update();
   }
 
+  Future<List<ErpLinkFieldOption<int>>> searchCustomerOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: customers,
+        onDiscovered: (party) {
+          if (!customers.any((item) => item.id == party.id)) {
+            customers = <PartyModel>[...customers, party];
+          }
+        },
+      );
+
   void setCustomerPartyId(int? value) {
     if (!canEdit) {
       return;

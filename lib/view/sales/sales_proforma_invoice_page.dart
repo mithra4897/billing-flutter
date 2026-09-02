@@ -456,6 +456,7 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
+                  enabled: controller.canEdit,
                 ),
                 GeneratedDocumentNumberField(
                   labelText: 'Proforma Invoice No',
@@ -538,6 +539,8 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                     },
                     mappedItems: controller.customerDropdownItems,
                     initialValue: controller.customerPartyId,
+                    search: controller.searchCustomerOptions,
+                    enabled: controller.canEdit,
                     onChanged: controller.setCustomerPartyId,
                     validator: (value) {
                       if (controller.isDirectCustomer) {

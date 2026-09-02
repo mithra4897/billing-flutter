@@ -633,6 +633,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
+                  enabled: canEdit,
                 ),
                 GeneratedDocumentNumberField(
                   labelText: 'Delivery No',
@@ -659,6 +660,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     AppDropdownItem(value: 'rdc', label: 'Returnable DC'),
                   ],
                   initialValue: controller.deliveryKind,
+                  enabled: canEdit,
                   onChanged: controller.setDeliveryKind,
                 ),
                 AppSwitchTile(
@@ -701,6 +703,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     },
                     mappedItems: controller.customerDropdownItems,
                     initialValue: controller.customerPartyId,
+                    search: controller.searchCustomerOptions,
+                    enabled: canEdit,
                     onChanged: controller.setCustomerPartyId,
                     validator: (value) {
                       if (controller.isDirectCustomer) {
@@ -713,6 +717,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   labelText: 'Sales Order',
                   mappedItems: controller.orderDropdownItems,
                   initialValue: controller.salesOrderId,
+                  enabled: canEdit,
                   onChanged: (value) =>
                       unawaited(controller.applySalesOrderSelection(value)),
                 ),
@@ -720,6 +725,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   labelText: 'Transporter',
                   mappedItems: controller.transporterDropdownItems,
                   initialValue: controller.transporterPartyId,
+                  enabled: canEdit,
                   onChanged: controller.setTransporterPartyId,
                 ),
                 AppFormTextField(

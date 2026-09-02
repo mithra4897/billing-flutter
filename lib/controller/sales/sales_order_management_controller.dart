@@ -602,10 +602,7 @@ class SalesOrderManagementController extends GetxController {
           },
         ),
         _salesService.quotationsAll(
-          filters: const {
-            'sort_by': 'quotation_date',
-            'sort_order': 'desc',
-          },
+          filters: const {'sort_by': 'quotation_date', 'sort_order': 'desc'},
         ),
       ]);
       final contextSelection = await WorkingContextService.instance
@@ -1288,6 +1285,18 @@ class SalesOrderManagementController extends GetxController {
     documentSeriesId = value;
     update();
   }
+
+  Future<List<ErpLinkFieldOption<int>>> searchCustomerOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: customers,
+        onDiscovered: (party) {
+          if (!customers.any((item) => item.id == party.id)) {
+            customers = <PartyModel>[...customers, party];
+          }
+        },
+      );
 
   void setCustomerPartyId(int? value) {
     if (!canEdit) return;

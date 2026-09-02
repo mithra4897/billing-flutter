@@ -38,6 +38,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onMultiChanged,
     this.multiHintText,
     this.onClear,
+    this.search,
   }) : records = null,
        mappedItems = null,
        valueKey = null,
@@ -63,6 +64,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onMultiChanged,
     this.multiHintText,
     this.onClear,
+    this.search,
   }) : items = null,
        records = null,
        valueKey = null,
@@ -90,6 +92,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onMultiChanged,
     this.multiHintText,
     this.onClear,
+    this.search,
   }) : items = null,
        mappedItems = null;
 
@@ -114,6 +117,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final ValueChanged<Set<T>>? onMultiChanged;
   final String? multiHintText;
   final VoidCallback? onClear;
+  final Future<List<ErpLinkFieldOption<T>>> Function(String query)? search;
   final String Function(String query, String doctypeLabel)?
   createNewLabelBuilder;
 
@@ -133,6 +137,7 @@ class AppDropdownField<T> extends StatelessWidget {
       fieldPadding: fieldPadding,
       initialSelection: selected,
       options: options,
+      search: search,
       onChanged: onChanged ?? (_) {},
       validator: validator,
       onCreateNew: onCreateNew,

@@ -1346,6 +1346,18 @@ class PurchaseOrderManagementController extends GetxController {
     }
   }
 
+  Future<List<ErpLinkFieldOption<int>>> searchSupplierOptions(String query) =>
+      searchPartyLinkOptions(
+        service: _partiesService,
+        query: query,
+        currentRoleParties: suppliers,
+        onDiscovered: (party) {
+          if (!suppliers.any((item) => item.id == party.id)) {
+            suppliers = <PartyModel>[...suppliers, party];
+          }
+        },
+      );
+
   Future<void> handleSupplierChanged(int? supplierId) async {
     if (supplierId == null) {
       supplierPartyId = null;

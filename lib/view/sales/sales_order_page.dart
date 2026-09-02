@@ -552,6 +552,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,
+                  enabled: controller.canEdit,
                 ),
                 GeneratedDocumentNumberField(
                   labelText: 'Order No',
@@ -630,6 +631,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     },
                     mappedItems: controller.customerDropdownItems,
                     initialValue: controller.customerPartyId,
+                    search: controller.searchCustomerOptions,
+                    enabled: controller.canEdit,
                     onChanged: controller.setCustomerPartyId,
                     validator: (value) {
                       if (controller.isDirectCustomer) {
@@ -656,6 +659,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   labelText: 'From quotation (optional)',
                   mappedItems: controller.quotationChoiceDropdownItems,
                   initialValue: controller.salesQuotationId,
+                  enabled: controller.canEdit && !controller.isDirectCustomer,
                   onChanged: controller.isDirectCustomer
                       ? null
                       : (value) => unawaited(

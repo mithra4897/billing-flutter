@@ -599,6 +599,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.documentSeriesId,
+                        enabled: !controller.isSelectedInvoiceReadOnly,
                         onChanged: controller.setDocumentSeriesId,
                       ),
                       GeneratedDocumentNumberField(
@@ -662,6 +663,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.supplierPartyId,
+                        search: controller.searchSupplierOptions,
+                        enabled: !controller.isSelectedInvoiceReadOnly,
                         onChanged: controller.setSupplierPartyId,
                         validator: Validators.requiredSelection('Supplier'),
                       ),
@@ -684,6 +687,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.purchaseOrderId,
+                        enabled: !controller.isSelectedInvoiceReadOnly,
                         onChanged: controller.handlePurchaseOrderChanged,
                       ),
                       AppDropdownField<int>.fromMapped(
@@ -705,6 +709,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.purchaseReceiptId,
+                        enabled: !controller.isSelectedInvoiceReadOnly,
                         onChanged: controller.handlePurchaseReceiptChanged,
                       ),
                       // Future option:

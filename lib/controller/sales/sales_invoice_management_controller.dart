@@ -437,6 +437,18 @@ class SalesInvoiceManagementController extends GetxController {
     } catch (_) {}
   }
 
+  Future<List<ErpLinkFieldOption<int>>> searchCustomerOptions(String query) =>
+      searchPartyLinkOptions(
+        service: partiesService,
+        query: query,
+        currentRoleParties: customers,
+        onDiscovered: (party) {
+          if (!customers.any((item) => item.id == party.id)) {
+            customers = <PartyModel>[...customers, party];
+          }
+        },
+      );
+
   String serialCacheKey(int? itemId, int? warehouseId, [int? batchId]) =>
       '${itemId ?? 0}:${warehouseId ?? 0}:${batchId ?? 0}:${currentDraftInvoiceId ?? 0}';
 

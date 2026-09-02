@@ -372,6 +372,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                       )
                       .toList(growable: false),
                   initialValue: controller.documentSeriesId,
+                  enabled: canEdit,
                   onChanged: controller.setDocumentSeriesId,
                 ),
                 GeneratedDocumentNumberField(

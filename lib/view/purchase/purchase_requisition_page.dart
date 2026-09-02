@@ -335,6 +335,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.documentSeriesId,
+                        enabled: !controller.isSelectedRequisitionReadOnly,
                         onChanged: controller.setDocumentSeriesId,
                       ),
                       GeneratedDocumentNumberField(
@@ -385,12 +386,14 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                             )
                             .toList(growable: false),
                         initialValue: controller.requestedById,
+                        enabled: !controller.isSelectedRequisitionReadOnly,
                         onChanged: controller.setRequestedById,
                       ),
                       AppDropdownField<String>.fromMapped(
                         labelText: 'Department',
                         mappedItems: controller.departmentItems,
                         initialValue: controller.departmentName,
+                        enabled: !controller.isSelectedRequisitionReadOnly,
                         onChanged: controller.setDepartmentName,
                       ),
                       AppFormTextField(

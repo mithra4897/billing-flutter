@@ -268,6 +268,45 @@ List<PartyModel> salesCustomersOrFallback({
   return parties.where((p) => p.isActive).toList(growable: false);
 }
 
+Future<List<ErpLinkFieldOption<int>>> searchPartyLinkOptions({
+  required PartiesService service,
+  required String query,
+  required List<PartyModel> currentRoleParties,
+  required ValueChanged<PartyModel> onDiscovered,
+}) async {
+  final normalized = query.trim();
+  if (normalized.isEmpty) {
+    return const <ErpLinkFieldOption<int>>[];
+  }
+  final response = await service.parties(
+    filters: <String, dynamic>{
+      'search': normalized,
+      'is_active': 1,
+      'per_page': 50,
+      'sort_by': 'party_name',
+      'sort_order': 'asc',
+    },
+  );
+  final roleTypeIds = currentRoleParties
+      .map((party) => party.partyTypeId)
+      .whereType<int>()
+      .toSet();
+  final matches = (response.data ?? const <PartyModel>[]).where(
+    (party) =>
+        party.id != null &&
+        (roleTypeIds.isEmpty || roleTypeIds.contains(party.partyTypeId)),
+  );
+  return matches
+      .map((party) {
+        onDiscovered(party);
+        return ErpLinkFieldOption<int>(
+          value: party.id!,
+          label: party.toString(),
+        );
+      })
+      .toList(growable: false);
+}
+
 bool _looksLikeCustomerType(PartyTypeModel type) {
   final data = type.toJson();
   final code =
@@ -1129,12 +1168,14 @@ List<Widget> buildSalesDocumentContextFields({
   required List<AppDropdownItem<int>> documentSeriesItems,
   required int? documentSeriesId,
   required ValueChanged<int?> onDocumentSeriesChanged,
+  required bool enabled,
 }) {
   return <Widget>[
     DocumentSeriesSelector<int>(
       labelText: 'Document Series',
       mappedItems: documentSeriesItems,
       initialValue: documentSeriesId,
+      enabled: enabled,
       onChanged: onDocumentSeriesChanged,
     ),
   ];
@@ -1171,6 +1212,7 @@ List<Widget> buildSalesCustomerCommercialFields({
       },
       mappedItems: customerItems,
       initialValue: customerPartyId,
+      enabled: canEdit,
       onChanged: onCustomerChanged,
       validator: Validators.requiredSelection('Customer'),
     ),
