@@ -104,6 +104,20 @@ class CrmSalesPipelineBar extends StatelessWidget {
     }
   }
 
+  static String _leadStatusLabel(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'converted':
+        return 'Own';
+      case 'in_progress':
+        return 'In Progress';
+      case 'lost':
+        return 'Lost';
+      case 'new':
+      default:
+        return 'Draft';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (data == null || data!.isEmpty) {
@@ -150,7 +164,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
       if (!hideLeadChip && lead != null && intValue(lead, 'id') != null)
         _PipelineChip(
           label: _docLabel('Lead', lead, 'lead_name'),
-          subtitle: stringValue(lead, 'lead_status'),
+          subtitle: _leadStatusLabel(stringValue(lead, 'lead_status')),
           onTap: () => openModuleShellRoute(
             context,
             '/crm/leads/${intValue(lead, 'id')}',
