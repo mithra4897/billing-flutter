@@ -548,19 +548,31 @@ class SalesReceiptManagementController extends GetxController {
         .toList(growable: false);
   }
 
-  List<SalesInvoiceModel> get invoiceOptions => invoices
-      .where((invoice) {
-        if (invoice.companyId != companyId) {
-          return false;
-        }
-        if (isDirectCustomer) {
-          return invoice.isDirectCustomer;
-        }
-        return !invoice.isDirectCustomer &&
-            (customerPartyId == null ||
-                invoice.customerPartyId == customerPartyId);
-      })
-      .toList(growable: false);
+  List<SalesInvoiceModel> get invoiceOptions {
+    final referencedInvoiceIds = allocations
+        .map((allocation) => allocation.salesInvoiceId)
+        .whereType<int>()
+        .toSet();
+    return invoices
+        .where((invoice) {
+          if (invoice.companyId != companyId) {
+            return false;
+          }
+          final customerMatches = isDirectCustomer
+              ? invoice.isDirectCustomer
+              : !invoice.isDirectCustomer &&
+                    (customerPartyId == null ||
+                        invoice.customerPartyId == customerPartyId);
+          if (!customerMatches) {
+            return false;
+          }
+          final invoiceId = invoice.id;
+          final isAlreadyReferenced =
+              invoiceId != null && referencedInvoiceIds.contains(invoiceId);
+          return isAlreadyReferenced || invoiceOutstandingAmount(invoice) > 0;
+        })
+        .toList(growable: false);
+  }
 
   SalesInvoiceModel? invoiceById(int? invoiceId) {
     if (invoiceId == null) {
