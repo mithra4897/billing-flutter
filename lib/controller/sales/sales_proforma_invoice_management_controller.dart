@@ -1012,6 +1012,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
       documentType: 'sales_proforma_invoice',
       title: 'PROFORMA INVOICE',
       documentDataBuilder: proformaInvoicePrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

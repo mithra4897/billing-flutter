@@ -1071,6 +1071,104 @@ class PurchasePaymentManagementController extends GetxController {
     }
   }
 
+  DocumentPrintDataModel purchasePaymentPrintData() {
+    final companies = MasterDataCache.to.activeCompanies;
+    final company = companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final supplier = suppliers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == supplierPartyId,
+      orElse: () => null,
+    );
+    final address = supplier?.addresses.cast<PartyAddressModel?>().firstWhere(
+      (item) => item?.isActive == true && item?.isDefault == true,
+      orElse: () => supplier.addresses.cast<PartyAddressModel?>().firstWhere(
+        (item) => item?.isActive == true,
+        orElse: () => null,
+      ),
+    );
+    final gst = supplier?.gstDetails.cast<PartyGstDetailModel?>().firstWhere(
+      (item) => item?.isActive != false && item?.isDefault == true,
+      orElse: () => null,
+    );
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final printLines = allocations.indexed
+        .map((entry) {
+          final index = entry.$1;
+          final allocation = entry.$2;
+          final invoice = invoices.cast<PurchaseInvoiceModel?>().firstWhere(
+            (item) => item?.id == allocation.purchaseInvoiceId,
+            orElse: () => null,
+          );
+          final amount =
+              Validators.parseFlexibleNumber(
+                allocation.amountController.text,
+              ) ??
+              0;
+          return DocumentPrintLineModel(
+            lineNo: index + 1,
+            itemName:
+                allocation.purchaseInvoiceNo ??
+                invoice?.invoiceNo ??
+                'Advance / Unallocated',
+            description: allocation.remarksController.text.trim().isNotEmpty
+                ? allocation.remarksController.text.trim()
+                : allocation.allocationType.replaceAll('_', ' '),
+            qty: 1,
+            rate: amount,
+            lineTotal: amount,
+          );
+        })
+        .toList(growable: false);
+
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
+      documentNumber: paymentNoController.text.trim().isEmpty
+          ? 'Draft'
+          : paymentNoController.text.trim(),
+      documentDate: paymentDateController.text.trim(),
+      referenceNumber: referenceNoController.text.trim(),
+      partyName: supplier?.displayName ?? supplier?.partyName ?? 'Not provided',
+      partyAddress: formatPartyAddress(address),
+      partyContact: resolvePartyContact(supplier),
+      partyGstin: gst?.gstin ?? '',
+      notes: notesController.text.trim(),
+      subtotal: paidAmount,
+      taxAmount: 0,
+      totalAmount: paidAmount,
+      currencyCode: 'INR',
+      lines: printLines,
+      extraData: <String, dynamic>{
+        'payment_mode': paymentMode,
+        'reference_date': referenceDateController.text.trim(),
+        if (stringValue(selectedItem?.toJson() ?? const {}, 'payment_status') ==
+            'draft')
+          'watermark_text': 'DRAFT',
+      },
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) {
+    final canOutput =
+        stringValue(selectedItem?.toJson() ?? const {}, 'payment_status') !=
+        'draft';
+    return openManagedDocumentPrintPreview(
+      context,
+      documentType: 'purchase_payment',
+      title: 'Purchase Payment',
+      documentDataBuilder: purchasePaymentPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
+      allowPrint: canOutput,
+      allowDownload: canOutput,
+      allowTemplateEditing: true,
+    );
+  }
+
   Future<void> saveRemainingAllocations(BuildContext context) async {
     FocusManager.instance.primaryFocus?.unfocus();
     final paymentId = intValue(

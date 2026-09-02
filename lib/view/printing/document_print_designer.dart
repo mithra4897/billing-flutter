@@ -14,11 +14,11 @@ Future<void> openDocumentPrintDesigner(
   required String documentType,
   required String title,
   required DocumentPrintDataModel documentData,
+  int? documentId,
+  int? companyId,
   bool allowPrint = true,
   bool allowDownload = true,
   bool allowTemplateEditing = true,
-  String? pdfActionLabel,
-  Future<void> Function(Uint8List pdfBytes)? onPdfReady,
 }) {
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -27,11 +27,11 @@ Future<void> openDocumentPrintDesigner(
         documentType: documentType,
         title: title,
         documentData: documentData,
+        documentId: documentId,
+        companyId: companyId,
         allowPrint: allowPrint,
         allowDownload: allowDownload,
         allowTemplateEditing: allowTemplateEditing,
-        pdfActionLabel: pdfActionLabel,
-        onPdfReady: onPdfReady,
       ),
     ),
   );
@@ -186,22 +186,22 @@ class DocumentPrintDesignerPage extends StatefulWidget {
     required this.documentType,
     required this.title,
     required this.documentData,
+    this.documentId,
+    this.companyId,
     this.allowPrint = true,
     this.allowDownload = true,
     this.allowTemplateEditing = true,
-    this.pdfActionLabel,
-    this.onPdfReady,
     this.generateOnly = false,
   });
 
   final String documentType;
   final String title;
   final DocumentPrintDataModel documentData;
+  final int? documentId;
+  final int? companyId;
   final bool allowPrint;
   final bool allowDownload;
   final bool allowTemplateEditing;
-  final String? pdfActionLabel;
-  final Future<void> Function(Uint8List pdfBytes)? onPdfReady;
   final bool generateOnly;
 
   @override
@@ -1289,14 +1289,14 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
     }
 
-    if (widget.onPdfReady != null) {
+    if ((widget.allowPrint || widget.allowDownload) &&
+        widget.documentId != null &&
+        printableDocumentEmailTarget(widget.documentType) != null) {
       actions.add(
         AdaptiveShellActionButton(
           onPressed: _sendingPdf ? null : _sendPdf,
           icon: Icons.attach_email_outlined,
-          label: _sendingPdf
-              ? 'Sending PDF...'
-              : (widget.pdfActionLabel ?? 'Email PDF'),
+          label: _sendingPdf ? 'Sending PDF...' : 'Email PDF',
           filled: false,
         ),
       );
@@ -2682,12 +2682,13 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (quotationContent.isNotEmpty) {
         final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
         final rupeeFallbackFont = await _loadPdfRupeeFallbackFont();
-        final bodyShape = template.shapes
-            .where((shape) => shape.type == 'text' && shape.y >= 450)
-            .fold<DocumentPrintShape?>(null, (best, shape) {
-          if (best == null || shape.height > best.height) return shape;
-          return best;
-        }) ??
+        final bodyShape =
+            template.shapes
+                .where((shape) => shape.type == 'text' && shape.y >= 450)
+                .fold<DocumentPrintShape?>(null, (best, shape) {
+                  if (best == null || shape.height > best.height) return shape;
+                  return best;
+                }) ??
             template.shapes.firstWhere(
               (shape) => shape.type == 'text',
               orElse: () => const DocumentPrintShape(
@@ -2727,49 +2728,62 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               imageCache,
             );
             if (image != null) {
-              pageChildren.add(pw.Positioned.fill(
-                child: pw.Opacity(
-                  opacity: continuation.backgroundOpacity.clamp(0.0, 1.0),
-                  child: pw.Image(image, fit: pw.BoxFit.cover),
+              pageChildren.add(
+                pw.Positioned.fill(
+                  child: pw.Opacity(
+                    opacity: continuation.backgroundOpacity.clamp(0.0, 1.0),
+                    child: pw.Image(image, fit: pw.BoxFit.cover),
+                  ),
                 ),
-              ));
+              );
             }
           }
           for (final shape in continuation.shapes) {
             if (!shape.visible) continue;
             final widget = await _buildPdfShapeWidget(
-              shape, data, imageCache, template: continuation,
+              shape,
+              data,
+              imageCache,
+              template: continuation,
             );
             if (widget == null) continue;
-            pageChildren.add(pw.Positioned(
-              left: shape.x,
-              top: shape.y,
-              child: pw.SizedBox(
-                width: math.max(1, shape.width),
-                height: math.max(1, shape.height),
-                child: widget,
+            pageChildren.add(
+              pw.Positioned(
+                left: shape.x,
+                top: shape.y,
+                child: pw.SizedBox(
+                  width: math.max(1, shape.width),
+                  height: math.max(1, shape.height),
+                  child: widget,
+                ),
               ),
-            ));
+            );
           }
           final contentTop = _continuationContentTop(continuation);
-          final contentWidgets = chunks[index].map((entry) => entry.$2).toList();
-          pageChildren.add(pw.Positioned(
-            left: 45,
-            top: contentTop,
-            child: pw.SizedBox(
-              width: continuation.pageWidth - 90,
-              height: continuation.pageHeight - contentTop - 42,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: contentWidgets,
+          final contentWidgets = chunks[index]
+              .map((entry) => entry.$2)
+              .toList();
+          pageChildren.add(
+            pw.Positioned(
+              left: 45,
+              top: contentTop,
+              child: pw.SizedBox(
+                width: continuation.pageWidth - 90,
+                height: continuation.pageHeight - contentTop - 42,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: contentWidgets,
+                ),
               ),
             ),
-          ));
-          pdf.addPage(pw.Page(
-            pageFormat: _pageFormatForTemplate(continuation),
-            margin: pw.EdgeInsets.zero,
-            build: (_) => pw.Stack(children: pageChildren),
-          ));
+          );
+          pdf.addPage(
+            pw.Page(
+              pageFormat: _pageFormatForTemplate(continuation),
+              margin: pw.EdgeInsets.zero,
+              build: (_) => pw.Stack(children: pageChildren),
+            ),
+          );
         }
       }
     }
@@ -2787,16 +2801,30 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final kept = cloned.shapes
         .where((shape) => shape.visible && shape.id == 'pbs-outer-border')
         .toList();
-    kept.add(DocumentPrintShape(
-      id: 'continuation-content-page-$pageIndex', type: 'text', x: 45,
-      y: contentTop + 32, width: cloned.pageWidth - 90, height: 1,
-      text: quotationContentChunk, visible: false,
-    ));
-    kept.add(DocumentPrintShape(
-      id: 'continuation-page-number-$pageIndex', type: 'text', x: 0,
-      y: cloned.pageHeight - 20, width: 1, height: 1, text: '$pageIndex',
-      visible: false,
-    ));
+    kept.add(
+      DocumentPrintShape(
+        id: 'continuation-content-page-$pageIndex',
+        type: 'text',
+        x: 45,
+        y: contentTop + 32,
+        width: cloned.pageWidth - 90,
+        height: 1,
+        text: quotationContentChunk,
+        visible: false,
+      ),
+    );
+    kept.add(
+      DocumentPrintShape(
+        id: 'continuation-page-number-$pageIndex',
+        type: 'text',
+        x: 0,
+        y: cloned.pageHeight - 20,
+        width: 1,
+        height: 1,
+        text: '$pageIndex',
+        visible: false,
+      ),
+    );
     return cloned.copyWith(shapes: kept);
   }
 
@@ -2811,18 +2839,29 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     required List<pw.Font> fallbackFonts,
     required double availableHeight,
   }) {
-    final widgets = _quotationContinuationWidgets(markdown, fontBundle,
-      bodyShape: bodyShape, fallbackFonts: fallbackFonts);
+    final widgets = _quotationContinuationWidgets(
+      markdown,
+      fontBundle,
+      bodyShape: bodyShape,
+      fallbackFonts: fallbackFonts,
+    );
     final lines = markdown.split('\n');
     final chunks = <List<(String, pw.Widget)>>[];
     var chunk = <(String, pw.Widget)>[];
     var used = 0.0;
     for (var i = 0; i < widgets.length; i++) {
-      final height = bodyShape.fontSize * (lines.isNotEmpty && i < lines.length && lines[i].trim().isNotEmpty ? 1.8 : 0.7);
+      final height =
+          bodyShape.fontSize *
+          (lines.isNotEmpty && i < lines.length && lines[i].trim().isNotEmpty
+              ? 1.8
+              : 0.7);
       if (chunk.isNotEmpty && used + height > availableHeight) {
-        chunks.add(chunk); chunk = <(String, pw.Widget)>[]; used = 0;
+        chunks.add(chunk);
+        chunk = <(String, pw.Widget)>[];
+        used = 0;
       }
-      chunk.add(((i < lines.length ? lines[i] : ''), widgets[i])); used += height;
+      chunk.add(((i < lines.length ? lines[i] : ''), widgets[i]));
+      used += height;
     }
     if (chunk.isNotEmpty) chunks.add(chunk);
     return chunks;
@@ -2858,11 +2897,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         final style = _pdfTextStyleForTemplate(
           fontBundle,
           fontSize: heading != null
-              ? math.max(
-                  10,
-                  bodyShape.fontSize +
-                      5 - (heading.group(1)!.length * 0.7),
-                ).toDouble()
+              ? math
+                    .max(
+                      10,
+                      bodyShape.fontSize + 5 - (heading.group(1)!.length * 0.7),
+                    )
+                    .toDouble()
               : math.max(10, bodyShape.fontSize),
           color: _pdfColor(bodyShape.bodyTextColor),
           fontFallback: fallbackFonts,
@@ -2877,8 +2917,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         widgets.add(
           pw.Padding(
             padding: pw.EdgeInsets.only(
-              top: heading != null ? bodyShape.fontSize : bodyShape.fontSize * 0.15,
-              bottom: heading != null ? bodyShape.fontSize * 0.5 : bodyShape.fontSize * 0.25,
+              top: heading != null
+                  ? bodyShape.fontSize
+                  : bodyShape.fontSize * 0.15,
+              bottom: heading != null
+                  ? bodyShape.fontSize * 0.5
+                  : bodyShape.fontSize * 0.25,
               left: isBullet || isNumbered ? 8 : 0,
             ),
             child: _quotationMarkdownRichText(
@@ -3886,26 +3930,62 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   Future<void> _sendPdf() async {
-    if (widget.onPdfReady == null) {
+    final documentId = widget.documentId;
+    final target = printableDocumentEmailTarget(widget.documentType);
+    if (documentId == null || target == null || _sendingPdf) {
       return;
     }
     _controller.updateState(() => _sendingPdf = true);
     try {
+      final template = await selectPrintableDocumentEmailTemplate(
+        context,
+        target: target,
+        companyId: widget.companyId,
+      );
+      if (template?.id == null || !mounted) {
+        return;
+      }
+
       final bytes = await _buildPdfBytes();
       if (bytes == null) {
         throw Exception('Unable to generate PDF from preview.');
       }
-      await widget.onPdfReady!(bytes);
+      final fileName = '${widget.title}.pdf';
+      final response = target.module == 'hr'
+          ? await HrService().sendPayslipEmailPdf(
+              documentId,
+              templateId: template!.id!,
+              pdfBytes: bytes,
+              fileName: fileName,
+            )
+          : await CommunicationService().sendPrintableDocumentEmail(
+              module: target.module,
+              documentType: target.documentType,
+              documentId: documentId,
+              templateId: template!.id!,
+              pdfBytes: bytes,
+              fileName: fileName,
+            );
+      if (response.success != true ||
+          response.data?.status?.toLowerCase() != 'sent') {
+        throw Exception(response.data?.errorMessage ?? response.message);
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF email request completed.')),
+        AppToast.show(
+          response.message.isEmpty
+              ? 'PDF emailed successfully.'
+              : response.message,
+          context: context,
+          type: AppToastType.success,
         );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('PDF email failed: $error')));
+        AppToast.show(
+          'PDF email failed: $error',
+          context: context,
+          type: AppToastType.error,
+        );
       }
     } finally {
       if (mounted) {

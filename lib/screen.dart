@@ -397,6 +397,7 @@ export 'view/parties/party_management_page.dart';
 export 'view/planning/mrp_readonly_page.dart';
 export 'view/planning/planning_pages.dart';
 export 'view/printing/document_print_designer.dart';
+export 'view/printing/document_email_template_dialog.dart';
 export 'view/printing/document_print_designer_support.dart';
 export 'view/printing/print_template_support.dart';
 export 'view/project/project_billing_page.dart';

@@ -714,7 +714,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       icon: Icons.send_outlined,
                       label: 'Send to customer',
                       filled: false,
-                      onPressed: () => controller.sendSelected(context),
+                      busy: controller.emailing,
+                      onPressed: controller.emailing
+                          ? null
+                          : () => controller.sendSelected(context),
                     ),
                   if (!hasProgressedNextDocument &&
                       controller.status == 'sent') ...[

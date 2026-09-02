@@ -825,6 +825,8 @@ class PurchaseOrderManagementController extends GetxController {
       documentType: 'purchase_order',
       title: 'Purchase Order',
       documentDataBuilder: purchaseOrderPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

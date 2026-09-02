@@ -872,6 +872,103 @@ class SalesReceiptManagementController extends GetxController {
     );
   }
 
+  DocumentPrintDataModel salesReceiptPrintData() {
+    final companies = MasterDataCache.to.activeCompanies;
+    final company = companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final customer = customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == customerPartyId,
+      orElse: () => null,
+    );
+    final address = customer?.addresses.cast<PartyAddressModel?>().firstWhere(
+      (item) => item?.isActive == true && item?.isDefault == true,
+      orElse: () => customer.addresses.cast<PartyAddressModel?>().firstWhere(
+        (item) => item?.isActive == true,
+        orElse: () => null,
+      ),
+    );
+    final gst = customer?.gstDetails.cast<PartyGstDetailModel?>().firstWhere(
+      (item) => item?.isActive != false && item?.isDefault == true,
+      orElse: () => null,
+    );
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final printLines = allocations.indexed
+        .map((entry) {
+          final index = entry.$1;
+          final allocation = entry.$2;
+          final invoice = invoices.cast<SalesInvoiceModel?>().firstWhere(
+            (item) => item?.id == allocation.salesInvoiceId,
+            orElse: () => null,
+          );
+          final amount =
+              Validators.parseFlexibleNumber(
+                allocation.amountController.text,
+              ) ??
+              0;
+          return DocumentPrintLineModel(
+            lineNo: index + 1,
+            itemName: invoice?.invoiceNo ?? 'Advance / Unallocated',
+            description: allocation.remarksController.text.trim().isNotEmpty
+                ? allocation.remarksController.text.trim()
+                : allocation.allocationType.replaceAll('_', ' '),
+            qty: 1,
+            rate: amount,
+            lineTotal: amount,
+          );
+        })
+        .toList(growable: false);
+
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
+      documentNumber: receiptNoController.text.trim().isEmpty
+          ? 'Draft'
+          : receiptNoController.text.trim(),
+      documentDate: receiptDateController.text.trim(),
+      referenceNumber: paymentReferenceNoController.text.trim(),
+      partyName: isDirectCustomer
+          ? directCustomerDetailsController.text.trim()
+          : (customer?.displayName ?? customer?.partyName ?? 'Not provided'),
+      partyAddress: formatPartyAddress(address),
+      partyContact: resolvePartyContact(customer),
+      partyGstin: gst?.gstin ?? '',
+      notes: notesController.text.trim(),
+      subtotal: paidAmount,
+      taxAmount: 0,
+      totalAmount: paidAmount,
+      currencyCode: 'INR',
+      lines: printLines,
+      extraData: <String, dynamic>{
+        'payment_mode': paymentMode,
+        'payment_reference_date': paymentReferenceDateController.text.trim(),
+        if (stringValue(selectedItem?.toJson() ?? const {}, 'receipt_status') ==
+            'draft')
+          'watermark_text': 'DRAFT',
+      },
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) {
+    final canOutput =
+        stringValue(selectedItem?.toJson() ?? const {}, 'receipt_status') !=
+        'draft';
+    return openManagedDocumentPrintPreview(
+      context,
+      documentType: 'sales_receipt',
+      title: 'Sales Receipt',
+      documentDataBuilder: salesReceiptPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
+      allowPrint: canOutput,
+      allowDownload: canOutput,
+      allowTemplateEditing: true,
+    );
+  }
+
   Future<void> cancelSelected(BuildContext context) async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) {

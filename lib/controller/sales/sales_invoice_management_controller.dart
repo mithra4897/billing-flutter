@@ -2656,6 +2656,8 @@ class SalesInvoiceManagementController extends GetxController {
       documentType: 'sales_invoice',
       title: 'Sales Invoice',
       documentDataBuilder: salesInvoicePrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

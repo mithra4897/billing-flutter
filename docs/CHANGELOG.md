@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-02 — Sales Invoice Email PDF actions
+
+- Request: Keep the existing in-preview Email PDF action, add an entry point in
+  the Sales Invoice page's top-right action bar, and add a register column
+  immediately after Status.
+- Specification: Header and per-row controls require a persisted,
+  non-draft/non-cancelled invoice and open the existing template-selected PDF
+  email flow.
+- Implementation: Reused `AdaptiveShellActionButton`, `PurchaseRegisterPage`,
+  a temporary invoice controller, `openPrintPreview`, and the shared print
+  designer; the register action opens the overlay without navigating to the
+  editor, and no email API or delivery path was added.
+- Security impact: The existing backend template, recipient, status, scope,
+  permission, and PDF checks remain authoritative.
+- Tests: Focused helper test passed 2/2; formatting and focused analysis passed
+  with no issues.
+
 ## 2026-09-02 — Configure payroll proration per company
 
 - Request: Support different customer LOP policies dynamically and remove

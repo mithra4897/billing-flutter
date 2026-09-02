@@ -21,22 +21,8 @@ Future<void> openPayslipPrintPreview(
       documentType: 'hr_payslip',
       title: 'Payslip',
       documentData: buildPayslipPrintData(response.data!),
-      pdfActionLabel: 'Email PDF',
-      onPdfReady: (pdfBytes) async {
-        final fileName =
-            '${response.data!.payslipNo ?? 'payslip_${response.data!.id ?? payslipId}'}.pdf';
-        final emailResponse = await hr.sendPayslipEmailPdf(
-          payslipId,
-          pdfBytes: pdfBytes,
-          fileName: fileName,
-        );
-        if (!context.mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(emailResponse.message)));
-      },
+      documentId: payslipId,
+      companyId: response.data!.company?.id,
     );
   } catch (e) {
     if (!context.mounted) {
@@ -172,6 +158,23 @@ Future<DesignedPayslipEmailResult> emailDesignedPayslipsForRun(
   required int payrollRunId,
   required int companyId,
 }) async {
+  final template = await selectPrintableDocumentEmailTemplate(
+    context,
+    target: const PrintableDocumentEmailTarget(
+      module: 'hr',
+      documentType: 'payslip',
+    ),
+    companyId: companyId,
+  );
+  if (template?.id == null) {
+    return const DesignedPayslipEmailResult(
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      errors: <String>[],
+    );
+  }
+
   final listResponse = await hr.payslips(
     filters: <String, dynamic>{
       'payroll_run_id': payrollRunId,
@@ -227,6 +230,7 @@ Future<DesignedPayslipEmailResult> emailDesignedPayslipsForRun(
       final fileName = '${payslip.payslipNo ?? 'payslip_$payslipId'}.pdf';
       final emailResponse = await hr.sendPayslipEmailPdf(
         payslipId,
+        templateId: template!.id!,
         pdfBytes: pdfBytes,
         fileName: fileName,
       );

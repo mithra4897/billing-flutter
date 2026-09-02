@@ -650,6 +650,8 @@ class PurchaseInvoiceManagementController extends GetxController {
       documentType: 'purchase_invoice',
       title: 'Purchase Invoice',
       documentDataBuilder: purchaseInvoicePrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

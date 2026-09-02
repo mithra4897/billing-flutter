@@ -401,11 +401,13 @@ class HrService extends ErpModuleService {
 
   Future<ApiResponse<EmailMessageModel>> sendPayslipEmailPdf(
     int id, {
+    required int templateId,
     required Uint8List pdfBytes,
     required String fileName,
   }) => actionModel<EmailMessageModel>(
     '/hr/payslips/$id/send-email',
     body: <String, dynamic>{
+      'template_id': templateId,
       'pdf_base64': base64Encode(pdfBytes),
       'pdf_filename': fileName,
     },

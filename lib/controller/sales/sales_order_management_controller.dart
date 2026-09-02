@@ -1255,6 +1255,8 @@ class SalesOrderManagementController extends GetxController {
       documentType: 'sales_order',
       title: 'Sales Order',
       documentDataBuilder: salesOrderPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

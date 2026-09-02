@@ -140,4 +140,21 @@ class CommunicationService extends ErpModuleService {
         body: body,
         fromJson: EmailMessageModel.fromJson,
       );
+
+  Future<ApiResponse<EmailMessageModel>> sendPrintableDocumentEmail({
+    required String module,
+    required String documentType,
+    required int documentId,
+    required int templateId,
+    required Uint8List pdfBytes,
+    required String fileName,
+  }) => actionModel<EmailMessageModel>(
+    '/$module/documents/$documentType/$documentId/email',
+    body: <String, dynamic>{
+      'template_id': templateId,
+      'pdf_base64': base64Encode(pdfBytes),
+      'pdf_filename': fileName,
+    },
+    fromJson: EmailMessageModel.fromJson,
+  );
 }

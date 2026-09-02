@@ -26,6 +26,16 @@ String salesInvoiceStatusLabel(String? status) {
   return salesStatusLabel(status);
 }
 
+bool salesInvoiceCanOpenEmailPdf(SalesInvoiceModel? invoice) {
+  if (invoice?.id == null) {
+    return false;
+  }
+  return !const <String>{
+    'draft',
+    'cancelled',
+  }.contains((invoice?.invoiceStatus ?? '').trim().toLowerCase());
+}
+
 String salesQuotationStatusLabel(String? status, {bool isConverted = false}) {
   final normalized = (status ?? '').trim().toLowerCase();
   if (normalized == 'draft') return 'Draft';

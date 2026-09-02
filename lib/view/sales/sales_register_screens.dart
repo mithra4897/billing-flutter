@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import '../../controller/sales/sales_module_refresh_controller.dart';
+import '../../controller/sales/sales_invoice_management_controller.dart';
 
 typedef SalesRegisterLoader<T> =
     Future<dynamic> Function(
@@ -1679,6 +1680,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 3),
             const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 1),
             _SalesRegisterFooterCell(
               flex: 2,
               text: _salesTotalSummary(totalAmount, pageTotalAmount),
@@ -1732,6 +1734,13 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
           ),
         ),
         PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (_, row) => _SalesInvoiceEmailPdfButton(invoice: row),
+        ),
+        PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
           showPlaceholderWhenEmpty: false,
@@ -1745,6 +1754,92 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         ),
       ],
       rowRoute: (row) => '/sales/invoices/${intValue(row.toJson(), 'id')}',
+    );
+  }
+}
+
+class _SalesInvoiceEmailPdfButton extends StatefulWidget {
+  const _SalesInvoiceEmailPdfButton({required this.invoice});
+
+  final SalesInvoiceModel invoice;
+
+  @override
+  State<_SalesInvoiceEmailPdfButton> createState() =>
+      _SalesInvoiceEmailPdfButtonState();
+}
+
+class _SalesInvoiceEmailPdfButtonState
+    extends State<_SalesInvoiceEmailPdfButton> {
+  bool _isOpening = false;
+
+  Future<void> _openPreview() async {
+    final invoiceId = widget.invoice.id;
+    if (_isOpening || invoiceId == null) {
+      return;
+    }
+    setState(() => _isOpening = true);
+    final controllerTag = persistentControllerTag(
+      'SalesInvoiceRegisterEmailPdfController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
+    );
+    final controller = Get.put(
+      SalesInvoiceManagementController(),
+      tag: controllerTag,
+    );
+    try {
+      await controller.initialize(initialId: invoiceId, editorOnly: true);
+      if (!mounted) {
+        return;
+      }
+      if (!salesInvoiceCanOpenEmailPdf(controller.selectedItem)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email PDF is available after posting the invoice.'),
+          ),
+        );
+        return;
+      }
+      await controller.openPrintPreview(
+        context,
+        allowPrint: true,
+        allowDownload: true,
+        allowTemplateEditing: true,
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to open Email PDF: $error')),
+        );
+      }
+    } finally {
+      if (Get.isRegistered<SalesInvoiceManagementController>(
+        tag: controllerTag,
+      )) {
+        Get.delete<SalesInvoiceManagementController>(tag: controllerTag);
+      }
+      if (mounted) {
+        setState(() => _isOpening = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canEmail = salesInvoiceCanOpenEmailPdf(widget.invoice);
+    return Tooltip(
+      message: canEmail
+          ? 'Email PDF'
+          : 'Email PDF is available after posting the invoice',
+      child: IconButton(
+        onPressed: canEmail && !_isOpening ? _openPreview : null,
+        icon: _isOpening
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.attach_email_outlined),
+      ),
     );
   }
 }

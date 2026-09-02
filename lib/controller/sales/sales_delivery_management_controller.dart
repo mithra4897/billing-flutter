@@ -1300,6 +1300,8 @@ class SalesDeliveryManagementController extends GetxController {
           ? 'Returnable Delivery Challan'
           : 'Delivery Challan',
       documentDataBuilder: salesDeliveryPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,

@@ -1,5 +1,27 @@
 # Architecture decisions
 
+## ADR-0033: Email printable documents through one validated template flow
+
+- Date: 2026-09-02
+- Status: Accepted
+- Context: Print-capable ERP documents used separate or absent email actions;
+  existing quotation and payslip actions could send without template choice.
+- Decision: Extend the shared print preview with one template-selected Email
+  PDF action and send through a bounded backend document registry that reuses
+  `EmailCommunicationService` for recipient resolution, rendering, delivery,
+  and history.
+- Reason: This makes template selection mandatory everywhere without copying
+  PDF, dialog, recipient, SMTP, or placeholder logic into each module.
+- Alternatives considered: Add separate send dialogs and endpoints to every
+  page; trust client-composed recipients and template content; create a second
+  email framework.
+- Consequences: Printable controllers pass persisted document ids into the
+  common preview; the backend owns the supported-type and permission mapping.
+  No Sales Payment entity or new permission code is introduced.
+- Related files: Shared print designer/support, communication models/services,
+  printable document controllers, backend document-email service and route.
+
+
 ## ADR-0032: Keep Sales lifecycle labels presentation-only
 
 - Date: 2026-09-01

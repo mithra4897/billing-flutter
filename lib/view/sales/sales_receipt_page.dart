@@ -538,6 +538,13 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),
+                if (controller.selectedItem != null)
+                  AppActionButton(
+                    icon: Icons.print_outlined,
+                    label: 'Print / Email',
+                    filled: false,
+                    onPressed: () => controller.openPrintPreview(context),
+                  ),
                 if (canCancel)
                   AppActionButton(
                     icon: Icons.cancel_outlined,

@@ -141,6 +141,7 @@ class SalesQuotationManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -991,6 +992,8 @@ class SalesQuotationManagementController extends GetxController {
       documentType: 'sales_quotation',
       title: 'Quotation',
       documentDataBuilder: quotationPrintData,
+      documentId: selectedItem?.id,
+      companyId: companyId,
       allowPrint: allowPrint,
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,
@@ -1310,32 +1313,49 @@ class SalesQuotationManagementController extends GetxController {
 
   Future<void> sendSelected(BuildContext context) async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
-    if (id == null) return;
-    await docAction(context, () async {
-      await ensureCustomerPrintContext(customerPartyId);
-      if (!context.mounted) {
-        throw Exception('Quotation screen was closed before PDF generation.');
-      }
-      final pdfBytes = await generateDocumentPrintPdf(
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      final template = await selectPrintableDocumentEmailTemplate(
         context,
-        documentType: 'sales_quotation',
-        title: 'Quotation',
-        documentData: quotationPrintData(),
+        target: const PrintableDocumentEmailTarget(
+          module: 'sales',
+          documentType: 'sales_quotation',
+        ),
+        companyId: companyId,
       );
-      if (pdfBytes == null || pdfBytes.isEmpty) {
-        throw Exception('Unable to generate quotation PDF.');
-      }
+      if (template?.id == null || !context.mounted) return;
+      await docAction(context, () async {
+        await ensureCustomerPrintContext(customerPartyId);
+        if (!context.mounted) {
+          throw Exception('Quotation screen was closed before PDF generation.');
+        }
+        final pdfBytes = await generateDocumentPrintPdf(
+          context,
+          documentType: 'sales_quotation',
+          title: 'Quotation',
+          documentData: quotationPrintData(),
+        );
+        if (pdfBytes == null || pdfBytes.isEmpty) {
+          throw Exception('Unable to generate quotation PDF.');
+        }
 
-      final quotationNumber = selectedItem?.quotationNo?.trim();
-      final fileName = (quotationNumber == null || quotationNumber.isEmpty)
-          ? 'quotation_$id.pdf'
-          : '${quotationNumber.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf';
-      return _salesService.sendQuotation(
-        id,
-        pdfBytes: pdfBytes,
-        fileName: fileName,
-      );
-    });
+        final quotationNumber = selectedItem?.quotationNo?.trim();
+        final fileName = (quotationNumber == null || quotationNumber.isEmpty)
+            ? 'quotation_$id.pdf'
+            : '${quotationNumber.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf';
+        return _salesService.sendQuotation(
+          id,
+          templateId: template!.id!,
+          pdfBytes: pdfBytes,
+          fileName: fileName,
+        );
+      });
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   Future<void> acceptSelected(BuildContext context) async {

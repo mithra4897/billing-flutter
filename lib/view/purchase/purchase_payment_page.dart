@@ -626,6 +626,13 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                           );
                         },
                       ),
+                    if (controller.selectedItem != null)
+                      AppActionButton(
+                        icon: Icons.print_outlined,
+                        label: 'Print / Email',
+                        filled: false,
+                        onPressed: () => controller.openPrintPreview(context),
+                      ),
                     if (canCancel)
                       AppActionButton(
                         icon: Icons.cancel_outlined,

@@ -81,6 +81,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     return GetBuilder<SalesInvoiceManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        final canEmailSelectedInvoice = salesInvoiceCanOpenEmailPdf(
+          controller.selectedItem,
+        );
         final actions = <Widget>[
           AdaptiveShellSearchField(
             controller: controller.searchController,
@@ -95,6 +98,19 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
             filled: _filtersVisible,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: canEmailSelectedInvoice
+                ? () => controller.openPrintPreview(
+                    context,
+                    allowPrint: true,
+                    allowDownload: true,
+                    allowTemplateEditing: true,
+                  )
+                : null,
+            icon: Icons.attach_email_outlined,
+            label: 'Email PDF',
+            filled: false,
           ),
           AdaptiveShellActionButton(
             onPressed: () {
