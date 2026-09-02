@@ -77,6 +77,45 @@ class AppToast {
   }
 }
 
+/// Application-wide compatibility host that redirects existing Snackbar calls
+/// to the centered [AppToast] overlay.
+class AppToastScaffoldMessenger extends ScaffoldMessenger {
+  const AppToastScaffoldMessenger({super.key, required super.child});
+
+  @override
+  ScaffoldMessengerState createState() => AppToastScaffoldMessengerState();
+}
+
+class AppToastScaffoldMessengerState extends ScaffoldMessengerState {
+  @override
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showSnackBar(
+    SnackBar snackBar, {
+    AnimationStyle? snackBarAnimationStyle,
+  }) {
+    final content = snackBar.content;
+    final message = content is Text
+        ? content.data ?? content.textSpan?.toPlainText()
+        : null;
+    AppToast.show(
+      message ?? 'Notification',
+      context: context,
+      duration: snackBar.duration,
+    );
+
+    // Return the framework-compatible controller expected by existing callers
+    // without rendering a visible bottom Snackbar.
+    return super.showSnackBar(
+      const SnackBar(
+        content: SizedBox.shrink(),
+        duration: Duration(milliseconds: 1),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      snackBarAnimationStyle: AnimationStyle.noAnimation,
+    );
+  }
+}
+
 class _AppToastView extends StatelessWidget {
   const _AppToastView({required this.message, required this.type});
 
