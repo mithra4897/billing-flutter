@@ -293,6 +293,8 @@ class EmployeeSalaryComponentDraft {
       'percent_basic' => 'basic',
       'percent_gross' => 'gross',
       'percent_ctc' => 'CTC',
+      'percent_epf_wage' => 'EPF wage (50% gross, cap 15,000)',
+      'percent_basic_da_ceil' => 'Basic + DA (ceil, eligibility 21,000)',
       _ => calculationBasis,
     };
     final percentage = percentValue;
@@ -441,4 +443,14 @@ String employeeDecimalText(double? value) {
     return '';
   }
   return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
+}
+
+String employeePercentageText(double? value) {
+  if (value == null) {
+    return '';
+  }
+  return value
+      .toStringAsFixed(4)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
 }

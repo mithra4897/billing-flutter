@@ -39,9 +39,39 @@ Acceptance criteria:
 1. The selected basis is saved per company and used when a payroll is processed.
 2. Percentage-based calculation applies the configured percentage once per
    effective LOP day.
-3. Month-based divides monthly gross by calendar days; Working-days-based
-   divides by scheduled working days.
+3. Month-based prorates the saved monthly net salary by payable calendar days;
+   Working-days-based prorates monthly gross by scheduled working days.
 4. Payslip summary data displays LOP deduction alongside salary totals.
+
+### Month-based net salary proration
+
+- Month-based payroll uses `floor(monthly net salary × payable calendar days ÷
+  calendar days)`, so final net pay is rounded down to a whole rupee.
+- Payable calendar days include payable scheduled attendance units and weekly
+  offs adjacent to at least one payable scheduled day. A weekly off surrounded
+  by an ongoing LOP/absence period is not payable.
+- The processed payroll line reports this calendar-payable value as paid days
+  and snapshots scheduled paid units separately for auditability.
+- Earned gross and earning components use the same calendar factor. When the
+  explicit deduction components do not reconcile earned gross to the prorated
+  stored net, payroll records a `Net salary adjustment` deduction so the
+  payslip breakdown equals its total deductions and final net.
+- For EMP/00014 in May 2026, 8 payable working days plus 2 qualified Sundays
+  equals 10 payable calendar days; `floor(23,467 × 10 ÷ 31)` is INR 7,570.
+- For EMP/00004 in May 2026, 30 payable calendar days gives
+  `floor(11,235 × 30 ÷ 31)` = INR 10,872. Statutory deductions must reconcile
+  against this floored target without rejecting the payroll run.
+
+Acceptance criteria:
+
+1. Month-based processing uses the salary structure's saved monthly net.
+2. Continuous LOP does not make every weekly off in the month payable.
+3. Payslip earnings minus displayed deductions equals final net salary.
+4. Working-days and percentage bases retain their existing behavior.
+5. Existing processed payroll and payslip snapshots remain unchanged until an
+   eligible run is recalculated.
+6. Fractional month-based net results are always floored, never rounded to the
+   nearest rupee.
 
 ## Employee salary-component drag reorder Flutter compatibility
 
@@ -1913,3 +1943,41 @@ Acceptance criteria:
    action.
 5. Sales document action rows align their buttons to the right and wrap on
    narrow layouts.
+
+## Excel-compatible PF and ESI salary-component bases
+
+Status: Implemented (2026-09-02)
+
+Objective: Extend the existing Salary Components editor so payroll can use the
+formulas in the supplied May 2026 wage register instead of approximating PF and
+ESI through `% of basic` or `% of gross`.
+
+Requirements:
+
+- Calculation choices include `PF: % of EPF wage (50% gross, cap 15,000)` and
+  `ESI: % of Basic + DA (ceil, eligibility 21,000)`.
+- Entering the component name `PF` selects deduction, employee contribution,
+  12%, and the EPF-wage basis.
+- Entering the component name `ESI` selects deduction, employee contribution,
+  0.75%, and the Basic + DA upward-rounding basis.
+- The defaults remain editable. Saving an explicit valid PF or ESI percentage
+  preserves the user's value while the API continues to enforce the correct
+  calculation basis.
+- Percentage values retain up to four decimal places when loaded into the
+  editor and displayed in the component list; monetary fields continue using
+  their existing two-decimal formatting.
+- `Employer PF` and `Employer ESI` default to employer deductions using 12%
+  EPF wage and 3.25% Basic + DA respectively; the API repairs mismatched type
+  and contribution roles on save.
+- Saved API values are `percent_epf_wage` and `percent_basic_da_ceil`.
+- Existing calculation choices remain readable and editable.
+- The component list describes each new basis in business language.
+- This change does not alter attendance or decide whether EMP/00014 has 9 or
+  another number of paid days.
+
+Acceptance criteria:
+
+- PF and ESI can be configured without fixed amounts.
+- Reloading an employee preserves the selected calculation basis and rate.
+- Invalid or missing percentages remain blocked by existing validation.
+- Focused Flutter analysis and tests pass.

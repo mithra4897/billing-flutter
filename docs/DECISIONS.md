@@ -714,3 +714,49 @@
   `lib/app/theme/app_theme_extension.dart`, `lib/main.dart`,
   `lib/view/purchase/purchase_register_page.dart`,
   `lib/widgets/erp_line_item_table.dart`, and focused table/theme tests.
+
+## ADR-0037: Model Excel statutory formulas as salary-component bases
+
+- Date: 2026-09-02
+- Status: Accepted
+- Context: The existing editor supports fixed, Basic, Gross, and CTC bases,
+  while the approved wage register calculates PF from capped EPF wage and ESI
+  from rounded Basic + DA with upward whole-rupee rounding.
+- Decision: Extend the existing `calculation_basis` contract with
+  `percent_epf_wage` and `percent_basic_da_ceil`. Keep the formula in the
+  backend calculation service and expose the same enum values through the
+  existing Flutter component editor.
+- Reason: A shared backend formula is auditable and prevents employee-specific
+  fixed statutory amounts while preserving the current component model.
+- Alternatives considered: fixed PF/ESI amounts; special-casing payslip totals;
+  storing formula text supplied by users.
+- Consequences: Deployment backfills current PF and ESI components. Historical
+  payroll snapshots remain unchanged. Paid-day discrepancies require a
+  separate attendance-policy decision.
+- Related files: backend statutory/payroll services and migration; Employee
+  Salary Components editor and documentation.
+
+## ADR-0038: Prorate saved net salary for calendar-month payroll
+
+- Date: 2026-09-02
+- Status: Accepted
+- Context: Month-based payroll subtracted scheduled-working-day LOP from every
+  calendar day, implicitly paying all Sundays during a continuous LOP period.
+  It also recomputed net solely from gross and explicit deductions even when
+  the approved salary structure stored a different contractual monthly net.
+- Decision: Treat the saved monthly net as authoritative for the `month`
+  calculation basis. Derive payable calendar days from payable scheduled units
+  plus weekly offs adjacent to payable work, use the same factor for earnings,
+  floor the prorated net to a whole rupee, and add an auditable net-salary
+  adjustment when explicit deductions do not reconcile to the prorated net
+  target.
+- Reason: This directly implements the approved formula while keeping gross,
+  deductions, final net, paid days, and payslip totals internally consistent.
+- Alternatives considered: Continue gross-only proration; nearest-rupee
+  rounding; mark every Sunday payable; overwrite PF/ESI values; silently let
+  payslip deductions disagree with final net.
+- Consequences: Future or recalculated month-based runs can differ from prior
+  snapshots. Working-days and percentage modes are unchanged. The bounded
+  attendance algorithm remains O(A + D) per employee for A records and D days.
+- Related files: backend payroll service/tests and Flutter company-setting
+  labels, specifications, architecture, testing notes, and changelog.

@@ -495,7 +495,10 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                       value: 'percentage',
                       label: 'Percentage-based',
                     ),
-                    AppDropdownItem(value: 'month', label: 'Month-based'),
+                    AppDropdownItem(
+                      value: 'month',
+                      label: 'Net salary / calendar days',
+                    ),
                     AppDropdownItem(
                       value: 'working_days',
                       label: 'Working-days-based',

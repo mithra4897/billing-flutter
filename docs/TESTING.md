@@ -53,6 +53,21 @@
   process a payroll with one LOP day, and confirm the payslip summary shows the
   matching LOP amount.
 
+## Month-based saved-net calendar proration — 2026-09-02
+
+- Backend regression coverage reproduces EMP/00014 with monthly net INR 23,467,
+  8 present working days, 18 LOP working days, and Sunday weekly offs.
+- The test requires only May 3 and May 10 to qualify, stores 10 paid calendar
+  days, and verifies final net `floor(23,467 × 10 / 31) = INR 7,570`.
+- Whole-rupee floor coverage also verifies EMP/00004:
+  `floor(11,235 × 30 / 31) = INR 10,872`, while EMP/00014 remains INR 7,570.
+- The same test verifies earned gross, reconciled deductions, the synthetic net
+  adjustment, paid-working/calendar snapshot fields, and net LOP deduction.
+- Focused backend result: 24 tests and 88 assertions passed. Existing PHP 8.5
+  Lumen deprecation warnings remain outside this change.
+- Flutter verification covers formatting, focused static analysis of the
+  updated company-setting label, and 3 salary-component controller tests.
+
 ## Employee salary-component drag reorder Flutter compatibility — 2026-08-27
 
 - Updated the salary-component list to use Flutter's `onReorder` callback.
@@ -1252,3 +1267,22 @@ been packaged successfully.
   `notifyClients` or descendant assertion is reported in the debug console.
 - Hot restart the web app while a route is mounted and verify the standard root
   `ScaffoldMessenger` rebuilds without a `_FocusInheritedScope` assertion.
+
+## 2026-09-02 — Excel-compatible PF and ESI component bases
+
+- `php -l` passed for the statutory computation service, payroll service,
+  employee service, employee controller, both PF/ESI migrations, and focused
+  tests.
+- Focused backend suite passed: 22 tests, 76 assertions.
+- Backend coverage verifies EPF wage rounding/cap, ESI Basic + DA upward
+  rounding/eligibility ceiling, missing-base failure, and payroll component
+  context wiring. It also verifies that explicit PF/ESI rates survive backend
+  normalization while missing rates receive defaults.
+- `dart format` completed for the changed Flutter source and test.
+- Focused `flutter analyze` passed with no issues.
+- Focused Flutter tests passed: 3 tests, including preservation of the
+  `93.625` percentage without conversion to `93.63`.
+- The Lumen dependency emits existing PHP 8.5 nullable-parameter deprecation
+  warnings; they do not fail the suite.
+- Production migration and payroll recalculation were not executed from this
+  development workspace.

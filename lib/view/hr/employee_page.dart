@@ -73,6 +73,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'percent_basic', label: '% of basic'),
         AppDropdownItem(value: 'percent_gross', label: '% of gross'),
         AppDropdownItem(value: 'percent_ctc', label: '% of CTC'),
+        AppDropdownItem(
+          value: 'percent_epf_wage',
+          label: 'PF: % of EPF wage (50% gross, cap 15,000)',
+        ),
+        AppDropdownItem(
+          value: 'percent_basic_da_ceil',
+          label: 'ESI: % of Basic + DA (ceil, eligibility 21,000)',
+        ),
       ];
 
   static const List<AppDropdownItem<String>> _contributionRoleItems =
@@ -1250,7 +1258,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               componentRole: item.componentRole ?? 'standard',
               amount: employeeDecimalText(item.amount),
               calculationBasis: item.calculationBasis ?? 'fixed',
-              percentValue: employeeDecimalText(item.percentValue),
+              percentValue: employeePercentageText(item.percentValue),
               contributionRole: item.contributionRole ?? 'employee',
             ),
           )
@@ -1465,6 +1473,52 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentContributionRole = component.contributionRole;
     _componentFormError = null;
     _updateController(() {});
+  }
+
+  void _onComponentNameChanged(String value) {
+    final normalized = value.trim().toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '',
+    );
+    if (normalized == 'pf' || normalized == 'providentfund') {
+      _updateController(() {
+        _componentType = 'deduction';
+        _componentRole = 'standard';
+        _componentCalculationBasis = 'percent_epf_wage';
+        _componentContributionRole = 'employee';
+        _componentAmountController.clear();
+        _componentPercentController.text = '12';
+      });
+    } else if (normalized == 'esi' || normalized == 'employeesstateinsurance') {
+      _updateController(() {
+        _componentType = 'deduction';
+        _componentRole = 'standard';
+        _componentCalculationBasis = 'percent_basic_da_ceil';
+        _componentContributionRole = 'employee';
+        _componentAmountController.clear();
+        _componentPercentController.text = '0.75';
+      });
+    } else if (normalized == 'employerpf' ||
+        normalized == 'employerprovidentfund') {
+      _updateController(() {
+        _componentType = 'deduction';
+        _componentRole = 'standard';
+        _componentCalculationBasis = 'percent_epf_wage';
+        _componentContributionRole = 'employer';
+        _componentAmountController.clear();
+        _componentPercentController.text = '12';
+      });
+    } else if (normalized == 'employeresi' ||
+        normalized == 'employeremployeesstateinsurance') {
+      _updateController(() {
+        _componentType = 'deduction';
+        _componentRole = 'standard';
+        _componentCalculationBasis = 'percent_basic_da_ceil';
+        _componentContributionRole = 'employer';
+        _componentAmountController.clear();
+        _componentPercentController.text = '3.25';
+      });
+    }
   }
 
   Future<void> _saveComponent() async {
@@ -3154,6 +3208,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             AppFormTextField(
               controller: _componentNameController,
               labelText: 'Component Name',
+              onChanged: _onComponentNameChanged,
               validator: Validators.compose([
                 Validators.required('Component Name'),
                 Validators.optionalMaxLength(100, 'Component Name'),

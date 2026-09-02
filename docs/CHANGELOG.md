@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-02 — Prorate month-based payroll from saved net salary
+
+- Request: Make EMP/00014 final net equal INR 7,570 using monthly net INR
+  23,467 and 10 payable calendar days out of 31.
+- Specification: Month basis now uses saved monthly net and qualified calendar
+  days with whole-rupee floor rounding; working-day and percentage bases are
+  unchanged.
+- Implementation: Sunday weekly offs qualify only beside a payable scheduled
+  day. Payroll snapshots paid working/calendar units and adds a visible net
+  salary adjustment when explicit deductions do not reconcile the target.
+- Files changed: backend payroll service/tests and Flutter Company Settings
+  basis label/documentation.
+- Database/API impact: no schema change; future/recalculated month-based line
+  values and snapshots change. Historical snapshots remain untouched.
+- Security impact: none; existing payroll permissions and transaction boundary
+  remain in force.
+- EMP/00004 verification: `floor(11,235 × 30 / 31)` = INR 10,872 and the
+  remaining INR 0.12 is recorded as a net-salary adjustment.
+- Tests: backend focused suite passed with 24 tests and 88 assertions; Flutter
+  formatting, focused analysis, and 3 salary-component tests passed.
+- Known limitation: Sunday remains the configured first-release weekly off;
+  company-specific weekly-off calendars are not introduced here.
+
 ## 2026-09-01 — Fix salary-component reorderable element identity
 
 - Scoped each salary-component `ReorderableListView` and item key by salary
@@ -1746,3 +1769,26 @@
   frontend API or database contract changed.
 - Manual authenticated verification remains recommended for the end-to-end
   quotation → delivery/invoice workflow.
+
+## 2026-09-02 — Add Excel-compatible PF and ESI component formulas
+
+- Added Salary Component calculation choices for 12% of capped EPF wage and
+  0.75% of Basic + DA with upward whole-rupee rounding.
+- Typing PF or ESI now selects the approved deduction basis, contribution role,
+  and percentage in the employee editor; the API repeats normalization as the
+  authoritative production safeguard.
+- PF/ESI percentages remain editable after defaulting and are no longer reset
+  by the API when an explicit valid value is saved.
+- Salary-component percentages now retain up to four decimal places when
+  loaded into Flutter, preventing `93.625` from being resaved as `93.63`.
+- Employer PF/ESI component names now select the employer contribution role,
+  and the production patch repairs legacy Employer ESI rows saved as earnings.
+- Existing Fixed, Basic, Gross, and CTC bases remain compatible.
+- Backend deployment includes a migration that updates current PF/ESI salary
+  component definitions without changing historical payroll snapshots.
+- A rerunnable backend SQL patch is also available for production environments
+  that apply reviewed SQL directly; it creates no table.
+- Attendance paid-day policy is unchanged; EMP/00014's register/ERP day-count
+  difference remains a separate correction.
+- Focused backend tests passed (22 tests, 76 assertions); focused Flutter
+  analysis and 2 tests passed.

@@ -114,13 +114,19 @@ structure, components, statutory result, and earned values. Payslips prefer the
 snapshot and use current salary settings only for legacy rows.
 
 Company Settings stores the LOP calculation basis and percentage on the company
-record. Payroll applies that basis to monthly gross when deriving earned salary;
-the selected basis, percentage, and calculated LOP amount are retained in the
-payroll snapshot and exposed to the payslip summary.
+record. Working-day and percentage modes retain gross-based behavior. Month
+mode derives payable calendar days from paid scheduled units plus Sunday weekly
+offs adjacent to paid work, applies the factor to earnings, and prorates the
+salary structure's saved monthly net using a whole-rupee floor. A synthetic
+net-salary adjustment is snapshotted when needed so displayed deductions
+reconcile earned gross to that net target. The selected basis,
+working/calendar paid units, percentage, and
+calculated LOP amount are retained in the payroll snapshot and exposed to the
+payslip summary.
 
 The period algorithm is `O(E + A + L + D)` for employees, attendance, leave,
 and bounded dates. Employee/date maps avoid repeated database queries and
-duplicate counting.
+duplicate counting; weekly-off qualification is another bounded O(D) pass.
 
 ## Activity Watch viewer scope
 
@@ -511,3 +517,18 @@ theme color by confidence band, and exposes the percentage through `Semantics`.
 The leads page prefers the API's `probability_percent`; for older lead payloads
 it maps the existing lead status to a stable fallback locally, so this UI change
 does not alter the CRM API or persistence model.
+
+### Excel-compatible statutory salary-component bases
+
+The Employee Salary Components editor and HR API share two additional
+`calculation_basis` values. `percent_epf_wage` calculates a percentage on 50%
+of whole-rupee earned gross capped at INR 15,000. `percent_basic_da_ceil`
+resolves the current `Basic + DA` earning, rounds its base to a whole rupee,
+applies the INR 21,000 eligibility ceiling, and rounds the result upward.
+
+Payroll resolves Basic + DA once per employee line and passes that bounded
+context to component calculation. This keeps processing linear in the number
+of components and avoids database queries or repeated component scans. Saving
+a component named PF or ESI is normalized by the API to the approved deduction
+basis and rate. Deployment migration updates current component definitions;
+persisted payroll lines and payslip snapshots are not mutated.
