@@ -6,12 +6,13 @@
   the Sales Invoice page's top-right action bar, and add a register column
   immediately after Status.
 - Specification: Header and per-row controls require a persisted,
-  non-draft/non-cancelled invoice and open the existing template-selected PDF
-  email flow.
+  non-draft/non-cancelled invoice, select a template, and send the generated
+  PDF without opening the print preview.
 - Implementation: Reused `AdaptiveShellActionButton`, `PurchaseRegisterPage`,
   a temporary invoice controller, `openPrintPreview`, and the shared print
-  designer; the register action opens the overlay without navigating to the
-  editor, and no email API or delivery path was added.
+  designer; the register action uses the existing invisible PDF renderer and
+  sends in place without navigating to the editor or preview, and no email API
+  or delivery path was added.
 - Security impact: The existing backend template, recipient, status, scope,
   permission, and PDF checks remain authoritative.
 - Tests: Focused helper test passed 2/2; formatting and focused analysis passed

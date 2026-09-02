@@ -469,14 +469,15 @@ the generated PDF as a base64 attachment through the existing backend email
 attachment pipeline. Generation is bounded to one selected quotation; the PDF
 is held only for that delivery attempt and is not persisted.
 
-Sales Invoice exposes the same shared printable-document email flow from its
-document preview, page-header action bar, and register Email PDF column. The
-register action sits immediately after Status and loads the selected invoice in
-a temporary management controller before opening `openPrintPreview` as an
-overlay; it does not navigate to the invoice editor. Each entry point is only
-an entry point, so template selection, PDF generation, recipient handling,
-authorization, and duplicate-send protection remain centralized in the
-existing print designer.
+Sales Invoice exposes the printable-document email flow from its document
+preview, page-header action bar, and register Email PDF column. The header and
+register actions share `sendEmailPdfDirectly`; the register action loads its
+selected invoice in
+a temporary management controller. It shows the shared template selector,
+generates the PDF through the existing non-visible print renderer, and sends
+it without navigating to the invoice editor or print-preview page. Template
+selection, PDF generation, recipient handling, authorization, and
+duplicate-send protection remain centralized in the existing shared services.
 
 `LocalPageNavigation`, settings lists, and purchase lists share
 `localListTotalPages()`. It uses exact integer ceiling division, runs in O(1)

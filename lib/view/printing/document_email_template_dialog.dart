@@ -10,6 +10,24 @@ class PrintableDocumentEmailTarget {
   final String documentType;
 }
 
+class PrintableDocumentEmailPayload {
+  const PrintableDocumentEmailPayload({
+    required this.target,
+    required this.title,
+    required this.documentId,
+    required this.documentData,
+    this.companyId,
+    this.fileName,
+  });
+
+  final PrintableDocumentEmailTarget target;
+  final String title;
+  final int documentId;
+  final DocumentPrintDataModel documentData;
+  final int? companyId;
+  final String? fileName;
+}
+
 String _emailTemplatePreviewText(String? value) => (value ?? '')
     .replaceAll(RegExp(r'<[^>]+>'), ' ')
     .replaceAll(RegExp(r'\s+'), ' ')
@@ -158,4 +176,60 @@ Future<EmailTemplateModel?> selectPrintableDocumentEmailTemplate(
       ),
     ),
   );
+}
+
+Future<bool> sendPrintableDocumentEmailDirectly(
+  BuildContext context, {
+  required PrintableDocumentEmailPayload payload,
+}) async {
+  try {
+    final template = await selectPrintableDocumentEmailTemplate(
+      context,
+      target: payload.target,
+      companyId: payload.companyId,
+    );
+    if (template?.id == null || !context.mounted) {
+      return false;
+    }
+    final pdfBytes = await generateDocumentPrintPdf(
+      context,
+      documentType: payload.target.documentType,
+      title: payload.title,
+      documentData: payload.documentData,
+    );
+    if (pdfBytes == null || pdfBytes.isEmpty) {
+      throw Exception('Unable to generate ${payload.title} PDF.');
+    }
+    final response = await CommunicationService().sendPrintableDocumentEmail(
+      module: payload.target.module,
+      documentType: payload.target.documentType,
+      documentId: payload.documentId,
+      templateId: template!.id!,
+      pdfBytes: pdfBytes,
+      fileName: payload.fileName ?? '${payload.title}.pdf',
+    );
+    if (response.success != true ||
+        response.data?.status?.toLowerCase() != 'sent') {
+      throw Exception(response.data?.errorMessage ?? response.message);
+    }
+    if (context.mounted) {
+      AppToast.show(
+        response.message.isEmpty
+            ? 'PDF emailed successfully.'
+            : response.message,
+        context: context,
+        type: AppToastType.success,
+      );
+    }
+    return true;
+  } catch (error) {
+    if (context.mounted) {
+      AppToast.show(
+        'PDF email failed: $error',
+        context: context,
+        type: AppToastType.error,
+      );
+    }
+    return false;
+  }
 }

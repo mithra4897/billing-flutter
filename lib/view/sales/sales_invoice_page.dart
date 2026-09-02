@@ -100,16 +100,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
-            onPressed: canEmailSelectedInvoice
-                ? () => controller.openPrintPreview(
-                    context,
-                    allowPrint: true,
-                    allowDownload: true,
-                    allowTemplateEditing: true,
-                  )
+            onPressed: canEmailSelectedInvoice && !controller.emailing
+                ? () => controller.sendEmailPdfDirectly(context)
                 : null,
             icon: Icons.attach_email_outlined,
-            label: 'Email PDF',
+            label: controller.emailing ? 'Sending PDF...' : 'Email PDF',
             filled: false,
           ),
           AdaptiveShellActionButton(

@@ -3,16 +3,16 @@
 ## Sales Invoice Email PDF actions — 2026-09-02
 
 - The page-header Email PDF action is enabled only for a selected persisted
-  invoice whose status is neither draft nor cancelled; it opens the existing
-  print preview, where the user still selects the required email template.
+  invoice whose status is neither draft nor cancelled; it prompts for the
+  required email template and sends without opening the print preview.
 - The invoice register places a compact Email PDF column immediately after
-  Status. Eligible row actions load the invoice and open the same preview in
-  place, without routing to the editor; draft and cancelled rows show a
-  disabled action.
+  Status. Eligible row actions show the template selector and send the PDF in
+  place, without routing to the editor or preview; draft and cancelled rows
+  show a disabled action.
 - Focused unit coverage verifies no selection, draft, posted, and cancelled
   states. Manual authenticated visual verification remains recommended at
   desktop and narrow widths to confirm the register-column and page-header
-  actions both reach the existing in-preview Email PDF action.
+  actions both send without navigating away from their current page.
 - Executed: focused `dart analyze` passed with no issues; focused `flutter
   test test/view/sales/sales_invoice_email_action_test.dart --no-pub` passed
   2/2 tests.

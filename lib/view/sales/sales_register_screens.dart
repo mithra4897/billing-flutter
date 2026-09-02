@@ -1799,12 +1799,7 @@ class _SalesInvoiceEmailPdfButtonState
         );
         return;
       }
-      await controller.openPrintPreview(
-        context,
-        allowPrint: true,
-        allowDownload: true,
-        allowTemplateEditing: true,
-      );
+      await controller.sendEmailPdfDirectly(context);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

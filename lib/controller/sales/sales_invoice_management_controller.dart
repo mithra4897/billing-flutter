@@ -48,6 +48,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -2662,6 +2663,42 @@ class SalesInvoiceManagementController extends GetxController {
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final invoiceId = selectedItem?.id;
+    if (invoiceId == null || emailing) {
+      return;
+    }
+    emailing = true;
+    update();
+    try {
+      await ensureCustomerTaxContext(customerPartyId);
+      if (!context.mounted) {
+        return;
+      }
+      final invoiceNumber = selectedItem?.invoiceNo?.trim();
+      final fileName = invoiceNumber == null || invoiceNumber.isEmpty
+          ? 'sales_invoice_$invoiceId.pdf'
+          : '${invoiceNumber.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf';
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'sales',
+            documentType: 'sales_invoice',
+          ),
+          title: 'Sales Invoice',
+          documentId: invoiceId,
+          documentData: salesInvoicePrintData(),
+          companyId: companyId,
+          fileName: fileName,
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   Widget buildTaxSummaryCard(BuildContext context) {

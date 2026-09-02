@@ -2043,10 +2043,10 @@ server-validated document email request.
 
 For Sales Invoices, retain the Email PDF action inside the document preview and
 also expose it in the invoice page's top-right action bar and as a compact
-Email PDF column immediately after Status in the invoice register. Both entry
-points are enabled only for a persisted non-draft, non-cancelled invoice and
-open the same shared print preview/email flow; they must not introduce a
-second send implementation.
+Email PDF column immediately after Status in the invoice register. The header
+and register actions are enabled only for a persisted non-draft,
+non-cancelled invoice, prompt for a template, and send in place without opening
+the print preview; they must reuse one direct-send implementation.
 
 The server is authoritative for document existence, module action permission,
 template activity and scope, recipient lookup, placeholder rendering, and PDF
@@ -2078,10 +2078,10 @@ Acceptance criteria:
 6. Focused frontend and backend tests cover filtering, authorization, missing
    recipients, invalid templates/PDFs, successful attachment delivery, and
    duplicate-send UI protection.
-7. A selected non-draft, non-cancelled Sales Invoice can open the same Email
-   PDF flow from the top-right page action, while drafts, cancelled invoices,
-   and no selection leave that action unavailable.
+7. A selected non-draft, non-cancelled Sales Invoice can select a template and
+   send its PDF directly from the top-right page action, while drafts,
+   cancelled invoices, and no selection leave that action unavailable.
 8. The Sales Invoice register places Email PDF directly after Status and its
-   per-row action opens the selected invoice's same shared flow without
-   navigating to the invoice editor; ineligible rows remain visibly
-   unavailable.
+   per-row action prompts for a template, generates, and sends the selected
+   invoice PDF in place without navigating to the invoice editor or preview;
+   ineligible rows remain visibly unavailable.
