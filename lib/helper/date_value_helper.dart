@@ -78,6 +78,41 @@ String normalizeDateTimeForApi(String? value) {
   return '$year-$month-$day $hour:$minute:$second';
 }
 
+/// Normalizes a user-entered business datetime without applying a timezone
+/// conversion. CRM follow-up DATETIME columns store this wall-clock value.
+String normalizeWallClockDateTimeForApi(String? value) {
+  final raw = (value ?? '').trim();
+  if (raw.isEmpty) {
+    return '';
+  }
+
+  final match = RegExp(
+    r'^(.*?)[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$',
+  ).firstMatch(raw);
+  if (match == null) {
+    return raw;
+  }
+
+  final date = normalizeDateForApi(match.group(1));
+  final hour = int.tryParse(match.group(2) ?? '');
+  final minute = int.tryParse(match.group(3) ?? '');
+  final second = int.tryParse(match.group(4) ?? '0');
+  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date) ||
+      hour == null ||
+      minute == null ||
+      second == null ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59) {
+    return raw;
+  }
+
+  return '$date '
+      '${hour.toString().padLeft(2, '0')}:'
+      '${minute.toString().padLeft(2, '0')}:'
+      '${second.toString().padLeft(2, '0')}';
+}
+
 Map<String, dynamic> normalizeDatePayload(Map<String, dynamic> payload) {
   return payload.map(
     (key, value) => MapEntry(key, _normalizeDatePayloadValue(key, value)),
@@ -244,14 +279,7 @@ DateTime? parseNormalizedDateTimeValue(String? value) {
     return null;
   }
 
-  return DateTime(
-    date.year,
-    date.month,
-    date.day,
-    hour,
-    minute,
-    second,
-  );
+  return DateTime(date.year, date.month, date.day, hour, minute, second);
 }
 
 bool matchesDateValueRange(

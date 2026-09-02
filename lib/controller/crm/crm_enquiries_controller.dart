@@ -1023,8 +1023,12 @@ class FollowupDraft {
   }
 
   Map<String, dynamic> toJson() {
-    final followupDate = normalizeDateTimeForApi(followupDateController.text);
-    final nextFollowup = normalizeDateTimeForApi(nextFollowupController.text);
+    final followupDate = normalizeWallClockDateTimeForApi(
+      followupDateController.text,
+    );
+    final nextFollowup = normalizeWallClockDateTimeForApi(
+      nextFollowupController.text,
+    );
     return {
       'assigned_to': assignedTo,
       'status': status,

@@ -455,15 +455,32 @@ class ApiClient {
           )
           .toList(growable: false);
     }
-    if (value is! String || !_isDateKey(key)) {
+    if (value is! String) {
+      return value;
+    }
+    if (_isDateTimeKey(key)) {
+      final normalized = normalizeWallClockDateTimeForApi(value);
+      return normalized.isEmpty ? value : normalized;
+    }
+    if (!_isDateKey(key)) {
       return value;
     }
     final normalized = normalizeDateForApi(value);
     return normalized.isEmpty ? value : normalized;
   }
 
+  bool _isDateTimeKey(String key) {
+    final words = _dateKeyWords(key);
+    return words.contains('datetime') || words.contains('followup');
+  }
+
   bool _isDateKey(String key) {
-    final words = key
+    final words = _dateKeyWords(key);
+    return words.contains('date');
+  }
+
+  List<String> _dateKeyWords(String key) {
+    return key
         .replaceAllMapped(
           RegExp(r'([a-z0-9])([A-Z])'),
           (match) => '${match.group(1)}_${match.group(2)}',
@@ -472,10 +489,6 @@ class ApiClient {
         .where((part) => part.trim().isNotEmpty)
         .map((part) => part.toLowerCase())
         .toList(growable: false);
-    if (words.contains('datetime')) {
-      return false;
-    }
-    return words.contains('date');
   }
 
   Future<http.Response> _performCacheableGet(

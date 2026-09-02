@@ -700,7 +700,9 @@ class CrmOpportunitiesController extends GetxController {
       'remarks': nullIfEmpty(remarksController.text),
       'probability_percent':
           double.tryParse(probabilityController.text.trim()) ?? 0,
-      'expected_close_date': nullIfEmpty(expectedCloseDateController.text),
+      'expected_close_date': nullIfEmpty(
+        normalizeDateForApi(expectedCloseDateController.text),
+      ),
       'status': status,
       'lines': lines.map((item) => item.toJson()).toList(growable: false),
       'products': products.map((item) => item.toJson()).toList(growable: false),
@@ -714,10 +716,10 @@ class CrmOpportunitiesController extends GetxController {
 
     try {
       final response = selectedItem == null
-          ? await _crmService.createOpportunity(normalizeDatePayload(payload))
+          ? await _crmService.createOpportunity(payload)
           : await _crmService.updateOpportunity(
               intValue(selectedItem!.toJson(), 'id')!,
-              normalizeDatePayload(payload),
+              payload,
             );
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
@@ -1072,8 +1074,12 @@ class OpportunityFollowupDraft {
   }
 
   Map<String, dynamic> toJson() {
-    final followupDate = normalizeDateTimeForApi(followupDateController.text);
-    final nextFollowup = normalizeDateTimeForApi(nextFollowupController.text);
+    final followupDate = normalizeWallClockDateTimeForApi(
+      followupDateController.text,
+    );
+    final nextFollowup = normalizeWallClockDateTimeForApi(
+      nextFollowupController.text,
+    );
     return {
       'id': id,
       'assigned_to': assignedTo,
