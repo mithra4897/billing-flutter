@@ -137,14 +137,13 @@ class CrmService extends ErpModuleService {
 
   Future<ApiResponse<Map<String, dynamic>>> opportunityFollowupsBoard({
     String? employeeId,
-  }) =>
-      client.get<Map<String, dynamic>>(
-        ApiEndpoints.crmOpportunityFollowups,
-        queryParameters: employeeId != null
-            ? <String, dynamic>{'employee_id': employeeId}
-            : null,
-        fromData: (json) => json,
-      );
+  }) => client.get<Map<String, dynamic>>(
+    ApiEndpoints.crmOpportunityFollowups,
+    queryParameters: employeeId != null
+        ? <String, dynamic>{'employee_id': employeeId}
+        : null,
+    fromData: (json) => json,
+  );
 
   Future<ApiResponse<List<Map<String, dynamic>>>> crmDashboardEmployees() =>
       client.get<List<Map<String, dynamic>>>(
@@ -175,21 +174,19 @@ class CrmService extends ErpModuleService {
     },
   );
 
-  Future<ApiResponse<CrmEnquiryModel>> createEnquiry(CrmEnquiryModel body) =>
+  Future<ApiResponse<CrmEnquiryModel>> createEnquiry(dynamic body) =>
       createModel<CrmEnquiryModel>(
         ApiEndpoints.crmEnquiries,
         body,
         fromJson: CrmEnquiryModel.fromJson,
       );
 
-  Future<ApiResponse<CrmEnquiryModel>> updateEnquiry(
-    int id,
-    CrmEnquiryModel body,
-  ) => updateModel<CrmEnquiryModel>(
-    '${ApiEndpoints.crmEnquiries}/$id',
-    body,
-    fromJson: CrmEnquiryModel.fromJson,
-  );
+  Future<ApiResponse<CrmEnquiryModel>> updateEnquiry(int id, dynamic body) =>
+      updateModel<CrmEnquiryModel>(
+        '${ApiEndpoints.crmEnquiries}/$id',
+        body,
+        fromJson: CrmEnquiryModel.fromJson,
+      );
 
   /// Backend returns `{ enquiry, opportunity? }` when an opportunity is created from the enquiry.
   Future<ApiResponse<Map<String, dynamic>>> convertEnquiry(int id) {

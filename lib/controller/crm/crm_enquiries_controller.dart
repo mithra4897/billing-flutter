@@ -736,22 +736,20 @@ class CrmEnquiriesController extends GetxController {
     formError = null;
     update();
 
-    final payload = CrmEnquiryModel.fromJson(
-      normalizeDatePayload({
-        'company_id': companyId,
-        'enquiry_no': nullIfEmpty(enquiryNoController.text),
-        'enquiry_date': nullIfEmpty(enquiryDateController.text),
-        'lead_id': leadId,
-        'customer_party_id': customerPartyId,
-        'stage_id': stageId,
-        'assigned_to': assignedTo,
-        'remarks': nullIfEmpty(remarksController.text),
-        'lines': lines.map((item) => item.toJson()).toList(growable: false),
-        'followups': followups
-            .map((item) => item.toJson())
-            .toList(growable: false),
-      }),
-    );
+    final payload = normalizeDatePayload({
+      'company_id': companyId,
+      'enquiry_no': nullIfEmpty(enquiryNoController.text),
+      'enquiry_date': nullIfEmpty(enquiryDateController.text),
+      'lead_id': leadId,
+      'customer_party_id': customerPartyId,
+      'stage_id': stageId,
+      'assigned_to': assignedTo,
+      'remarks': nullIfEmpty(remarksController.text),
+      'lines': lines.map((item) => item.toJson()).toList(growable: false),
+      'followups': followups
+          .map((item) => item.toJson())
+          .toList(growable: false),
+    });
 
     try {
       final response = selectedItem == null
@@ -1025,12 +1023,14 @@ class FollowupDraft {
   }
 
   Map<String, dynamic> toJson() {
+    final followupDate = normalizeDateTimeForApi(followupDateController.text);
+    final nextFollowup = normalizeDateTimeForApi(nextFollowupController.text);
     return {
       'assigned_to': assignedTo,
       'status': status,
-      'followup_date': nullIfEmpty(followupDateController.text),
+      'followup_date': nullIfEmpty(followupDate),
       'notes': nullIfEmpty(notesController.text),
-      'next_followup': nullIfEmpty(nextFollowupController.text),
+      'next_followup': nullIfEmpty(nextFollowup),
     };
   }
 

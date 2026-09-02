@@ -1072,13 +1072,15 @@ class OpportunityFollowupDraft {
   }
 
   Map<String, dynamic> toJson() {
+    final followupDate = normalizeDateTimeForApi(followupDateController.text);
+    final nextFollowup = normalizeDateTimeForApi(nextFollowupController.text);
     return {
       'id': id,
       'assigned_to': assignedTo,
       'status': nextFollowupController.text.trim().isEmpty ? status : 'done',
-      'followup_date': nullIfEmpty(followupDateController.text),
+      'followup_date': nullIfEmpty(followupDate),
       'notes': nullIfEmpty(notesController.text),
-      'next_followup': nullIfEmpty(nextFollowupController.text),
+      'next_followup': nullIfEmpty(nextFollowup),
     };
   }
 
