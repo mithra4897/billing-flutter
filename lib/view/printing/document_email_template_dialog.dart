@@ -39,6 +39,7 @@ const printableDocumentEmailTemplateTypeItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'sales_invoice', label: 'Sales Invoice'),
   AppDropdownItem(value: 'sales_receipt', label: 'Sales Receipt'),
   AppDropdownItem(value: 'purchase_order', label: 'Purchase Order'),
+  AppDropdownItem(value: 'purchase_receipt', label: 'Purchase Receipt'),
   AppDropdownItem(value: 'purchase_invoice', label: 'Purchase Invoice'),
   AppDropdownItem(value: 'purchase_payment', label: 'Purchase Payment'),
 ];

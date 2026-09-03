@@ -16,6 +16,10 @@ bool purchaseInvoiceCanOpenEmailPdf(PurchaseInvoiceModel? invoice) {
   return purchaseDocumentCanOpenEmailPdf(invoice?.id, invoice?.invoiceStatus);
 }
 
+bool purchaseReceiptCanOpenEmailPdf(PurchaseReceiptModel? receipt) {
+  return purchaseDocumentCanOpenEmailPdf(receipt?.id, receipt?.receiptStatus);
+}
+
 bool purchasePaymentCanOpenEmailPdf(PurchasePaymentModel? payment) {
   return purchaseDocumentCanOpenEmailPdf(payment?.id, payment?.paymentStatus);
 }

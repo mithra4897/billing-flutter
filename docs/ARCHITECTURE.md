@@ -1,5 +1,16 @@
 # Architecture
 
+## Purchase Receipt print and Email PDF
+
+`PurchaseReceiptManagementController` now follows the established Purchase
+Order/Invoice print flow: it builds `purchase_receipt` print data, opens the
+shared designer, and sends through the shared template-selected document-email
+service. Its print builder creates one item-id map, then processes receipt
+lines once, for O(i + n) time and O(i + n) output space for i loaded items and
+n receipt lines. The Receipt register uses the existing temporary-controller
+Email PDF button with `editorOnly` initialization, so loading the selected
+receipt does not refresh the background register.
+
 ## Resolved Email PDF template previews
 
 The shared Email PDF template selector receives the current

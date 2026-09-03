@@ -3,6 +3,7 @@ import '../../controller/purchase/purchase_module_refresh_controller.dart';
 import '../../controller/purchase/purchase_invoice_management_controller.dart';
 import '../../controller/purchase/purchase_order_management_controller.dart';
 import '../../controller/purchase/purchase_payment_management_controller.dart';
+import '../../controller/purchase/purchase_receipt_management_controller.dart';
 
 typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(
@@ -1402,6 +1403,27 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
           detailBuilder: (row) => purchaseRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'receipt_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _PurchaseRegisterEmailPdfButton(
+            canEmail: purchaseReceiptCanOpenEmailPdf(row),
+            onOpen: () => _sendPurchaseRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'PurchaseReceiptRegisterEmailPdfController',
+              createController: PurchaseReceiptManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  purchaseReceiptCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
           ),
         ),
         PurchaseRegisterColumn(

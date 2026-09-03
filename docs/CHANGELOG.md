@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-03 — Purchase Receipt print and Email PDF
+
+- Request: Add Purchase Receipt print-document and Email PDF support.
+- Implementation: Added the Purchase Receipt print-data builder and shared
+  Print / Email preview action, an Email PDF register column, isolated
+  temporary-controller loading, and the canonical `purchase_receipt` template
+  setting option. The existing backend printable-email registry and API are
+  reused; no database or permission contract changed.
+- Tests: Focused analysis passed; focused eligibility test passed (7/7).
+
 ## 2026-09-03 — Resolved Email PDF template preview
 
 - Request: Show the actual document message in the Email PDF template preview,

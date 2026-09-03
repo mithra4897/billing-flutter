@@ -1,5 +1,15 @@
 # Testing
 
+## Purchase Receipt print and Email PDF — 2026-09-03
+
+- Focused `flutter analyze` for the Receipt controller/page/register, shared
+  Purchase support, email selector, and regression test passed with no issues.
+- `flutter test test/view/register_email_pdf_eligibility_test.dart --no-pub`
+  passed (7/7), including posted/draft Purchase Receipt Email PDF eligibility.
+- Manual authenticated verification remains required: open a posted receipt's
+  Print / Email action, select an active `purchase_receipt` template, and send
+  the generated PDF to an active supplier contact.
+
 ## Resolved Email PDF template preview — 2026-09-03
 
 - `flutter test test/view/register_email_pdf_eligibility_test.dart --no-pub`

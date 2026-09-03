@@ -132,6 +132,7 @@ class PurchaseReceiptManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -224,15 +225,22 @@ class PurchaseReceiptManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> initialize({int? initialId, int? initialPurchaseOrderId}) async {
+  Future<void> initialize({
+    int? initialId,
+    int? initialPurchaseOrderId,
+    bool editorOnly = false,
+  }) async {
     if (!_initialized) {
       _initialized = true;
     }
     await loadPage(
       selectId: initialId,
       initialPurchaseOrderId: initialPurchaseOrderId,
+      editorOnly: editorOnly,
     );
-    _refreshController.notifyChanged(source: 'purchase_receipt');
+    if (!editorOnly) {
+      _refreshController.notifyChanged(source: 'purchase_receipt');
+    }
   }
 
   Future<void> _handleWorkingContextChanged() async {
@@ -242,7 +250,11 @@ class PurchaseReceiptManagementController extends GetxController {
     _refreshController.notifyChanged(source: 'purchase_receipt');
   }
 
-  Future<void> loadPage({int? selectId, int? initialPurchaseOrderId}) async {
+  Future<void> loadPage({
+    int? selectId,
+    int? initialPurchaseOrderId,
+    bool editorOnly = false,
+  }) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -501,6 +513,170 @@ class PurchaseReceiptManagementController extends GetxController {
             party.gstDetails;
       }
     } catch (_) {}
+  }
+
+  bool get canEmailSelectedReceipt => purchaseDocumentCanOpenEmailPdf(
+    selectedItem?.id,
+    selectedItem?.receiptStatus,
+  );
+
+  DocumentPrintDataModel purchaseReceiptPrintData() {
+    final selectedData = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final documentStatus = stringValue(
+      selectedData,
+      'receipt_status',
+      'draft',
+    ).trim().toLowerCase();
+    final company = companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final supplier = supplierForPrintContext(supplierPartyId);
+    final supplierData = supplier?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(supplier);
+    final selectedLocation = locations
+        .cast<BusinessLocationModel?>()
+        .firstWhere((item) => item?.id == locationId, orElse: () => null);
+    final companyMasterAddress = formatCompanyPrintAddress(company);
+    final companyBillingAddress = companyMasterAddress.isNotEmpty
+        ? companyMasterAddress
+        : formatBusinessLocationPrintAddress(selectedLocation);
+    final companyShippingAddress = formatBusinessLocationPrintAddress(
+      selectedLocation,
+      fallback: companyBillingAddress,
+    );
+    final summary = receiptTaxSummary();
+    final itemById = <int, ItemModel>{
+      for (final item in itemsLookup)
+        if (item.id != null) item.id!: item,
+    };
+    final gstBreakupGroups = <String, dynamic>{};
+    final printLines = <DocumentPrintLineModel>[];
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      final itemId = line.itemId;
+      if (itemId == null || itemId <= 0) continue;
+      final item = itemById[itemId];
+      final breakdown = taxBreakdownForLine(line);
+      final taxCode = purchaseTaxCodeById(taxCodes, line.taxCodeId);
+      accumulatePrintTemplateGstBreakup(
+        gstBreakupGroups,
+        taxCode: taxCode,
+        taxPercent: (taxCode?.taxRate ?? 0).toDouble(),
+        taxable: breakdown.taxable,
+        cgst: breakdown.cgst,
+        sgst: breakdown.sgst,
+        igst: breakdown.igst,
+        cess: breakdown.cess,
+      );
+      printLines.add(
+        DocumentPrintLineModel(
+          lineNo: index + 1,
+          itemName:
+              item?.itemName ??
+              item?.itemCode ??
+              line.descriptionController.text.trim(),
+          description: line.descriptionController.text.trim(),
+          hsn: item?.hsnSacCode?.trim() ?? '',
+          qty: resolvedReceivedQty(line),
+          rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
+          taxableAmount: roundToDouble(breakdown.taxable, 2),
+          taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
+          lineTotal: roundToDouble(breakdown.total, 2),
+        ),
+      );
+    }
+    final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
+
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
+      documentNumber: nullIfEmpty(receiptNoController.text) ?? 'Draft',
+      documentDate: receiptDateController.text.trim(),
+      referenceNumber: supplierInvoiceNoController.text.trim(),
+      partyName: supplier?.partyName ?? '',
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(supplierData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        supplier,
+        fallback: stringValue(supplierData, 'mobile_no'),
+      ),
+      partyGstin: resolvePreferredPartyGstin(
+        supplierGstDetailsById[supplierPartyId] ??
+            supplier?.gstDetails ??
+            const <PartyGstDetailModel>[],
+        sourceData: supplierData,
+        fallback: stringValue(supplierData, 'gstin'),
+      ),
+      notes: notesController.text.trim(),
+      subtotal: roundToDouble(summary.gross, 2),
+      taxAmount: roundToDouble(totalTax, 2),
+      totalAmount: roundToDouble(summary.total, 2),
+      currencyCode: 'INR',
+      lines: printLines,
+      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: <String, dynamic>{
+        if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
+        'taxable_total_amount': roundToDouble(summary.taxable, 2),
+        'billing_address': companyBillingAddress,
+        'shipping_address': companyShippingAddress,
+        'company_billing_address': companyBillingAddress,
+        'company_shipping_address': companyShippingAddress,
+      },
+    );
+  }
+
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) => openManagedDocumentPrintPreview(
+    context,
+    prepare: () => ensureSupplierPrintContext(supplierPartyId),
+    documentType: 'purchase_receipt',
+    title: 'Purchase Receipt',
+    documentDataBuilder: purchaseReceiptPrintData,
+    documentId: selectedItem?.id,
+    companyId: companyId,
+    allowPrint: allowPrint,
+    allowDownload: allowDownload,
+    allowTemplateEditing: allowTemplateEditing,
+  );
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      await ensureSupplierPrintContext(supplierPartyId);
+      if (!context.mounted) return;
+      final number = selectedItem?.receiptNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        rethrowOnError: true,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'purchase',
+            documentType: 'purchase_receipt',
+          ),
+          title: 'Purchase Receipt',
+          documentId: id,
+          documentData: purchaseReceiptPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'purchase_receipt_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   void resetForm({bool notify = true}) {

@@ -45,6 +45,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         _controller.initialize(
           initialId: widget.initialId,
           initialPurchaseOrderId: widget.initialPurchaseOrderId,
+          editorOnly: widget.editorOnly,
         ),
       );
     });
@@ -73,6 +74,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           _controller.initialize(
             initialId: widget.initialId,
             initialPurchaseOrderId: widget.initialPurchaseOrderId,
+            editorOnly: widget.editorOnly,
           ),
         );
       });
@@ -657,6 +659,20 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               const <String, dynamic>{},
                             ),
                           ),
+                        ),
+                      ),
+                    if (controller.selectedItem != null)
+                      AppActionButton(
+                        icon: status == 'draft'
+                            ? Icons.preview_outlined
+                            : Icons.print_outlined,
+                        label: status == 'draft' ? 'Preview' : 'Print / Email',
+                        filled: false,
+                        onPressed: () => controller.openPrintPreview(
+                          context,
+                          allowPrint: status != 'draft',
+                          allowDownload: status != 'draft',
+                          allowTemplateEditing: true,
                         ),
                       ),
                     if (canCancel)

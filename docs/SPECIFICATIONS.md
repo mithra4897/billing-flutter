@@ -53,7 +53,8 @@ Performance and acceptance criteria:
 - Status: Implemented
 
 Sales Quotation, Proforma Invoice, Sales Order, Delivery, Sales Receipt,
-Purchase Order, Purchase Invoice, and Purchase Payment registers must expose
+Purchase Order, Purchase Receipt, Purchase Invoice, and Purchase Payment
+registers must expose
 an `Email PDF` column beside their document status. A row action loads the
 persisted document into its existing management controller and uses the shared
 template-selected printable-document email flow; it does not navigate away
@@ -70,9 +71,9 @@ Rules and acceptance criteria:
    remains unsendable and explains why without sending anything.
 4. Each controller builds PDF data through its existing print-data builder and
    prepares its existing customer/supplier context before emailing.
-5. Returns and Purchase Receipts remain out of scope because they are not in
-   the requested printable-email document registry. Detail-page actions are
-   unchanged.
+5. Returns remain out of scope. Purchase Receipts must also provide their
+   existing-document Print/Email preview action, using the shared
+   `purchase_receipt` printable-email registry and an active matching template.
 
 Validation: focused widget/unit coverage must include eligible, draft,
 cancelled, and missing-id eligibility; format and analyze all touched Dart
