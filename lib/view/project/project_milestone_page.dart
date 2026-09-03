@@ -1,5 +1,6 @@
 import '../../controller/project/project_milestone_management_controller.dart';
 import '../../screen.dart';
+import 'widgets/project_kanban_board.dart';
 import 'widgets/project_subtab_expandable_section.dart';
 
 class ProjectMilestoneManagementPage extends StatefulWidget {
@@ -27,6 +28,15 @@ class _ProjectMilestoneManagementPageState
     extends State<ProjectMilestoneManagementPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'completed', label: 'Completed'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  static const List<AppDropdownItem<String>> _milestoneListStatusFilterItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'pending', label: 'Pending'),
+        AppDropdownItem(value: 'all', label: 'All Statuses'),
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
@@ -74,9 +84,15 @@ class _ProjectMilestoneManagementPageState
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewMilestone(
-              isDesktop: Responsive.isDesktop(context),
-            ),
+            onPressed: () {
+              if (controller.isProjectConstrained) {
+                controller.startNewMilestone(
+                  isDesktop: Responsive.isDesktop(context),
+                );
+                return;
+              }
+              _openMilestoneEditor(context, controller);
+            },
             icon: Icons.flag_outlined,
             label: 'New Milestone',
           ),
@@ -115,33 +131,68 @@ class _ProjectMilestoneManagementPageState
     }
 
     if (controller.isProjectConstrained) {
-      return _buildConstrainedContent(context, controller);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMilestoneFilters(controller),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          _buildConstrainedContent(context, controller),
+        ],
+      );
     }
 
-    final selectedRow = controller.selectedRow;
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
-      title: 'Project Milestones',
-      editorTitle: selectedRow?.milestone.milestoneName,
-      scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectMilestoneRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search milestones',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No milestones found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: row.milestone.milestoneName ?? 'Milestone',
-          subtitle: [
-            row.project.projectName ?? '',
-            row.milestone.targetDate ?? '',
-            row.milestone.milestoneStatus ?? '',
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
-        ),
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMilestoneFilters(controller, includeSearch: true),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          ProjectKanbanBoard.milestone(
+            rows: controller.filteredRows,
+            statusFilter: controller.listStatusFilter,
+            onOpen: (row) =>
+                _openMilestoneEditor(context, controller, row: row),
+            onAdd: (status) => _openMilestoneEditor(
+              context,
+              controller,
+              initialStatus: status,
+            ),
+            onDelete: (row) => _deleteMilestone(context, controller, row),
+            onMove: (row, status) =>
+                _moveMilestone(context, controller, row, status),
+            canDelete: controller.canDeleteMilestones,
+            isBusy: controller.saving,
+            movingMilestoneIds: controller.movingMilestoneIds,
+          ),
+        ],
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
+    );
+  }
+
+  Widget _buildMilestoneFilters(
+    ProjectMilestoneManagementController controller, {
+    bool includeSearch = false,
+  }) {
+    return AppSectionCard(
+      child: SettingsFormWrap(
+        children: [
+          if (includeSearch)
+            AppFormTextField(
+              controller: controller.searchController,
+              labelText: 'Search Milestones',
+              hintText: 'Name, remarks, or project',
+              prefixIcon: const Icon(Icons.search_outlined),
+            ),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Milestone status',
+            mappedItems: _milestoneListStatusFilterItems,
+            initialValue: controller.listStatusFilter,
+            onChanged: controller.setListStatusFilter,
+          ),
+        ],
+      ),
     );
   }
 
@@ -193,40 +244,7 @@ class _ProjectMilestoneManagementPageState
                   tooltip: 'Delete milestone',
                   onPressed: controller.saving
                       ? null
-                      : () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (dialogContext) => AlertDialog(
-                              title: const Text('Delete Milestone'),
-                              content: Text(
-                                'Remove ${row.milestone.milestoneName ?? 'this milestone'}?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                FilledButton.tonal(
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(true),
-                                  child: const Text('Delete'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirmed != true) {
-                            return;
-                          }
-                          controller.selectRow(row);
-                          final message = await controller.deleteMilestone();
-                          if (!mounted || message == null) {
-                            return;
-                          }
-                          appScaffoldMessengerKey.currentState
-                            ?..hideCurrentSnackBar()
-                            ..showSnackBar(SnackBar(content: Text(message)));
-                        },
+                      : () => _deleteMilestone(context, controller, row),
                   icon: const Icon(Icons.remove_circle_outline),
                 ),
                 onToggle: () {
@@ -248,8 +266,9 @@ class _ProjectMilestoneManagementPageState
 
   Widget _buildEditorForm(
     BuildContext context,
-    ProjectMilestoneManagementController controller,
-  ) {
+    ProjectMilestoneManagementController controller, {
+    VoidCallback? onSaved,
+  }) {
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -340,6 +359,7 @@ class _ProjectMilestoneManagementPageState
                           appScaffoldMessengerKey.currentState
                             ?..hideCurrentSnackBar()
                             ..showSnackBar(SnackBar(content: Text(message)));
+                          onSaved?.call();
                         },
                   icon: controller.selectedRow?.milestone.id == null
                       ? Icons.add
@@ -353,5 +373,99 @@ class _ProjectMilestoneManagementPageState
         ),
       ),
     );
+  }
+
+  Future<void> _openMilestoneEditor(
+    BuildContext context,
+    ProjectMilestoneManagementController controller, {
+    ProjectMilestoneRow? row,
+    String? initialStatus,
+  }) async {
+    if (row == null) {
+      controller.startNewMilestone(
+        isDesktop: true,
+        initialStatus: initialStatus,
+      );
+    } else {
+      controller.selectRow(row, toggleIfSelected: false);
+    }
+
+    await showAppFilterPanel<void>(
+      context: context,
+      title: row?.milestone.milestoneName ?? 'New Project Milestone',
+      maxWidth: 720,
+      builder: (dialogContext) => _buildEditorForm(
+        dialogContext,
+        controller,
+        onSaved: () => Navigator.of(dialogContext).pop(),
+      ),
+    );
+  }
+
+  Future<void> _deleteMilestone(
+    BuildContext context,
+    ProjectMilestoneManagementController controller,
+    ProjectMilestoneRow row,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Milestone'),
+        content: Text(
+          'Remove ${row.milestone.milestoneName ?? 'this milestone'}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    controller.selectRow(row, toggleIfSelected: false);
+    final message = await controller.deleteMilestone();
+    if (!mounted || message == null) {
+      return;
+    }
+    appScaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _moveMilestone(
+    BuildContext context,
+    ProjectMilestoneManagementController controller,
+    ProjectMilestoneRow row,
+    String status,
+  ) async {
+    final errorColor = Theme.of(context).colorScheme.error;
+    try {
+      final message = await controller.moveMilestoneToStatus(row, status);
+      if (!mounted || message == null) {
+        return;
+      }
+      appScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    } catch (errorValue) {
+      if (!mounted) {
+        return;
+      }
+      appScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Unable to move milestone: $errorValue'),
+            backgroundColor: errorColor,
+          ),
+        );
+    }
   }
 }

@@ -1,7 +1,7 @@
 import '../../controller/project/project_task_management_controller.dart';
 import '../../screen.dart';
 import 'widgets/project_subtab_expandable_section.dart';
-import 'widgets/project_task_kanban_board.dart';
+import 'widgets/project_kanban_board.dart';
 
 class ProjectTaskManagementPage extends StatefulWidget {
   const ProjectTaskManagementPage({
@@ -158,7 +158,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         children: [
           _buildTaskFilters(controller, includeSearch: true),
           const SizedBox(height: AppUiConstants.spacingMd),
-          ProjectTaskKanbanBoard(
+          ProjectKanbanBoard.task(
             rows: controller.filteredRows,
             statusFilter: controller.listStatusFilter,
             employeeNames: controller.employeeNames,

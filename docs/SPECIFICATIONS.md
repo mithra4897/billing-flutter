@@ -2262,3 +2262,46 @@ ERP task API, validation, permissions, and embedded Project-subtab workflow.
 - No backend, database, route, authorization, or payload change is introduced.
 - Focused tests cover lane selection and grouping; formatting, focused analysis,
   and focused tests are executed.
+
+## 2026-09-03 — StaffU-inspired project milestone Kanban board
+
+### Objective
+
+Extend and reuse the StaffU-style Kanban board functionality introduced for
+Project Tasks to the standalone Project Milestones module (`/projects/milestones`),
+providing responsive drag-and-drop milestone status tracking while preserving
+ERP milestone validation, permissions, and embedded Project subtab behavior.
+
+### Scope and requirements
+
+- Provide a single unified `ProjectKanbanBoard<T extends Object>` widget with
+  named factory constructors `ProjectKanbanBoard.task` and
+  `ProjectKanbanBoard.milestone`, directly reused by both `/projects/tasks` and
+  `/projects/milestones`.
+- All colors strictly use application theme tokens without ad-hoc alpha or created colors.
+- `/projects/milestones` groups milestones into the backend statuses `open`,
+  `completed`, and `cancelled` defined in `milestone_status` schema.
+- The status and text filters determine board visibility: `pending` displays the
+  Open lane; `all` displays Open, Completed, and Cancelled lanes; exact status
+  filters display their respective single lane.
+- Milestone cards expose target date, completion date, formatted milestone
+  amount badge, milestone name, remarks snippet, project context, and actions
+  menu (Edit, Delete) with drag handle indicator.
+- Persisted milestone cards support drag-and-drop between lanes. Drops
+  optimistically update the board, invoke `updateMilestone` via `ProjectService`,
+  invalidate the project collection cache, reload authoritatively, and roll
+  back gracefully on failure with error feedback.
+- The Project master embedded Milestones subtab remains the compact expandable
+  tile workflow (`ProjectSubtabExpandableSection`).
+
+### Acceptance criteria and tests
+
+- Grouping preserves order in O(n) time.
+- Status filters (`pending`, `all`, exact, fallback) deterministically select
+  lanes.
+- Cross-lane drops are validated: same-status, unsaved, and in-flight moving
+  cards are rejected.
+- Unit and widget tests cover lane resolution, grouping, drop validation, and
+  status transformations.
+- `flutter test` and `flutter analyze` pass with zero regressions.
+

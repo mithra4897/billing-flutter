@@ -1,0 +1,1037 @@
+import '../../../controller/project/project_milestone_management_controller.dart';
+import '../../../controller/project/project_task_management_controller.dart';
+import '../../../screen.dart';
+
+// --- Task board status definitions and helpers ---
+
+const List<String> projectTaskStatusOrder = <String>[
+  'open',
+  'working',
+  'on_hold',
+  'completed',
+  'cancelled',
+];
+
+List<String> projectTaskBoardStatuses(String filter) {
+  switch (filter.trim().toLowerCase()) {
+    case 'pending':
+      return const <String>['open', 'working', 'on_hold'];
+    case 'all':
+      return projectTaskStatusOrder;
+    case 'open':
+    case 'working':
+    case 'on_hold':
+    case 'completed':
+    case 'cancelled':
+      return <String>[filter.trim().toLowerCase()];
+    default:
+      return projectTaskStatusOrder;
+  }
+}
+
+Map<String, List<ProjectTaskRow>> groupProjectTaskRowsByStatus(
+  Iterable<ProjectTaskRow> rows,
+  Iterable<String> statuses,
+) {
+  final grouped = <String, List<ProjectTaskRow>>{
+    for (final status in statuses) status: <ProjectTaskRow>[],
+  };
+  for (final row in rows) {
+    final status = (row.task.taskStatus ?? 'open').trim().toLowerCase();
+    grouped[status]?.add(row);
+  }
+  return grouped;
+}
+
+bool canDropProjectTask({
+  required ProjectTaskRow row,
+  required String destinationStatus,
+  required Set<int> movingTaskIds,
+}) {
+  final taskId = row.task.id;
+  final currentStatus = (row.task.taskStatus ?? 'open').trim().toLowerCase();
+  return taskId != null &&
+      projectTaskStatusOrder.contains(destinationStatus) &&
+      currentStatus != destinationStatus &&
+      !movingTaskIds.contains(taskId);
+}
+
+// --- Milestone board status definitions and helpers ---
+
+const List<String> projectMilestoneStatusOrder = <String>[
+  'open',
+  'completed',
+  'cancelled',
+];
+
+List<String> projectMilestoneBoardStatuses(String filter) {
+  switch (filter.trim().toLowerCase()) {
+    case 'pending':
+      return const <String>['open'];
+    case 'all':
+      return projectMilestoneStatusOrder;
+    case 'open':
+    case 'completed':
+    case 'cancelled':
+      return <String>[filter.trim().toLowerCase()];
+    default:
+      return projectMilestoneStatusOrder;
+  }
+}
+
+Map<String, List<ProjectMilestoneRow>> groupProjectMilestoneRowsByStatus(
+  Iterable<ProjectMilestoneRow> rows,
+  Iterable<String> statuses,
+) {
+  final grouped = <String, List<ProjectMilestoneRow>>{
+    for (final status in statuses) status: <ProjectMilestoneRow>[],
+  };
+  for (final row in rows) {
+    final status = (row.milestone.milestoneStatus ?? 'open')
+        .trim()
+        .toLowerCase();
+    grouped[status]?.add(row);
+  }
+  return grouped;
+}
+
+bool canDropProjectMilestone({
+  required ProjectMilestoneRow row,
+  required String destinationStatus,
+  required Set<int> movingMilestoneIds,
+}) {
+  final milestoneId = row.milestone.id;
+  final currentStatus = (row.milestone.milestoneStatus ?? 'open')
+      .trim()
+      .toLowerCase();
+  return milestoneId != null &&
+      projectMilestoneStatusOrder.contains(destinationStatus) &&
+      currentStatus != destinationStatus &&
+      !movingMilestoneIds.contains(milestoneId);
+}
+
+// --- Unified Kanban Board Widget ---
+
+class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
+  const ProjectKanbanBoard({
+    super.key,
+    required this.statuses,
+    required this.groupedItems,
+    required this.statusLabel,
+    required this.statusAccent,
+    required this.cardBuilder,
+    required this.onAdd,
+    required this.onMove,
+    required this.canDrop,
+    required this.isBusy,
+    required this.isItemMoving,
+    required this.hasItemId,
+    this.laneWidth = 340.0,
+    this.itemLabel = 'Item',
+    this.responsiveBreakpoint = 760.0,
+  });
+
+  factory ProjectKanbanBoard.task({
+    Key? key,
+    required List<ProjectTaskRow> rows,
+    required String statusFilter,
+    required List<String> Function(Iterable<int> ids) employeeNames,
+    required ValueChanged<ProjectTaskRow> onOpen,
+    required ValueChanged<String> onAdd,
+    required ValueChanged<ProjectTaskRow> onDelete,
+    required Future<void> Function(ProjectTaskRow row, String status) onMove,
+    required bool canDelete,
+    required bool isBusy,
+    required Set<int> movingTaskIds,
+  }) {
+    final statuses = projectTaskBoardStatuses(statusFilter);
+    final grouped = groupProjectTaskRowsByStatus(rows, statuses);
+
+    return ProjectKanbanBoard<ProjectTaskRow>(
+          key: key,
+          statuses: statuses,
+          groupedItems: grouped,
+          itemLabel: 'Task',
+          statusLabel: _taskStatusLabel,
+          statusAccent: _taskStatusAccent,
+          isBusy: isBusy,
+          hasItemId: (row) => row.task.id != null,
+          isItemMoving: (row) =>
+              row.task.id != null && movingTaskIds.contains(row.task.id),
+          canDrop: (row, destinationStatus) => canDropProjectTask(
+            row: row,
+            destinationStatus: destinationStatus,
+            movingTaskIds: movingTaskIds,
+          ),
+          onAdd: onAdd,
+          onMove: onMove,
+          cardBuilder: (context, row, accent, {required bool isFeedback}) {
+            final taskId = row.task.id;
+            final isMoving = taskId != null && movingTaskIds.contains(taskId);
+            return _ProjectTaskCard(
+              row: row,
+              accent: accent,
+              employeeNames: employeeNames,
+              onOpen: isFeedback ? () {} : () => onOpen(row),
+              onDelete: isFeedback || !canDelete || isBusy || isMoving
+                  ? null
+                  : () => onDelete(row),
+              showDragHandle: taskId != null,
+              isMoving: !isFeedback && isMoving,
+            );
+          },
+        )
+        as ProjectKanbanBoard<T>;
+  }
+
+  factory ProjectKanbanBoard.milestone({
+    Key? key,
+    required List<ProjectMilestoneRow> rows,
+    required String statusFilter,
+    required ValueChanged<ProjectMilestoneRow> onOpen,
+    required ValueChanged<String> onAdd,
+    required ValueChanged<ProjectMilestoneRow> onDelete,
+    required Future<void> Function(ProjectMilestoneRow row, String status)
+    onMove,
+    required bool canDelete,
+    required bool isBusy,
+    required Set<int> movingMilestoneIds,
+  }) {
+    final statuses = projectMilestoneBoardStatuses(statusFilter);
+    final grouped = groupProjectMilestoneRowsByStatus(rows, statuses);
+
+    return ProjectKanbanBoard<ProjectMilestoneRow>(
+          key: key,
+          statuses: statuses,
+          groupedItems: grouped,
+          itemLabel: 'Milestone',
+          statusLabel: _milestoneStatusLabel,
+          statusAccent: _milestoneStatusAccent,
+          isBusy: isBusy,
+          hasItemId: (row) => row.milestone.id != null,
+          isItemMoving: (row) =>
+              row.milestone.id != null &&
+              movingMilestoneIds.contains(row.milestone.id),
+          canDrop: (row, destinationStatus) => canDropProjectMilestone(
+            row: row,
+            destinationStatus: destinationStatus,
+            movingMilestoneIds: movingMilestoneIds,
+          ),
+          onAdd: onAdd,
+          onMove: onMove,
+          cardBuilder: (context, row, accent, {required bool isFeedback}) {
+            final milestoneId = row.milestone.id;
+            final isMoving =
+                milestoneId != null && movingMilestoneIds.contains(milestoneId);
+            return _ProjectMilestoneCard(
+              row: row,
+              accent: accent,
+              onOpen: isFeedback ? () {} : () => onOpen(row),
+              onDelete: isFeedback || !canDelete || isBusy || isMoving
+                  ? null
+                  : () => onDelete(row),
+              showDragHandle: milestoneId != null,
+              isMoving: !isFeedback && isMoving,
+            );
+          },
+        )
+        as ProjectKanbanBoard<T>;
+  }
+
+  final List<String> statuses;
+  final Map<String, List<T>> groupedItems;
+  final String Function(String status) statusLabel;
+  final Color Function(BuildContext context, String status) statusAccent;
+  final Widget Function(
+    BuildContext context,
+    T item,
+    Color accent, {
+    required bool isFeedback,
+  })
+  cardBuilder;
+  final ValueChanged<String> onAdd;
+  final Future<void> Function(T item, String destinationStatus) onMove;
+  final bool Function(T item, String destinationStatus) canDrop;
+  final bool isBusy;
+  final bool Function(T item) isItemMoving;
+  final bool Function(T item) hasItemId;
+  final double laneWidth;
+  final String itemLabel;
+  final double responsiveBreakpoint;
+
+  @override
+  Widget build(BuildContext context) {
+    final lanes = statuses
+        .map(
+          (status) => _ProjectKanbanLane<T>(
+            status: status,
+            items: groupedItems[status] ?? const [],
+            label: statusLabel(status),
+            accent: statusAccent(context, status),
+            cardBuilder: cardBuilder,
+            onAdd: () => onAdd(status),
+            onMove: (item) => onMove(item, status),
+            canDrop: (item) => canDrop(item, status),
+            isBusy: isBusy,
+            isItemMoving: isItemMoving,
+            hasItemId: hasItemId,
+            itemLabel: itemLabel,
+          ),
+        )
+        .toList(growable: false);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < responsiveBreakpoint) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < lanes.length; index++) ...[
+                lanes[index],
+                if (index != lanes.length - 1)
+                  const SizedBox(height: AppUiConstants.spacingMd),
+              ],
+            ],
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < lanes.length; index++) ...[
+                SizedBox(width: laneWidth, child: lanes[index]),
+                if (index != lanes.length - 1)
+                  const SizedBox(width: AppUiConstants.spacingMd),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// --- Lane presentation ---
+
+class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
+  const _ProjectKanbanLane({
+    required this.status,
+    required this.items,
+    required this.label,
+    required this.accent,
+    required this.cardBuilder,
+    required this.onAdd,
+    required this.onMove,
+    required this.canDrop,
+    required this.isBusy,
+    required this.isItemMoving,
+    required this.hasItemId,
+    required this.itemLabel,
+  });
+
+  final String status;
+  final List<T> items;
+  final String label;
+  final Color accent;
+  final Widget Function(
+    BuildContext context,
+    T item,
+    Color accent, {
+    required bool isFeedback,
+  })
+  cardBuilder;
+  final VoidCallback onAdd;
+  final Future<void> Function(T item) onMove;
+  final bool Function(T item) canDrop;
+  final bool isBusy;
+  final bool Function(T item) isItemMoving;
+  final bool Function(T item) hasItemId;
+  final String itemLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return DragTarget<T>(
+      onWillAcceptWithDetails: (details) => canDrop(details.data),
+      onAcceptWithDetails: (details) {
+        unawaited(onMove(details.data));
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isTargeted = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+          decoration: BoxDecoration(
+            color: isTargeted ? appTheme.tableRowHover : appTheme.subtleFill,
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+            border: Border.all(
+              color: isTargeted
+                  ? theme.colorScheme.primary
+                  : appTheme.tableBorder,
+              width: isTargeted ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ProjectKanbanLaneHeader(
+                label: label,
+                count: items.length,
+                accent: accent,
+                onAdd: isBusy ? null : onAdd,
+                itemLabel: itemLabel,
+              ),
+              const SizedBox(height: AppUiConstants.spacingLg),
+              if (items.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppUiConstants.spacingMd,
+                    vertical: AppUiConstants.spacingXl,
+                  ),
+                  decoration: BoxDecoration(
+                    color: appTheme.cardBackground,
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.cardRadius,
+                    ),
+                    border: Border.all(color: appTheme.tableBorder),
+                  ),
+                  child: Text(
+                    'No ${label.toLowerCase()} ${itemLabel.toLowerCase()}s',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: appTheme.mutedText,
+                    ),
+                  ),
+                )
+              else
+                for (final item in items) ...[
+                  _buildDraggableCard(context, item),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                ],
+              OutlinedButton.icon(
+                onPressed: isBusy ? null : onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: Text('Add $itemLabel'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  backgroundColor: appTheme.cardBackground,
+                  side: BorderSide(color: appTheme.tableBorder),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDraggableCard(BuildContext context, T item) {
+    final hasId = hasItemId(item);
+    final isMoving = isItemMoving(item);
+    final card = cardBuilder(context, item, accent, isFeedback: false);
+
+    if (!hasId || isMoving || isBusy) {
+      return card;
+    }
+
+    return Draggable<T>(
+      data: item,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: IgnorePointer(
+        child: Material(
+          color: Colors.transparent,
+          child: SizedBox(
+            width: 320,
+            child: cardBuilder(context, item, accent, isFeedback: true),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.28, child: card),
+      child: card,
+    );
+  }
+}
+
+class _ProjectKanbanLaneHeader extends StatelessWidget {
+  const _ProjectKanbanLaneHeader({
+    required this.label,
+    required this.count,
+    required this.accent,
+    required this.onAdd,
+    required this.itemLabel,
+  });
+
+  final String label;
+  final int count;
+  final Color accent;
+  final VoidCallback? onAdd;
+  final String itemLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    return Row(
+      children: [
+        Container(
+          width: 5,
+          height: 40,
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
+          ),
+        ),
+        const SizedBox(width: AppUiConstants.spacingSm),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(
+            color: appTheme.cardBackground,
+            borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
+            border: Border.all(color: appTheme.tableBorder),
+          ),
+          child: Text(
+            '$count',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: appTheme.mutedText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: onAdd,
+          tooltip: 'Add $label $itemLabel',
+          icon: const Icon(Icons.add_circle_outline, size: 20),
+          color: theme.colorScheme.primary,
+        ),
+      ],
+    );
+  }
+}
+
+// --- Task card presentation ---
+
+class _ProjectTaskCard extends StatelessWidget {
+  const _ProjectTaskCard({
+    required this.row,
+    required this.accent,
+    required this.employeeNames,
+    required this.onOpen,
+    required this.onDelete,
+    required this.showDragHandle,
+    required this.isMoving,
+  });
+
+  final ProjectTaskRow row;
+  final Color accent;
+  final List<String> Function(Iterable<int> ids) employeeNames;
+  final VoidCallback onOpen;
+  final VoidCallback? onDelete;
+  final bool showDragHandle;
+  final bool isMoving;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final task = row.task;
+    final progress = (task.progressPercent ?? 0).clamp(0, 100).toDouble();
+    final assignedIds =
+        task.assignedEmployeeIds.isEmpty && task.assignedEmployeeId != null
+        ? <int>[task.assignedEmployeeId!]
+        : task.assignedEmployeeIds;
+    final names = employeeNames(assignedIds);
+    final date = normalizeDateValue(
+      task.plannedEndDate ?? task.plannedStartDate,
+    );
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: isMoving ? 0.62 : 1,
+      child: Material(
+        color: appTheme.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          side: BorderSide(color: appTheme.tableBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: isMoving ? null : onOpen,
+          child: Padding(
+            padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 9, color: accent),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        date.isEmpty ? 'No due date' : date,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (task.isBillable == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(
+                            AppUiConstants.pillRadius,
+                          ),
+                        ),
+                        child: Text(
+                          'Billable',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (isMoving)
+                      const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    else if (onDelete != null)
+                      PopupMenuButton<String>(
+                        tooltip: 'Task actions',
+                        padding: EdgeInsets.zero,
+                        onSelected: (value) {
+                          if (value == 'edit') onOpen();
+                          if (value == 'delete') onDelete!();
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
+                    if (showDragHandle && !isMoving)
+                      Tooltip(
+                        message: 'Drag to change status',
+                        child: Icon(
+                          Icons.drag_indicator,
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                Text(
+                  task.taskName ?? 'Task',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if ((task.description ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    task.description!.trim(),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: appTheme.mutedText,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppUiConstants.spacingLg),
+                Row(
+                  children: [
+                    Text('Progress', style: theme.textTheme.labelMedium),
+                    const Spacer(),
+                    Text(
+                      '${progress.toStringAsFixed(progress == progress.roundToDouble() ? 0 : 1)}%',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: appTheme.mutedText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.pillRadius,
+                  ),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: progress / 100,
+                    color: accent,
+                    backgroundColor: appTheme.subtleFill,
+                  ),
+                ),
+                const SizedBox(height: AppUiConstants.spacingMd),
+                Divider(color: appTheme.tableBorder),
+                const SizedBox(height: AppUiConstants.spacingXs),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        [
+                          task.taskCode ?? '',
+                          row.project.projectName ?? '',
+                        ].where((value) => value.trim().isNotEmpty).join(' • '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                    ),
+                    if (names.isNotEmpty) _AssigneeStack(names: names),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssigneeStack extends StatelessWidget {
+  const _AssigneeStack({required this.names});
+
+  final List<String> names;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleNames = names.take(3).toList(growable: false);
+    final remaining = names.length - visibleNames.length;
+    return Tooltip(
+      message: names.join(', '),
+      child: SizedBox(
+        width: ((visibleNames.length * 22) + (remaining > 0 ? 24 : 8))
+            .toDouble(),
+        height: 30,
+        child: Stack(
+          children: [
+            for (var index = 0; index < visibleNames.length; index++)
+              Positioned(
+                left: index * 22,
+                child: _AssigneeAvatar(name: visibleNames[index]),
+              ),
+            if (remaining > 0)
+              Positioned(
+                left: visibleNames.length * 22,
+                child: _AssigneeAvatar(name: '+$remaining'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AssigneeAvatar extends StatelessWidget {
+  const _AssigneeAvatar({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = name.startsWith('+')
+        ? name
+        : name
+              .trim()
+              .split(RegExp(r'\s+'))
+              .where((part) => part.isNotEmpty)
+              .take(2)
+              .map((part) => part[0].toUpperCase())
+              .join();
+    return CircleAvatar(
+      radius: 15,
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      child: Text(
+        initials,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+// --- Milestone card presentation ---
+
+class _ProjectMilestoneCard extends StatelessWidget {
+  const _ProjectMilestoneCard({
+    required this.row,
+    required this.accent,
+    required this.onOpen,
+    required this.onDelete,
+    required this.showDragHandle,
+    required this.isMoving,
+  });
+
+  final ProjectMilestoneRow row;
+  final Color accent;
+  final VoidCallback onOpen;
+  final VoidCallback? onDelete;
+  final bool showDragHandle;
+  final bool isMoving;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final milestone = row.milestone;
+    final targetDate = normalizeDateValue(milestone.targetDate);
+    final completionDate = normalizeDateValue(milestone.completionDate);
+    final amount = milestone.milestoneAmount;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: isMoving ? 0.62 : 1,
+      child: Material(
+        color: appTheme.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          side: BorderSide(color: appTheme.tableBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: isMoving ? null : onOpen,
+          child: Padding(
+            padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 9, color: accent),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        targetDate.isEmpty
+                            ? 'No target date'
+                            : 'Target $targetDate',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (amount != null && amount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(
+                            AppUiConstants.pillRadius,
+                          ),
+                        ),
+                        child: Text(
+                          '₹${_formatAmount(amount)}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (isMoving)
+                      const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    else if (onDelete != null)
+                      PopupMenuButton<String>(
+                        tooltip: 'Milestone actions',
+                        padding: EdgeInsets.zero,
+                        onSelected: (value) {
+                          if (value == 'edit') onOpen();
+                          if (value == 'delete') onDelete!();
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
+                    if (showDragHandle && !isMoving)
+                      Tooltip(
+                        message: 'Drag to change status',
+                        child: Icon(
+                          Icons.drag_indicator,
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                Text(
+                  milestone.milestoneName ?? 'Milestone',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if ((milestone.remarks ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    milestone.remarks!.trim(),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: appTheme.mutedText,
+                    ),
+                  ),
+                ],
+                if (completionDate.isNotEmpty) ...[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 14,
+                        color: appTheme.success,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Completed: $completionDate',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: AppUiConstants.spacingMd),
+                Divider(color: appTheme.tableBorder),
+                const SizedBox(height: AppUiConstants.spacingXs),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.flag_outlined,
+                      size: 14,
+                      color: appTheme.mutedText,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        row.project.projectName ?? 'Project',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: appTheme.mutedText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatAmount(double value) {
+    return value == value.roundToDouble()
+        ? value.toInt().toString()
+        : value.toStringAsFixed(2);
+  }
+}
+
+// --- Status label and accent mappings (strictly from theme) ---
+
+String _taskStatusLabel(String status) {
+  switch (status) {
+    case 'open':
+      return 'New';
+    case 'working':
+      return 'In Progress';
+    case 'on_hold':
+      return 'On Hold';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
+  }
+}
+
+Color _taskStatusAccent(BuildContext context, String status) {
+  final theme = Theme.of(context);
+  final appTheme = theme.extension<AppThemeExtension>()!;
+  switch (status) {
+    case 'open':
+      return theme.colorScheme.primary;
+    case 'working':
+      return appTheme.info;
+    case 'on_hold':
+      return appTheme.warning;
+    case 'completed':
+      return appTheme.success;
+    case 'cancelled':
+      return theme.colorScheme.error;
+    default:
+      return appTheme.mutedText;
+  }
+}
+
+String _milestoneStatusLabel(String status) {
+  switch (status) {
+    case 'open':
+      return 'Open';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
+  }
+}
+
+Color _milestoneStatusAccent(BuildContext context, String status) {
+  final theme = Theme.of(context);
+  final appTheme = theme.extension<AppThemeExtension>()!;
+  switch (status) {
+    case 'open':
+      return theme.colorScheme.primary;
+    case 'completed':
+      return appTheme.success;
+    case 'cancelled':
+      return theme.colorScheme.error;
+    default:
+      return appTheme.mutedText;
+  }
+}

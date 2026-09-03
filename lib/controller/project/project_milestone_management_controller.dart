@@ -27,11 +27,14 @@ class ProjectMilestoneManagementController extends GetxController {
   bool initialLoading = true;
   bool saving = false;
   bool showDraftTile = false;
+  bool canDeleteMilestones = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
   int? projectId;
   String status = 'open';
+  String listStatusFilter = 'all';
+  Set<int> movingMilestoneIds = <int>{};
   Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
@@ -86,12 +89,14 @@ class ProjectMilestoneManagementController extends GetxController {
     pageError = null;
     update();
     try {
+      final permissionCodes = await SessionStorage.getPermissionCodes();
       final responses = await Future.wait<dynamic>([
         _refreshController.projects(loader: _projectService.projects),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
       ]);
+      canDeleteMilestones = permissionCodes.contains('project.delete');
       final nextProjects = responses[0] as List<ProjectModel>;
       final companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
@@ -155,10 +160,10 @@ class ProjectMilestoneManagementController extends GetxController {
     List<ProjectMilestoneRow> items,
     String query,
   ) {
-    var dashboardRows = items;
+    var scopedRows = items;
     if (initialDashboardFilter.trim() == 'due_today') {
       final now = DateTime.now();
-      dashboardRows = items
+      scopedRows = scopedRows
           .where((row) {
             final targetDate = DateTime.tryParse(
               row.milestone.targetDate?.trim() ?? '',
@@ -170,11 +175,37 @@ class ProjectMilestoneManagementController extends GetxController {
           })
           .toList(growable: false);
     }
-    return filterMasterList(dashboardRows, query, (row) {
+
+    final normalizedStatusFilter = listStatusFilter.trim().toLowerCase();
+    if (normalizedStatusFilter == 'pending') {
+      scopedRows = scopedRows
+          .where(
+            (row) =>
+                (row.milestone.milestoneStatus ?? 'open')
+                    .trim()
+                    .toLowerCase() ==
+                'open',
+          )
+          .toList(growable: false);
+    } else if (normalizedStatusFilter != 'all' &&
+        projectMilestoneStatusValues.contains(normalizedStatusFilter)) {
+      scopedRows = scopedRows
+          .where(
+            (row) =>
+                (row.milestone.milestoneStatus ?? 'open')
+                    .trim()
+                    .toLowerCase() ==
+                normalizedStatusFilter,
+          )
+          .toList(growable: false);
+    }
+
+    return filterMasterList(scopedRows, query, (row) {
       return [
         row.milestone.milestoneName ?? '',
         row.project.projectName ?? '',
         row.milestone.milestoneStatus ?? '',
+        row.milestone.remarks ?? '',
       ];
     });
   }
@@ -184,8 +215,22 @@ class ProjectMilestoneManagementController extends GetxController {
     update();
   }
 
-  void selectRow(ProjectMilestoneRow row, {bool notify = true}) {
-    if (selectedRow?.milestone.id == row.milestone.id) {
+  void setListStatusFilter(String? value) {
+    final next = (value ?? 'all').trim().toLowerCase();
+    if (listStatusFilter == next) {
+      return;
+    }
+    listStatusFilter = next;
+    filteredRows = _filterRows(rows, searchController.text);
+    update();
+  }
+
+  void selectRow(
+    ProjectMilestoneRow row, {
+    bool notify = true,
+    bool toggleIfSelected = true,
+  }) {
+    if (toggleIfSelected && selectedRow?.milestone.id == row.milestone.id) {
       resetForm(notify: notify);
       return;
     }
@@ -223,6 +268,75 @@ class ProjectMilestoneManagementController extends GetxController {
     }
   }
 
+  bool canMoveMilestoneToStatus(ProjectMilestoneRow row, String status) {
+    final milestoneId = row.milestone.id;
+    final nextStatus = status.trim().toLowerCase();
+    final currentStatus = (row.milestone.milestoneStatus ?? 'open')
+        .trim()
+        .toLowerCase();
+    return milestoneId != null &&
+        projectMilestoneStatusValues.contains(nextStatus) &&
+        nextStatus != currentStatus &&
+        !movingMilestoneIds.contains(milestoneId);
+  }
+
+  Future<String?> moveMilestoneToStatus(
+    ProjectMilestoneRow row,
+    String status,
+  ) async {
+    if (!canMoveMilestoneToStatus(row, status)) {
+      return null;
+    }
+
+    final milestoneId = row.milestone.id!;
+    final nextStatus = status.trim().toLowerCase();
+    final previousRows = rows;
+    final previousFilteredRows = filteredRows;
+    final previousSelectedRow = selectedRow;
+    final previousEditorStatus = this.status;
+    final updatedRow = ProjectMilestoneRow(
+      project: row.project,
+      milestone: projectMilestoneWithStatus(row.milestone, nextStatus),
+    );
+
+    movingMilestoneIds = <int>{...movingMilestoneIds, milestoneId};
+    rows = <ProjectMilestoneRow>[
+      for (final currentRow in rows)
+        if (currentRow.milestone.id == milestoneId) updatedRow else currentRow,
+    ];
+    filteredRows = _filterRows(rows, searchController.text);
+    if (selectedRow?.milestone.id == milestoneId) {
+      selectedRow = updatedRow;
+      this.status = nextStatus;
+    }
+    update();
+
+    try {
+      final response = await _projectService.updateMilestone(
+        milestoneId,
+        updatedRow.milestone,
+      );
+      await _reloadAfterMilestoneMutation(selectMilestoneId: milestoneId);
+      return response.message;
+    } catch (_) {
+      rows = previousRows;
+      filteredRows = previousFilteredRows;
+      selectedRow = previousSelectedRow;
+      this.status = previousEditorStatus;
+      update();
+      rethrow;
+    } finally {
+      movingMilestoneIds = <int>{...movingMilestoneIds}..remove(milestoneId);
+      update();
+    }
+  }
+
+  Future<void> _reloadAfterMilestoneMutation({int? selectMilestoneId}) async {
+    _refreshController.invalidateProjects();
+    await loadData(selectId: selectMilestoneId);
+    _refreshController.notifyChanged(source: 'project_milestone');
+  }
+
   Future<String?> saveMilestone() async {
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
@@ -254,8 +368,7 @@ class ProjectMilestoneManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.milestone.id;
       showDraftTile = false;
       resetForm(notify: false);
-      await loadData(selectId: savedId);
-      _refreshController.notifyChanged(source: 'project_milestone');
+      await _reloadAfterMilestoneMutation(selectMilestoneId: savedId);
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -273,8 +386,7 @@ class ProjectMilestoneManagementController extends GetxController {
       return null;
     }
     final response = await _projectService.deleteMilestone(row!.milestone.id!);
-    await loadData();
-    _refreshController.notifyChanged(source: 'project_milestone');
+    await _reloadAfterMilestoneMutation();
     return response.message;
   }
 
@@ -303,9 +415,13 @@ class ProjectMilestoneManagementController extends GetxController {
       .where((item) => item.value != 0)
       .toList(growable: false);
 
-  void startNewMilestone({required bool isDesktop}) {
+  void startNewMilestone({required bool isDesktop, String? initialStatus}) {
     showDraftTile = true;
     resetForm();
+    if (initialStatus != null &&
+        projectMilestoneStatusValues.contains(initialStatus)) {
+      status = initialStatus;
+    }
     if (!isDesktop) {
       workspaceController.openEditor();
     }
@@ -334,4 +450,21 @@ class ProjectMilestoneRow {
 
   final ProjectModel project;
   final ProjectMilestoneModel milestone;
+}
+
+const Set<String> projectMilestoneStatusValues = <String>{
+  'open',
+  'completed',
+  'cancelled',
+};
+
+ProjectMilestoneModel projectMilestoneWithStatus(
+  ProjectMilestoneModel milestone,
+  String status,
+) {
+  return ProjectMilestoneModel.fromJson(<String, dynamic>{
+    ...milestone.toJson(),
+    if (milestone.id != null) 'id': milestone.id,
+    'milestone_status': status.trim().toLowerCase(),
+  });
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-03 — StaffU-style Project Milestone Kanban Board
+
+- Request: Implement StaffU-style Kanban board functionality in Project Milestones,
+  reusing the task board widget architecture.
+- Implementation: Implemented a single unified `ProjectKanbanBoard<T extends Object>`
+  widget in `lib/view/project/widgets/project_kanban_board.dart` with `.task` and
+  `.milestone` factory constructors. Both `project_task_page.dart` and
+  `project_milestone_page.dart` directly reuse this one widget, eliminating
+  duplicate wrapper files. All colors strictly use application theme tokens
+  without ad-hoc colors or synthesized alpha values. Updated
+  `ProjectMilestoneManagementController` to support status filters, drag-and-drop
+  transitions with optimistic UI, API updates, and cache invalidation. Replaced
+  standalone master-detail workspace in `ProjectMilestoneManagementPage` with the
+  Kanban board while preserving the embedded subtab section.
+- Tests: `flutter test` passed all 18 tests, including 14 tests in the consolidated
+  `test/view/project_kanban_board_test.dart` suite covering both task and milestone
+  board operations. `flutter analyze` passed with 0 new issues.
+
 ## 2026-09-03 — Purchase Receipt print and Email PDF
 
 - Request: Add Purchase Receipt print-document and Email PDF support.

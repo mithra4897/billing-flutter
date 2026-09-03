@@ -639,3 +639,22 @@ invalidates `ProjectModuleRefreshController`'s nested project cache and reloads
 authoritative data. The same invalidation-first refresh is shared by task
 create, edit, and delete mutations. Failures restore the previous row, filtered
 set, selection, and editor status before surfacing feedback.
+
+## 2026-09-03 — Reusable Project Kanban board and Milestone board presentation
+
+The StaffU-style Kanban presentation is unified into a single widget:
+`ProjectKanbanBoard<T extends Object>` in `lib/view/project/widgets/project_kanban_board.dart`.
+It provides factory constructors `ProjectKanbanBoard.task` and
+`ProjectKanbanBoard.milestone`, directly reused by both `project_task_page.dart`
+and `project_milestone_page.dart`. This eliminates duplicate board wrappers and
+ensures all lane layouts, drag targets, lane headers, empty views, draggable
+cards, and theme token styling are shared from one canonical widget.
+
+`ProjectMilestoneManagementController` governs milestone board data, filtering
+across `open`, `completed`, and `cancelled` statuses. Card drops invoke
+`moveMilestoneToStatus`, which applies an optimistic local update, calls
+`ProjectService.updateMilestone`, invalidates the nested project collection cache
+via `ProjectModuleRefreshController`, reloads authoritative data, and notifies
+listeners. In-flight drops are tracked in a `Set<int>` to prevent concurrent
+mutations on the same milestone.
+

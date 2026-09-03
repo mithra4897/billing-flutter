@@ -831,3 +831,29 @@
 - Related files: `lib/view/project/project_task_page.dart`,
   `lib/view/project/widgets/project_task_kanban_board.dart`, task controller,
   focused tests, and frontend documentation.
+
+## ADR-0041: Extract reusable ProjectKanbanBoard and adopt StaffU Kanban for Project Milestones
+
+- Date: 2026-09-03
+- Status: Accepted
+- Context: Project Milestones required the same StaffU-style Kanban board
+  functionality introduced for Project Tasks. Duplicating board, lane, header,
+  and drag targets would produce redundant presentation code.
+- Decision: Implement a single unified `ProjectKanbanBoard<T extends Object>`
+  widget with `ProjectKanbanBoard.task` and `ProjectKanbanBoard.milestone`
+  factory constructors. Reuse this single widget across both `/projects/tasks`
+  and `/projects/milestones`. Strictly use application theme tokens for all
+  surfaces and status accents. Retain `ProjectSubtabExpandableSection` for
+  embedded milestones.
+- Reason: Strictly aligns with AGENTS.md rules against creating near-duplicate
+  widgets, unifying all Kanban board logic, layout, drag targets, and styling
+  into one canonical widget.
+- Alternatives considered: Maintaining two wrapper widget files; forcing a 5-status
+  task model onto milestones; creating custom color palettes instead of theme tokens.
+- Consequences: Zero redundant board wrappers, O(n) grouping, optimistic updates
+  with rollback, and unified theme-driven styling across tasks and milestones.
+- Related files: `lib/view/project/widgets/project_kanban_board.dart`,
+  `lib/view/project/project_task_page.dart`,
+  `lib/view/project/project_milestone_page.dart`,
+  `lib/controller/project/project_milestone_management_controller.dart`.
+

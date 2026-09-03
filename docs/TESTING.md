@@ -1425,3 +1425,16 @@ been packaged successfully.
   The reference is a static demo and does not persist drops.
 - Live ERP API verification was not run from this workspace; focused tests cover
   the move gate, typed payload transformation, and stale-cache regression.
+
+## 2026-09-03 — StaffU-inspired Project Milestone Kanban board
+
+- Unified board architecture: Implemented `ProjectKanbanBoard<T extends Object>`
+  in `lib/view/project/widgets/project_kanban_board.dart` providing `.task` and
+  `.milestone` factory constructors. Deleted redundant wrapper files.
+- All colors verified to derive strictly from application theme tokens.
+- `dart format` completed on all touched files.
+- `flutter analyze` passed with 0 new issues or warnings.
+- `flutter test` executed and passed all 18 tests, including 14 tests in the
+  consolidated `test/view/project_kanban_board_test.dart` suite covering task and
+  milestone lane resolution, grouping, drop eligibility, and status transformations.
+
