@@ -1345,13 +1345,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               if (controller.selectedItem != null) ...[
                 if (!isLocked)
                   AppActionButton(
-                    icon: Icons.emoji_events_outlined,
-                    label: 'Won',
-                    filled: false,
-                    onPressed: controller.win,
-                  ),
-                if (!isLocked)
-                  AppActionButton(
                     icon: Icons.cancel_outlined,
                     label: 'Lost',
                     filled: false,

@@ -629,11 +629,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   ) {
     final isLocked = controller.isSelectedEnquiryLocked();
     final lifecycleStatus = controller.effectiveLifecycleStatus();
-    final canWin =
-        controller.selectedItem != null &&
-        !isLocked &&
-        lifecycleStatus == 'in_progress' &&
-        controller.opportunityStatus != 'won';
     final canLose = controller.selectedItem != null && !isLocked;
 
     return Column(
@@ -784,13 +779,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 busy: controller.saving,
               ),
             if (controller.selectedItem != null) ...[
-              if (!isLocked)
-                AppActionButton(
-                  icon: Icons.trending_up_outlined,
-                  label: 'Won',
-                  filled: false,
-                  onPressed: canWin ? controller.win : null,
-                ),
               if (!isLocked)
                 AppActionButton(
                   icon: Icons.cancel_outlined,
