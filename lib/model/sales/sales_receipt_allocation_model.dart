@@ -8,6 +8,10 @@ class SalesReceiptAllocationModel extends JsonModel {
     this.allocatedAmount,
     this.allocationType,
     this.remarks,
+    this.isAutoAllocated = false,
+    this.sourceReceiptId,
+    this.allocatedBy,
+    this.allocatedAt,
     this.createdAt,
     this.updatedAt,
   });
@@ -16,6 +20,10 @@ class SalesReceiptAllocationModel extends JsonModel {
   final double? allocatedAmount;
   final String? allocationType;
   final String? remarks;
+  final bool isAutoAllocated;
+  final int? sourceReceiptId;
+  final int? allocatedBy;
+  final String? allocatedAt;
   final String? createdAt;
   final String? updatedAt;
 
@@ -27,6 +35,10 @@ class SalesReceiptAllocationModel extends JsonModel {
       allocatedAmount: JsonModel.nullableDouble(json['allocated_amount']),
       allocationType: json['allocation_type']?.toString(),
       remarks: json['remarks']?.toString(),
+      isAutoAllocated: JsonModel.boolOf(json['is_auto_allocated']),
+      sourceReceiptId: JsonModel.nullableInt(json['source_receipt_id']),
+      allocatedBy: JsonModel.nullableInt(json['allocated_by']),
+      allocatedAt: json['allocated_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
@@ -36,7 +48,6 @@ class SalesReceiptAllocationModel extends JsonModel {
     allocationType,
   ], defaultValue: 'Sales Receipt Allocation');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -45,6 +56,10 @@ class SalesReceiptAllocationModel extends JsonModel {
     if (allocatedAmount != null) 'allocated_amount': allocatedAmount,
     if (allocationType != null) 'allocation_type': allocationType,
     if (remarks != null) 'remarks': remarks,
+    'is_auto_allocated': isAutoAllocated,
+    if (sourceReceiptId != null) 'source_receipt_id': sourceReceiptId,
+    if (allocatedBy != null) 'allocated_by': allocatedBy,
+    if (allocatedAt != null) 'allocated_at': allocatedAt,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };

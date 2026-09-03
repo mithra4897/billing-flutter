@@ -18,6 +18,29 @@
   `test/view/project_kanban_board_test.dart` suite covering both task and milestone
   board operations. `flutter analyze` passed with 0 new issues.
 
+## 2026-09-03 — Explicit Sales customer advance allocation
+
+- Request: Mirror Purchase advance allocation for Sales receipts and invoices,
+  while preventing allocation rows from controlling Received Amount or being
+  created silently during receipt posting.
+- Implementation: Kept Received Amount independent; added visible allocated
+  and customer-advance totals, explicit FIFO Auto Allocate, aggregate duplicate
+  invoice validation, later allocation of posted receipt advance, allocation
+  audit data, and an invoice-posting Yes/No choice that applies oldest customer
+  advances only to the current invoice. Backend transactions synchronize
+  receipt, invoice, voucher, on-account, settlement, and audit state under row
+  locks. Direct customers and historical data remain unchanged.
+- Database/API impact: Added four nullable/defaulted audit columns to
+  `sales_receipt_allocations`, three Sales receipt endpoints, and the optional
+  `use_customer_advance` invoice-post parameter. A migration and one-time SQL
+  patch are included; either one, not both, must be applied to an existing
+  database.
+- Tests: Focused Flutter test passed (1/1), the complete Flutter suite passed
+  (4/4), focused Flutter analysis passed, and all changed PHP files passed
+  syntax checks. Full-project analysis has five unrelated existing warnings.
+  The added PHPUnit regression test was not executable because API Composer
+  dependencies are absent.
+
 ## 2026-09-03 — Purchase Receipt print and Email PDF
 
 - Request: Add Purchase Receipt print-document and Email PDF support.
@@ -1940,42 +1963,3 @@
   difference remains a separate correction.
 - Focused backend tests passed (22 tests, 76 assertions); focused Flutter
   analysis and 2 tests passed.
-
-## 2026-09-03 — StaffU-inspired Project Tasks Kanban board
-
-- Request: Extract the StaffU task-page design with Designlang and update the
-  existing Project Tasks screen.
-- Specification: StaffU-inspired project task Kanban board in
-  `docs/SPECIFICATIONS.md`.
-- Implementation: Replaced the standalone route's list/editor split with a
-  responsive, tinted Kanban presentation over the five real backend statuses.
-  Cards show due date, title, description, billable state, progress, project and
-  task identity, and compact assignee initials. Existing filters remain above
-  the board, cards and add controls open the existing validated editor in the
-  shared modal surface, and permitted deletes remain available from each card.
-  The ordinary route now defaults to All Statuses, making Completed visible in
-  the horizontally scrolling lane set. Persisted cards can be dragged between
-  lanes; moves optimistically update, save through the existing typed update
-  API, suppress duplicates, invalidate the nested project cache before reloading
-  server state, and roll back on failure. This fixes successful moves being
-  visibly reset to their old lane by stale cached project data. Task create,
-  edit, and delete now reuse the same invalidation-first refresh path. The
-  constrained Project-subtab workflow is unchanged.
-- Reuse: Existing controller, typed model/service, filters, shared theme,
-  section cards, modal, form fields, validators, actions, permissions, and
-  mutation flows remain authoritative.
-- Performance: Visible rows are grouped in O(n) time/O(n) output space; employee
-  names are indexed in O(e) time/O(e) space after load and resolved in O(1) per
-  assigned employee.
-- Files changed: Project task controller/page, a feature-local Kanban widget,
-  focused tests, and durable frontend documentation. Workspace-level Designlang
-  extraction artifacts were also generated.
-- Database/API/security impact: No schema, route, payload-shape, or permission
-  change; drag reuses the existing task update endpoint.
-- Tests added or updated: Eight focused lane-selection, grouping, move-gating,
-  payload-preservation, and mutation-refresh-order tests.
-- Tests executed and results: Formatting completed; focused analysis passed;
-  focused tests passed 8/8.
-- Reference verification: Agent Browser confirmed Completed is off-screen to the
-  right of StaffU's horizontal board and jKanban allows cross-lane card drag.
-- Known limitation: Live ERP API verification remains manual.

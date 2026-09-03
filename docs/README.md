@@ -58,6 +58,10 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - [Print designer box border radius](print-designer-box-border-radius.md) — adjust rounded corners for boxed print elements.
 - [Company creation access and logo](company-create-access-and-logo.md) — upload a company logo during creation and ensure the creator can access the result.
 - [Sales Invoice export GST normalization](sales-invoice-export-persisted-tax-components.md) — correct IGST versus CGST/SGST allocation using normalized place-of-supply data while retaining the document's tax total.
+- Sales customer advance allocation — see `SPECIFICATIONS.md`, `ARCHITECTURE.md`,
+  ADR-0040 in `DECISIONS.md`, and the 2026-09-03 testing/changelog entries;
+  backend deployment details are in
+  `billing-api/doc/sales-customer-advance-allocation.md`.
 - [Party code synchronization](party-code-type-sync.md) — regenerate the
   read-only party code when an existing party's type changes.
 - Global StaffU-inspired theme foundation — see `SPECIFICATIONS.md`,

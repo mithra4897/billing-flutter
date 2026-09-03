@@ -381,9 +381,13 @@ class SalesService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteInvoice(int id) =>
       destroy('/sales/invoices/$id');
 
-  Future<ApiResponse<SalesInvoiceModel>> postInvoice(int id) {
+  Future<ApiResponse<SalesInvoiceModel>> postInvoice(
+    int id, {
+    bool useCustomerAdvance = false,
+  }) {
     return client.post<SalesInvoiceModel>(
       '${ApiEndpoints.salesInvoices}/$id/post',
+      body: <String, dynamic>{'use_customer_advance': useCustomerAdvance},
       fromData: (json) =>
           SalesInvoiceModel.fromJson(json as Map<String, dynamic>),
     );
@@ -420,6 +424,38 @@ class SalesService extends ErpModuleService {
         fromJson: SalesReceiptModel.fromJson,
       );
 
+  Future<ApiResponse<Map<String, dynamic>>> previewReceiptAutoAllocation({
+    required int companyId,
+    required int customerPartyId,
+    required double paidAmount,
+  }) {
+    return client.get<Map<String, dynamic>>(
+      '/sales/receipts/auto-allocation-preview',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        'customer_party_id': customerPartyId,
+        'paid_amount': paidAmount,
+      },
+      fromData: (dynamic json) =>
+          json is Map ? Map<String, dynamic>.from(json) : <String, dynamic>{},
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> availableCustomerAdvance({
+    required int companyId,
+    required int customerPartyId,
+  }) {
+    return client.get<Map<String, dynamic>>(
+      '/sales/receipts/available-customer-advance',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        'customer_party_id': customerPartyId,
+      },
+      fromData: (dynamic json) =>
+          json is Map ? Map<String, dynamic>.from(json) : <String, dynamic>{},
+    );
+  }
+
   Future<ApiResponse<SalesReceiptModel>> createReceipt(
     SalesReceiptModel body,
   ) => createModel<SalesReceiptModel>(
@@ -446,6 +482,15 @@ class SalesService extends ErpModuleService {
   ) => actionModel<SalesReceiptModel>(
     '/sales/receipts/$id/post',
     body: body,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+
+  Future<ApiResponse<SalesReceiptModel>> allocateRemainingReceipt(
+    int id,
+    List<Map<String, dynamic>> allocations,
+  ) => actionModel<SalesReceiptModel>(
+    '/sales/receipts/$id/allocate-remaining',
+    body: <String, dynamic>{'allocations': allocations},
     fromJson: SalesReceiptModel.fromJson,
   );
 

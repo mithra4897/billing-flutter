@@ -1146,12 +1146,20 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       icon: Icons.publish_outlined,
                       label: 'Submit',
                       filled: false,
-                      onPressed: () => controller.docAction(
-                        context,
-                        () => controller.postInvoice(
-                          controller.selectedItem!.id!,
-                        ),
-                      ),
+                      onPressed: () async {
+                        final useAdvance = await controller
+                            .confirmCustomerAdvanceChoice(context);
+                        if (useAdvance == null || !context.mounted) {
+                          return;
+                        }
+                        await controller.docAction(
+                          context,
+                          () => controller.postInvoice(
+                            controller.selectedItem!.id!,
+                            useCustomerAdvance: useAdvance,
+                          ),
+                        );
+                      },
                     ),
                     AppActionButton(
                       icon: Icons.delete_outline,

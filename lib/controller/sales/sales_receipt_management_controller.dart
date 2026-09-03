@@ -17,6 +17,11 @@ class SalesReceiptAllocationDraft {
     this.allocationType = 'against_invoice',
     String? allocatedAmount,
     String? remarks,
+    this.isAutoAllocated = false,
+    this.sourceReceiptNo,
+    this.allocatedAt,
+    this.allocatedByName,
+    this.salesInvoiceNo,
   }) : amountController = TextEditingController(text: allocatedAmount ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
@@ -28,11 +33,40 @@ class SalesReceiptAllocationDraft {
         Validators.parseFlexibleNumber(json['allocated_amount']?.toString()),
       ),
       remarks: stringValue(json, 'remarks'),
+      isAutoAllocated: boolValue(json, 'is_auto_allocated'),
+      sourceReceiptNo: json['source_receipt'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['source_receipt'] as Map),
+              'receipt_no',
+            )
+          : null,
+      allocatedAt: nullableStringValue(json, 'allocated_at'),
+      allocatedByName: json['allocated_by_user'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['allocated_by_user'] as Map),
+              'display_name',
+              stringValue(
+                Map<String, dynamic>.from(json['allocated_by_user'] as Map),
+                'username',
+              ),
+            )
+          : null,
+      salesInvoiceNo: json['invoice'] is Map
+          ? stringValue(
+              Map<String, dynamic>.from(json['invoice'] as Map),
+              'invoice_no',
+            )
+          : nullableStringValue(json, 'invoice_no'),
     );
   }
 
   int? salesInvoiceId;
   String allocationType;
+  final bool isAutoAllocated;
+  final String? sourceReceiptNo;
+  final String? allocatedAt;
+  final String? allocatedByName;
+  final String? salesInvoiceNo;
   final TextEditingController amountController;
   final TextEditingController remarksController;
 
@@ -43,6 +77,7 @@ class SalesReceiptAllocationDraft {
           Validators.parseFlexibleNumber(amountController.text) ?? 0,
       'allocation_type': allocationType,
       'remarks': nullIfEmpty(remarksController.text),
+      'is_auto_allocated': isAutoAllocated,
     };
   }
 
@@ -94,6 +129,7 @@ class SalesReceiptManagementController extends GetxController {
   bool initialLoading = true;
   bool saving = false;
   bool emailing = false;
+  bool autoAllocating = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -123,8 +159,42 @@ class SalesReceiptManagementController extends GetxController {
   Map<String, dynamic>? salesChain;
   List<SalesReceiptAllocationDraft> allocations =
       <SalesReceiptAllocationDraft>[];
+  int persistedAllocationCount = 0;
 
   bool _initialized = false;
+
+  bool get canEditSelectedReceipt {
+    if (selectedItem == null) {
+      return true;
+    }
+    return stringValue(selectedItem!.toJson(), 'receipt_status') == 'draft';
+  }
+
+  bool get isSelectedReceiptReadOnly =>
+      selectedItem != null && !canEditSelectedReceipt;
+
+  double get remainingUnallocatedAmount =>
+      Validators.parseFlexibleNumber(
+        selectedItem?.toJson()['unallocated_amount']?.toString(),
+      ) ??
+      0;
+
+  bool get canAllocateRemainingAdvance {
+    final status = stringValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'receipt_status',
+    );
+    return selectedItem != null &&
+        !isDirectCustomer &&
+        customerPartyId != null &&
+        (status == 'posted' || status == 'partially_allocated') &&
+        remainingUnallocatedAmount > 0;
+  }
+
+  bool isPersistedAllocation(int index) => index < persistedAllocationCount;
+
+  List<SalesReceiptAllocationDraft> get newRemainingAllocations =>
+      allocations.skip(persistedAllocationCount).toList(growable: false);
 
   @override
   void onInit() {
@@ -397,6 +467,7 @@ class SalesReceiptManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceAllocations(nextAllocations, notify: false);
+    persistedAllocationCount = nextAllocations.length;
     formError = null;
     update();
     await refreshSalesChain();
@@ -426,6 +497,7 @@ class SalesReceiptManagementController extends GetxController {
     notesController.clear();
     isActive = true;
     _replaceAllocations(const <SalesReceiptAllocationDraft>[], notify: false);
+    persistedAllocationCount = 0;
     formError = null;
     salesChain = null;
     if (notify) {
@@ -487,6 +559,7 @@ class SalesReceiptManagementController extends GetxController {
           remarks: 'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}',
         ),
       ], notify: false);
+      persistedAllocationCount = 0;
       formError = null;
       update();
       await refreshSalesChain(invoiceId: invoice.id);
@@ -577,6 +650,41 @@ class SalesReceiptManagementController extends GetxController {
         .toList(growable: false);
   }
 
+  List<SalesInvoiceModel> invoiceOptionsForAllocation(int index) {
+    final allocation = allocations[index];
+    final relevantAllocations = canAllocateRemainingAdvance
+        ? allocations.skip(persistedAllocationCount)
+        : allocations;
+    return invoiceOptions
+        .where((invoice) {
+          final invoiceId = invoice.id;
+          if (invoiceId == null) {
+            return false;
+          }
+          if (allocation.salesInvoiceId == invoiceId) {
+            return true;
+          }
+          final allocatedOnOtherLines = relevantAllocations
+              .where(
+                (other) =>
+                    !identical(other, allocation) &&
+                    other.salesInvoiceId == invoiceId,
+              )
+              .fold<double>(
+                0,
+                (sum, other) =>
+                    sum +
+                    (Validators.parseFlexibleNumber(
+                          other.amountController.text,
+                        ) ??
+                        0),
+              );
+          return invoiceOutstandingAmount(invoice) - allocatedOnOtherLines >
+              0.005;
+        })
+        .toList(growable: false);
+  }
+
   SalesInvoiceModel? invoiceById(int? invoiceId) {
     if (invoiceId == null) {
       return null;
@@ -604,10 +712,39 @@ class SalesReceiptManagementController extends GetxController {
   double totalAllocatedAmount() {
     return roundToDouble(
       allocations.fold<double>(0, (sum, allocation) {
+        if (allocation.salesInvoiceId == null) {
+          return sum;
+        }
         return sum +
             (Validators.parseFlexibleNumber(allocation.amountController.text) ??
                 0);
       }),
+      2,
+    );
+  }
+
+  double get displayedCustomerAdvance {
+    final newlyAllocated = newRemainingAllocations.fold<double>(
+      0,
+      (sum, allocation) =>
+          sum +
+          (allocation.salesInvoiceId == null
+              ? 0
+              : Validators.parseFlexibleNumber(
+                      allocation.amountController.text,
+                    ) ??
+                    0),
+    );
+    if (canAllocateRemainingAdvance) {
+      return roundToDouble(
+        (remainingUnallocatedAmount - newlyAllocated).clamp(0, double.infinity),
+        2,
+      );
+    }
+    final received =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    return roundToDouble(
+      (received - totalAllocatedAmount()).clamp(0, double.infinity),
       2,
     );
   }
@@ -679,12 +816,31 @@ class SalesReceiptManagementController extends GetxController {
   }
 
   void addAllocation() {
+    if (isSelectedReceiptReadOnly && !canAllocateRemainingAdvance) {
+      return;
+    }
+    final newlyAllocated = newRemainingAllocations.fold<double>(
+      0,
+      (sum, allocation) =>
+          sum +
+          (Validators.parseFlexibleNumber(allocation.amountController.text) ??
+              0),
+    );
+    if (canAllocateRemainingAdvance &&
+        newlyAllocated >= remainingUnallocatedAmount) {
+      formError = 'The remaining customer advance is already fully allocated.';
+      update();
+      return;
+    }
     allocations = List<SalesReceiptAllocationDraft>.from(allocations)
       ..add(SalesReceiptAllocationDraft());
     update();
   }
 
   void removeAllocation(int index) {
+    if (isPersistedAllocation(index)) {
+      return;
+    }
     final nextAllocations = List<SalesReceiptAllocationDraft>.from(allocations);
     final removed = nextAllocations.removeAt(index);
     allocations = nextAllocations;
@@ -698,10 +854,42 @@ class SalesReceiptManagementController extends GetxController {
     final allocation = allocations[index];
     allocation.salesInvoiceId = value;
     final invoice = invoiceById(value);
-    final balance = invoiceOutstandingAmount(invoice);
-    allocation.amountController.text = balance <= 0
+    final outstanding = invoiceOutstandingAmount(invoice);
+    final relevantAllocations = canAllocateRemainingAdvance
+        ? allocations.skip(persistedAllocationCount)
+        : allocations;
+    final allocatedOnOtherLines = relevantAllocations
+        .where((other) => !identical(other, allocation))
+        .fold<double>(
+          0,
+          (sum, other) =>
+              sum +
+              (Validators.parseFlexibleNumber(other.amountController.text) ??
+                  0),
+        );
+    final allocatedToInvoiceOnOtherLines = relevantAllocations
+        .where(
+          (other) =>
+              !identical(other, allocation) && other.salesInvoiceId == value,
+        )
+        .fold<double>(
+          0,
+          (sum, other) =>
+              sum +
+              (Validators.parseFlexibleNumber(other.amountController.text) ??
+                  0),
+        );
+    final availableReceiptAmount = canAllocateRemainingAdvance
+        ? remainingUnallocatedAmount
+        : Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final remainingReceipt = availableReceiptAmount - allocatedOnOtherLines;
+    final remainingInvoice = outstanding - allocatedToInvoiceOnOtherLines;
+    final maximumAllocation = remainingReceipt < remainingInvoice
+        ? remainingReceipt
+        : remainingInvoice;
+    allocation.amountController.text = maximumAllocation <= 0
         ? ''
-        : formatReceiptAmount(balance);
+        : formatReceiptAmount(maximumAllocation);
     if ((allocation.remarksController.text).trim().isEmpty && invoice != null) {
       allocation.remarksController.text =
           'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}';
@@ -709,6 +897,80 @@ class SalesReceiptManagementController extends GetxController {
     refreshAllocationTotals(notify: false);
     unawaited(refreshSalesChain(invoiceId: value));
     update();
+  }
+
+  Future<void> autoAllocateOldestInvoices() async {
+    if ((isSelectedReceiptReadOnly && !canAllocateRemainingAdvance) ||
+        autoAllocating) {
+      return;
+    }
+    final editableAllocations = canAllocateRemainingAdvance
+        ? newRemainingAllocations
+        : allocations;
+    if (editableAllocations.isNotEmpty) {
+      formError =
+          'Remove the existing allocation lines before using Auto Allocate.';
+      update();
+      return;
+    }
+    if (isDirectCustomer) {
+      formError =
+          'Auto Allocate is available only for a registered customer account.';
+      update();
+      return;
+    }
+    final selectedCompanyId = companyId;
+    final selectedCustomerId = customerPartyId;
+    final receivedAmount = canAllocateRemainingAdvance
+        ? remainingUnallocatedAmount
+        : Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    if (selectedCompanyId == null || selectedCustomerId == null) {
+      formError = 'Select a customer before auto allocation.';
+      update();
+      return;
+    }
+    if (receivedAmount <= 0) {
+      formError =
+          'Enter a received amount greater than zero before auto allocation.';
+      update();
+      return;
+    }
+
+    autoAllocating = true;
+    formError = null;
+    update();
+    try {
+      final response = await _salesService.previewReceiptAutoAllocation(
+        companyId: selectedCompanyId,
+        customerPartyId: selectedCustomerId,
+        paidAmount: receivedAmount,
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      final previewLines = (data['allocations'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (line) => SalesReceiptAllocationDraft.fromJson(
+              Map<String, dynamic>.from(line),
+            ),
+          )
+          .toList(growable: true);
+      if (previewLines.isEmpty) {
+        formError = 'No outstanding sales invoices were found.';
+      } else if (canAllocateRemainingAdvance) {
+        allocations = <SalesReceiptAllocationDraft>[
+          ...allocations,
+          ...previewLines,
+        ];
+      } else {
+        _replaceAllocations(previewLines, notify: false);
+        persistedAllocationCount = 0;
+      }
+    } catch (error) {
+      formError = error.toString();
+    } finally {
+      autoAllocating = false;
+      update();
+    }
   }
 
   void setAllocationType(int index, String? value) {
@@ -737,12 +999,21 @@ class SalesReceiptManagementController extends GetxController {
     final paidAmount =
         Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
     if (paidAmount <= 0) {
-      formError = 'Paid amount must be greater than zero.';
+      formError = 'Received amount must be greater than zero.';
+      update();
+      return;
+    }
+    final allocationError = _validateAllocationLines(
+      allocations,
+      maximumTotal: paidAmount,
+    );
+    if (allocationError != null) {
+      formError = allocationError;
       update();
       return;
     }
     if (totalAllocatedAmount() > roundToDouble(paidAmount, 2)) {
-      formError = 'Total allocated amount cannot exceed the paid amount.';
+      formError = 'Total allocated amount cannot exceed the received amount.';
       update();
       return;
     }
@@ -878,6 +1149,96 @@ class SalesReceiptManagementController extends GetxController {
         SalesReceiptModel.fromJson(const <String, dynamic>{}),
       ),
     );
+  }
+
+  Future<void> saveRemainingAllocations(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final receiptId = intValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'id',
+    );
+    final newLines = newRemainingAllocations;
+    if (receiptId == null || !canAllocateRemainingAdvance) {
+      return;
+    }
+    if (newLines.isEmpty) {
+      formError = 'Add at least one invoice allocation.';
+      update();
+      return;
+    }
+    final allocationError = _validateAllocationLines(
+      newLines,
+      maximumTotal: remainingUnallocatedAmount,
+    );
+    if (allocationError != null) {
+      formError = allocationError;
+      update();
+      return;
+    }
+
+    saving = true;
+    formError = null;
+    update();
+    try {
+      final response = await _salesService.allocateRemainingReceipt(
+        receiptId,
+        newLines.map((line) => line.toJson()).toList(growable: false),
+      );
+      final updated = response.data;
+      if (updated != null) {
+        pendingSelection = updated;
+        await selectDocument(updated, notify: false);
+      } else {
+        await loadPage(selectId: receiptId);
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(response.message)));
+      }
+      _refreshController.notifyChanged(source: 'sales_receipt');
+    } catch (error) {
+      formError = error.toString();
+    } finally {
+      saving = false;
+      update();
+    }
+  }
+
+  String? _validateAllocationLines(
+    List<SalesReceiptAllocationDraft> lines, {
+    required double maximumTotal,
+  }) {
+    final allocatedByInvoice = <int, double>{};
+    var total = 0.0;
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      final lineNo = index + 1;
+      final invoiceId = line.salesInvoiceId;
+      final amount =
+          Validators.parseFlexibleNumber(line.amountController.text) ?? 0;
+      if (invoiceId == null) {
+        return 'Select an invoice for allocation line $lineNo.';
+      }
+      if (amount <= 0) {
+        return 'Enter an amount for allocation line $lineNo.';
+      }
+      allocatedByInvoice[invoiceId] =
+          (allocatedByInvoice[invoiceId] ?? 0) + amount;
+      total += amount;
+    }
+    for (final entry in allocatedByInvoice.entries) {
+      final invoice = invoiceById(entry.key);
+      if (invoice != null &&
+          roundToDouble(entry.value, 2) >
+              roundToDouble(invoiceOutstandingAmount(invoice), 2)) {
+        return 'Total allocation for ${invoice.invoiceNo ?? 'invoice'} cannot exceed its outstanding amount.';
+      }
+    }
+    if (roundToDouble(total, 2) > roundToDouble(maximumTotal, 2)) {
+      return 'Total allocation cannot exceed ${formatReceiptAmount(maximumTotal)}.';
+    }
+    return null;
   }
 
   DocumentPrintDataModel salesReceiptPrintData() {

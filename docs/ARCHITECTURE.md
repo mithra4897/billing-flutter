@@ -1,5 +1,33 @@
 # Architecture
 
+## Sales customer advance allocation
+
+`SalesReceiptManagementController` keeps Received Amount as the independent
+control total. Allocation rows are optional; only invoice-linked rows reduce
+the displayed customer advance. The editor uses `SalesService` for an explicit
+FIFO preview and appends those rows only after Auto Allocate is clicked. A
+posted receipt keeps its persisted rows read-only while new rows may be added
+against its remaining advance. Per-line invoice options account for other
+editable rows, so the same invoice remains selectable only while it has usable
+outstanding balance.
+
+The API remains authoritative. `SalesReceiptService` validates the aggregate
+of duplicate invoice rows, persists only submitted rows, posts the receipt
+voucher without inferring allocations, and provides a transactional endpoint
+for allocating remaining advance. `SalesCustomerFifoAllocationService` owns
+invoice-side FIFO matching: after explicit user approval, it locks the customer
+and eligible receipt/invoice rows, consumes receipts by `receipt_date, id`, and
+applies them only to the invoice currently being posted. Voucher allocations,
+invoice settlement, receipt status/unallocated amount, on-account references,
+and audit metadata are updated inside the posting transaction.
+
+The receipt preview scans the selected customer's outstanding invoices once,
+and invoice-side matching scans available receipts once: O(i) and O(r)
+respectively, with bounded allocation output. Direct customers and historical
+data are excluded from cross-document matching. The additive audit columns and
+indexes are documented in
+`billing-api/doc/sales-customer-advance-allocation.md`.
+
 ## Purchase Receipt print and Email PDF
 
 `PurchaseReceiptManagementController` now follows the established Purchase

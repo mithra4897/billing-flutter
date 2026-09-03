@@ -111,7 +111,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
   ) {
     final selectedData = controller.selectedItem?.toJson() ?? const {};
     final status = stringValue(selectedData, 'receipt_status', 'draft');
-    final canEdit = controller.selectedItem == null || status == 'draft';
+    final canEdit = controller.canEditSelectedReceipt;
     final canPost = controller.selectedItem != null && status == 'draft';
     final canCancel = controller.selectedItem != null && status == 'draft';
     if (controller.initialLoading) {
@@ -372,15 +372,16 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     ),
                   ),
                   AppFormTextField(
-                    labelText: 'Paid Amount',
+                    labelText: 'Received Amount',
                     controller: controller.paidAmountController,
                     enabled: canEdit,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    onChanged: (_) => controller.refreshAllocationTotals(),
                     validator: Validators.compose([
-                      Validators.required('Paid Amount'),
-                      Validators.optionalNonNegativeNumber('Paid Amount'),
+                      Validators.required('Received Amount'),
+                      Validators.optionalNonNegativeNumber('Received Amount'),
                     ]),
                   ),
                   AppFormTextField(
@@ -401,6 +402,16 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               onChanged: canEdit ? controller.setIsActive : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
+            if (controller.canAllocateRemainingAdvance) ...[
+              Text(
+                'Available customer advance: ₹${formatAmount(controller.remainingUnallocatedAmount)}. Add invoice allocations up to this amount.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
             Row(
               children: [
                 Text(
@@ -411,9 +422,28 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 ),
                 const Spacer(),
                 AppActionButton(
+                  icon: Icons.auto_fix_high_outlined,
+                  label: controller.autoAllocating
+                      ? 'Allocating...'
+                      : 'Auto Allocate',
+                  onPressed:
+                      (controller.isSelectedReceiptReadOnly &&
+                              !controller.canAllocateRemainingAdvance) ||
+                          controller.autoAllocating ||
+                          controller.isDirectCustomer
+                      ? null
+                      : controller.autoAllocateOldestInvoices,
+                  filled: false,
+                ),
+                const SizedBox(width: AppUiConstants.spacingSm),
+                AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add Allocation',
-                  onPressed: canEdit ? controller.addAllocation : null,
+                  onPressed:
+                      controller.isSelectedReceiptReadOnly &&
+                          !controller.canAllocateRemainingAdvance
+                      ? null
+                      : controller.addAllocation,
                   filled: false,
                 ),
               ],
@@ -432,84 +462,89 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     bottom: AppUiConstants.spacingSm,
                   ),
                   child: IgnorePointer(
-                    ignoring: !canEdit,
+                    ignoring: controller.isPersistedAllocation(index),
                     child: PurchaseCompactLineCard(
                       index: index,
                       total: controller.allocations.length,
-                      onRemove: canEdit
-                          ? () => controller.removeAllocation(index)
-                          : null,
-                      child: PurchaseCompactFieldGrid(
+                      removeEnabled: !controller.isPersistedAllocation(index),
+                      onRemove: () => controller.removeAllocation(index),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppSearchPickerField<int>(
-                            labelText: 'Sales Invoice',
-                            selectedLabel: controller.invoiceOptions
-                                .cast<SalesInvoiceModel?>()
-                                .firstWhere(
-                                  (item) =>
-                                      item?.id == allocation.salesInvoiceId,
-                                  orElse: () => null,
-                                )
-                                ?.invoiceNo,
-                            options: controller.invoiceOptions
-                                .map(
-                                  (item) => AppSearchPickerOption<int>(
-                                    value: item.id!,
-                                    label: item.invoiceNo ?? 'Invoice',
-                                    subtitle: quotationCustomerLabel(
-                                      item.toJson(),
-                                    ),
+                          if (allocation.isAutoAllocated) ...[
+                            Text(
+                              'Automatically allocated${allocation.sourceReceiptNo?.trim().isNotEmpty == true ? ' from ${allocation.sourceReceiptNo}' : ''}${allocation.allocatedByName?.trim().isNotEmpty == true ? ' by ${allocation.allocatedByName}' : ''}${allocation.allocatedAt?.trim().isNotEmpty == true ? ' · ${displayDateTime(allocation.allocatedAt)}' : ''}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                )
-                                .toList(growable: false),
-                            onChanged: (value) => controller
-                                .setAllocationSalesInvoiceId(index, value),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Allocated Amount',
-                            controller: allocation.amountController,
-                            enabled: canEdit,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
                             ),
-                            onChanged: canEdit
-                                ? (_) => controller.refreshAllocationTotals()
-                                : null,
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Allocated Amount',
-                            ),
-                          ),
-                          AppDropdownField<String>.fromMapped(
-                            labelText: 'Allocation Type',
-                            mappedItems: const <AppDropdownItem<String>>[
-                              AppDropdownItem(
-                                value: 'against_invoice',
-                                label: 'Against Invoice',
+                            const SizedBox(height: AppUiConstants.spacingSm),
+                          ],
+                          PurchaseCompactFieldGrid(
+                            children: [
+                              AppSearchPickerField<int>(
+                                labelText: 'Sales Invoice',
+                                selectedLabel:
+                                    controller
+                                        .invoiceOptionsForAllocation(index)
+                                        .cast<SalesInvoiceModel?>()
+                                        .firstWhere(
+                                          (item) =>
+                                              item?.id ==
+                                              allocation.salesInvoiceId,
+                                          orElse: () => null,
+                                        )
+                                        ?.invoiceNo ??
+                                    allocation.salesInvoiceNo,
+                                options: controller
+                                    .invoiceOptionsForAllocation(index)
+                                    .map(
+                                      (item) => AppSearchPickerOption<int>(
+                                        value: item.id!,
+                                        label: item.invoiceNo ?? 'Invoice',
+                                        subtitle: quotationCustomerLabel(
+                                          item.toJson(),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                onChanged: (value) => controller
+                                    .setAllocationSalesInvoiceId(index, value),
                               ),
-                              AppDropdownItem(
-                                value: 'advance',
-                                label: 'Advance',
+                              AppFormTextField(
+                                labelText: 'Allocated Amount',
+                                controller: allocation.amountController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                onChanged: (_) =>
+                                    controller.refreshAllocationTotals(),
+                                validator: Validators.requiredPositiveNumber(
+                                  'Allocated Amount',
+                                ),
                               ),
-                              AppDropdownItem(
-                                value: 'on_account',
-                                label: 'On Account',
+                              AppDropdownField<String>.fromMapped(
+                                labelText: 'Allocation Type',
+                                mappedItems: const <AppDropdownItem<String>>[
+                                  AppDropdownItem(
+                                    value: 'against_invoice',
+                                    label: 'Against Invoice',
+                                  ),
+                                ],
+                                initialValue: allocation.allocationType,
+                                onChanged: (value) =>
+                                    controller.setAllocationType(index, value),
                               ),
-                              AppDropdownItem(
-                                value: 'adjustment',
-                                label: 'Adjustment',
+                              AppFormTextField(
+                                labelText: 'Remarks',
+                                controller: allocation.remarksController,
                               ),
                             ],
-                            initialValue: allocation.allocationType,
-                            enabled: canEdit,
-                            onChanged: canEdit
-                                ? (value) =>
-                                      controller.setAllocationType(index, value)
-                                : (_) {},
-                          ),
-                          AppFormTextField(
-                            labelText: 'Remarks',
-                            controller: allocation.remarksController,
-                            enabled: canEdit,
                           ),
                         ],
                       ),
@@ -517,19 +552,49 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                   ),
                 );
               }),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Wrap(
+              spacing: AppUiConstants.spacingLg,
+              runSpacing: AppUiConstants.spacingXs,
+              children: [
+                Text(
+                  'Allocated: ₹${formatAmount(controller.totalAllocatedAmount())}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Customer advance: ₹${formatAmount(controller.displayedCustomerAdvance)}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Receipt'
-                      : 'Update Receipt',
-                  onPressed: canEdit ? () => controller.save(context) : null,
-                  busy: controller.saving,
-                ),
+                if (controller.canAllocateRemainingAdvance)
+                  AppActionButton(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Allocate Remaining Advance',
+                    onPressed: controller.newRemainingAllocations.isEmpty
+                        ? null
+                        : () => controller.saveRemainingAllocations(context),
+                    busy: controller.saving,
+                  ),
+                if (canEdit)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Receipt'
+                        : 'Update Receipt',
+                    onPressed: () => controller.save(context),
+                    busy: controller.saving,
+                  ),
                 if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,

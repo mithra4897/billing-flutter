@@ -1,5 +1,81 @@
 # Specifications
 
+## Sales customer advance allocation
+
+Status: Implemented (2026-09-03)
+
+### Problem and objective
+
+Sales receipts currently allocate themselves to open invoices when the client
+sends no allocation rows, and the receipt editor can derive the received amount
+from its allocation rows. This prevents a user from intentionally recording an
+on-account customer advance and makes the accounting control amount ambiguous.
+
+The Sales receipt and invoice workflow must mirror the approved Purchase
+advance workflow while preserving Sales terminology and customer scope.
+
+### Scope and business rules
+
+- `customer advance = received amount - invoice-linked allocation total`.
+- Received Amount remains independently editable and is never overwritten by
+  allocation-line edits.
+- Saving or posting a receipt with no allocation rows leaves the full received
+  amount as customer advance. Posting never creates allocation rows silently.
+- Auto Allocate is an explicit receipt-editor action. It previews allocations
+  against the selected customer's oldest outstanding invoices by invoice date
+  and id, and adds rows only after the user invokes it.
+- Multiple rows may reference the same invoice. Their combined amount must not
+  exceed that invoice's current outstanding amount, and the total of every
+  invoice-linked row must not exceed the receipt's available amount.
+- A posted or partially allocated receipt may receive additional explicit
+  allocation rows, limited to its remaining customer advance.
+- When a registered-customer invoice is posted and posted customer advance is
+  available, the user is asked whether to use it for that invoice. Choosing Yes
+  consumes the oldest receipt advances by receipt date and id; choosing No
+  leaves both the invoice and advances unchanged.
+- Invoice posting applies advance only to the invoice currently being posted.
+  It must not allocate to other older invoices.
+- Direct customers do not participate in cross-document advance matching
+  because they do not have a stable customer account identity.
+- Allocation changes update receipt allocation state, invoice settlement state,
+  voucher allocations, on-account voucher references, and audit metadata in one
+  transaction. Customer, receipt, and invoice records used by FIFO allocation
+  are locked to prevent double allocation.
+- Existing historical receipts are not reconciled or changed automatically.
+
+### API, persistence, and failure rules
+
+- Receipt auto-allocation preview, available-customer-advance, and allocation of
+  a posted receipt's remaining advance use company-scoped API endpoints.
+- Invoice posting accepts an explicit `use_customer_advance` boolean. Missing or
+  false means the API must not consume advance.
+- `sales_receipt_allocations` records whether a row was automatic, its source
+  receipt, allocating user, and allocation timestamp.
+- Validation failures return an actionable error without partially changing
+  receipt, invoice, voucher, or allocation state.
+- Authorization and existing company/context checks remain mandatory on all
+  endpoints.
+
+### Acceptance criteria and tests
+
+1. A 10,000 receipt with no rows posts with 10,000 customer advance and no
+   invoice allocation row.
+2. A 10,000 receipt with 6,000 invoice allocations retains 4,000 advance; a
+   fully allocated receipt retains zero.
+3. Auto Allocate creates preview rows only after the user clicks it and orders
+   invoices deterministically by invoice date and id.
+4. Duplicate invoice rows are accepted up to their combined outstanding limit
+   and rejected above it.
+5. Remaining advance on a posted receipt can be allocated later, with visible
+   receipt rows and voucher allocations.
+6. Invoice posting shows the customer-advance choice; Yes applies FIFO advance
+   only to that invoice and No makes no allocation change.
+7. Direct-customer invoices never trigger cross-document advance matching.
+8. Concurrent attempts cannot allocate the same advance or invoice balance
+   twice.
+9. Focused backend tests, Flutter tests, formatting, PHP syntax checks, and
+   Flutter analysis pass, or unavailable checks are explicitly reported.
+
 ## Resolved Email PDF template preview
 
 Status: Implemented (2026-09-03)

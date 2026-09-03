@@ -3176,8 +3176,42 @@ class SalesInvoiceManagementController extends GetxController {
     }
   }
 
-  Future<ApiResponse<SalesInvoiceModel>> postInvoice(int id) {
-    return salesService.postInvoice(id);
+  Future<bool?> confirmCustomerAdvanceChoice(BuildContext context) async {
+    if (isDirectCustomer || companyId == null || customerPartyId == null) {
+      return false;
+    }
+
+    try {
+      final response = await salesService.availableCustomerAdvance(
+        companyId: companyId!,
+        customerPartyId: customerPartyId!,
+      );
+      final available =
+          doubleValue(
+            response.data ?? const <String, dynamic>{},
+            'available_advance',
+          ) ??
+          0;
+      if (available <= 0) {
+        return false;
+      }
+      if (!context.mounted) {
+        return null;
+      }
+      return promptUseCustomerAdvance(context, availableAmount: available);
+    } catch (error) {
+      if (mounted) {
+        State(() => formError = errorMessage(error));
+      }
+      return null;
+    }
+  }
+
+  Future<ApiResponse<SalesInvoiceModel>> postInvoice(
+    int id, {
+    required bool useCustomerAdvance,
+  }) {
+    return salesService.postInvoice(id, useCustomerAdvance: useCustomerAdvance);
   }
 
   Future<ApiResponse<SalesInvoiceModel>> cancelInvoice(int id, String reason) {

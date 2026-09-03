@@ -1,5 +1,32 @@
 # Architecture decisions
 
+## ADR-0040: Make Sales customer-advance allocation explicit and transactional
+
+- Date: 2026-09-03
+- Status: Accepted
+- Context: Sales receipts silently allocated when no rows were supplied, while
+  the editor could conflate Received Amount with the allocation total. Purchase
+  already has an explicit, audited advance-allocation workflow.
+- Decision: Keep Received Amount as the receipt control total; treat its
+  invoice-unallocated remainder as customer advance; require the user to invoke
+  Auto Allocate or add rows; and ask before applying posted FIFO advances to the
+  invoice currently being posted. Perform allocation, settlement, voucher, and
+  audit updates under database locks in one transaction.
+- Reason: Explicit intent prevents unexpected settlement, preserves genuine
+  customer credits, and keeps receivable balances and accounting allocations
+  consistent under concurrent use.
+- Alternatives considered: Continue silent receipt allocation; automatically
+  apply advances to every old invoice; calculate Received Amount from rows; or
+  maintain a Sales-only frontend calculation without server enforcement.
+- Consequences: Sales gains company-scoped preview/advance/allocation APIs and
+  allocation audit columns. Direct customers are excluded from cross-document
+  matching, historical rows remain untouched, and deployment requires the
+  accompanying migration or SQL patch.
+- Related files: Sales receipt/invoice services, voucher allocation service,
+  Sales controllers/routes/models, Flutter Sales receipt/invoice editors,
+  `billing-api/doc/sales-customer-advance-allocation.md`, migration, patch, and
+  `install.sql`.
+
 ## ADR-0033: Email printable documents through one validated template flow
 
 - Date: 2026-09-02

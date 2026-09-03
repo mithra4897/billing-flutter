@@ -1,5 +1,25 @@
 # Testing
 
+## Sales customer advance allocation — 2026-09-03
+
+- `flutter test test/sales/sales_receipt_advance_calculation_test.dart` passed
+  (1/1), confirming that a received amount of 10,000 remains independent while
+  6,000 of invoice-linked rows leaves 4,000 customer advance.
+- Focused `flutter analyze` passed for the Sales receipt/invoice controllers,
+  pages, service/model, and shared advance dialog.
+- Full `flutter test --no-pub` passed (4/4). Full-project analysis completed
+  with five unrelated existing warnings; focused analysis of this feature is
+  clean.
+- PHP syntax checks passed for every changed Sales controller, model,
+  repository, service, route, migration, and the focused backend test;
+  `git diff --check` passed in both repositories.
+- The focused backend PHPUnit test was added for empty allocations, advance
+  calculation, and duplicate-invoice aggregate limits, but could not be run in
+  this checkout because `billing-api/vendor/bin/phpunit` is not installed.
+- Manual authenticated verification remains required for receipt posting,
+  posted-advance allocation, the invoice Yes/No dialog, voucher/ledger results,
+  migration execution on a disposable database, and concurrent requests.
+
 ## Purchase Receipt print and Email PDF — 2026-09-03
 
 - Focused `flutter analyze` for the Receipt controller/page/register, shared
