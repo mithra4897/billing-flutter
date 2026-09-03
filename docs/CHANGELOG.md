@@ -1,5 +1,79 @@
 # Changelog
 
+## 2026-09-03 — Deferred Flutter Web hover updates
+
+- Request: Prevent the Flutter Web `!_debugDuringDeviceUpdate` mouse-tracker
+  assertion caused by hover-driven rebuilds.
+- Implementation: Line-item rows, dashboard trend charts, and Activity Watch
+  graphs coalesce their latest hover state into one mounted-safe post-frame
+  update. Existing hover styling and tooltips remain unchanged.
+- Tests: Focused mouse-tracker widget regression test passed (1/1). Manual
+  rapid-hover verification in a debug web build remains required.
+
+## 2026-09-03 — Printable email feedback severity
+
+- Request: Use one amber warning treatment for missing email templates in
+  Sales and Purchase, while preserving red for genuine errors.
+- Implementation: The shared printable-email helper detects missing active
+  templates and selects the warning toast type; all other direct-send failures
+  remain error toasts.
+- Tests: Focused analysis passed; warning classification regression test passed
+  within the focused suite (6/6).
+
+## 2026-09-03 — Purchase register Email PDF load isolation
+
+- Request: Stop Purchase registers from reloading during Email PDF and retain
+  missing-template feedback.
+- Implementation: Added `editorOnly` initialization/load paths to Purchase
+  Order, Invoice, and Payment controllers. Register actions use this path,
+  which suppresses only the temporary controller's initialization refresh.
+  The shared error formatter now preserves API validation details.
+- Tests: Focused analysis passed; focused regression test passed 5/5. No API,
+  database, permission, or email-delivery contract changed.
+
+## 2026-09-03 — Purchase register email failure feedback
+
+- Request: Show the configured/missing email-template error from a Purchase
+  register Email PDF action.
+- Implementation: Purchase direct-email controllers let selector failures reach
+  their register button, which shows the exact message in a snackbar. Other
+  direct-email callers retain the existing toast behavior.
+- Tests: Focused analysis passed; focused error-message regression test passed
+  4/4. Manual authenticated Purchase register verification remains required.
+
+## 2026-09-03 — Purchase printable email-template configuration
+
+- Request: Make Purchase Email PDF actions report and support missing email
+  template configuration as clearly as Sales.
+- Implementation: Added canonical printable document-type options to Email
+  Template settings and made the shared missing-template error name the
+  affected document. No API, database, permission, recipient, or delivery
+  behavior changed.
+- Tests: Focused analysis passed; focused eligibility/configuration test passed
+  3/3. Creating an active template and sending to a real supplier remain manual
+  checks.
+
+## 2026-09-03 — Register row identity repair
+
+- Request: Fix the Flutter inactive-element assertion raised while rendering a
+  register with Email PDF actions.
+- Implementation: Persisted `JsonModel` register rows now use stable
+  document-id keys rather than transient sibling indices; unpersisted rows keep
+  an index fallback. No email, API, database, or permission behavior changed.
+- Tests: Formatting and focused static analysis passed; runtime web
+  filter/reload verification remains manual.
+
+## 2026-09-03 — Register Email PDF actions
+
+- Request: Add an Email PDF column to printable Sales and Purchase registers.
+- Implementation: Added row actions for Sales Quotation, Proforma Invoice,
+  Order, Delivery, Receipt, Purchase Order, Invoice, and Payment. They reuse
+  existing per-document controllers and the shared template-selected
+  printable-email flow; no API, database, or permission contract changed.
+- Tests: Focused eligibility test passed 2/2, and formatting plus focused
+  analysis passed with no issues. Authenticated end-to-end delivery remains a
+  manual check.
+
 ## 2026-09-02 — Sales Invoice Email PDF actions
 
 - Request: Keep the existing in-preview Email PDF action, add an entry point in

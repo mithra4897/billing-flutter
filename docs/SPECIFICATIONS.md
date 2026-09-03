@@ -1,5 +1,108 @@
 # Specifications
 
+## Deferred hover state updates
+
+Status: Implemented (2026-09-03)
+
+Objective: Prevent Flutter Web mouse-tracker assertions when shared table rows
+and dashboard/activity graphs update their visual hover state.
+
+Requirements:
+
+- `ErpLineItemTable`, `ErpModuleDashboard` trend cards, and Activity Watch
+  duration graphs must preserve their existing hover highlight or tooltip.
+- Mouse enter, exit, and hover callbacks must not invoke `setState` during
+  Flutter's device-update phase. They must request one post-frame state update
+  instead.
+- Multiple pointer events in one frame must apply only the latest hover value;
+  a disposed widget must not be updated.
+- The change is presentation-only: it must not change document data, graph
+  values, API requests, permissions, or Activity Watch privacy behavior.
+
+Performance and acceptance criteria:
+
+- Hover requests are coalesced in O(1) time and O(1) additional state per
+  widget, with at most one state update scheduled per frame.
+- Rapid hover across line rows, dashboard trends, and Activity Watch graphs
+  produces the final highlight/tooltip without
+  `!_debugDuringDeviceUpdate` assertions.
+
+
+## Register Email PDF actions for printable sales and purchase documents
+
+- Date: 2026-09-03
+- Status: Implemented
+
+Sales Quotation, Proforma Invoice, Sales Order, Delivery, Sales Receipt,
+Purchase Order, Purchase Invoice, and Purchase Payment registers must expose
+an `Email PDF` column beside their document status. A row action loads the
+persisted document into its existing management controller and uses the shared
+template-selected printable-document email flow; it does not navigate away
+from the register or create a second email API.
+
+Rules and acceptance criteria:
+
+1. An action is available only for a persisted document whose status is neither
+   `draft` nor `cancelled`, matching the existing Sales Invoice register rule.
+2. Clicking an eligible action shows its local progress state, opens the shared
+   template selection flow, and sends a PDF whose filename safely derives from
+   the document number (or uses a stable document-type/id fallback).
+3. A stale row is rechecked after its controller loads; an ineligible document
+   remains unsendable and explains why without sending anything.
+4. Each controller builds PDF data through its existing print-data builder and
+   prepares its existing customer/supplier context before emailing.
+5. Returns and Purchase Receipts remain out of scope because they are not in
+   the requested printable-email document registry. Detail-page actions are
+   unchanged.
+
+Validation: focused widget/unit coverage must include eligible, draft,
+cancelled, and missing-id eligibility; format and analyze all touched Dart
+files. Manual authenticated testing must confirm template selection, progress,
+and a delivered attachment for every supported register.
+
+### Register row identity repair — 2026-09-03
+
+Register rows containing stateful Email PDF actions must use their persisted
+document id as their sibling key. Filters, sorting, pagination, or a reload
+must not reuse an action state for a different record or retake an inactive
+widget element by transient row index. Rows without a persisted JSON id retain
+an index fallback. The repair is presentation-only and does not alter email,
+API, or document rules.
+
+### Purchase printable email-template configuration — 2026-09-03
+
+Email Template configuration must offer the canonical lowercase document types
+accepted by the printable-email API, including `purchase_order`,
+`purchase_invoice`, and `purchase_payment`, regardless of the uppercase values
+configured for document series. When no active matching template exists, the
+shared selector must name the affected document type in its actionable error.
+This applies equally to Sales and Purchase and does not change template lookup,
+recipient, permissions, or delivery behavior.
+
+### Purchase register email failure feedback — 2026-09-03
+
+When a Purchase register Email PDF action cannot select a template, it must
+show the same exact actionable error returned by the shared selector, including
+the affected document name. The temporary register action must not silently
+consume this error. Other direct-email callers retain the existing toast-based
+failure behavior.
+
+### Purchase register Email PDF load isolation — 2026-09-03
+
+The temporary Purchase Order, Invoice, and Payment controllers created by a
+register Email PDF action must load only their selected document and must not
+publish a purchase-module refresh. Their normal page initialization and
+working-context refresh behavior remain unchanged. The shared error formatter
+must preserve `ApiException.displayMessage` and `ApiResponse.message`, so a
+template-configuration error is visible after the isolated load completes.
+
+### Printable email feedback severity — 2026-09-03
+
+An absent active email template is a configuration warning, not a sending
+failure. The shared direct-email flow must render this condition with the
+amber warning treatment in Sales and Purchase. PDF generation, API, recipient,
+authorization, and delivery failures remain red errors.
+
 ## CRM enquiry quotation bootstrap
 
 - Date: 2026-08-31

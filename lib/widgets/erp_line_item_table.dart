@@ -556,6 +556,20 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   final ScrollController _horizontalController = ScrollController();
   int? _selectedIndex;
   int? _hoveredIndex;
+  int? _pendingHoveredIndex;
+  bool _hoverUpdateScheduled = false;
+
+  void _scheduleHoveredIndex(int? index) {
+    _pendingHoveredIndex = index;
+    if (_hoverUpdateScheduled) return;
+
+    _hoverUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hoverUpdateScheduled = false;
+      if (!mounted || _hoveredIndex == _pendingHoveredIndex) return;
+      setState(() => _hoveredIndex = _pendingHoveredIndex);
+    });
+  }
 
   List<Object> get _orderedColumns {
     final ordered = <Object>[];
@@ -978,8 +992,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         : appTheme.cardBackground;
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
+      onEnter: (_) => _scheduleHoveredIndex(index),
+      onExit: (_) => _scheduleHoveredIndex(null),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _selectedIndex = index),

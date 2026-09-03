@@ -28,6 +28,50 @@ class PrintableDocumentEmailPayload {
   final String? fileName;
 }
 
+const printableDocumentEmailTemplateTypeItems = <AppDropdownItem<String>>[
+  AppDropdownItem(value: 'sales_quotation', label: 'Sales Quotation'),
+  AppDropdownItem(
+    value: 'sales_proforma_invoice',
+    label: 'Sales Proforma Invoice',
+  ),
+  AppDropdownItem(value: 'sales_order', label: 'Sales Order'),
+  AppDropdownItem(value: 'sales_delivery', label: 'Sales Delivery'),
+  AppDropdownItem(value: 'sales_invoice', label: 'Sales Invoice'),
+  AppDropdownItem(value: 'sales_receipt', label: 'Sales Receipt'),
+  AppDropdownItem(value: 'purchase_order', label: 'Purchase Order'),
+  AppDropdownItem(value: 'purchase_invoice', label: 'Purchase Invoice'),
+  AppDropdownItem(value: 'purchase_payment', label: 'Purchase Payment'),
+];
+
+String printableDocumentEmailMissingTemplateMessage(
+  PrintableDocumentEmailTarget target,
+) {
+  final label = printableDocumentEmailTemplateTypeItems
+      .where((item) => item.value == target.documentType)
+      .map((item) => item.label)
+      .firstOrNull;
+  return 'No active email template is configured for '
+      '${label ?? target.documentType.replaceAll('_', ' ')}.';
+}
+
+String printableDocumentEmailFailureMessage(Object error) {
+  if (error is ApiException) {
+    return error.displayMessage;
+  }
+  if (error is ApiResponse) {
+    return error.message;
+  }
+  final message = error.toString().trim();
+  return message.startsWith('Exception: ')
+      ? message.substring('Exception: '.length)
+      : message;
+}
+
+bool printableDocumentEmailIsMissingTemplateError(Object error) =>
+    printableDocumentEmailFailureMessage(
+      error,
+    ).toLowerCase().contains('no active email template is configured');
+
 String _emailTemplatePreviewText(String? value) => (value ?? '')
     .replaceAll(RegExp(r'<[^>]+>'), ' ')
     .replaceAll(RegExp(r'\s+'), ' ')
@@ -104,9 +148,7 @@ Future<EmailTemplateModel?> selectPrintableDocumentEmailTemplate(
       )
       .toList(growable: false);
   if (templates.isEmpty) {
-    throw Exception(
-      'No active email template is configured for this document type.',
-    );
+    throw Exception(printableDocumentEmailMissingTemplateMessage(target));
   }
 
   EmailTemplateModel? selected = templates.length == 1 ? templates.first : null;
@@ -181,6 +223,7 @@ Future<EmailTemplateModel?> selectPrintableDocumentEmailTemplate(
 Future<bool> sendPrintableDocumentEmailDirectly(
   BuildContext context, {
   required PrintableDocumentEmailPayload payload,
+  bool rethrowOnError = false,
 }) async {
   try {
     final template = await selectPrintableDocumentEmailTemplate(
@@ -223,11 +266,17 @@ Future<bool> sendPrintableDocumentEmailDirectly(
     }
     return true;
   } catch (error) {
+    if (rethrowOnError) {
+      rethrow;
+    }
     if (context.mounted) {
+      final missingTemplate = printableDocumentEmailIsMissingTemplateError(
+        error,
+      );
       AppToast.show(
         'PDF email failed: $error',
         context: context,
-        type: AppToastType.error,
+        type: missingTemplate ? AppToastType.warning : AppToastType.error,
       );
     }
     return false;

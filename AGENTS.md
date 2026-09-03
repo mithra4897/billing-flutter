@@ -22,6 +22,10 @@ refactor.
 
 ## Code optimization and reuse
 
+- Every implementation must explicitly consider and apply the appropriate data
+  structures and algorithms (DSA) for its real inputs, access patterns, and
+  performance constraints. Prefer the simplest correct optimized approach;
+  document the chosen complexity whenever the logic is non-trivial.
 - Search existing widgets, components, helpers, services, models, styles, and
   tests before creating new code. Inspect implementations and callers with
   `rg`; do not rely only on similar filenames.

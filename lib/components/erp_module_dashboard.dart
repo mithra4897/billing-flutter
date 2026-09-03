@@ -1205,15 +1205,38 @@ class _DashboardTrendCard extends StatefulWidget {
 class _DashboardTrendCardState extends State<_DashboardTrendCard> {
   int? _hoveredIndex;
   Offset? _hoveredAnchor;
+  int? _pendingHoveredIndex;
+  Offset? _pendingHoveredAnchor;
+  bool _hoverUpdateScheduled = false;
+
+  void _scheduleHover({int? index, Offset? anchor}) {
+    _pendingHoveredIndex = index;
+    _pendingHoveredAnchor = anchor;
+    if (_hoverUpdateScheduled) return;
+
+    _hoverUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hoverUpdateScheduled = false;
+      if (!mounted ||
+          (_hoveredIndex == _pendingHoveredIndex &&
+              _hoveredAnchor == _pendingHoveredAnchor)) {
+        return;
+      }
+      setState(() {
+        _hoveredIndex = _pendingHoveredIndex;
+        _hoveredAnchor = _pendingHoveredAnchor;
+      });
+    });
+  }
 
   void _clearHover() {
-    if (_hoveredIndex == null && _hoveredAnchor == null) {
+    if (_hoveredIndex == null &&
+        _hoveredAnchor == null &&
+        _pendingHoveredIndex == null &&
+        _pendingHoveredAnchor == null) {
       return;
     }
-    setState(() {
-      _hoveredIndex = null;
-      _hoveredAnchor = null;
-    });
+    _scheduleHover();
   }
 
   void _updateHover(Offset localPosition, Size size) {
@@ -1238,10 +1261,7 @@ class _DashboardTrendCardState extends State<_DashboardTrendCard> {
           ? next
           : best,
     );
-    setState(() {
-      _hoveredIndex = hovered.index;
-      _hoveredAnchor = hovered.anchor;
-    });
+    _scheduleHover(index: hovered.index, anchor: hovered.anchor);
   }
 
   @override

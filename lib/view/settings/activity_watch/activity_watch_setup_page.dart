@@ -70,6 +70,25 @@ class _ActivityGraph extends StatefulWidget {
 
 class _ActivityGraphState extends State<_ActivityGraph> {
   int? _hoveredIndex;
+  int? _pendingHoveredIndex;
+  bool _hoverUpdateScheduled = false;
+
+  void _scheduleHoveredIndex(int? index) {
+    _pendingHoveredIndex = index;
+    if (_hoverUpdateScheduled) return;
+
+    _hoverUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hoverUpdateScheduled = false;
+      if (!mounted) return;
+      final pendingIndex = _pendingHoveredIndex;
+      final resolvedIndex = pendingIndex == null || widget.points.isEmpty
+          ? null
+          : pendingIndex.clamp(0, widget.points.length - 1).toInt();
+      if (_hoveredIndex == resolvedIndex) return;
+      setState(() => _hoveredIndex = resolvedIndex);
+    });
+  }
 
   void _setHoveredIndex(Offset position, double width) {
     if (width <= 0 || widget.points.isEmpty) return;
@@ -77,7 +96,7 @@ class _ActivityGraphState extends State<_ActivityGraph> {
     final index = widget.points.length == 1
         ? 0
         : (fraction * (widget.points.length - 1)).round();
-    if (_hoveredIndex != index) setState(() => _hoveredIndex = index);
+    _scheduleHoveredIndex(index);
   }
 
   @override
@@ -131,8 +150,7 @@ class _ActivityGraphState extends State<_ActivityGraph> {
                               );
                               return MouseRegion(
                                 opaque: true,
-                                onExit: (_) =>
-                                    setState(() => _hoveredIndex = null),
+                                onExit: (_) => _scheduleHoveredIndex(null),
                                 onHover: (event) => _setHoveredIndex(
                                   event.localPosition,
                                   constraints.maxWidth,

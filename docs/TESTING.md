@@ -1,5 +1,71 @@
 # Testing
 
+## Deferred hover state updates — 2026-09-03
+
+- `flutter test test/widgets/deferred_hover_state_test.dart --no-pub` passed
+  (1/1), exercising mouse enter and exit on `ErpLineItemTable` through
+  Flutter's mouse tracker.
+- Focused `flutter analyze` for the three production widgets and this test
+  passed with no issues; full `flutter test --no-pub` passed (10/10).
+- Manual Flutter Web verification remains required: rapidly hover table rows,
+  dashboard trends, and Activity Watch duration graphs and confirm the debug
+  console contains no `!_debugDuringDeviceUpdate` assertion.
+
+## Register Email PDF actions — 2026-09-03
+
+- Every requested Sales and Purchase printable register now shows an Email PDF
+  column immediately after Status. The action is enabled only for persisted,
+  non-draft, non-cancelled rows and rechecks this condition after loading the
+  controller, preventing a stale list row from sending a document.
+- Executed: `dart format` for all touched Dart sources; focused `flutter
+  analyze` for the 12 changed production files; `flutter test
+  test/view/register_email_pdf_eligibility_test.dart --no-pub` passed 2/2;
+  focused analysis of the new test passed.
+- Manual authenticated verification remains required for template selection,
+  progress feedback, and delivery of an attachment for all eight registers.
+
+## Register row identity repair — 2026-09-03
+
+- The Email PDF row action exposed an inactive-element assertion when register
+  rows rebuilt after their transient index changed. `PurchaseRegisterPage`
+  now keys persisted rows by document id at its direct list-child boundary.
+- Executed: formatting and focused analysis for the shared register component.
+  Manual web verification remains required for filtering/reloading a register
+  while an Email PDF action is available.
+
+## Purchase printable email-template configuration — 2026-09-03
+
+- Email Template settings now offer the canonical lowercase printable Purchase
+  document types, and a missing template error explicitly identifies the
+  document (for example, `Purchase Order`).
+- Executed: focused `flutter analyze` for the shared dialog, Email Template
+  controller, and test; `flutter test
+  test/view/register_email_pdf_eligibility_test.dart --no-pub` passed 3/3.
+
+## Purchase register email failure feedback — 2026-09-03
+
+- Purchase register Email PDF actions now surface the exact template-selection
+  error in a snackbar, including the document name, rather than consuming the
+  failure in the temporary controller flow.
+- Executed: focused `flutter analyze` for the shared dialog, three Purchase
+  controllers, Purchase register, and test; focused test passed 4/4.
+
+## Purchase register Email PDF load isolation — 2026-09-03
+
+- The temporary Purchase controllers now accept `editorOnly` during
+  initialization and do not publish their module-change notification for a
+  register Email PDF action. API exceptions retain their flattened validation
+  details in the resulting snackbar.
+- Executed: focused `flutter analyze` for the three controllers, register,
+  dialog, and test; focused test passed 5/5. Manual verification remains
+  required for a Purchase list action with no configured template.
+
+## Printable email feedback severity — 2026-09-03
+
+- An absent active template is now an amber warning for Sales and Purchase;
+  other email generation and delivery errors remain red.
+- Executed: focused dialog analysis and focused test passed 6/6.
+
 ## Sales Invoice Email PDF actions — 2026-09-02
 
 - The page-header Email PDF action is enabled only for a selected persisted

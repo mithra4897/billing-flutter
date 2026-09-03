@@ -1,5 +1,27 @@
 # Architecture
 
+## Deferred shared-widget hover state
+
+`ErpLineItemTable`, the `ErpModuleDashboard` trend card, and the private
+Activity Watch duration graph keep the latest requested hover value in local
+O(1) state and schedule one post-frame callback. The callback checks `mounted`
+and applies a rebuild only when the rendered hover value differs. Each widget
+keeps this small feature-local adapter because its state shape differs (row
+index, graph index, or graph index plus anchor); no shared data/API component
+is introduced.
+
+## Register Email PDF actions
+
+Sales and Purchase registers share module-local Email PDF button and controller
+loader helpers. The button owns only per-row progress and error feedback; the
+generic loader creates a tagged, short-lived existing management controller,
+reloads the selected persisted document, rechecks eligibility, calls that
+controller's shared printable-email method, and deletes it afterward. Each
+document controller remains responsible for its own print data and
+customer/supplier context, while the shared printable-email service remains
+the sole template, recipient, delivery, and history flow. This avoids parallel
+email APIs and duplicate per-document register logic.
+
 ## Sales detail action rows
 
 Sales detail editors use the shared `SalesDocumentActionRow` twice when a
@@ -464,6 +486,12 @@ semantic roles while retaining its editing controls, validation, calculations,
 horizontal overflow, and O(n) row construction. No module-specific table copy
 is required for either family.
 
+The non-full-page register gives every persisted `JsonModel` row a stable
+document-id key at the list-child boundary. This preserves stateful row actions
+such as Email PDF across filtering, sorting, pagination, and reloads; transient
+rows use their index only as a fallback. The row's visual alternate-color index
+remains presentation-only.
+
 Sales quotation email reuses the client-side document-print generator, sending
 the generated PDF as a base64 attachment through the existing backend email
 attachment pipeline. Generation is bounded to one selected quotation; the PDF
@@ -478,6 +506,30 @@ generates the PDF through the existing non-visible print renderer, and sends
 it without navigating to the invoice editor or print-preview page. Template
 selection, PDF generation, recipient handling, authorization, and
 duplicate-send protection remain centralized in the existing shared services.
+
+The shared printable-email dialog also owns the canonical template document
+types used by the API. Email Template settings compose those lowercase choices
+with document-series choices so Purchase templates can be configured with the
+same values used by the sender. Missing-template feedback is derived from the
+same registry and names the affected document, rather than relying on a
+module-specific error path.
+
+Purchase register actions opt into rethrowing a direct-send failure only after
+the shared selector has constructed it. Their local action widget then presents
+that exact message in the current register `ScaffoldMessenger`; all other
+direct-email callers retain the shared toast behavior.
+
+For a register-triggered Purchase Email PDF operation, the temporary Order,
+Invoice, or Payment controller passes `editorOnly: true` through its initial
+load and suppresses only its initialization refresh notification. The list
+therefore remains mounted to receive the failure snackbar; regular page
+initialization, context changes, and saved-document notifications are
+unchanged.
+
+The shared printable-email helper classifies absent active templates from its
+normalized error text and explicitly uses `AppToastType.warning`. This keeps
+the Sales direct-email toast amber like the Purchase register snackbar while
+leaving operational failures as `AppToastType.error`.
 
 `LocalPageNavigation`, settings lists, and purchase lists share
 `localListTotalPages()`. It uses exact integer ceiling division, runs in O(1)

@@ -84,12 +84,22 @@ class EmailTemplatesManagementController extends GetxController {
           );
 
       contextCompanyId = contextSelection.companyId;
-      documentTypeItems = [
-        const AppDropdownItem(value: '', label: 'All'),
-        ...documentTypes.map(
-          (item) => AppDropdownItem(value: item, label: item),
-        ),
-      ];
+      documentTypeItems =
+          [
+            const AppDropdownItem(value: '', label: 'All'),
+            ...printableDocumentEmailTemplateTypeItems,
+            ...documentTypes.map(
+              (item) => AppDropdownItem(value: item, label: item),
+            ),
+          ].fold<List<AppDropdownItem<String>>>(<AppDropdownItem<String>>[], (
+            items,
+            item,
+          ) {
+            if (!items.any((existing) => existing.value == item.value)) {
+              items.add(item);
+            }
+            return items;
+          });
       records = nextRecords;
       filteredRecords = _filterRecords(nextRecords, searchController.text);
       initialLoading = false;
