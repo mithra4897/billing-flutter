@@ -412,6 +412,7 @@ class ProjectTimesheetManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.timesheet.id;
       showDraftTile = false;
       resetForm(notify: false);
+      _refreshController.invalidateProjects();
       await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_timesheet');
       return response.message;
@@ -429,6 +430,7 @@ class ProjectTimesheetManagementController extends GetxController {
     final row = selectedRow;
     if (row?.timesheet.id == null) return null;
     final response = await _projectService.deleteTimesheet(row!.timesheet.id!);
+    _refreshController.invalidateProjects();
     await loadData();
     _refreshController.notifyChanged(source: 'project_timesheet');
     return response.message;

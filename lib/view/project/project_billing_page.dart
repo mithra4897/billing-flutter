@@ -135,7 +135,7 @@ class _ProjectBillingManagementPageState
       PurchaseRegisterColumn(
         label: 'Date',
         flex: 2,
-        valueBuilder: (row) => row.billing.billingDate ?? '',
+        valueBuilder: (row) => normalizeDateValue(row.billing.billingDate),
       ),
       PurchaseRegisterColumn(
         label: 'Basis',
@@ -148,15 +148,10 @@ class _ProjectBillingManagementPageState
         valueBuilder: (row) =>
             controller.salesInvoiceLabel(row.billing.salesInvoiceId) ?? '',
       ),
-      PurchaseRegisterColumn(
-        label: 'Amount',
-        flex: 2,
-        alignRight: true,
-        valueBuilder: (row) => controller.decimalText(row.billing.billingAmount),
-      ),
       PurchaseRegisterColumn<ProjectBillingRow>(
         label: 'Status',
-        flex: 2,
+        flex: 3,
+        padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
         valueBuilder: (row) => row.billing.billingStatus ?? '',
         widgetBuilder: (context, row) {
           final status = row.billing.billingStatus ?? '';
@@ -184,6 +179,12 @@ class _ProjectBillingManagementPageState
             color: color,
           );
         },
+      ),
+      PurchaseRegisterColumn(
+        label: 'Amount',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => formatAmount(row.billing.billingAmount),
       ),
     ];
 
@@ -222,7 +223,7 @@ class _ProjectBillingManagementPageState
     BuildContext context,
     ProjectBillingManagementController controller,
   ) {
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectBillingManagementController>(
           tag: _controllerTag,
@@ -277,12 +278,12 @@ class _ProjectBillingManagementPageState
                 ),
                 title: row.project.projectName ?? 'Billing',
                 subtitle: [
-                  row.billing.billingDate ?? '',
+                  normalizeDateValue(row.billing.billingDate),
                   row.billing.billingBasis ?? '',
                   row.billing.billingStatus ?? '',
                 ].where((item) => item.isNotEmpty).join(' | '),
                 detail: [
-                  controller.decimalText(row.billing.billingAmount),
+                  formatAmount(row.billing.billingAmount),
                   controller.salesInvoiceLabel(row.billing.salesInvoiceId) ??
                       '',
                 ].where((item) => item.isNotEmpty).join(' | '),
@@ -392,6 +393,7 @@ class _ProjectBillingManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  textAlign: TextAlign.right,
                   validator: Validators.compose([
                     Validators.required('Billing Amount'),
                     Validators.optionalNonNegativeNumber('Billing Amount'),

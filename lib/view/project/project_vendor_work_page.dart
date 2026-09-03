@@ -134,15 +134,10 @@ class _ProjectVendorWorkManagementPageState
         flex: 3,
         valueBuilder: (row) => row.work.workDescription ?? '',
       ),
-      PurchaseRegisterColumn(
-        label: 'Amount',
-        flex: 2,
-        alignRight: true,
-        valueBuilder: (row) => controller.decimalText(row.work.amount),
-      ),
       PurchaseRegisterColumn<ProjectVendorWorkRow>(
         label: 'Status',
-        flex: 2,
+        flex: 3,
+        padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
         valueBuilder: (row) => row.work.workStatus ?? '',
         widgetBuilder: (context, row) {
           final status = row.work.workStatus ?? '';
@@ -168,6 +163,12 @@ class _ProjectVendorWorkManagementPageState
             color: color,
           );
         },
+      ),
+      PurchaseRegisterColumn(
+        label: 'Amount',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => formatAmount(row.work.amount),
       ),
     ];
 
@@ -205,7 +206,7 @@ class _ProjectVendorWorkManagementPageState
     BuildContext context,
     ProjectVendorWorkManagementController controller,
   ) {
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectVendorWorkManagementController>(
           tag: _controllerTag,
@@ -262,7 +263,7 @@ class _ProjectVendorWorkManagementPageState
                     : 'Vendor Work',
                 subtitle: [
                   row.work.workStatus ?? '',
-                  controller.decimalText(row.work.amount),
+                  formatAmount(row.work.amount),
                 ].where((item) => item.isNotEmpty).join(' | '),
                 detail: row.work.workDescription ?? '',
                 expanded: expanded,
@@ -382,6 +383,7 @@ class _ProjectVendorWorkManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  textAlign: TextAlign.right,
                   validator: Validators.compose([
                     Validators.required('Amount'),
                     Validators.optionalNonNegativeNumber('Amount'),

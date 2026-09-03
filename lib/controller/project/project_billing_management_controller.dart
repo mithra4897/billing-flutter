@@ -428,6 +428,7 @@ class ProjectBillingManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.billing.id;
       showDraftTile = false;
       resetForm(notify: false);
+      _refreshController.invalidateProjects();
       await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_billing');
       return response.message;
@@ -447,6 +448,7 @@ class ProjectBillingManagementController extends GetxController {
     try {
       final response = await _projectService.deleteBilling(row!.billing.id!);
       formError = null;
+      _refreshController.invalidateProjects();
       await loadData();
       _refreshController.notifyChanged(source: 'project_billing');
       return response.message;

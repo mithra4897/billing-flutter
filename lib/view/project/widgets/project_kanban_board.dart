@@ -1050,7 +1050,7 @@ String _taskStatusLabel(String status) {
     case 'working':
       return 'In Progress';
     case 'on_hold':
-      return 'On Hold';
+      return 'In Review';
     case 'completed':
       return 'Completed';
     case 'cancelled':

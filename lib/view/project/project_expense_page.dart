@@ -131,23 +131,17 @@ class _ProjectExpenseManagementPageState
       PurchaseRegisterColumn(
         label: 'Date',
         flex: 2,
-        valueBuilder: (row) => row.expense.expenseDate ?? '',
+        valueBuilder: (row) => normalizeDateValue(row.expense.expenseDate),
       ),
       PurchaseRegisterColumn(
         label: 'Description',
         flex: 3,
         valueBuilder: (row) => row.expense.description ?? '',
       ),
-      PurchaseRegisterColumn(
-        label: 'Amount',
-        flex: 2,
-        alignRight: true,
-        valueBuilder: (row) =>
-            controller.decimalText(row.expense.amount),
-      ),
       PurchaseRegisterColumn<ProjectExpenseRow>(
         label: 'Status',
-        flex: 2,
+        flex: 3,
+        padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
         valueBuilder: (row) => row.expense.expenseStatus ?? '',
         widgetBuilder: (context, row) {
           final status = row.expense.expenseStatus ?? '';
@@ -173,6 +167,12 @@ class _ProjectExpenseManagementPageState
             color: color,
           );
         },
+      ),
+      PurchaseRegisterColumn(
+        label: 'Amount',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => formatAmount(row.expense.amount),
       ),
     ];
 
@@ -213,7 +213,7 @@ class _ProjectExpenseManagementPageState
     BuildContext context,
     ProjectExpenseManagementController controller,
   ) {
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectExpenseManagementController>(
           tag: _controllerTag,
@@ -268,7 +268,7 @@ class _ProjectExpenseManagementPageState
                 ),
                 title: row.expense.expenseCategory ?? 'Expense',
                 subtitle: [
-                  row.expense.expenseDate ?? '',
+                  normalizeDateValue(row.expense.expenseDate),
                   row.expense.expenseStatus ?? '',
                 ].where((item) => item.isNotEmpty).join(' | '),
                 detail: [
@@ -276,7 +276,7 @@ class _ProjectExpenseManagementPageState
                         row.expense.purchaseInvoiceId,
                       ) ??
                       '',
-                  row.expense.amount?.toString() ?? '',
+                  formatAmount(row.expense.amount),
                 ].where((item) => item.isNotEmpty).join(' | '),
                 expanded: expanded,
                 highlighted: expanded,
@@ -431,6 +431,7 @@ class _ProjectExpenseManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  textAlign: TextAlign.right,
                   validator: Validators.compose([
                     Validators.required('Amount'),
                     Validators.optionalNonNegativeNumber('Amount'),

@@ -399,6 +399,7 @@ class ProjectResourceUsageManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.usage.id;
       showDraftTile = false;
       resetForm(notify: false);
+      _refreshController.invalidateProjects();
       await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_resource_usage');
       return response.message;
@@ -422,6 +423,7 @@ class ProjectResourceUsageManagementController extends GetxController {
         row!.usage.id!,
       );
       formError = null;
+      _refreshController.invalidateProjects();
       await loadData();
       _refreshController.notifyChanged(source: 'project_resource_usage');
       return response.message;

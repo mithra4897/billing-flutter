@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-09-03 — Defer responsive settings editor navigation
+
+- Deferred the compact SettingsWorkspace editor route state change until after
+  the active pointer event, avoiding Flutter Web MouseTracker re-entrancy
+  assertions when opening Email Templates and other settings editors.
+- Coalesced repeated open requests while the route transition is scheduled.
+
+## 2026-09-03 — Rename Project status label
+
+- Changed the displayed “On Hold” label to “In Review” across Project forms,
+  task Kanban, and dashboard filters.
+- Preserved the backend `on_hold` value and all status behavior.
+
+## 2026-09-03 — Project register readability
+
+- Request: Make Project module dates readable and stop amount/billable values
+  from overlapping status displays.
+- Implementation: Reused the configured date-display helper for Billing,
+  Expenses, Resource Usage, and Timesheets desktop rows and embedded tiles.
+  Added local amount/status padding and gave affected Status columns an
+  additional flex unit, including Vendor Work’s amount/status pair.
+- API/database/security impact: None. Stored dates, filtering, and timesheet
+  payloads are unchanged.
+- Create/update/delete now invalidate the shared Project collection cache before
+  reloading, so newly saved child rows appear without a browser refresh.
+- Amount and billable register values now reuse company amount grouping and
+  decimal-place settings and remain right-aligned.
+- Project editor amount, cost, rate, quantity, and hours fields are now
+  right-aligned for consistent numeric entry.
+- Tests: Focused date-format test and focused Flutter analysis passed; desktop
+  visual verification remains manual.
+
 ## 2026-09-03 — StaffU-style Project Milestone Kanban Board
 
 - Request: Implement StaffU-style Kanban board functionality in Project Milestones,

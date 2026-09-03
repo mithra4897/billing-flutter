@@ -132,25 +132,12 @@ class _ProjectTimesheetManagementPageState
       PurchaseRegisterColumn(
         label: 'Work Date',
         flex: 2,
-        valueBuilder: (row) => row.timesheet.workDate ?? '',
-      ),
-      PurchaseRegisterColumn(
-        label: 'Hours',
-        flex: 2,
-        alignRight: true,
-        valueBuilder: (row) =>
-            controller.decimalText(row.timesheet.hoursWorked),
-      ),
-      PurchaseRegisterColumn(
-        label: 'Billable',
-        flex: 2,
-        alignRight: true,
-        valueBuilder: (row) =>
-            controller.decimalText(row.timesheet.billableAmount),
+        valueBuilder: (row) => normalizeDateValue(row.timesheet.workDate),
       ),
       PurchaseRegisterColumn<ProjectTimesheetRow>(
         label: 'Status',
-        flex: 2,
+        flex: 3,
+        padding: const EdgeInsets.only(left: AppUiConstants.spacingMd),
         valueBuilder: (row) => row.timesheet.timesheetStatus ?? '',
         widgetBuilder: (context, row) {
           final status = row.timesheet.timesheetStatus ?? '';
@@ -176,6 +163,19 @@ class _ProjectTimesheetManagementPageState
             color: color,
           );
         },
+      ),
+      PurchaseRegisterColumn(
+        label: 'Hours',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) =>
+            controller.decimalText(row.timesheet.hoursWorked),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Billable',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => formatAmount(row.timesheet.billableAmount),
       ),
     ];
 
@@ -216,7 +216,7 @@ class _ProjectTimesheetManagementPageState
     BuildContext context,
     ProjectTimesheetManagementController controller,
   ) {
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectTimesheetManagementController>(
           tag: _controllerTag,
@@ -274,12 +274,12 @@ class _ProjectTimesheetManagementPageState
                     ? controller.employeeName(row.timesheet.employeeId)
                     : 'Timesheet',
                 subtitle: [
-                  row.timesheet.workDate ?? '',
+                  normalizeDateValue(row.timesheet.workDate),
                   row.timesheet.timesheetStatus ?? '',
                 ].where((item) => item.isNotEmpty).join(' | '),
                 detail: [
                   controller.decimalText(row.timesheet.hoursWorked),
-                  controller.decimalText(row.timesheet.billableAmount),
+                  formatAmount(row.timesheet.billableAmount),
                 ].where((item) => item.isNotEmpty).join(' | '),
                 expanded: expanded,
                 highlighted: expanded,
@@ -386,6 +386,7 @@ class _ProjectTimesheetManagementPageState
                 AppFormTextField(
                   controller: controller.hoursWorkedController,
                   labelText: 'Hours Worked',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -397,6 +398,7 @@ class _ProjectTimesheetManagementPageState
                 AppFormTextField(
                   controller: controller.hourlyCostController,
                   labelText: 'Hourly Cost',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -407,6 +409,7 @@ class _ProjectTimesheetManagementPageState
                 AppFormTextField(
                   controller: controller.billableRateController,
                   labelText: 'Billable Rate',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -417,6 +420,7 @@ class _ProjectTimesheetManagementPageState
                 AppFormTextField(
                   controller: controller.costAmountController,
                   labelText: 'Cost Amount',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -428,6 +432,7 @@ class _ProjectTimesheetManagementPageState
                 AppFormTextField(
                   controller: controller.billableAmountController,
                   labelText: 'Billable Amount',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),

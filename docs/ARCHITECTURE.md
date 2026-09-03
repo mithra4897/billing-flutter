@@ -1,5 +1,36 @@
 # Architecture
 
+## Project status label wording
+
+Project presentation code maps the persisted `on_hold` status to the
+user-facing label “In Review”. Status values and API payloads remain unchanged;
+the mapping is applied only at dropdown, filter, Kanban, and dashboard label
+boundaries.
+
+## Project register readability
+
+Project Billing, Expenses, Resource Usage, and Timesheets reuse
+`normalizeDateValue` at their list and constrained-tile presentation points,
+so stored dates remain unchanged while API timestamps render in the active
+company date format. Billing, Expenses, and Timesheets configure their existing
+`PurchaseRegisterColumn` instances with adjacent amount/billable/status padding
+and wider status flex values (including Vendor Work, which has no date column);
+the correction remains local to Project pages
+instead of changing every shared register table. Rendering continues to be one
+O(n) pass over already-filtered, paginated rows with O(1) work and storage per
+displayed cell.
+
+Project amount cells use the shared `formatAmount` formatter, which reads the
+active company grouping and decimal-place settings; `PurchaseRegisterColumn`
+alignment keeps those formatted values flush right without changing stored
+amounts.
+
+All five Project child controllers invalidate `ProjectModuleRefreshController`
+before reloading after create/update/delete. This preserves the existing shared
+project cache for normal reads while ensuring child mutations fetch the
+authoritative nested collection immediately; reload work remains bounded by the
+project API response size.
+
 ## Sales customer advance allocation
 
 `SalesReceiptManagementController` keeps Received Amount as the independent
@@ -685,4 +716,3 @@ across `open`, `completed`, and `cancelled` statuses. Card drops invoke
 via `ProjectModuleRefreshController`, reloads authoritative data, and notifies
 listeners. In-flight drops are tracked in a `Set<int>` to prevent concurrent
 mutations on the same milestone.
-

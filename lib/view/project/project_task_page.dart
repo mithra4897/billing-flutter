@@ -34,7 +34,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'working', label: 'Working'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
-        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'on_hold', label: 'In Review'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
@@ -44,7 +44,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         AppDropdownItem(value: 'all', label: 'All Statuses'),
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'working', label: 'Working'),
-        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'on_hold', label: 'In Review'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];

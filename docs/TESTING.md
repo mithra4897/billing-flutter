@@ -1,5 +1,31 @@
 # Testing
 
+## Project status label wording — 2026-09-03
+
+- Focused analysis verifies the updated Project and dashboard presentation
+  files.
+- Manual verification should confirm dropdowns, Kanban lanes, and dashboard
+  filters show “In Review” while saving still submits `on_hold`.
+
+## Project register readability — 2026-09-03
+
+- `dart format lib/view/project/project_timesheet_page.dart
+  test/helper/date_value_helper_test.dart` completed before extending the same
+  presentation pattern to the Billing, Expenses, and Resource Usage pages.
+- `flutter test test/helper/date_value_helper_test.dart` passed (1/1),
+  confirming the raw ISO API timestamp renders as `03/09/2026` with the default
+  configured business date format.
+- Focused `flutter analyze lib/view/project/project_timesheet_page.dart
+  test/helper/date_value_helper_test.dart` passed with no issues.
+- Manual authenticated desktop visual verification remains recommended for
+  Billing, Expenses, Resource Usage, and Timesheets at wide and narrow widths.
+- Manual authenticated verification should also create one record in each
+  Project child register and confirm it appears immediately after save.
+- Verify a large amount in each register follows Company Settings grouping and
+  stays aligned to the right edge of its column.
+- Verify Project editor numeric fields (amount, cost, rate, quantity, and
+  hours) render and accept input aligned to the right.
+
 ## Sales customer advance allocation — 2026-09-03
 
 - `flutter test test/sales/sales_receipt_advance_calculation_test.dart` passed
@@ -1457,4 +1483,3 @@ been packaged successfully.
 - `flutter test` executed and passed all 18 tests, including 14 tests in the
   consolidated `test/view/project_kanban_board_test.dart` suite covering task and
   milestone lane resolution, grouping, drop eligibility, and status transformations.
-

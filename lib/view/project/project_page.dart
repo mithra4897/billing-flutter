@@ -34,7 +34,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
         AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'working', label: 'Working'),
-        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'on_hold', label: 'In Review'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];

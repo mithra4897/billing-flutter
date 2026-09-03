@@ -374,6 +374,7 @@ class ProjectExpenseManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.expense.id;
       showDraftTile = false;
       resetForm(notify: false);
+      _refreshController.invalidateProjects();
       await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_expense');
       return response.message;
@@ -395,6 +396,7 @@ class ProjectExpenseManagementController extends GetxController {
     try {
       final response = await _projectService.deleteExpense(row!.expense.id!);
       formError = null;
+      _refreshController.invalidateProjects();
       await loadData();
       _refreshController.notifyChanged(source: 'project_expense');
       return response.message;

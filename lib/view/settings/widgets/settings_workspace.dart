@@ -104,6 +104,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   late final SettingsWorkspaceController _controller;
   late final bool _ownsController;
   late final String _routeControllerTag;
+  bool _editorRoutePushScheduled = false;
 
   _SettingsWorkspaceRouteController get _routeController =>
       Get.find<_SettingsWorkspaceRouteController>(tag: _routeControllerTag);
@@ -247,23 +248,32 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   }
 
   void _scheduleEditorRoutePush() {
-    if (_routeController.editorRouteOpen) {
+    if (_routeController.editorRouteOpen || _editorRoutePushScheduled) {
       return;
     }
 
-    _routeController.setEditorRouteOpen(true);
+    // InkWell invokes this from the pointer event that selected a list item.
+    // Updating the route controller synchronously there can rebuild/remove
+    // MouseRegions while MouseTracker is processing the same device update on
+    // Flutter Web, triggering !_debugDuringDeviceUpdate. Defer the rebuild and
+    // route push until the current pointer update has completed.
+    _editorRoutePushScheduled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
+        _editorRoutePushScheduled = false;
         _routeController.setEditorRouteOpen(false);
         return;
       }
+
+      _routeController.setEditorRouteOpen(true);
 
       // Let the placeholder-only frame finish before the route mounts the
       // editor, which avoids temporary duplicate GlobalKey ownership during
       // responsive transitions.
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) {
+        _editorRoutePushScheduled = false;
         _routeController.setEditorRouteOpen(false);
         return;
       }
@@ -289,6 +299,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       } else {
         _routeController.setEditorRouteOpen(false);
       }
+      _editorRoutePushScheduled = false;
     });
   }
 }
@@ -846,5 +857,4 @@ class SettingsFormWrap extends StatelessWidget {
       },
     );
   }
-
 }

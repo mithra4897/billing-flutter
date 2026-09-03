@@ -122,7 +122,7 @@ class _ProjectResourceUsageManagementPageState
       PurchaseRegisterColumn(
         label: 'Date',
         flex: 2,
-        valueBuilder: (row) => row.usage.usageDate ?? '',
+        valueBuilder: (row) => normalizeDateValue(row.usage.usageDate),
       ),
       PurchaseRegisterColumn(
         label: 'Hours',
@@ -134,7 +134,7 @@ class _ProjectResourceUsageManagementPageState
         label: 'Total Cost',
         flex: 2,
         alignRight: true,
-        valueBuilder: (row) => controller.decimalText(row.usage.totalCost),
+        valueBuilder: (row) => formatAmount(row.usage.totalCost),
       ),
     ];
 
@@ -170,7 +170,7 @@ class _ProjectResourceUsageManagementPageState
     BuildContext context,
     ProjectResourceUsageManagementController controller,
   ) {
-    Navigator.of(context, rootNavigator: true).push(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectResourceUsageManagementController>(
           tag: _controllerTag,
@@ -224,14 +224,14 @@ class _ProjectResourceUsageManagementPageState
                 ),
                 title: row.usage.resourceName ?? 'Resource Usage',
                 subtitle: [
-                  row.usage.usageDate ?? '',
+                  normalizeDateValue(row.usage.usageDate),
                   controller.assetLabel(
                     controller.assetById(row.usage.assetId),
                   ),
                 ].where((item) => item.isNotEmpty).join(' | '),
                 detail: [
                   controller.decimalText(row.usage.usageHours),
-                  controller.decimalText(row.usage.totalCost),
+                  formatAmount(row.usage.totalCost),
                 ].where((item) => item.isNotEmpty).join(' | '),
                 expanded: expanded,
                 highlighted: expanded,
@@ -345,6 +345,7 @@ class _ProjectResourceUsageManagementPageState
                 AppFormTextField(
                   controller: controller.usageHoursController,
                   labelText: 'Usage Hours',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -355,6 +356,7 @@ class _ProjectResourceUsageManagementPageState
                 AppFormTextField(
                   controller: controller.usageQtyController,
                   labelText: 'Usage Qty',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -363,6 +365,7 @@ class _ProjectResourceUsageManagementPageState
                 AppFormTextField(
                   controller: controller.unitCostController,
                   labelText: 'Unit Cost',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -374,6 +377,7 @@ class _ProjectResourceUsageManagementPageState
                 AppFormTextField(
                   controller: controller.totalCostController,
                   labelText: 'Total Cost',
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),

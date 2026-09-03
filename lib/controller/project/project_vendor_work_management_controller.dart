@@ -497,6 +497,7 @@ class ProjectVendorWorkManagementController extends GetxController {
       final savedId = response.data?.id ?? selectedRow?.work.id;
       showDraftTile = false;
       resetForm(notify: false);
+      _refreshController.invalidateProjects();
       await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_vendor_work');
       return response.message;
@@ -516,6 +517,7 @@ class ProjectVendorWorkManagementController extends GetxController {
       return null;
     }
     final response = await _projectService.deleteVendorWork(row!.work.id!);
+    _refreshController.invalidateProjects();
     await loadData();
     _refreshController.notifyChanged(source: 'project_vendor_work');
     return response.message;

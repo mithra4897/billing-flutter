@@ -1,5 +1,46 @@
 # Specifications
 
+## Project status label wording
+
+Status: Implemented (2026-09-03)
+
+The API status value `on_hold` remains unchanged for compatibility, while
+Project dropdowns, filters, Kanban lanes, and dashboard labels display it as
+“In Review”.
+
+## Project register readability
+
+Status: Implemented (2026-09-03)
+
+### Problem and objective
+
+Project registers exposed raw API date timestamps, and some right-aligned
+amounts sat immediately against Status progress indicators, making values hard
+to read.
+
+### Scope and acceptance criteria
+
+- Display Project Billing, Expenses, Resource Usage, and Timesheets dates
+  through the existing configured business-date formatter, omitting the time
+  portion of API timestamps.
+- Keep amount/billable and status visually distinct in the desktop tables by
+  reserving spacing around adjacent columns and allowing status indicators
+  sufficient width.
+- Keep Vendor Work amount and Status columns separated using the same local
+  spacing rule.
+- Format all Project register amounts with the existing company amount-grouping
+  and decimal-place settings, while keeping numeric cells right-aligned.
+- Right-align numeric amount, cost, rate, quantity, and hours inputs in Project
+  editors for consistent data entry.
+- After creating or updating any Project child record, invalidate the cached
+  project collection before reloading so the new row is visible immediately.
+- Apply the same cache invalidation before delete reloads.
+- Apply the same date display to constrained project tiles.
+- Preserve API payloads, filters, saved dates, billing calculations, and
+  statuses.
+- Verify formatting and focused static analysis; manually confirm the desktop
+  row containing a billable value and Draft status has no collision.
+
 ## Sales customer advance allocation
 
 Status: Implemented (2026-09-03)
@@ -597,6 +638,10 @@ company entitlement may be higher or lower.
   responsive SettingsWorkspace can temporarily mount its editor more than once
   while changing layouts. The save action validates through its local form
   context.
+- Responsive SettingsWorkspace editor navigation defers route-state updates
+  until the current pointer event completes, preventing Flutter Web
+  MouseTracker re-entrancy assertions when opening settings editors such as
+  Email Templates.
 - Company Settings renders only its selected tab body. It does not retain every
   tab in an `IndexedStack`, because the embedded Financial Years editor has its
   own stateful form and must not be mounted while hidden.
@@ -2380,4 +2425,3 @@ ERP milestone validation, permissions, and embedded Project subtab behavior.
 - Unit and widget tests cover lane resolution, grouping, drop validation, and
   status transformations.
 - `flutter test` and `flutter analyze` pass with zero regressions.
-

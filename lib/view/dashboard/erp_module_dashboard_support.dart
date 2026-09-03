@@ -2767,7 +2767,7 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
           ErpDashboardListFilterOption(value: 'pending', label: 'Pending'),
           ErpDashboardListFilterOption(value: 'open', label: 'Open'),
           ErpDashboardListFilterOption(value: 'working', label: 'Working'),
-          ErpDashboardListFilterOption(value: 'on_hold', label: 'On hold'),
+          ErpDashboardListFilterOption(value: 'on_hold', label: 'In Review'),
           ErpDashboardListFilterOption(value: 'completed', label: 'Completed'),
           ErpDashboardListFilterOption(value: 'cancelled', label: 'Cancelled'),
         ],
