@@ -72,7 +72,38 @@ bool printableDocumentEmailIsMissingTemplateError(Object error) =>
       error,
     ).toLowerCase().contains('no active email template is configured');
 
-String _emailTemplatePreviewText(String? value) => (value ?? '')
+Map<String, dynamic> printableDocumentEmailPreviewData(
+  DocumentPrintDataModel documentData, {
+  int? documentId,
+}) {
+  final data = documentData.toJson();
+  final documentNumber = documentData.documentNumber;
+  final totalAmount = documentData.totalAmount;
+  return <String, dynamic>{
+    ...data,
+    'document_id': documentId ?? '',
+    'document_no': documentNumber,
+    'customer_name': documentData.partyName,
+    'supplier_name': documentData.partyName,
+    'invoice_number': documentNumber,
+    'receipt_number': documentNumber,
+    'payment_number': documentNumber,
+    'purchase_order_number': documentNumber,
+    'grand_total': totalAmount,
+    'amount': totalAmount,
+  };
+}
+
+String printableDocumentEmailPreviewValue(
+  String? template,
+  DocumentPrintDataModel documentData, {
+  int? documentId,
+}) => resolvePrintTemplateText(
+  template ?? '',
+  printableDocumentEmailPreviewData(documentData, documentId: documentId),
+);
+
+String _emailTemplatePreviewText(String value) => value
     .replaceAll(RegExp(r'<[^>]+>'), ' ')
     .replaceAll(RegExp(r'\s+'), ' ')
     .trim();
@@ -121,6 +152,8 @@ Future<EmailTemplateModel?> selectPrintableDocumentEmailTemplate(
   BuildContext context, {
   required PrintableDocumentEmailTarget target,
   int? companyId,
+  DocumentPrintDataModel? previewDocumentData,
+  int? previewDocumentId,
 }) async {
   final response = await CommunicationService().emailTemplates(
     filters: <String, dynamic>{
@@ -190,13 +223,31 @@ Future<EmailTemplateModel?> selectPrintableDocumentEmailTemplate(
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 6),
-                  Text(selected!.subjectTemplate ?? ''),
-                  const SizedBox(height: 8),
-                  Text(
-                    _emailTemplatePreviewText(selected!.bodyTemplate),
-                    maxLines: 8,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  if (previewDocumentData == null)
+                    const Text(
+                      'The message will be resolved for each selected document.',
+                    )
+                  else ...<Widget>[
+                    Text(
+                      printableDocumentEmailPreviewValue(
+                        selected!.subjectTemplate,
+                        previewDocumentData,
+                        documentId: previewDocumentId,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _emailTemplatePreviewText(
+                        printableDocumentEmailPreviewValue(
+                          selected!.bodyTemplate,
+                          previewDocumentData,
+                          documentId: previewDocumentId,
+                        ),
+                      ),
+                      maxLines: 8,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -230,6 +281,8 @@ Future<bool> sendPrintableDocumentEmailDirectly(
       context,
       target: payload.target,
       companyId: payload.companyId,
+      previewDocumentData: payload.documentData,
+      previewDocumentId: payload.documentId,
     );
     if (template?.id == null || !context.mounted) {
       return false;

@@ -3941,6 +3941,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         context,
         target: target,
         companyId: widget.companyId,
+        previewDocumentData: widget.documentData,
+        previewDocumentId: documentId,
       );
       if (template?.id == null || !mounted) {
         return;

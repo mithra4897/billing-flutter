@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-03 — Resolved Email PDF template preview
+
+- Request: Show the actual document message in the Email PDF template preview,
+  not raw placeholder bindings.
+- Implementation: The shared selector now resolves the chosen template against
+  the active document's print data and backend-compatible email aliases before
+  rendering its subject and body preview. Batch payslip email explains that it
+  resolves values per payslip.
+- Tests: Focused printable-email regression test passed (7/7).
+
 ## 2026-09-03 — Deferred Flutter Web hover updates
 
 - Request: Prevent the Flutter Web `!_debugDuringDeviceUpdate` mouse-tracker

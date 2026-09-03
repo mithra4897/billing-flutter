@@ -1355,6 +1355,8 @@ class SalesQuotationManagementController extends GetxController {
           documentType: 'sales_quotation',
         ),
         companyId: companyId,
+        previewDocumentData: quotationPrintData(),
+        previewDocumentId: id,
       );
       if (template?.id == null || !context.mounted) return;
       await docAction(context, () async {

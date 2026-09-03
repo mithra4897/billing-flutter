@@ -1,5 +1,16 @@
 # Architecture
 
+## Resolved Email PDF template previews
+
+The shared Email PDF template selector receives the current
+`DocumentPrintDataModel` from direct-send payloads and print-designer preview
+sends. It reuses `resolvePrintTemplateText` with a small O(1)-sized alias map
+that aligns canonical print fields with the backend email context
+(`document_no`, `grand_total`, and document-number aliases). The dialog is
+display-only; the backend still resolves and stores the final sent message.
+Batch payslip sending deliberately supplies no preview document because a
+single selected payslip does not exist before template selection.
+
 ## Deferred shared-widget hover state
 
 `ErpLineItemTable`, the `ErpModuleDashboard` trend card, and the private

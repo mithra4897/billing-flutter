@@ -1,5 +1,13 @@
 # Testing
 
+## Resolved Email PDF template preview — 2026-09-03
+
+- `flutter test test/view/register_email_pdf_eligibility_test.dart --no-pub`
+  passed (7/7), including document-number, party, company, and total binding
+  resolution for the Email PDF selector preview.
+- Manual authenticated verification remains required for an HTML template and
+  for each document type's backend-rendered final email.
+
 ## Deferred hover state updates — 2026-09-03
 
 - `flutter test test/widgets/deferred_hover_state_test.dart --no-pub` passed

@@ -1,5 +1,24 @@
 # Specifications
 
+## Resolved Email PDF template preview
+
+Status: Implemented (2026-09-03)
+
+The Email PDF template-selection dialog must preview the selected template's
+subject and body with the current printable document's values, rather than
+displaying raw `{{binding}}` tokens. It reuses the existing print-template
+resolver and document data, including compatible email aliases such as
+`document_no` and `grand_total`. The server remains authoritative for the
+email ultimately sent. A batch Payslip action has no single document before
+selection, so it must explain that values resolve per payslip instead of
+showing unresolved bindings.
+
+Acceptance criteria: selecting a template from a document's print preview or
+direct Email PDF action shows its current document number, party, company, and
+available totals in the preview; no raw binding is shown for that selected
+document. The preview performs one O(k) placeholder substitution pass over
+template length k and makes no extra API request.
+
 ## Deferred hover state updates
 
 Status: Implemented (2026-09-03)
