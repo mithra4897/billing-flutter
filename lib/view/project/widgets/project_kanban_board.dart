@@ -112,7 +112,7 @@ bool canDropProjectMilestone({
 
 // --- Unified Kanban Board Widget ---
 
-class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
+class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
   const ProjectKanbanBoard({
     super.key,
     required this.statuses,
@@ -126,8 +126,10 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
     required this.isBusy,
     required this.isItemMoving,
     required this.hasItemId,
-    this.laneWidth = 340.0,
-    this.itemLabel = 'Item',
+    required this.itemLabel,
+    this.laneWidth,
+    this.minLaneWidth = 200.0,
+    this.fitToScreen = true,
     this.responsiveBreakpoint = 760.0,
   });
 
@@ -143,6 +145,9 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
     required bool canDelete,
     required bool isBusy,
     required Set<int> movingTaskIds,
+    double? laneWidth,
+    double minLaneWidth = 200.0,
+    bool fitToScreen = true,
   }) {
     final statuses = projectTaskBoardStatuses(statusFilter);
     final grouped = groupProjectTaskRowsByStatus(rows, statuses);
@@ -155,6 +160,9 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
           statusLabel: _taskStatusLabel,
           statusAccent: _taskStatusAccent,
           isBusy: isBusy,
+          laneWidth: laneWidth,
+          minLaneWidth: minLaneWidth,
+          fitToScreen: fitToScreen,
           hasItemId: (row) => row.task.id != null,
           isItemMoving: (row) =>
               row.task.id != null && movingTaskIds.contains(row.task.id),
@@ -196,6 +204,9 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
     required bool canDelete,
     required bool isBusy,
     required Set<int> movingMilestoneIds,
+    double? laneWidth,
+    double minLaneWidth = 200.0,
+    bool fitToScreen = true,
   }) {
     final statuses = projectMilestoneBoardStatuses(statusFilter);
     final grouped = groupProjectMilestoneRowsByStatus(rows, statuses);
@@ -208,6 +219,9 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
           statusLabel: _milestoneStatusLabel,
           statusAccent: _milestoneStatusAccent,
           isBusy: isBusy,
+          laneWidth: laneWidth,
+          minLaneWidth: minLaneWidth,
+          fitToScreen: fitToScreen,
           hasItemId: (row) => row.milestone.id != null,
           isItemMoving: (row) =>
               row.milestone.id != null &&
@@ -255,34 +269,82 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
   final bool isBusy;
   final bool Function(T item) isItemMoving;
   final bool Function(T item) hasItemId;
-  final double laneWidth;
+  final double? laneWidth;
+  final double minLaneWidth;
+  final bool fitToScreen;
   final String itemLabel;
   final double responsiveBreakpoint;
 
   @override
+  State<ProjectKanbanBoard<T>> createState() => _ProjectKanbanBoardState<T>();
+}
+
+class _ProjectKanbanBoardState<T extends Object>
+    extends State<ProjectKanbanBoard<T>> {
+  late final ScrollController _scrollController;
+  Timer? _autoScrollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _stopAutoScroll();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoScroll(double dx) {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 16), (
+      timer,
+    ) {
+      if (!_scrollController.hasClients) return;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      if (dx < 0 && currentScroll > 0) {
+        _scrollController.jumpTo((currentScroll + dx).clamp(0.0, maxScroll));
+      } else if (dx > 0 && currentScroll < maxScroll) {
+        _scrollController.jumpTo((currentScroll + dx).clamp(0.0, maxScroll));
+      }
+    });
+  }
+
+  void _stopAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final lanes = statuses
+    final lanes = widget.statuses
         .map(
           (status) => _ProjectKanbanLane<T>(
             status: status,
-            items: groupedItems[status] ?? const [],
-            label: statusLabel(status),
-            accent: statusAccent(context, status),
-            cardBuilder: cardBuilder,
-            onAdd: () => onAdd(status),
-            onMove: (item) => onMove(item, status),
-            canDrop: (item) => canDrop(item, status),
-            isBusy: isBusy,
-            isItemMoving: isItemMoving,
-            hasItemId: hasItemId,
-            itemLabel: itemLabel,
+            items: widget.groupedItems[status] ?? const [],
+            label: widget.statusLabel(status),
+            accent: widget.statusAccent(context, status),
+            cardBuilder: widget.cardBuilder,
+            onAdd: () => widget.onAdd(status),
+            onMove: (item) {
+              _stopAutoScroll();
+              return widget.onMove(item, status);
+            },
+            canDrop: (item) => widget.canDrop(item, status),
+            isBusy: widget.isBusy,
+            isItemMoving: widget.isItemMoving,
+            hasItemId: widget.hasItemId,
+            itemLabel: widget.itemLabel,
           ),
         )
         .toList(growable: false);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < responsiveBreakpoint) {
+        if (constraints.maxWidth < widget.responsiveBreakpoint) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -295,17 +357,41 @@ class ProjectKanbanBoard<T extends Object> extends StatelessWidget {
           );
         }
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var index = 0; index < lanes.length; index++) ...[
-                SizedBox(width: laneWidth, child: lanes[index]),
-                if (index != lanes.length - 1)
-                  const SizedBox(width: AppUiConstants.spacingMd),
+        final resolvedLaneWidth = widget.laneWidth ?? 340.0;
+        const autoScrollZoneWidth = 80.0;
+
+        // Use a Listener to detect horizontal pointer position during drag and
+        // trigger auto-scroll when the pointer is within the edge zones.  This
+        // avoids using Positioned.fill inside a Stack which crashes when the
+        // parent provides unbounded height (no size available for hit-testing).
+        return Listener(
+          onPointerMove: (event) {
+            final x = event.localPosition.dx;
+            final width = constraints.maxWidth;
+            if (x < autoScrollZoneWidth) {
+              _startAutoScroll(-10.0);
+            } else if (x > width - autoScrollZoneWidth) {
+              _startAutoScroll(10.0);
+            } else {
+              _stopAutoScroll();
+            }
+          },
+          onPointerUp: (_) => _stopAutoScroll(),
+          onPointerCancel: (_) => _stopAutoScroll(),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < lanes.length; index++) ...[
+                  SizedBox(width: resolvedLaneWidth, child: lanes[index]),
+                  if (index != lanes.length - 1)
+                    const SizedBox(width: AppUiConstants.spacingMd),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },
@@ -364,14 +450,18 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
         final isTargeted = candidateData.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           decoration: BoxDecoration(
-            color: isTargeted ? appTheme.tableRowHover : appTheme.subtleFill,
+            color: accent.withValues(
+              alpha: isTargeted
+                  ? 0.20
+                  : theme.brightness == Brightness.dark
+                  ? 0.14
+                  : 0.10,
+            ),
             borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
             border: Border.all(
-              color: isTargeted
-                  ? theme.colorScheme.primary
-                  : appTheme.tableBorder,
+              color: accent.withValues(alpha: isTargeted ? 0.85 : 0.16),
               width: isTargeted ? 2 : 1,
             ),
           ),
@@ -393,11 +483,10 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
                     vertical: AppUiConstants.spacingXl,
                   ),
                   decoration: BoxDecoration(
-                    color: appTheme.cardBackground,
+                    color: appTheme.cardBackground.withValues(alpha: 0.72),
                     borderRadius: BorderRadius.circular(
                       AppUiConstants.cardRadius,
                     ),
-                    border: Border.all(color: appTheme.tableBorder),
                   ),
                   child: Text(
                     'No ${label.toLowerCase()} ${itemLabel.toLowerCase()}s',
@@ -417,9 +506,8 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 18),
                 label: Text('Add $itemLabel'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.primary,
-                  backgroundColor: appTheme.cardBackground,
-                  side: BorderSide(color: appTheme.tableBorder),
+                  foregroundColor: accent,
+                  side: BorderSide(color: accent.withValues(alpha: 0.60)),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
               ),
@@ -475,7 +563,6 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
 
     return Row(
       children: [
@@ -491,22 +578,23 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
         Expanded(
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: appTheme.cardBackground,
+            color: accent.withValues(alpha: 0.13),
             borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
-            border: Border.all(color: appTheme.tableBorder),
           ),
           child: Text(
             '$count',
             style: theme.textTheme.labelMedium?.copyWith(
-              color: appTheme.mutedText,
+              color: accent,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -515,7 +603,9 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
           onPressed: onAdd,
           tooltip: 'Add $label $itemLabel',
           icon: const Icon(Icons.add_circle_outline, size: 20),
-          color: theme.colorScheme.primary,
+          color: accent,
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         ),
       ],
     );
@@ -571,7 +661,7 @@ class _ProjectTaskCard extends StatelessWidget {
         child: InkWell(
           onTap: isMoving ? null : onOpen,
           child: Padding(
-            padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -595,7 +685,7 @@ class _ProjectTaskCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
+                          color: accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(
                             AppUiConstants.pillRadius,
                           ),
@@ -603,7 +693,7 @@ class _ProjectTaskCard extends StatelessWidget {
                         child: Text(
                           'Billable',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
+                            color: accent,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -683,7 +773,7 @@ class _ProjectTaskCard extends StatelessWidget {
                     minHeight: 8,
                     value: progress / 100,
                     color: accent,
-                    backgroundColor: appTheme.subtleFill,
+                    backgroundColor: accent.withValues(alpha: 0.10),
                   ),
                 ),
                 const SizedBox(height: AppUiConstants.spacingMd),
@@ -821,7 +911,7 @@ class _ProjectMilestoneCard extends StatelessWidget {
         child: InkWell(
           onTap: isMoving ? null : onOpen,
           child: Padding(
-            padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -847,7 +937,7 @@ class _ProjectMilestoneCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
+                          color: accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(
                             AppUiConstants.pillRadius,
                           ),
@@ -855,7 +945,7 @@ class _ProjectMilestoneCard extends StatelessWidget {
                         child: Text(
                           '₹${_formatAmount(amount)}',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSecondaryContainer,
+                            color: accent,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
