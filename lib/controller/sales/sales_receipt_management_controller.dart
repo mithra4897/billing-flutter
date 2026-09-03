@@ -601,19 +601,18 @@ class SalesReceiptManagementController extends GetxController {
         : normalized.appFixed();
   }
 
-  void syncPaidAmountFromAllocations({bool notify = true}) {
-    if (allocations.isEmpty) {
-      if (notify) {
-        update();
-      }
-      return;
-    }
-    final total = allocations.fold<double>(0, (sum, allocation) {
-      return sum +
-          (Validators.parseFlexibleNumber(allocation.amountController.text) ??
-              0);
-    });
-    paidAmountController.text = total <= 0 ? '' : formatReceiptAmount(total);
+  double totalAllocatedAmount() {
+    return roundToDouble(
+      allocations.fold<double>(0, (sum, allocation) {
+        return sum +
+            (Validators.parseFlexibleNumber(allocation.amountController.text) ??
+                0);
+      }),
+      2,
+    );
+  }
+
+  void refreshAllocationTotals({bool notify = true}) {
     if (notify) {
       update();
     }
@@ -689,7 +688,7 @@ class SalesReceiptManagementController extends GetxController {
     final nextAllocations = List<SalesReceiptAllocationDraft>.from(allocations);
     final removed = nextAllocations.removeAt(index);
     allocations = nextAllocations;
-    syncPaidAmountFromAllocations();
+    refreshAllocationTotals();
     disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>([
       removed,
     ], (entry) => entry.dispose());
@@ -707,7 +706,7 @@ class SalesReceiptManagementController extends GetxController {
       allocation.remarksController.text =
           'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}';
     }
-    syncPaidAmountFromAllocations(notify: false);
+    refreshAllocationTotals(notify: false);
     unawaited(refreshSalesChain(invoiceId: value));
     update();
   }
@@ -735,8 +734,15 @@ class SalesReceiptManagementController extends GetxController {
       update();
       return;
     }
-    if ((Validators.parseFlexibleNumber(paidAmountController.text) ?? 0) <= 0) {
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    if (paidAmount <= 0) {
       formError = 'Paid amount must be greater than zero.';
+      update();
+      return;
+    }
+    if (totalAllocatedAmount() > roundToDouble(paidAmount, 2)) {
+      formError = 'Total allocated amount cannot exceed the paid amount.';
       update();
       return;
     }
@@ -760,8 +766,7 @@ class SalesReceiptManagementController extends GetxController {
       'payment_reference_date': nullIfEmpty(
         paymentReferenceDateController.text,
       ),
-      'paid_amount':
-          Validators.parseFlexibleNumber(paidAmountController.text) ?? 0,
+      'paid_amount': paidAmount,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       if (allocations.isNotEmpty)
@@ -1034,7 +1039,7 @@ class SalesReceiptManagementController extends GetxController {
   }) {
     final previous = allocations;
     allocations = List<SalesReceiptAllocationDraft>.from(nextAllocations);
-    syncPaidAmountFromAllocations(notify: false);
+    refreshAllocationTotals(notify: false);
     if (notify) {
       update();
     }
@@ -1097,7 +1102,7 @@ class SalesReceiptManagementController extends GetxController {
       return;
     }
     allocations = nextAllocations;
-    syncPaidAmountFromAllocations(notify: false);
+    refreshAllocationTotals(notify: false);
     disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>(
       removedAllocations,
       (allocation) => allocation.dispose(),

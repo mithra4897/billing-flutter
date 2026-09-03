@@ -473,8 +473,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                               decimal: true,
                             ),
                             onChanged: canEdit
-                                ? (_) =>
-                                      controller.syncPaidAmountFromAllocations()
+                                ? (_) => controller.refreshAllocationTotals()
                                 : null,
                             validator: Validators.optionalNonNegativeNumber(
                               'Allocated Amount',
