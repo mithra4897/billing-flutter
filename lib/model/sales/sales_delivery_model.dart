@@ -9,6 +9,7 @@ class SalesDeliveryModel extends JsonModel {
     this.financialYearId,
     this.documentSeriesId,
     this.salesOrderId,
+    this.crmOpportunityId,
     this.deliveryNo,
     this.deliveryDate,
     this.customerPartyId,
@@ -48,6 +49,7 @@ class SalesDeliveryModel extends JsonModel {
   final int? financialYearId;
   final int? documentSeriesId;
   final int? salesOrderId;
+  final int? crmOpportunityId;
   final String? deliveryNo;
   final String? deliveryDate;
   final int? customerPartyId;
@@ -90,6 +92,7 @@ class SalesDeliveryModel extends JsonModel {
       financialYearId: JsonModel.nullableInt(json['financial_year_id']),
       documentSeriesId: JsonModel.nullableInt(json['document_series_id']),
       salesOrderId: JsonModel.nullableInt(json['sales_order_id']),
+      crmOpportunityId: JsonModel.nullableInt(json['crm_opportunity_id']),
       deliveryNo: json['delivery_no']?.toString(),
       deliveryDate: json['delivery_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
@@ -143,6 +146,7 @@ class SalesDeliveryModel extends JsonModel {
     if (financialYearId != null) 'financial_year_id': financialYearId,
     if (documentSeriesId != null) 'document_series_id': documentSeriesId,
     if (salesOrderId != null) 'sales_order_id': salesOrderId,
+    if (crmOpportunityId != null) 'crm_opportunity_id': crmOpportunityId,
     if (deliveryNo != null) 'delivery_no': deliveryNo,
     if (deliveryDate != null) 'delivery_date': deliveryDate,
     'is_direct_customer': isDirectCustomer,

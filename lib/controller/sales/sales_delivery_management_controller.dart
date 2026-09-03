@@ -201,6 +201,7 @@ class SalesDeliveryManagementController extends GetxController {
   int? financialYearId;
   int? documentSeriesId;
   int? salesOrderId;
+  int? crmOpportunityId;
   int? customerPartyId;
   int? transporterPartyId;
   bool isDirectCustomer = false;
@@ -215,6 +216,7 @@ class SalesDeliveryManagementController extends GetxController {
   bool _initialized = false;
   int? _lastRequestedSelectId;
   int? _lastRequestedOrderId;
+  int? _lastRequestedCrmOpportunityId;
   bool _lastRequestedEditorOnly = false;
 
   String get deliveryKindLabel =>
@@ -259,6 +261,7 @@ class SalesDeliveryManagementController extends GetxController {
   Future<void> initialize({
     int? initialId,
     int? initialOrderId,
+    int? initialCrmOpportunityId,
     bool editorOnly = false,
   }) async {
     if (!_initialized) {
@@ -267,6 +270,7 @@ class SalesDeliveryManagementController extends GetxController {
     await loadPage(
       selectId: initialId,
       initialOrderId: initialOrderId,
+      initialCrmOpportunityId: initialCrmOpportunityId,
       editorOnly: editorOnly,
     );
   }
@@ -275,6 +279,7 @@ class SalesDeliveryManagementController extends GetxController {
     return loadPage(
       selectId: _lastRequestedSelectId,
       initialOrderId: _lastRequestedOrderId,
+      initialCrmOpportunityId: _lastRequestedCrmOpportunityId,
       editorOnly: _lastRequestedEditorOnly,
     );
   }
@@ -710,10 +715,12 @@ class SalesDeliveryManagementController extends GetxController {
   Future<void> loadPage({
     int? selectId,
     int? initialOrderId,
+    int? initialCrmOpportunityId,
     bool editorOnly = false,
   }) async {
     _lastRequestedSelectId = selectId;
     _lastRequestedOrderId = initialOrderId;
+    _lastRequestedCrmOpportunityId = initialCrmOpportunityId;
     _lastRequestedEditorOnly = editorOnly;
     initialLoading = items.isEmpty;
     pageError = null;
@@ -733,7 +740,9 @@ class SalesDeliveryManagementController extends GetxController {
           filters: deliveryFilters,
         );
       } catch (error) {
-        if (!(editorOnly && selectId == null && initialOrderId != null)) {
+        if (!(editorOnly &&
+            selectId == null &&
+            (initialOrderId != null || initialCrmOpportunityId != null))) {
           rethrow;
         }
       }
@@ -841,6 +850,8 @@ class SalesDeliveryManagementController extends GetxController {
         resetForm(notify: false);
         if (initialOrderId != null && editorOnly) {
           await applySalesOrderSelection(initialOrderId);
+        } else if (initialCrmOpportunityId != null && editorOnly) {
+          await applyOpportunityBootstrap(initialCrmOpportunityId);
         }
       }
       update();
@@ -876,6 +887,7 @@ class SalesDeliveryManagementController extends GetxController {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = intValue(data, 'document_series_id');
     salesOrderId = intValue(data, 'sales_order_id');
+    crmOpportunityId = intValue(data, 'crm_opportunity_id');
     isDirectCustomer = full.isDirectCustomer;
     customerPartyId = full.isDirectCustomer
         ? null
@@ -905,6 +917,10 @@ class SalesDeliveryManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
     _replaceReturnableDcs(nextReturnableDcs, notify: false);
+    // Rebuild the line editor before any asynchronous refresh below yields.
+    // Otherwise the previous row widgets can remain mounted until after their
+    // TextEditingControllers have been disposed by the draft-list helper.
+    refreshLineItemsSection();
     formError = null;
     syncInventoryOptionsForLines(lines);
     await refreshSalesChain();
@@ -916,6 +932,11 @@ class SalesDeliveryManagementController extends GetxController {
     try {
       if (orderId != null) {
         final response = await _crmService.salesChain(orderId: orderId);
+        salesChain = response.data;
+      } else if (crmOpportunityId != null) {
+        final response = await _crmService.salesChain(
+          opportunityId: crmOpportunityId,
+        );
         salesChain = response.data;
       } else {
         salesChain = null;
@@ -935,6 +956,7 @@ class SalesDeliveryManagementController extends GetxController {
     final series = seriesOptions();
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     salesOrderId = null;
+    crmOpportunityId = null;
     customerPartyId = null;
     isDirectCustomer = false;
     transporterPartyId = null;
@@ -1342,6 +1364,7 @@ class SalesDeliveryManagementController extends GetxController {
 
   Future<void> applySalesOrderSelection(int? orderId) async {
     salesOrderId = orderId;
+    crmOpportunityId = null;
     update();
     if (orderId == null) {
       await refreshSalesChain();
@@ -1364,6 +1387,73 @@ class SalesDeliveryManagementController extends GetxController {
       update();
     }
     await refreshSalesChain();
+  }
+
+  Future<void> applyOpportunityBootstrap(int opportunityId) async {
+    try {
+      final response = await _crmService.opportunity(opportunityId);
+      final opportunity = response.data;
+      if (opportunity == null) {
+        return;
+      }
+
+      crmOpportunityId = opportunityId;
+      salesOrderId = null;
+      if (opportunity.companyId != null) {
+        companyId = opportunity.companyId;
+      }
+      customerPartyId = opportunity.customerPartyId;
+      final sourceRows = opportunity.products.isNotEmpty
+          ? opportunity.products
+          : opportunity.lines;
+      final drafts = <SalesDeliveryLineDraft>[];
+      for (final row in sourceRows) {
+        final itemId = intValue(row, 'item_id');
+        final qty = Validators.parseFlexibleNumber(row['qty']?.toString()) ?? 0;
+        if (itemId == null || qty <= 0) {
+          continue;
+        }
+        final estimatedRate = Validators.parseFlexibleNumber(
+          row['estimated_price']?.toString(),
+        );
+        final draft = SalesDeliveryLineDraft(
+          itemId: itemId,
+          description: stringValue(row, 'description'),
+          deliveredQty: qty.toString(),
+          rate: estimatedRate == null || estimatedRate <= 0
+              ? ''
+              : estimatedRate.toString(),
+        );
+        applySalesLineDefaultsFromItemMaster(
+          item: itemById(itemId),
+          itemPrices: itemPrices,
+          uoms: uoms,
+          conversions: uomConversions,
+          rateController: draft.rateController,
+          setUom: (uomId) => draft.uomId = uomId,
+          currentUomId: draft.uomId,
+          setWarehouseId: (warehouseId) => draft.warehouseId = warehouseId,
+          currentWarehouseId: draft.warehouseId,
+          warehouses: warehouses,
+        );
+        if (!isStockTrackedItem(itemId)) {
+          draft.warehouseId = null;
+        }
+        drafts.add(draft);
+      }
+      _replaceLines(drafts, notify: false);
+      refreshLineItemsSection();
+      final name = opportunity.opportunityName?.trim() ?? '';
+      notesController.text = name.isEmpty ? '' : 'Linked CRM enquiry: $name';
+      formError = null;
+      syncInventoryOptionsForLines(lines);
+      unawaited(ensureCustomerPrintContext(customerPartyId));
+      await refreshSalesChain();
+      update();
+    } catch (error) {
+      formError = error.toString();
+      update();
+    }
   }
 
   void setApplyRoundOff(bool value) {
@@ -1625,6 +1715,7 @@ class SalesDeliveryManagementController extends GetxController {
       'financial_year_id': financialYearId,
       'document_series_id': documentSeriesId,
       'sales_order_id': salesOrderId,
+      'crm_opportunity_id': crmOpportunityId,
       'delivery_no': nullIfEmpty(deliveryNoController.text),
       'delivery_date': deliveryDateController.text.trim(),
       'customer_party_id': customerPartyId,

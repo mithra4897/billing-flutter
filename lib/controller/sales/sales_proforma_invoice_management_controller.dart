@@ -557,6 +557,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
     _replaceLines(nextLines, notify: false);
+    refreshLineItemsSection();
     formError = null;
     unawaited(ensureCustomerPrintContext(customerPartyId));
     await refreshSalesChain(notify: false);
@@ -1185,6 +1186,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
           .toList(growable: true);
       _replaceLines(nextLines, notify: false);
       _syncAutoRoundOff();
+      refreshLineItemsSection();
       unawaited(ensureCustomerPrintContext(customerPartyId));
       await refreshSalesChain(notify: false);
     } catch (error) {

@@ -514,7 +514,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return PayrollRunDetailPage(
           key: routeKey,
           runId: int.tryParse(_currentQueryParameters['run_id'] ?? '') ?? 0,
-          companyId: int.tryParse(_currentQueryParameters['company_id'] ?? '') ?? 0,
+          companyId:
+              int.tryParse(_currentQueryParameters['company_id'] ?? '') ?? 0,
           embedded: true,
         );
       case '/hr/payslips':
@@ -835,6 +836,9 @@ class _AppShellPageState extends State<AppShellPage> {
           initialDeliveryId: int.tryParse(
             _currentQueryParameters['delivery_id'] ?? '',
           ),
+          initialCrmOpportunityId: int.tryParse(
+            _currentQueryParameters['crm_opportunity_id'] ?? '',
+          ),
           queryParameters: _currentQueryParameters,
         );
       case 'deliveries':
@@ -845,6 +849,9 @@ class _AppShellPageState extends State<AppShellPage> {
           initialId: id,
           initialOrderId: int.tryParse(
             _currentQueryParameters['order_id'] ?? '',
+          ),
+          initialCrmOpportunityId: int.tryParse(
+            _currentQueryParameters['crm_opportunity_id'] ?? '',
           ),
           queryParameters: _currentQueryParameters,
         );

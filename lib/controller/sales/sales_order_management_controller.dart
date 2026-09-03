@@ -817,6 +817,7 @@ class SalesOrderManagementController extends GetxController {
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
+    refreshLineItemsSection();
     formError = null;
     if (salesQuotationId != null) {
       await fetchQuotationLines(salesQuotationId!);
@@ -1615,32 +1616,19 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void _replaceLines(List<OrderLineDraft> nextLines, {bool notify = true}) {
-    final previousLines = lines;
-    final normalizedLines = nextLines.isEmpty
-        ? <OrderLineDraft>[OrderLineDraft()]
-        : nextLines;
-    lines = normalizedLines;
-    if (notify) {
-      _syncAutoRoundOff();
-      refreshLineItemsSection();
-    }
-    final removedLines = previousLines
-        .where(
-          (previousLine) => !normalizedLines.any(
-            (nextLine) => identical(previousLine, nextLine),
-          ),
-        )
-        .toList(growable: false);
-    _disposeLinesDeferred(removedLines);
-  }
-
-  void _disposeLinesDeferred(List<OrderLineDraft> values) {
-    if (values.isEmpty) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _disposeLines(values);
-    });
+    replaceDisposableDraftEntries<OrderLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => OrderLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify
+          ? () {
+              _syncAutoRoundOff();
+              refreshLineItemsSection();
+            }
+          : null,
+    );
   }
 
   void _disposeLines(List<OrderLineDraft> values) {

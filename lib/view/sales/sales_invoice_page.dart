@@ -11,6 +11,7 @@ class SalesInvoicePage extends StatefulWidget {
     this.initialProformaId,
     this.initialOrderId,
     this.initialDeliveryId,
+    this.initialCrmOpportunityId,
     this.queryParameters = const <String, String>{},
   });
 
@@ -23,6 +24,7 @@ class SalesInvoicePage extends StatefulWidget {
   final int? initialProformaId;
   final int? initialOrderId;
   final int? initialDeliveryId;
+  final int? initialCrmOpportunityId;
   final Map<String, String> queryParameters;
 
   @override
@@ -55,6 +57,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           initialProformaId: widget.initialProformaId,
           initialOrderId: widget.initialOrderId,
           initialDeliveryId: widget.initialDeliveryId,
+          initialCrmOpportunityId: widget.initialCrmOpportunityId,
           editorOnly: widget.editorOnly,
         ),
       );

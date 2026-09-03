@@ -507,6 +507,7 @@ class SalesQuotationManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
     _replaceLines(nextLines, notify: false);
+    refreshLineItemsSection();
     formError = null;
     unawaited(ensureCustomerPrintContext(customerPartyId));
     await refreshSalesChain(notify: false);
@@ -590,6 +591,43 @@ class SalesQuotationManagementController extends GetxController {
           .trim();
       if (note.isNotEmpty && notesController.text.trim().isEmpty) {
         notesController.text = note;
+      }
+      final sourceRows = opportunity.products.isNotEmpty
+          ? opportunity.products
+          : opportunity.lines;
+      final drafts = <QuotationLineDraft>[];
+      for (final row in sourceRows) {
+        final itemId = intValue(row, 'item_id');
+        final qty = Validators.parseFlexibleNumber(row['qty']?.toString()) ?? 0;
+        if (itemId == null || qty <= 0) {
+          continue;
+        }
+        final estimatedRate = Validators.parseFlexibleNumber(
+          row['estimated_price']?.toString(),
+        );
+        final draft = QuotationLineDraft(
+          itemId: itemId,
+          description: stringValue(row, 'description'),
+          qty: qty.toString(),
+          rate: estimatedRate == null || estimatedRate <= 0
+              ? ''
+              : estimatedRate.toString(),
+        );
+        applySalesLineDefaultsFromItemMaster(
+          item: itemById(itemId),
+          itemPrices: itemPrices,
+          uoms: uoms,
+          conversions: uomConversions,
+          rateController: draft.rateController,
+          setUom: (uomId) => draft.uomId = uomId,
+          currentUomId: draft.uomId,
+          setTaxCodeId: (_) => draft.taxCodeId = null,
+        );
+        drafts.add(draft);
+      }
+      if (drafts.isNotEmpty) {
+        _replaceLines(drafts, notify: false);
+        refreshLineItemsSection();
       }
       await refreshSalesChain(notify: false);
       update();

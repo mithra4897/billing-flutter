@@ -13,6 +13,7 @@ class SalesInvoiceModel extends JsonModel {
     this.salesProformaInvoiceId,
     this.salesOrderId,
     this.salesDeliveryId,
+    this.crmOpportunityId,
     this.invoiceNo,
     this.customerName,
     this.customer,
@@ -50,6 +51,7 @@ class SalesInvoiceModel extends JsonModel {
   final int? salesProformaInvoiceId;
   final int? salesOrderId;
   final int? salesDeliveryId;
+  final int? crmOpportunityId;
   final String? invoiceNo;
   final String? customerName;
   final Map<String, dynamic>? customer;
@@ -90,6 +92,7 @@ class SalesInvoiceModel extends JsonModel {
       salesProformaInvoiceId: _nullableInt(json['sales_proforma_invoice_id']),
       salesOrderId: _nullableInt(json['sales_order_id']),
       salesDeliveryId: _nullableInt(json['sales_delivery_id']),
+      crmOpportunityId: _nullableInt(json['crm_opportunity_id']),
       invoiceNo: json['invoice_no']?.toString(),
       customerName: json['customer_name']?.toString(),
       customer: JsonModel.mapOf(json['customer']),
@@ -137,6 +140,7 @@ class SalesInvoiceModel extends JsonModel {
         'sales_proforma_invoice_id': salesProformaInvoiceId,
       if (salesOrderId != null) 'sales_order_id': salesOrderId,
       if (salesDeliveryId != null) 'sales_delivery_id': salesDeliveryId,
+      if (crmOpportunityId != null) 'crm_opportunity_id': crmOpportunityId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       if (customerName != null) 'customer_name': customerName,
       if (customer != null) 'customer': customer,

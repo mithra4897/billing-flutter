@@ -8,6 +8,7 @@ class SalesDeliveryPage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialOrderId,
+    this.initialCrmOpportunityId,
     this.queryParameters = const <String, String>{},
   });
 
@@ -15,6 +16,7 @@ class SalesDeliveryPage extends StatefulWidget {
   final bool editorOnly;
   final int? initialId;
   final int? initialOrderId;
+  final int? initialCrmOpportunityId;
   final Map<String, String> queryParameters;
 
   @override
@@ -42,6 +44,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         _controller.initialize(
           initialId: widget.initialId,
           initialOrderId: widget.initialOrderId,
+          initialCrmOpportunityId: widget.initialCrmOpportunityId,
           editorOnly: widget.editorOnly,
         ),
       );

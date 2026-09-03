@@ -1182,6 +1182,13 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     CrmOpportunitiesController controller,
   ) {
     final isLocked = controller.isSelectedOpportunityReadOnly;
+    final hasLinkedQuotation =
+        ((controller.salesChain?['quotations'] as List?) ?? const <dynamic>[])
+            .whereType<Map>()
+            .any(
+              (quotation) =>
+                  intValue(Map<String, dynamic>.from(quotation), 'id') != null,
+            );
     return Form(
       key: _formKey,
       child: Column(
@@ -1359,7 +1366,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               ],
             ],
           ),
-          if (controller.selectedOpportunityId() != null && !isLocked) ...[
+          if (controller.selectedOpportunityId() != null &&
+              !isLocked &&
+              !hasLinkedQuotation) ...[
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
@@ -1378,23 +1387,19 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                   icon: Icons.local_shipping_outlined,
                   label: 'New delivery',
                   filled: false,
-                  onPressed: _latestSalesOrderId(controller) == null
-                      ? null
-                      : () => openModuleShellRoute(
-                          context,
-                          '/sales/deliveries/new?order_id=${_latestSalesOrderId(controller)}',
-                        ),
+                  onPressed: () => openModuleShellRoute(
+                    context,
+                    '/sales/deliveries/new?crm_opportunity_id=${controller.selectedOpportunityId()}',
+                  ),
                 ),
                 AppActionButton(
                   icon: Icons.receipt_long_outlined,
                   label: 'New invoice',
                   filled: false,
-                  onPressed: _invoiceRoute(controller) == null
-                      ? null
-                      : () => openModuleShellRoute(
-                          context,
-                          _invoiceRoute(controller)!,
-                        ),
+                  onPressed: () => openModuleShellRoute(
+                    context,
+                    '/sales/invoices/new?crm_opportunity_id=${controller.selectedOpportunityId()}',
+                  ),
                 ),
               ],
             ),
@@ -1775,26 +1780,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       onPressed: controller.save,
       busy: controller.saving,
     );
-  }
-
-  int? _latestSalesOrderId(CrmOpportunitiesController controller) {
-    final orders = controller.salesChain?['orders'];
-    if (orders is! List || orders.isEmpty) {
-      return null;
-    }
-    final first = orders.first;
-    if (first is! Map) {
-      return null;
-    }
-    return intValue(Map<String, dynamic>.from(first), 'id');
-  }
-
-  String? _invoiceRoute(CrmOpportunitiesController controller) {
-    final orderId = _latestSalesOrderId(controller);
-    if (orderId != null) {
-      return '/sales/invoices/new?order_id=$orderId';
-    }
-    return null;
   }
 
   Future<void> _confirmRemoveChild(

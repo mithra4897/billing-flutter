@@ -93,6 +93,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? salesDeliveryId;
   int? salesQuotationId;
   int? salesProformaInvoiceId;
+  int? crmOpportunityId;
   SalesInvoiceModel? selectedItem;
   SalesInvoiceModel? pendingSelection;
   int? contextCompanyId;
@@ -1264,6 +1265,14 @@ class SalesInvoiceManagementController extends GetxController {
         State(() => salesChain = r.data);
         return;
       }
+      if (crmOpportunityId != null) {
+        final r = await crmService.salesChain(opportunityId: crmOpportunityId);
+        if (!mounted) {
+          return;
+        }
+        State(() => salesChain = r.data);
+        return;
+      }
       if (!mounted) {
         return;
       }
@@ -1660,11 +1669,13 @@ class SalesInvoiceManagementController extends GetxController {
   int? initialProformaId;
   int? initialOrderId;
   int? initialDeliveryId;
+  int? initialCrmOpportunityId;
   int? _lastRequestedSelectId;
   int? _lastRequestedQuotationId;
   int? _lastRequestedProformaId;
   int? _lastRequestedOrderId;
   int? _lastRequestedDeliveryId;
+  int? _lastRequestedCrmOpportunityId;
   bool _lastRequestedEditorOnly = false;
 
   bool get mounted => !isClosed;
@@ -1693,6 +1704,7 @@ class SalesInvoiceManagementController extends GetxController {
     int? initialProformaId,
     int? initialOrderId,
     int? initialDeliveryId,
+    int? initialCrmOpportunityId,
     bool editorOnly = false,
   }) async {
     this.initialId = initialId;
@@ -1700,6 +1712,7 @@ class SalesInvoiceManagementController extends GetxController {
     this.initialProformaId = initialProformaId;
     this.initialOrderId = initialOrderId;
     this.initialDeliveryId = initialDeliveryId;
+    this.initialCrmOpportunityId = initialCrmOpportunityId;
     this.editorOnly = editorOnly;
     hasInitialized = true;
     await MasterDataCache.to.ensureSalesLookupsFresh();
@@ -1709,6 +1722,7 @@ class SalesInvoiceManagementController extends GetxController {
       initialProformaId: initialProformaId,
       initialOrderId: initialOrderId,
       initialDeliveryId: initialDeliveryId,
+      initialCrmOpportunityId: initialCrmOpportunityId,
       editorOnly: editorOnly,
     );
   }
@@ -1720,6 +1734,7 @@ class SalesInvoiceManagementController extends GetxController {
       initialProformaId: _lastRequestedProformaId,
       initialOrderId: _lastRequestedOrderId,
       initialDeliveryId: _lastRequestedDeliveryId,
+      initialCrmOpportunityId: _lastRequestedCrmOpportunityId,
       editorOnly: _lastRequestedEditorOnly,
     );
   }
@@ -1799,6 +1814,7 @@ class SalesInvoiceManagementController extends GetxController {
     int? initialProformaId,
     int? initialOrderId,
     int? initialDeliveryId,
+    int? initialCrmOpportunityId,
     bool? editorOnly,
     int page = 1,
   }) async {
@@ -1806,12 +1822,15 @@ class SalesInvoiceManagementController extends GetxController {
     final effectiveProformaId = initialProformaId ?? this.initialProformaId;
     final effectiveOrderId = initialOrderId ?? this.initialOrderId;
     final effectiveDeliveryId = initialDeliveryId ?? this.initialDeliveryId;
+    final effectiveCrmOpportunityId =
+        initialCrmOpportunityId ?? this.initialCrmOpportunityId;
     final effectiveEditorOnly = editorOnly ?? this.editorOnly;
     _lastRequestedSelectId = selectId;
     _lastRequestedQuotationId = effectiveQuotationId;
     _lastRequestedProformaId = effectiveProformaId;
     _lastRequestedOrderId = effectiveOrderId;
     _lastRequestedDeliveryId = effectiveDeliveryId;
+    _lastRequestedCrmOpportunityId = effectiveCrmOpportunityId;
     _lastRequestedEditorOnly = effectiveEditorOnly;
 
     State(() {
@@ -1851,7 +1870,8 @@ class SalesInvoiceManagementController extends GetxController {
             (effectiveQuotationId != null ||
                 effectiveProformaId != null ||
                 effectiveOrderId != null ||
-                effectiveDeliveryId != null))) {
+                effectiveDeliveryId != null ||
+                effectiveCrmOpportunityId != null))) {
           rethrow;
         }
       }
@@ -2029,6 +2049,9 @@ class SalesInvoiceManagementController extends GetxController {
             final qPref = effectiveQuotationId;
             if (qPref != null && effectiveEditorOnly) {
               await prefillNewInvoiceFromQuotation(qPref);
+            } else if (effectiveCrmOpportunityId != null &&
+                effectiveEditorOnly) {
+              await applyOpportunityBootstrap(effectiveCrmOpportunityId);
             }
           }
         }
@@ -2086,6 +2109,79 @@ class SalesInvoiceManagementController extends GetxController {
     } catch (e) {
       if (mounted) {
         State(() => formError = e.toString());
+      }
+    }
+  }
+
+  Future<void> applyOpportunityBootstrap(int opportunityId) async {
+    try {
+      final response = await crmService.opportunity(opportunityId);
+      final opportunity = response.data;
+      if (opportunity == null || !mounted) {
+        return;
+      }
+
+      final sourceRows = opportunity.products.isNotEmpty
+          ? opportunity.products
+          : opportunity.lines;
+      final drafts = <InvoiceLineDraft>[];
+      for (final row in sourceRows) {
+        final itemId = intValue(row, 'item_id');
+        final qty = Validators.parseFlexibleNumber(row['qty']?.toString()) ?? 0;
+        if (itemId == null || qty <= 0) {
+          continue;
+        }
+        final estimatedRate = Validators.parseFlexibleNumber(
+          row['estimated_price']?.toString(),
+        );
+        final draft = InvoiceLineDraft(
+          itemId: itemId,
+          description: stringValue(row, 'description'),
+          qty: qty.toString(),
+          rate: estimatedRate == null || estimatedRate <= 0
+              ? ''
+              : estimatedRate.toString(),
+        );
+        applySalesLineDefaultsFromItemMaster(
+          item: itemById(itemId),
+          itemPrices: itemPrices,
+          uoms: uoms,
+          conversions: uomConversions,
+          rateController: draft.rateController,
+          qtyController: draft.qtyController,
+          setUom: (uomId) => draft.uomId = uomId,
+          currentUomId: draft.uomId,
+          setTaxCodeId: (taxCodeId) => draft.taxCodeId = taxCodeId,
+          setWarehouseId: (warehouseId) => draft.warehouseId = warehouseId,
+          currentWarehouseId: draft.warehouseId,
+          warehouses: warehouses,
+        );
+        drafts.add(draft);
+      }
+
+      State(() {
+        crmOpportunityId = opportunityId;
+        salesQuotationId = null;
+        salesProformaInvoiceId = null;
+        salesOrderId = null;
+        salesDeliveryId = null;
+        orderLinesCache = null;
+        deliveryLinesCache = null;
+        if (opportunity.companyId != null) {
+          companyId = opportunity.companyId;
+        }
+        customerPartyId = opportunity.customerPartyId;
+        final name = opportunity.opportunityName?.trim() ?? '';
+        notesController.text = name.isEmpty ? '' : 'Linked CRM enquiry: $name';
+        _replaceInvoiceLines(drafts, notify: false);
+        formError = null;
+      });
+      syncInventoryOptionsForLines(lines);
+      unawaited(ensureCustomerTaxContext(customerPartyId));
+      await refreshSalesChain();
+    } catch (error) {
+      if (mounted) {
+        State(() => formError = errorMessage(error));
       }
     }
   }
@@ -2223,6 +2319,7 @@ class SalesInvoiceManagementController extends GetxController {
       shippingAddressId = full.shippingAddressId;
       salesOrderId = full.salesOrderId;
       salesDeliveryId = full.salesDeliveryId;
+      crmOpportunityId = full.crmOpportunityId;
       orderLinesCache = null;
       deliveryLinesCache = null;
       invoiceNoController.text = full.invoiceNo ?? '';
@@ -2277,6 +2374,7 @@ class SalesInvoiceManagementController extends GetxController {
       salesProformaInvoiceId = null;
       salesOrderId = null;
       salesDeliveryId = null;
+      crmOpportunityId = null;
       orderLinesCache = null;
       deliveryLinesCache = null;
       invoiceNoController.clear();
@@ -2969,6 +3067,7 @@ class SalesInvoiceManagementController extends GetxController {
       salesProformaInvoiceId: salesProformaInvoiceId,
       salesOrderId: salesOrderId,
       salesDeliveryId: salesDeliveryId,
+      crmOpportunityId: crmOpportunityId,
       invoiceNo: nullIfEmpty(invoiceNoController.text),
       dueDate: nullIfEmpty(dueDateController.text),
       roundOffMethod: 'manual',

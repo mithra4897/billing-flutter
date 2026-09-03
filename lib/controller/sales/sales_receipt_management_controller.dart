@@ -398,6 +398,7 @@ class SalesReceiptManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceAllocations(nextAllocations, notify: false);
     formError = null;
+    update();
     await refreshSalesChain();
     if (notify) {
       update();
@@ -487,6 +488,7 @@ class SalesReceiptManagementController extends GetxController {
         ),
       ], notify: false);
       formError = null;
+      update();
       await refreshSalesChain(invoiceId: invoice.id);
       update();
     } catch (error) {
