@@ -66,3 +66,6 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - Shared bordered cards, module-list tables, and editable line-item tables —
   see `SPECIFICATIONS.md`, `ARCHITECTURE.md`, and the 2026-08-22
   verification/changelog entries.
+- StaffU-inspired Project Tasks Kanban board — see `SPECIFICATIONS.md`,
+  `ARCHITECTURE.md`, ADR-0040 in `DECISIONS.md`, and the 2026-09-03 entries in
+  `TESTING.md` and `CHANGELOG.md`.

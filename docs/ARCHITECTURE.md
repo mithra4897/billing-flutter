@@ -617,3 +617,25 @@ of components and avoids database queries or repeated component scans. Saving
 a component named PF or ESI is normalized by the API to the approved deduction
 basis and rate. Deployment migration updates current component definitions;
 persisted payroll lines and payslip snapshots are not mutated.
+
+## 2026-09-03 — Project task board presentation
+
+The standalone Project Tasks route composes a feature-local Kanban board over
+`ProjectTaskManagementController.filteredRows`. The controller remains the sole
+owner of loading, filtering, selection, validation, and mutations. A small
+feature-local board widget performs one O(n) grouping pass into ordered status
+lanes and renders cards from typed `ProjectTaskRow` values. The existing shared
+theme, section card, filter fields, action button, form controls, modal surface,
+and task editor are reused. The embedded Project Tasks subtab deliberately keeps
+the existing expandable layout.
+
+Employee display names are indexed once by employee ID after loading, making
+card assignee lookup O(1) per ID instead of rescanning the employee list.
+Persisted cards are Flutter `Draggable` values and each lane is a typed
+`DragTarget`. The controller owns status mutation: it validates the destination,
+optimistically replaces the row, blocks another move for the same task ID,
+persists the full typed task payload through `ProjectService.updateTask`, then
+invalidates `ProjectModuleRefreshController`'s nested project cache and reloads
+authoritative data. The same invalidation-first refresh is shared by task
+create, edit, and delete mutations. Failures restore the previous row, filtered
+set, selection, and editor status before surfacing feedback.

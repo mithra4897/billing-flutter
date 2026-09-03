@@ -1,6 +1,7 @@
 import '../../controller/project/project_task_management_controller.dart';
 import '../../screen.dart';
 import 'widgets/project_subtab_expandable_section.dart';
+import 'widgets/project_task_kanban_board.dart';
 
 class ProjectTaskManagementPage extends StatefulWidget {
   const ProjectTaskManagementPage({
@@ -92,9 +93,15 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewTask(
-              isDesktop: Responsive.isDesktop(context),
-            ),
+            onPressed: () {
+              if (controller.isProjectConstrained) {
+                controller.startNewTask(
+                  isDesktop: Responsive.isDesktop(context),
+                );
+                return;
+              }
+              _openTaskEditor(context, controller);
+            },
             icon: Icons.add_task_outlined,
             label: 'New Task',
           ),
@@ -143,46 +150,47 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       );
     }
 
-    final selectedRow = controller.selectedRow;
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
-      title: 'Project Tasks',
-      editorTitle: selectedRow == null
-          ? null
-          : (selectedRow.task.taskName ?? selectedRow.task.taskCode),
-      scrollController: controller.pageScrollController,
-      list: Column(
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTaskFilters(controller),
+          _buildTaskFilters(controller, includeSearch: true),
           const SizedBox(height: AppUiConstants.spacingMd),
-          SettingsListCard<ProjectTaskRow>(
-            searchController: controller.searchController,
-            searchHint: 'Search tasks',
-            items: controller.filteredRows,
-            selectedItem: controller.selectedRow,
-            emptyMessage: 'No tasks match the selected filters.',
-            itemBuilder: (row, selected) => SettingsListTile(
-              title: row.task.taskName ?? 'Task',
-              subtitle: [
-                row.task.taskCode ?? '',
-                row.project.projectName ?? '',
-                row.task.taskStatus ?? '',
-              ].where((item) => item.isNotEmpty).join(' • '),
-              selected: selected,
-              onTap: () => controller.selectRow(row),
-            ),
+          ProjectTaskKanbanBoard(
+            rows: controller.filteredRows,
+            statusFilter: controller.listStatusFilter,
+            employeeNames: controller.employeeNames,
+            onOpen: (row) => _openTaskEditor(context, controller, row: row),
+            onAdd: (status) =>
+                _openTaskEditor(context, controller, initialStatus: status),
+            onDelete: (row) => _deleteTask(context, controller, row),
+            onMove: (row, status) =>
+                _moveTask(context, controller, row, status),
+            canDelete: controller.canDeleteTasks,
+            isBusy: controller.saving,
+            movingTaskIds: controller.movingTaskIds,
           ),
         ],
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
     );
   }
 
-  Widget _buildTaskFilters(ProjectTaskManagementController controller) {
+  Widget _buildTaskFilters(
+    ProjectTaskManagementController controller, {
+    bool includeSearch = false,
+  }) {
     return AppSectionCard(
       child: SettingsFormWrap(
         children: [
+          if (includeSearch)
+            AppFormTextField(
+              controller: controller.searchController,
+              labelText: 'Search Tasks',
+              hintText: 'Name, code, project, or employee',
+              prefixIcon: const Icon(Icons.search_outlined),
+            ),
           AppDropdownField<String>.fromMapped(
             labelText: 'Task status',
             mappedItems: _taskListStatusFilterItems,
@@ -319,8 +327,9 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
 
   Widget _buildEditorForm(
     BuildContext context,
-    ProjectTaskManagementController controller,
-  ) {
+    ProjectTaskManagementController controller, {
+    VoidCallback? onSaved,
+  }) {
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -503,6 +512,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                           appScaffoldMessengerKey.currentState
                             ?..hideCurrentSnackBar()
                             ..showSnackBar(SnackBar(content: Text(message)));
+                          onSaved?.call();
                         },
                   icon: controller.selectedRow?.task.id == null
                       ? Icons.add
@@ -516,5 +526,97 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openTaskEditor(
+    BuildContext context,
+    ProjectTaskManagementController controller, {
+    ProjectTaskRow? row,
+    String? initialStatus,
+  }) async {
+    if (row == null) {
+      controller.startNewTask(isDesktop: true);
+      if (initialStatus != null) {
+        controller.setTaskStatus(initialStatus);
+      }
+    } else {
+      controller.selectRow(row, toggleIfSelected: false);
+    }
+
+    await showAppFilterPanel<void>(
+      context: context,
+      title: row?.task.taskName ?? 'New Project Task',
+      maxWidth: 960,
+      builder: (dialogContext) => _buildEditorForm(
+        dialogContext,
+        controller,
+        onSaved: () => Navigator.of(dialogContext).pop(),
+      ),
+    );
+  }
+
+  Future<void> _deleteTask(
+    BuildContext context,
+    ProjectTaskManagementController controller,
+    ProjectTaskRow row,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Task'),
+        content: Text('Remove ${row.task.taskName ?? 'this task'}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    controller.selectRow(row, toggleIfSelected: false);
+    final message = await controller.deleteTask();
+    if (!mounted || message == null) {
+      return;
+    }
+    appScaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _moveTask(
+    BuildContext context,
+    ProjectTaskManagementController controller,
+    ProjectTaskRow row,
+    String status,
+  ) async {
+    final errorColor = Theme.of(context).colorScheme.error;
+    try {
+      final message = await controller.moveTaskToStatus(row, status);
+      if (!mounted || message == null) {
+        return;
+      }
+      appScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    } catch (errorValue) {
+      if (!mounted) {
+        return;
+      }
+      appScaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Unable to move task: $errorValue'),
+            backgroundColor: errorColor,
+          ),
+        );
+    }
   }
 }

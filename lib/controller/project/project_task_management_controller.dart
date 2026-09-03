@@ -7,13 +7,17 @@ class ProjectTaskManagementController extends GetxController {
     this.initialProjectId,
     this.initialTaskId,
     this.initialDashboardFilter = '',
-  });
+    ProjectService? projectService,
+    ProjectModuleRefreshController? refreshController,
+  }) : _projectService = projectService ?? ProjectService(),
+       _refreshController =
+           refreshController ??
+           ProjectModuleRefreshController.ensureRegistered();
 
-  final ProjectService _projectService = ProjectService();
+  final ProjectService _projectService;
   final HrService _hrService = HrService();
   final MasterService _masterService = MasterService();
-  final ProjectModuleRefreshController _refreshController =
-      ProjectModuleRefreshController.ensureRegistered();
+  final ProjectModuleRefreshController _refreshController;
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -58,11 +62,13 @@ class ProjectTaskManagementController extends GetxController {
   String taskStatus = 'open';
   bool isBillable = true;
   bool isSuperAdmin = false;
-  String listStatusFilter = 'pending';
+  String listStatusFilter = 'all';
   Set<int> filterEmployeeIds = <int>{};
+  Set<int> movingTaskIds = <int>{};
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<EmployeeModel> employees = const <EmployeeModel>[];
+  Map<int, String> employeeNamesById = const <int, String>{};
   List<ProjectTaskRow> rows = const <ProjectTaskRow>[];
   List<ProjectTaskRow> filteredRows = const <ProjectTaskRow>[];
   ProjectTaskRow? selectedRow;
@@ -70,6 +76,7 @@ class ProjectTaskManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _applyInitialDashboardFilter();
     searchController.addListener(_applySearch);
     taskCodeController.addListener(_handleTaskCodeChanged);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
@@ -111,6 +118,21 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   bool get isProjectConstrained => constrainedProjectId != null;
+
+  void _applyInitialDashboardFilter() {
+    final requested = initialDashboardFilter.trim().toLowerCase();
+    if (const <String>{
+      'pending',
+      'all',
+      'open',
+      'working',
+      'on_hold',
+      'completed',
+      'cancelled',
+    }.contains(requested)) {
+      listStatusFilter = requested;
+    }
+  }
 
   Future<void> applyProjectConstraint(int? value) async {
     if (constrainedProjectId == value) {
@@ -181,6 +203,10 @@ class ProjectTaskManagementController extends GetxController {
       employees = nextEmployees
           .where((item) => item.status == 'active')
           .toList(growable: false);
+      employeeNamesById = <int, String>{
+        for (final employee in employees)
+          if (employee.id != null) employee.id!: employee.toString(),
+      };
       rows = nextRows;
       filteredRows = filterRows(nextRows, searchController.text);
       initialLoading = false;
@@ -195,7 +221,7 @@ class ProjectTaskManagementController extends GetxController {
           orElse: () => null,
         );
         if (selected != null) {
-          selectRow(selected, notify: false);
+          selectRow(selected, notify: false, toggleIfSelected: false);
           return;
         }
       }
@@ -206,7 +232,7 @@ class ProjectTaskManagementController extends GetxController {
           orElse: () => null,
         );
         if (selected != null) {
-          selectRow(selected, notify: false);
+          selectRow(selected, notify: false, toggleIfSelected: false);
           return;
         }
       }
@@ -278,8 +304,12 @@ class ProjectTaskManagementController extends GetxController {
     });
   }
 
-  void selectRow(ProjectTaskRow row, {bool notify = true}) {
-    if (selectedRow?.task.id == row.task.id) {
+  void selectRow(
+    ProjectTaskRow row, {
+    bool notify = true,
+    bool toggleIfSelected = true,
+  }) {
+    if (toggleIfSelected && selectedRow?.task.id == row.task.id) {
       resetForm(notify: notify);
       return;
     }
@@ -436,8 +466,7 @@ class ProjectTaskManagementController extends GetxController {
           : await _projectService.updateTask(selectedRow!.task.id!, model);
       showDraftTile = false;
       resetForm(notify: false);
-      await loadData(selectTaskId: response.data?.id ?? selectedRow?.task.id);
-      _refreshController.notifyChanged(source: 'project_task');
+      await _reloadAfterTaskMutation(selectTaskId: response.data?.id);
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -455,9 +484,72 @@ class ProjectTaskManagementController extends GetxController {
       return null;
     }
     final response = await _projectService.deleteTask(row!.task.id!);
-    await loadData();
-    _refreshController.notifyChanged(source: 'project_task');
+    await _reloadAfterTaskMutation();
     return response.message;
+  }
+
+  bool canMoveTaskToStatus(ProjectTaskRow row, String status) {
+    final taskId = row.task.id;
+    final nextStatus = status.trim().toLowerCase();
+    final currentStatus = (row.task.taskStatus ?? 'open').trim().toLowerCase();
+    return taskId != null &&
+        projectTaskStatusValues.contains(nextStatus) &&
+        nextStatus != currentStatus &&
+        !movingTaskIds.contains(taskId);
+  }
+
+  Future<String?> moveTaskToStatus(ProjectTaskRow row, String status) async {
+    if (!canMoveTaskToStatus(row, status)) {
+      return null;
+    }
+
+    final taskId = row.task.id!;
+    final nextStatus = status.trim().toLowerCase();
+    final previousRows = rows;
+    final previousFilteredRows = filteredRows;
+    final previousSelectedRow = selectedRow;
+    final previousEditorStatus = taskStatus;
+    final updatedRow = ProjectTaskRow(
+      project: row.project,
+      task: projectTaskWithStatus(row.task, nextStatus),
+    );
+
+    movingTaskIds = <int>{...movingTaskIds, taskId};
+    rows = <ProjectTaskRow>[
+      for (final currentRow in rows)
+        if (currentRow.task.id == taskId) updatedRow else currentRow,
+    ];
+    filteredRows = filterRows(rows, searchController.text);
+    if (selectedRow?.task.id == taskId) {
+      selectedRow = updatedRow;
+      taskStatus = nextStatus;
+    }
+    update();
+
+    try {
+      final response = await _projectService.updateTask(
+        taskId,
+        updatedRow.task,
+      );
+      await _reloadAfterTaskMutation(selectTaskId: taskId);
+      return response.message;
+    } catch (_) {
+      rows = previousRows;
+      filteredRows = previousFilteredRows;
+      selectedRow = previousSelectedRow;
+      taskStatus = previousEditorStatus;
+      update();
+      rethrow;
+    } finally {
+      movingTaskIds = <int>{...movingTaskIds}..remove(taskId);
+      update();
+    }
+  }
+
+  Future<void> _reloadAfterTaskMutation({int? selectTaskId}) async {
+    _refreshController.invalidateProjects();
+    await loadData(selectTaskId: selectTaskId);
+    _refreshController.notifyChanged(source: 'project_task');
   }
 
   List<AppDropdownItem<int>> get projectItems => projects
@@ -506,7 +598,7 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   void setListStatusFilter(String? value) {
-    listStatusFilter = value ?? 'pending';
+    listStatusFilter = value ?? 'all';
     filteredRows = filterRows(rows, searchController.text);
     if (selectedRow != null && !filteredRows.contains(selectedRow)) {
       selectedRow = null;
@@ -528,11 +620,7 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   String employeeName(int? id) {
-    return employees
-            .cast<EmployeeModel?>()
-            .firstWhere((item) => item?.id == id, orElse: () => null)
-            ?.toString() ??
-        '';
+    return employeeNamesById[id] ?? '';
   }
 
   List<String> employeeNames(Iterable<int> ids) {
@@ -615,4 +703,20 @@ class ProjectTaskRow {
 
   final ProjectModel project;
   final ProjectTaskModel task;
+}
+
+const Set<String> projectTaskStatusValues = <String>{
+  'open',
+  'working',
+  'on_hold',
+  'completed',
+  'cancelled',
+};
+
+ProjectTaskModel projectTaskWithStatus(ProjectTaskModel task, String status) {
+  return ProjectTaskModel.fromJson(<String, dynamic>{
+    ...task.toJson(),
+    if (task.id != null) 'id': task.id,
+    'task_status': status.trim().toLowerCase(),
+  });
 }

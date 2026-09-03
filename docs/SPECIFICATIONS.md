@@ -2208,3 +2208,57 @@ Acceptance criteria:
    per-row action prompts for a template, generates, and sends the selected
    invoice PDF in place without navigating to the invoice editor or preview;
    ineligible rows remain visibly unavailable.
+
+## 2026-09-03 — StaffU-inspired project task Kanban board
+
+### Objective
+
+Replace the standalone Project Tasks list/editor presentation with a responsive
+Kanban board based on the extracted StaffU `/task` design while preserving the
+ERP task API, validation, permissions, and embedded Project-subtab workflow.
+
+### Scope and requirements
+
+- `/projects/tasks` must group the already-loaded, already-authorized tasks into
+  the backend statuses `open`, `working`, `on_hold`, `completed`, and
+  `cancelled` without inventing a new status or priority field.
+- The current status, employee, and text filters must continue to determine
+  board visibility. The ordinary task route defaults to All Statuses so the
+  Completed lane is discoverable; dashboard links may still request Pending.
+  Pending shows Open, In Progress, and On Hold lanes; an exact status shows one
+  lane; All Statuses shows all five lanes.
+- Task cards must expose available task code/project context, due date,
+  description, billable state, progress, and assigned employees, and must open
+  the existing validated task editor when selected.
+- Add, edit, save, delete, loading, retry, permission, and error behavior must
+  remain available. The editor must continue to use the typed model/service and
+  existing shared fields and validators.
+- A persisted task card must be draggable between visible lanes. A drop must
+  optimistically update the board, persist the destination's existing backend
+  status through the typed task update service, invalidate the cached nested
+  project/task collection before the authoritative reload, block duplicate
+  moves for the same task, and restore the prior board state with visible
+  feedback on failure. A successful move must not be overwritten by stale
+  pre-mutation project cache data.
+- Dragging must not invent an `in_review` value: the available lanes remain the
+  API-supported Open, Working, On Hold, Completed, and Cancelled statuses.
+- Desktop/tablet boards may use horizontal lanes; narrow layouts must remain
+  readable without shrinking cards below a usable width.
+- The Project master embedded Tasks subtab remains the existing compact
+  expandable workflow because it shares space with the parent editor.
+
+### Acceptance criteria and tests
+
+- Grouping is a single pass over visible rows and preserves row order inside
+  each lane.
+- Pending, all, exact-status, and unknown-status inputs produce deterministic
+  lane sets.
+- A valid cross-lane drop requests exactly one status mutation, while same-lane,
+  unsaved, and already-moving cards are rejected.
+- After a successful mutation, cache invalidation occurs before the
+  authoritative reload so the card remains visibly in its destination lane.
+- The standalone screen renders the StaffU-inspired toolbar, tinted lanes,
+  cards, progress, assignee summaries, and add actions in light and dark themes.
+- No backend, database, route, authorization, or payload change is introduced.
+- Focused tests cover lane selection and grouping; formatting, focused analysis,
+  and focused tests are executed.

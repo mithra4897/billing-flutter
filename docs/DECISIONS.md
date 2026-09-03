@@ -804,3 +804,30 @@
   remain effective-dated through the existing profile model.
 - Related files: company schema/model/service/controller; payroll/statutory
   services; Company Settings and statutory UI; tests and deployment docs.
+
+## ADR-0040: Use a feature-local Kanban presentation for standalone project tasks
+
+- Date: 2026-09-03
+- Status: Accepted
+- Context: The StaffU task reference is a Kanban board, while the ERP task API
+  already defines five statuses and the Project master embeds tasks inside a
+  constrained child tab.
+- Decision: Render the standalone task route through a feature-local responsive
+  board grouped by the existing backend statuses. Keep the typed controller,
+  editor, filters, and embedded expandable subtab unchanged as behavioral
+  boundaries. Do not add a priority field or substitute a visual-only status.
+- Reason: This applies the extracted design where it fits while preserving API
+  truth, permissions, validation, and the denser parent-editor workflow.
+- Alternatives considered: Copy the reference's three statuses; change every
+  task surface to Kanban; introduce a second task state model; redesign the
+  global theme again.
+- Consequences: Grouping is O(n) time and O(n) output space for n visible tasks;
+  desktop can scroll lanes horizontally and narrow layouts stack them. The
+  ordinary route defaults to all statuses so Completed is discoverable. A
+  cross-lane card drop uses the existing typed update API with optimistic UI,
+  per-task duplicate suppression, cache invalidation before authoritative
+  reload, and rollback on failure. Task create/edit/delete use the same refresh
+  ordering. Only the five statuses accepted by the backend are valid targets.
+- Related files: `lib/view/project/project_task_page.dart`,
+  `lib/view/project/widgets/project_task_kanban_board.dart`, task controller,
+  focused tests, and frontend documentation.

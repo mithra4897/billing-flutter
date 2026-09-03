@@ -1403,3 +1403,25 @@ been packaged successfully.
   warnings; they do not fail the suite.
 - Production migration and payroll recalculation were not executed from this
   development workspace.
+
+## 2026-09-03 — StaffU-inspired Project Tasks Kanban board
+
+- Design extraction: `designlang` 12.21.0 extracted the StaffU `/task` page,
+  Flutter tokens, full-page/component screenshots, responsive captures, motion,
+  and interaction states into the workspace-level
+  `design-extract-output/staffu-task/` directory. The files were produced, but
+  the CLI exited with an upstream post-generation `Buffer.byteLength` error
+  after reporting extraction complete.
+- `dart format` completed for the changed controller, page, board widget, and
+  focused test.
+- Focused `flutter analyze` passed with no issues for the changed Dart files and
+  focused test.
+- Focused `flutter test test/view/project_task_kanban_board_test.dart` passed all
+  8 tests covering pending/all/exact/unknown lane selection, stable grouping,
+  accepted/rejected drops, status-payload preservation, and the required
+  update → cache invalidation → reload → notification sequence.
+- Agent Browser verified the StaffU reference exposes its Completed lane to the
+  right of the horizontal viewport and configures cross-lane jKanban dragging.
+  The reference is a static demo and does not persist drops.
+- Live ERP API verification was not run from this workspace; focused tests cover
+  the move gate, typed payload transformation, and stale-cache regression.
