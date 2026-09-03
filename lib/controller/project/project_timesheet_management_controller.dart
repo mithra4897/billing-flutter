@@ -13,6 +13,9 @@ class ProjectTimesheetManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
+  Set<String> selectedStatuses = const <String>{};
   final TextEditingController workDateController = TextEditingController();
   final TextEditingController hoursWorkedController = TextEditingController();
   final TextEditingController hourlyCostController = TextEditingController();
@@ -44,7 +47,9 @@ class ProjectTimesheetManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     hoursWorkedController.addListener(_syncCalculatedAmounts);
     hourlyCostController.addListener(_syncCalculatedAmounts);
     billableRateController.addListener(_syncCalculatedAmounts);
@@ -66,7 +71,13 @@ class ProjectTimesheetManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
+      ..removeListener(_applyFilters)
       ..dispose();
     hoursWorkedController.removeListener(_syncCalculatedAmounts);
     hourlyCostController.removeListener(_syncCalculatedAmounts);
@@ -145,7 +156,7 @@ class ProjectTimesheetManagementController extends GetxController {
           .where((item) => item.status == 'active')
           .toList(growable: false);
       rows = nextRows;
-      filteredRows = _filterRows(nextRows, searchController.text);
+      filteredRows = _filterRows(nextRows);
       initialLoading = false;
       update();
 
@@ -171,11 +182,8 @@ class ProjectTimesheetManagementController extends GetxController {
     }
   }
 
-  List<ProjectTimesheetRow> _filterRows(
-    List<ProjectTimesheetRow> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (row) {
+  List<ProjectTimesheetRow> _filterRows(List<ProjectTimesheetRow> items) {
+    var result = filterMasterList(items, searchController.text, (row) {
       return [
         row.project.projectName ?? '',
         employeeName(row.timesheet.employeeId),
@@ -183,11 +191,51 @@ class ProjectTimesheetManagementController extends GetxController {
         row.timesheet.timesheetStatus ?? '',
       ];
     });
+    if (selectedStatuses.isNotEmpty) {
+      result = result
+          .where(
+            (row) => selectedStatuses.contains(
+              row.timesheet.timesheetStatus ?? '',
+            ),
+          )
+          .toList(growable: false);
+    }
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty) {
+      result = result
+          .where(
+            (row) =>
+                (row.timesheet.workDate ?? '').compareTo(from) >= 0,
+          )
+          .toList(growable: false);
+    }
+    if (to.isNotEmpty) {
+      result = result
+          .where(
+            (row) =>
+                (row.timesheet.workDate ?? '').compareTo(to) <= 0,
+          )
+          .toList(growable: false);
+    }
+    return result;
   }
 
-  void _applySearch() {
-    filteredRows = _filterRows(rows, searchController.text);
+  void _applyFilters() {
+    filteredRows = _filterRows(rows);
     update();
+  }
+
+  void setStatuses(Set<String> values) {
+    selectedStatuses = values;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    selectedStatuses = const <String>{};
+    _applyFilters();
   }
 
   void selectRow(ProjectTimesheetRow row, {bool notify = true}) {

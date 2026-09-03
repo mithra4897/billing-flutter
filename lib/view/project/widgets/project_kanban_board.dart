@@ -1,3 +1,4 @@
+import '../../../components/app_progress_bar.dart';
 import '../../../controller/project/project_milestone_management_controller.dart';
 import '../../../controller/project/project_task_management_controller.dart';
 import '../../../screen.dart';
@@ -751,30 +752,10 @@ class _ProjectTaskCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: AppUiConstants.spacingLg),
-                Row(
-                  children: [
-                    Text('Progress', style: theme.textTheme.labelMedium),
-                    const Spacer(),
-                    Text(
-                      '${progress.toStringAsFixed(progress == progress.roundToDouble() ? 0 : 1)}%',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: appTheme.mutedText,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.pillRadius,
-                  ),
-                  child: LinearProgressIndicator(
-                    minHeight: 8,
-                    value: progress / 100,
-                    color: accent,
-                    backgroundColor: accent.withValues(alpha: 0.10),
-                  ),
+                AppProgressBar(
+                  label: 'Progress',
+                  progress: progress / 100,
+                  color: accent,
                 ),
                 const SizedBox(height: AppUiConstants.spacingMd),
                 Divider(color: appTheme.tableBorder),

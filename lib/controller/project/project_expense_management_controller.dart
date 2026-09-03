@@ -14,6 +14,9 @@ class ProjectExpenseManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
+  Set<String> selectedStatuses = const <String>{};
   final TextEditingController expenseDateController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -44,7 +47,9 @@ class ProjectExpenseManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -63,7 +68,13 @@ class ProjectExpenseManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
+      ..removeListener(_applyFilters)
       ..dispose();
     expenseDateController.dispose();
     categoryController.dispose();
@@ -144,7 +155,7 @@ class ProjectExpenseManagementController extends GetxController {
           .toList(growable: false);
       purchaseInvoices = nextPurchaseInvoices;
       rows = nextRows;
-      filteredRows = _filterRows(nextRows, searchController.text);
+      filteredRows = _filterRows(nextRows);
       initialLoading = false;
       update();
 
@@ -170,11 +181,8 @@ class ProjectExpenseManagementController extends GetxController {
     }
   }
 
-  List<ProjectExpenseRow> _filterRows(
-    List<ProjectExpenseRow> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (row) {
+  List<ProjectExpenseRow> _filterRows(List<ProjectExpenseRow> items) {
+    var result = filterMasterList(items, searchController.text, (row) {
       return [
         row.expense.expenseCategory ?? '',
         row.project.projectName ?? '',
@@ -182,11 +190,47 @@ class ProjectExpenseManagementController extends GetxController {
         row.expense.expenseStatus ?? '',
       ];
     });
+    if (selectedStatuses.isNotEmpty) {
+      result = result
+          .where(
+            (row) => selectedStatuses.contains(row.expense.expenseStatus ?? ''),
+          )
+          .toList(growable: false);
+    }
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty) {
+      result = result
+          .where(
+            (row) => (row.expense.expenseDate ?? '').compareTo(from) >= 0,
+          )
+          .toList(growable: false);
+    }
+    if (to.isNotEmpty) {
+      result = result
+          .where(
+            (row) => (row.expense.expenseDate ?? '').compareTo(to) <= 0,
+          )
+          .toList(growable: false);
+    }
+    return result;
   }
 
-  void _applySearch() {
-    filteredRows = _filterRows(rows, searchController.text);
+  void _applyFilters() {
+    filteredRows = _filterRows(rows);
     update();
+  }
+
+  void setStatuses(Set<String> values) {
+    selectedStatuses = values;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    selectedStatuses = const <String>{};
+    _applyFilters();
   }
 
   void selectRow(ProjectExpenseRow row, {bool notify = true}) {
@@ -203,7 +247,7 @@ class ProjectExpenseManagementController extends GetxController {
     expenseDateController.text = normalizeDateValue(row.expense.expenseDate);
     categoryController.text = row.expense.expenseCategory ?? '';
     descriptionController.text = row.expense.description ?? '';
-    amountController.text = _decimalText(row.expense.amount);
+    amountController.text = decimalText(row.expense.amount);
     voucherIdController.text = row.expense.voucherId?.toString() ?? '';
     remarksController.text = row.expense.remarks ?? '';
     status = row.expense.expenseStatus ?? 'draft';
@@ -290,7 +334,7 @@ class ProjectExpenseManagementController extends GetxController {
     purchaseInvoiceId = invoiceId;
     if (invoice != null) {
       supplierPartyId = invoice.supplierPartyId;
-      amountController.text = _decimalText(invoice.totalAmount);
+      amountController.text = decimalText(invoice.totalAmount);
     }
     update();
   }
@@ -418,7 +462,7 @@ class ProjectExpenseManagementController extends GetxController {
 
   int? _intValue(String text) => int.tryParse(text.trim());
 
-  String _decimalText(double? value) => value == null
+  String decimalText(double? value) => value == null
       ? ''
       : (value == value.roundToDouble()
             ? value.toInt().toString()

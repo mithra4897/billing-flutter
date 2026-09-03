@@ -13,6 +13,8 @@ class ProjectResourceUsageManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final TextEditingController resourceNameController = TextEditingController();
   final TextEditingController usageDateController = TextEditingController();
   final TextEditingController usageHoursController = TextEditingController();
@@ -43,7 +45,9 @@ class ProjectResourceUsageManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     usageHoursController.addListener(_syncCalculatedTotalCost);
     usageQtyController.addListener(_syncCalculatedTotalCost);
     unitCostController.addListener(_syncCalculatedTotalCost);
@@ -65,7 +69,13 @@ class ProjectResourceUsageManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
+      ..removeListener(_applyFilters)
       ..dispose();
     usageHoursController.removeListener(_syncCalculatedTotalCost);
     usageQtyController.removeListener(_syncCalculatedTotalCost);
@@ -142,7 +152,7 @@ class ProjectResourceUsageManagementController extends GetxController {
       projects = scopedProjects;
       assets = nextAssets;
       rows = nextRows;
-      filteredRows = _filterRows(nextRows, searchController.text);
+      filteredRows = _filterRows(nextRows);
       initialLoading = false;
       update();
 
@@ -170,9 +180,8 @@ class ProjectResourceUsageManagementController extends GetxController {
 
   List<ProjectResourceUsageRow> _filterRows(
     List<ProjectResourceUsageRow> items,
-    String query,
   ) {
-    return filterMasterList(items, query, (row) {
+    var result = filterMasterList(items, searchController.text, (row) {
       return [
         row.usage.resourceName ?? '',
         row.project.projectName ?? '',
@@ -180,11 +189,30 @@ class ProjectResourceUsageManagementController extends GetxController {
         assetLabel(assetById(row.usage.assetId)),
       ];
     });
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty) {
+      result = result
+          .where((row) => (row.usage.usageDate ?? '').compareTo(from) >= 0)
+          .toList(growable: false);
+    }
+    if (to.isNotEmpty) {
+      result = result
+          .where((row) => (row.usage.usageDate ?? '').compareTo(to) <= 0)
+          .toList(growable: false);
+    }
+    return result;
   }
 
-  void _applySearch() {
-    filteredRows = _filterRows(rows, searchController.text);
+  void _applyFilters() {
+    filteredRows = _filterRows(rows);
     update();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    _applyFilters();
   }
 
   void selectRow(ProjectResourceUsageRow row, {bool notify = true}) {

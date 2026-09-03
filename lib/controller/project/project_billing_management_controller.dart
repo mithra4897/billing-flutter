@@ -13,6 +13,9 @@ class ProjectBillingManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
+  Set<String> selectedStatuses = const <String>{};
   final TextEditingController billingDateController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -39,7 +42,9 @@ class ProjectBillingManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(_applySearch);
+    searchController.addListener(_applyFilters);
+    dateFromController.addListener(_applyFilters);
+    dateToController.addListener(_applyFilters);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -58,7 +63,13 @@ class ProjectBillingManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
-      ..removeListener(_applySearch)
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    dateToController
+      ..removeListener(_applyFilters)
       ..dispose();
     billingDateController.dispose();
     amountController.dispose();
@@ -127,7 +138,7 @@ class ProjectBillingManagementController extends GetxController {
       projects = scopedProjects;
       salesInvoices = nextSalesInvoices;
       rows = nextRows;
-      filteredRows = _filterRows(nextRows, searchController.text);
+      filteredRows = _filterRows(nextRows);
       initialLoading = false;
       update();
 
@@ -153,11 +164,8 @@ class ProjectBillingManagementController extends GetxController {
     }
   }
 
-  List<ProjectBillingRow> _filterRows(
-    List<ProjectBillingRow> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (row) {
+  List<ProjectBillingRow> _filterRows(List<ProjectBillingRow> items) {
+    var result = filterMasterList(items, searchController.text, (row) {
       return [
         row.project.projectName ?? '',
         row.billing.billingDate ?? '',
@@ -165,11 +173,48 @@ class ProjectBillingManagementController extends GetxController {
         row.billing.billingStatus ?? '',
       ];
     });
+    if (selectedStatuses.isNotEmpty) {
+      result = result
+          .where(
+            (row) =>
+                selectedStatuses.contains(row.billing.billingStatus ?? ''),
+          )
+          .toList(growable: false);
+    }
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty) {
+      result = result
+          .where(
+            (row) => (row.billing.billingDate ?? '').compareTo(from) >= 0,
+          )
+          .toList(growable: false);
+    }
+    if (to.isNotEmpty) {
+      result = result
+          .where(
+            (row) => (row.billing.billingDate ?? '').compareTo(to) <= 0,
+          )
+          .toList(growable: false);
+    }
+    return result;
   }
 
-  void _applySearch() {
-    filteredRows = _filterRows(rows, searchController.text);
+  void _applyFilters() {
+    filteredRows = _filterRows(rows);
     update();
+  }
+
+  void setStatuses(Set<String> values) {
+    selectedStatuses = values;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    selectedStatuses = const <String>{};
+    _applyFilters();
   }
 
   void selectRow(ProjectBillingRow row, {bool notify = true}) {

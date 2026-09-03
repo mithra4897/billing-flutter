@@ -34,6 +34,7 @@ class ProjectVendorWorkManagementController extends GetxController {
   int? purchaseOrderId;
   int? purchaseInvoiceId;
   String status = 'open';
+  Set<String> selectedStatuses = const <String>{};
   Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
@@ -199,7 +200,7 @@ class ProjectVendorWorkManagementController extends GetxController {
         })
         .toList(growable: false);
 
-    return filterMasterList(scoped, searchController.text, (row) {
+    var result = filterMasterList(scoped, searchController.text, (row) {
       return [
         row.project.projectName ?? '',
         taskName(row.project, row.work.projectTaskId),
@@ -208,6 +209,12 @@ class ProjectVendorWorkManagementController extends GetxController {
         row.work.workDescription ?? '',
       ];
     });
+    if (selectedStatuses.isNotEmpty) {
+      result = result
+          .where((row) => selectedStatuses.contains(row.work.workStatus ?? ''))
+          .toList(growable: false);
+    }
+    return result;
   }
 
   void _applyFilters() {
@@ -216,6 +223,11 @@ class ProjectVendorWorkManagementController extends GetxController {
   }
 
   void applyFilters() {
+    _applyFilters();
+  }
+
+  void setStatuses(Set<String> values) {
+    selectedStatuses = values;
     _applyFilters();
   }
 
@@ -397,6 +409,7 @@ class ProjectVendorWorkManagementController extends GetxController {
   }
 
   void clearFilters() {
+    selectedStatuses = const <String>{};
     searchController.clear();
     filterProjectId = constrainedProjectId;
     filterTaskId = null;

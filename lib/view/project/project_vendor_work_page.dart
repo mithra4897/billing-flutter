@@ -1,3 +1,4 @@
+import '../../components/app_progress_bar.dart';
 import '../../controller/project/project_vendor_work_management_controller.dart';
 import '../../screen.dart';
 import 'widgets/project_subtab_expandable_section.dart';
@@ -30,6 +31,8 @@ class _ProjectVendorWorkManagementPageState
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
       ];
+
+  bool _filtersVisible = false;
 
   late final String _controllerTag;
 
@@ -71,28 +74,26 @@ class _ProjectVendorWorkManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search vendor works',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewVendorWork(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.handyman_outlined,
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_list_outlined,
+            label: 'Filter',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              _openEditor(context, controller);
+            },
+            icon: Icons.handshake_outlined,
             label: 'New Vendor Work',
           ),
         ];
 
-        final content = _buildContent(context, controller);
-        if (widget.embedded && widget.useShellActions) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        if (widget.embedded) {
-          return content;
-        }
-        return AppStandaloneShell(
-          title: 'Project Vendor Works',
-          actions: actions,
-          scrollController: controller.pageScrollController,
-          child: content,
-        );
+        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
       },
     );
   }
@@ -100,6 +101,7 @@ class _ProjectVendorWorkManagementPageState
   Widget _buildContent(
     BuildContext context,
     ProjectVendorWorkManagementController controller,
+    List<Widget> actions,
   ) {
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading project vendor works...');
@@ -116,33 +118,114 @@ class _ProjectVendorWorkManagementPageState
       return _buildConstrainedContent(context, controller);
     }
 
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
-      title: 'Project Vendor Works',
-      editorTitle: controller.partyName(
-        controller.selectedRow?.work.vendorPartyId,
+    final columns = <PurchaseRegisterColumn<ProjectVendorWorkRow>>[
+      PurchaseRegisterColumn(
+        label: 'Project',
+        flex: 3,
+        valueBuilder: (row) => row.project.projectName ?? '',
       ),
-      scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectVendorWorkRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search vendor works',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No vendor works found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: controller.partyName(row.work.vendorPartyId).isNotEmpty
-              ? controller.partyName(row.work.vendorPartyId)
-              : 'Vendor Work',
-          subtitle: [
-            row.project.projectName ?? '',
-            row.work.workStatus ?? '',
-            controller.decimalText(row.work.amount),
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
+      PurchaseRegisterColumn(
+        label: 'Vendor',
+        flex: 3,
+        valueBuilder: (row) => controller.partyName(row.work.vendorPartyId),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Description',
+        flex: 3,
+        valueBuilder: (row) => row.work.workDescription ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Amount',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => controller.decimalText(row.work.amount),
+      ),
+      PurchaseRegisterColumn<ProjectVendorWorkRow>(
+        label: 'Status',
+        flex: 2,
+        valueBuilder: (row) => row.work.workStatus ?? '',
+        widgetBuilder: (context, row) {
+          final status = row.work.workStatus ?? '';
+          final trimmed = status.trim().toLowerCase();
+          final error = trimmed == 'cancelled';
+          final progress = trimmed == 'completed'
+              ? 1.0
+              : trimmed == 'cancelled'
+              ? 0.0
+              : 0.5;
+          final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+          final color = error
+              ? Theme.of(context).colorScheme.error
+              : progress >= 1.0
+              ? appTheme.success
+              : progress > 0
+              ? appTheme.info
+              : appTheme.warning;
+
+          return AppProgressBar(
+            label: status.isEmpty ? '-' : status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+            progress: error ? 0.0 : progress,
+            color: color,
+          );
+        },
+      ),
+    ];
+
+    return PurchaseRegisterPage<ProjectVendorWorkRow>(
+      title: 'Project Vendor Works',
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: widget.embedded,
+      fullPageStyle: true,
+      emphasizeRows: false,
+      emptyMessage: 'No vendor works found.',
+      actions: actions,
+      rows: controller.filteredRows,
+      columns: columns,
+      onRowTap: (row) {
+        controller.selectRow(row);
+        _openEditor(context, controller);
+      },
+      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+    );
+  }
+
+  Widget _buildFilterPanel(ProjectVendorWorkManagementController controller) {
+    return AppRegisterFilters(
+      statusItems: _statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      onClear: controller.clearFilters,
+      showDateFilters: false,
+    );
+  }
+
+  void _openEditor(
+    BuildContext context,
+    ProjectVendorWorkManagementController controller,
+  ) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => GetBuilder<ProjectVendorWorkManagementController>(
+          tag: _controllerTag,
+          builder: (ctrl) => AppStandaloneShell(
+            title: ctrl.selectedRow == null ? 'New Vendor Work' : 'Edit Vendor Work',
+            scrollController: ScrollController(),
+            actions: const <Widget>[],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: _buildEditorForm(context, ctrl),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
     );
   }
 

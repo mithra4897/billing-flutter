@@ -1,3 +1,4 @@
+import '../../components/app_progress_bar.dart';
 import '../../controller/project/project_timesheet_management_controller.dart';
 import '../../screen.dart';
 import 'widgets/project_subtab_expandable_section.dart';
@@ -29,6 +30,8 @@ class _ProjectTimesheetManagementPageState
         AppDropdownItem(value: 'approved', label: 'Approved'),
         AppDropdownItem(value: 'rejected', label: 'Rejected'),
       ];
+
+  bool _filtersVisible = false;
 
   late final String _controllerTag;
 
@@ -70,28 +73,26 @@ class _ProjectTimesheetManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search timesheets',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewTimesheet(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.schedule_outlined,
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_list_outlined,
+            label: 'Filter',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              _openEditor(context, controller);
+            },
+            icon: Icons.more_time_outlined,
             label: 'New Timesheet',
           ),
         ];
 
-        final content = _buildContent(context, controller);
-        if (widget.embedded && widget.useShellActions) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        if (widget.embedded) {
-          return content;
-        }
-        return AppStandaloneShell(
-          title: 'Project Timesheets',
-          actions: actions,
-          scrollController: controller.pageScrollController,
-          child: content,
-        );
+        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
       },
     );
   }
@@ -99,6 +100,7 @@ class _ProjectTimesheetManagementPageState
   Widget _buildContent(
     BuildContext context,
     ProjectTimesheetManagementController controller,
+    List<Widget> actions,
   ) {
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading project timesheets...');
@@ -115,35 +117,126 @@ class _ProjectTimesheetManagementPageState
       return _buildConstrainedContent(context, controller);
     }
 
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
+    final columns = <PurchaseRegisterColumn<ProjectTimesheetRow>>[
+      PurchaseRegisterColumn(
+        label: 'Project',
+        flex: 3,
+        valueBuilder: (row) => row.project.projectName ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Employee',
+        flex: 3,
+        valueBuilder: (row) =>
+            controller.employeeName(row.timesheet.employeeId),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Work Date',
+        flex: 2,
+        valueBuilder: (row) => row.timesheet.workDate ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Hours',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) =>
+            controller.decimalText(row.timesheet.hoursWorked),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Billable',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) =>
+            controller.decimalText(row.timesheet.billableAmount),
+      ),
+      PurchaseRegisterColumn<ProjectTimesheetRow>(
+        label: 'Status',
+        flex: 2,
+        valueBuilder: (row) => row.timesheet.timesheetStatus ?? '',
+        widgetBuilder: (context, row) {
+          final status = row.timesheet.timesheetStatus ?? '';
+          final trimmed = status.trim().toLowerCase();
+          final error = trimmed == 'rejected';
+          final progress = trimmed == 'approved'
+              ? 1.0
+              : trimmed == 'rejected'
+              ? 0.0
+              : 0.2;
+          final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+          final color = error
+              ? Theme.of(context).colorScheme.error
+              : progress >= 1.0
+              ? appTheme.success
+              : progress > 0
+              ? appTheme.info
+              : appTheme.warning;
+
+          return AppProgressBar(
+            label: status.isEmpty ? '-' : status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+            progress: error ? 0.0 : progress,
+            color: color,
+          );
+        },
+      ),
+    ];
+
+    return PurchaseRegisterPage<ProjectTimesheetRow>(
       title: 'Project Timesheets',
-      editorTitle: controller.selectedRow == null
-          ? null
-          : controller.employeeName(
-              controller.selectedRow!.timesheet.employeeId,
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: widget.embedded,
+      fullPageStyle: true,
+      emphasizeRows: false,
+      emptyMessage: 'No timesheets found.',
+      actions: actions,
+      rows: controller.filteredRows,
+      columns: columns,
+      onRowTap: (row) {
+        controller.selectRow(row);
+        _openEditor(context, controller);
+      },
+      filters: _filtersVisible
+          ? _buildFilterPanel(controller)
+          : null,
+    );
+  }
+
+  Widget _buildFilterPanel(ProjectTimesheetManagementController controller) {
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      statusItems: _statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      onClear: controller.clearFilters,
+    );
+  }
+
+  void _openEditor(
+    BuildContext context,
+    ProjectTimesheetManagementController controller,
+  ) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => GetBuilder<ProjectTimesheetManagementController>(
+          tag: _controllerTag,
+          builder: (ctrl) => AppStandaloneShell(
+            title: ctrl.selectedRow == null ? 'New Project Timesheet' : 'Edit Project Timesheet',
+            scrollController: ScrollController(),
+            actions: const <Widget>[],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: _buildEditorForm(context, ctrl),
+                ),
+              ),
             ),
-      scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectTimesheetRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search timesheets',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No timesheets found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: controller.employeeName(row.timesheet.employeeId).isNotEmpty
-              ? controller.employeeName(row.timesheet.employeeId)
-              : 'Timesheet',
-          subtitle: [
-            row.project.projectName ?? '',
-            row.timesheet.workDate ?? '',
-            row.timesheet.timesheetStatus ?? '',
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
+          ),
         ),
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
     );
   }
 

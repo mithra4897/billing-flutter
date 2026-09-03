@@ -1,3 +1,4 @@
+import '../../components/app_progress_bar.dart';
 import '../../controller/project/project_billing_management_controller.dart';
 import '../../screen.dart';
 import 'widgets/project_subtab_expandable_section.dart';
@@ -39,6 +40,8 @@ class _ProjectBillingManagementPageState
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
+  bool _filtersVisible = false;
+
   late final String _controllerTag;
 
   @override
@@ -79,28 +82,26 @@ class _ProjectBillingManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search billings',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewBilling(
-              isDesktop: Responsive.isDesktop(context),
-            ),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_list_outlined,
+            label: 'Filter',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              _openEditor(context, controller);
+            },
             icon: Icons.request_quote_outlined,
             label: 'New Billing',
           ),
         ];
 
-        final content = _buildContent(context, controller);
-        if (widget.embedded && widget.useShellActions) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        if (widget.embedded) {
-          return content;
-        }
-        return AppStandaloneShell(
-          title: 'Project Billings',
-          actions: actions,
-          scrollController: controller.pageScrollController,
-          child: content,
-        );
+        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
       },
     );
   }
@@ -108,6 +109,7 @@ class _ProjectBillingManagementPageState
   Widget _buildContent(
     BuildContext context,
     ProjectBillingManagementController controller,
+    List<Widget> actions,
   ) {
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading project billings...');
@@ -124,30 +126,123 @@ class _ProjectBillingManagementPageState
       return _buildConstrainedContent(context, controller);
     }
 
-    final selectedRow = controller.selectedRow;
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
+    final columns = <PurchaseRegisterColumn<ProjectBillingRow>>[
+      PurchaseRegisterColumn(
+        label: 'Project',
+        flex: 3,
+        valueBuilder: (row) => row.project.projectName ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Date',
+        flex: 2,
+        valueBuilder: (row) => row.billing.billingDate ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Basis',
+        flex: 2,
+        valueBuilder: (row) => row.billing.billingBasis ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Invoice',
+        flex: 2,
+        valueBuilder: (row) =>
+            controller.salesInvoiceLabel(row.billing.salesInvoiceId) ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Amount',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => controller.decimalText(row.billing.billingAmount),
+      ),
+      PurchaseRegisterColumn<ProjectBillingRow>(
+        label: 'Status',
+        flex: 2,
+        valueBuilder: (row) => row.billing.billingStatus ?? '',
+        widgetBuilder: (context, row) {
+          final status = row.billing.billingStatus ?? '';
+          final trimmed = status.trim().toLowerCase();
+          final error = trimmed == 'cancelled';
+          final progress = trimmed == 'paid'
+              ? 1.0
+              : trimmed == 'invoiced'
+              ? 0.6
+              : trimmed == 'cancelled'
+              ? 0.0
+              : 0.2;
+          final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+          final color = error
+              ? Theme.of(context).colorScheme.error
+              : progress >= 1.0
+              ? appTheme.success
+              : progress > 0
+              ? appTheme.info
+              : appTheme.warning;
+
+          return AppProgressBar(
+            label: status.isEmpty ? '-' : status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+            progress: error ? 0.0 : progress,
+            color: color,
+          );
+        },
+      ),
+    ];
+
+    return PurchaseRegisterPage<ProjectBillingRow>(
       title: 'Project Billings',
-      editorTitle: selectedRow?.project.projectName,
-      scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectBillingRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search billings',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No billings found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: row.project.projectName ?? 'Billing',
-          subtitle: [
-            row.billing.billingDate ?? '',
-            row.billing.billingBasis ?? '',
-            row.billing.billingStatus ?? '',
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: widget.embedded,
+      fullPageStyle: true,
+      emphasizeRows: false,
+      emptyMessage: 'No billings found.',
+      actions: actions,
+      rows: controller.filteredRows,
+      columns: columns,
+      onRowTap: (row) {
+        controller.selectRow(row);
+        _openEditor(context, controller);
+      },
+      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+    );
+  }
+
+  Widget _buildFilterPanel(ProjectBillingManagementController controller) {
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      statusItems: _statusItems,
+      selectedStatuses: controller.selectedStatuses,
+      onStatusesChanged: controller.setStatuses,
+      onClear: controller.clearFilters,
+    );
+  }
+
+  void _openEditor(
+    BuildContext context,
+    ProjectBillingManagementController controller,
+  ) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => GetBuilder<ProjectBillingManagementController>(
+          tag: _controllerTag,
+          builder: (ctrl) => AppStandaloneShell(
+            title: ctrl.selectedRow == null ? 'New Project Billing' : 'Edit Project Billing',
+            scrollController: ScrollController(),
+            actions: const <Widget>[],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: _buildEditorForm(context, ctrl),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
     );
   }
 

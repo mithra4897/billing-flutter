@@ -24,6 +24,7 @@ class ProjectResourceUsageManagementPage extends StatefulWidget {
 class _ProjectResourceUsageManagementPageState
     extends State<ProjectResourceUsageManagementPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -63,28 +64,26 @@ class _ProjectResourceUsageManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search resource usage',
+          ),
           AdaptiveShellActionButton(
-            onPressed: () => controller.startNewUsage(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.precision_manufacturing_outlined,
-            label: 'New Resource Usage',
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_list_outlined,
+            label: 'Filter',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              _openEditor(context, controller);
+            },
+            icon: Icons.engineering_outlined,
+            label: 'New Usage',
           ),
         ];
 
-        final content = _buildContent(context, controller);
-        if (widget.embedded && widget.useShellActions) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        if (widget.embedded) {
-          return content;
-        }
-        return AppStandaloneShell(
-          title: 'Project Resource Usage',
-          actions: actions,
-          scrollController: controller.pageScrollController,
-          child: content,
-        );
+        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
       },
     );
   }
@@ -92,6 +91,7 @@ class _ProjectResourceUsageManagementPageState
   Widget _buildContent(
     BuildContext context,
     ProjectResourceUsageManagementController controller,
+    List<Widget> actions,
   ) {
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading project resource usage...');
@@ -108,30 +108,89 @@ class _ProjectResourceUsageManagementPageState
       return _buildConstrainedContent(context, controller);
     }
 
-    final selectedRow = controller.selectedRow;
-    return SettingsWorkspace(
-      controller: controller.workspaceController,
+    final columns = <PurchaseRegisterColumn<ProjectResourceUsageRow>>[
+      PurchaseRegisterColumn(
+        label: 'Project',
+        flex: 3,
+        valueBuilder: (row) => row.project.projectName ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Resource',
+        flex: 3,
+        valueBuilder: (row) => row.usage.resourceName ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Date',
+        flex: 2,
+        valueBuilder: (row) => row.usage.usageDate ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Hours',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => controller.decimalText(row.usage.usageHours),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Total Cost',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => controller.decimalText(row.usage.totalCost),
+      ),
+    ];
+
+    return PurchaseRegisterPage<ProjectResourceUsageRow>(
       title: 'Project Resource Usage',
-      editorTitle: selectedRow?.usage.resourceName,
-      scrollController: controller.pageScrollController,
-      list: SettingsListCard<ProjectResourceUsageRow>(
-        searchController: controller.searchController,
-        searchHint: 'Search resource usage',
-        items: controller.filteredRows,
-        selectedItem: controller.selectedRow,
-        emptyMessage: 'No resource usage found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: row.usage.resourceName ?? 'Resource Usage',
-          subtitle: [
-            row.project.projectName ?? '',
-            row.usage.usageDate ?? '',
-            controller.assetLabel(controller.assetById(row.usage.assetId)),
-          ].where((item) => item.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => controller.selectRow(row),
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: widget.embedded,
+      fullPageStyle: true,
+      emphasizeRows: false,
+      emptyMessage: 'No resource usages found.',
+      actions: actions,
+      rows: controller.filteredRows,
+      columns: columns,
+      onRowTap: (row) {
+        controller.selectRow(row);
+        _openEditor(context, controller);
+      },
+      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+    );
+  }
+
+  Widget _buildFilterPanel(ProjectResourceUsageManagementController controller) {
+    return AppRegisterFilters(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      onClear: controller.clearFilters,
+    );
+  }
+
+  void _openEditor(
+    BuildContext context,
+    ProjectResourceUsageManagementController controller,
+  ) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => GetBuilder<ProjectResourceUsageManagementController>(
+          tag: _controllerTag,
+          builder: (ctrl) => AppStandaloneShell(
+            title: ctrl.selectedRow == null ? 'New Resource Usage' : 'Edit Resource Usage',
+            scrollController: ScrollController(),
+            actions: const <Widget>[],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: _buildEditorForm(context, ctrl),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      editorBuilder: (_) => _buildEditorForm(context, controller),
     );
   }
 
