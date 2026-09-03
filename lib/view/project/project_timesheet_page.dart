@@ -224,14 +224,10 @@ class _ProjectTimesheetManagementPageState
             title: ctrl.selectedRow == null ? 'New Project Timesheet' : 'Edit Project Timesheet',
             scrollController: ScrollController(),
             actions: const <Widget>[],
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: _buildEditorForm(context, ctrl),
-                ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+              child: AppSectionCard(
+                child: _buildEditorForm(context, ctrl),
               ),
             ),
           ),
