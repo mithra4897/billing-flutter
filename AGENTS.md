@@ -20,6 +20,32 @@ security, and workflows.
 Use `optimize-and-reuse-code` for every implementation, fix, review, and
 refactor.
 
+If a required file or skill is unavailable, report the gap before
+implementation; do not silently skip project guidance.
+
+## Pre-implementation verification gate
+
+Before writing code:
+
+1. Define the requested behavior and acceptance criteria.
+2. Inspect relevant implementation, dependencies, callers, tests, and docs.
+3. Use `rg` to locate existing widgets, components, helpers, services,
+   controllers, models, styles, utilities, and tests that provide any part of
+   the required behavior; record what will be reused or why a focused new
+   component is needed.
+4. Identify real input size, access pattern, ordering, uniqueness, mutation,
+   and latency constraints, then choose the simplest correct data structure
+   and algorithm.
+5. Check for repeated scans, nested work over growing collections, unnecessary
+   sorting/loading, redundant rebuilds, and duplicate network/database work.
+6. Inspect asynchronous control flow for nested continuations, missing
+   cancellation or mounted checks, duplicate submissions, races, and unsafe
+   widget-context use after an async gap.
+7. Confirm the planned diff is limited to files required by the task.
+
+Do not invent field names, API behavior, business rules, or performance
+requirements.
+
 ## Code optimization and reuse
 
 - Every implementation must explicitly consider and apply the appropriate data
@@ -41,6 +67,43 @@ refactor.
   profiler.
 - Prefer clear bounded code over forced or premature optimization. Correctness,
   maintainability, and measurable behavior are required together.
+- Prevent duplicate requests; reuse in-flight or cached values only when
+  lifecycle, invalidation, freshness, and tenant scope are correct.
+- Validate measurable performance claims with a benchmark, profiler, or
+  representative test; never claim an optimization without evidence.
+
+## Flutter UI and production readiness
+
+- Extract a focused widget only for a reusable visual pattern, distinct UI
+  section, or a block with independent state, loading, error, or empty
+  behavior. Prefer composition and typed parameters over duplicated screens or
+  broad boolean-configured widgets.
+- Keep fetching, persistence, business logic, and navigation orchestration out
+  of presentation widgets. Keep callbacks typed and shallow; use named
+  async/await operations with early returns rather than nested continuations.
+- Guard async UI updates with the appropriate mounted or lifecycle check and
+  verify relevant loading, empty, success, error, retry, disabled, and
+  duplicate-tap states.
+- Completed work must handle relevant validation, nullability, failures,
+  timeouts, cancellation, retries, idempotency, and concurrency. Do not leave
+  swallowed exceptions, debug prints, dead/commented code, mocks, TODOs, or
+  unapproved compatibility breaks.
+- Keep tenant, company, branch, user, and authorization boundaries intact;
+  do not log secrets, tokens, personal data, or sensitive payloads.
+- Keep dependencies minimal and justify a new dependency's maintenance,
+  licensing, platform support, and size impact.
+
+## Naming and minimal-change policy
+
+- Use concise, domain-accurate names. Avoid vague names such as `data`,
+  `item`, `temp`, `value`, `result`, or `manager` when the role can be named
+  clearly. Boolean names must state their condition, such as `isLoading` or
+  `canRetry`.
+- Functions and classes/widgets must each describe one responsibility. Favor
+  clarity at the call site over shortening a name until it is ambiguous.
+- Modify only code and documentation required for the approved request. Do not
+  perform unrelated cleanup, renames, formatting, upgrades, or refactors.
+  Explain and minimize any necessary cross-boundary change.
 
 ## Source-of-truth order
 
@@ -67,6 +130,11 @@ Investigate disagreements instead of inventing field names or business rules.
 
 Never claim a check passed unless it was executed. Report checks that could
 not run and why.
+
+Every implementation report must state: delivered behavior; reused/extended
+code; any new component and why reuse was unsuitable; data-structure/algorithm
+choice and non-trivial complexity; files changed; validation executed; checks
+not run and why; and remaining risks or follow-up work.
 
 ## Security and privacy
 

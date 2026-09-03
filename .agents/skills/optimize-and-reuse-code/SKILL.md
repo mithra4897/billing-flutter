@@ -11,7 +11,9 @@ reuse, and relevant runtime behavior—not cleverness.
 
 ## Workflow
 
-1. Read project instructions, architecture, standards, and relevant tests.
+1. Define requested behavior and acceptance criteria; read project
+   instructions, architecture, standards, and relevant tests. Report a missing
+   required instruction or skill before implementation.
 2. Search the repository before creating a widget, component, helper, service,
    model, style, validation rule, or utility. Inspect definitions and callers,
    not names alone.
@@ -30,6 +32,11 @@ reuse, and relevant runtime behavior—not cleverness.
 8. Test correctness and important boundary sizes. Benchmark or profile before
    claiming a performance improvement.
 
+Before coding, also confirm the planned diff is task-scoped and inspect async
+flows for unsafe context use after gaps, nested continuations, missing
+cancellation, duplicate submissions, and races. Do not invent API contracts,
+business rules, field names, or performance constraints.
+
 ## Data-structure and algorithm rules
 
 - Prefer `Set` for repeated membership or uniqueness and `Map` for keyed lookup
@@ -44,6 +51,9 @@ reuse, and relevant runtime behavior—not cleverness.
 - Consider memory and allocation costs alongside runtime complexity.
 - Preserve readability when a simpler approach is already fast enough for
   bounded inputs. Document intentional complexity tradeoffs.
+- Prevent duplicate network/database work. Reuse an in-flight or cached result
+  only when its lifecycle, invalidation, freshness, and tenant scope are
+  correct.
 
 ## UI and widget reuse
 
@@ -58,9 +68,30 @@ reuse, and relevant runtime behavior—not cleverness.
   and state isolation where they are semantically correct and measurable.
 - Preserve accessibility, validation, responsive behavior, localization, and
   existing visual conventions when reusing components.
+- Extract a focused widget for a reusable visual pattern, distinct UI section,
+  or independently stateful/loading/error/empty block. Do not create a generic
+  abstraction for a single speculative use.
+- Keep fetching, persistence, business logic, and navigation orchestration out
+  of presentation widgets. Prefer typed parameters, composition, named
+  async/await operations, early returns, and mounted/lifecycle checks over
+  nested callbacks.
+
+## Production and clarity checks
+
+- Handle relevant validation, nullability, failures, timeouts, cancellation,
+  retries, idempotency, and concurrency; do not leave mocks, swallowed errors,
+  debug prints, dead/commented code, or unresolved TODOs.
+- Preserve authorization and tenant/company/branch/user boundaries. Never log
+  secrets, tokens, personal data, or sensitive payloads.
+- Use concise domain names; avoid vague names when the role is knowable, and
+  name booleans for their condition. Keep each function/class/widget focused on
+  one responsibility.
+- Keep changes task-scoped. Explain a necessary cross-boundary change and do
+  not combine it with unrelated cleanup or upgrades.
 
 ## Completion report
 
-Report the reused components or the reason a new one was necessary. For
-non-trivial logic, report the selected data structure, algorithmic complexity,
-validation performed, and any remaining performance risk.
+Report delivered behavior, reused components or why a new one was necessary,
+data-structure/algorithm choice and non-trivial complexity, files changed,
+validation performed, checks not run and why, and remaining risks or follow-up
+work.
