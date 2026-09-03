@@ -214,20 +214,23 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                       children: [
                         _RegisterHeader<T>(columns: widget.columns),
                         const Divider(height: 1),
-                        ...List<Widget>.generate(
-                          visibleRows.length,
-                          (index) => _RegisterRow<T>(
-                            row: visibleRows[index],
+                        ...List<Widget>.generate(visibleRows.length, (index) {
+                          final row = visibleRows[index];
+                          return _RegisterRow<T>(
+                            key: ValueKey<String>(
+                              _registerRowIdentity(row, index),
+                            ),
+                            row: row,
                             index: index,
                             columns: widget.columns,
                             emphasizeRows: widget.emphasizeRows,
-                            onTap: () => widget.onRowTap(visibleRows[index]),
+                            onTap: () => widget.onRowTap(row),
                             rowColor: widget.rowColorBuilder?.call(
                               context,
-                              visibleRows[index],
+                              row,
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                         if (_footerForPage(
                               context,
                               remote
@@ -517,8 +520,19 @@ class _RegisterHeader<T> extends StatelessWidget {
   }
 }
 
+String _registerRowIdentity<T>(T row, int index) {
+  if (row is JsonModel) {
+    final id = intValue(row.toJson(), 'id');
+    if (id != null) {
+      return 'register-row-id-$id';
+    }
+  }
+  return 'register-row-index-$index';
+}
+
 class _RegisterRow<T> extends StatelessWidget {
   const _RegisterRow({
+    super.key,
     required this.row,
     required this.index,
     required this.columns,
@@ -539,7 +553,6 @@ class _RegisterRow<T> extends StatelessWidget {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
     return Material(
-      key: ValueKey<String>('register-table-row-$index'),
       color:
           rowColor ??
           (index.isOdd ? appTheme.tableRowAlternate : appTheme.cardBackground),

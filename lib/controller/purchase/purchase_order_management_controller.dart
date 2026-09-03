@@ -164,6 +164,7 @@ class PurchaseOrderManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -277,10 +278,12 @@ class PurchaseOrderManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> initialize({int? initialId}) async {
+  Future<void> initialize({int? initialId, bool editorOnly = false}) async {
     if (!_initialized) _initialized = true;
-    await loadPage(selectId: initialId);
-    _refreshController.notifyChanged(source: 'purchase_order');
+    await loadPage(selectId: initialId, editorOnly: editorOnly);
+    if (!editorOnly) {
+      _refreshController.notifyChanged(source: 'purchase_order');
+    }
   }
 
   String errorMessage(Object error) {
@@ -300,7 +303,7 @@ class PurchaseOrderManagementController extends GetxController {
     _refreshController.notifyChanged(source: 'purchase_order');
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({int? selectId, bool editorOnly = false}) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -831,6 +834,38 @@ class PurchaseOrderManagementController extends GetxController {
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      await ensureSupplierPrintContext(supplierPartyId);
+      if (!context.mounted) return;
+      final number = selectedItem?.orderNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        rethrowOnError: true,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'purchase',
+            documentType: 'purchase_order',
+          ),
+          title: 'Purchase Order',
+          documentId: id,
+          documentData: purchaseOrderPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'purchase_order_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   List<DocumentSeriesModel> seriesOptions() {

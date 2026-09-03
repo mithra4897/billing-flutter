@@ -1,6 +1,10 @@
 import '../../screen.dart';
 import '../../controller/sales/sales_module_refresh_controller.dart';
 import '../../controller/sales/sales_invoice_management_controller.dart';
+import '../../controller/sales/sales_delivery_management_controller.dart';
+import '../../controller/sales/sales_order_management_controller.dart';
+import '../../controller/sales/sales_quotation_management_controller.dart';
+import '../../controller/sales/sales_receipt_management_controller.dart';
 
 typedef SalesRegisterLoader<T> =
     Future<dynamic> Function(
@@ -24,6 +28,93 @@ typedef SalesRegisterDashboardMatcher<T> =
 typedef SalesRegisterDateValue<T> = String? Function(T row);
 typedef SalesRegisterDocumentValue<T> = String Function(T row);
 typedef SalesRegisterBalanceValue<T> = double? Function(T row);
+
+Future<void> _sendSalesRegisterEmailPdf<T extends GetxController>({
+  required BuildContext context,
+  required int documentId,
+  required String controllerName,
+  required T Function() createController,
+  required Future<void> Function(T controller) initialize,
+  required bool Function(T controller) canEmail,
+  required Future<void> Function(T controller, BuildContext context) send,
+}) async {
+  final controllerTag = persistentControllerTag(
+    controllerName,
+    scope: <String, Object?>{'documentId': documentId},
+  );
+  final controller = Get.put(createController(), tag: controllerTag);
+  try {
+    await initialize(controller);
+    if (!context.mounted) return;
+    if (!canEmail(controller)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email PDF is available after posting the document.'),
+        ),
+      );
+      return;
+    }
+    await send(controller, context);
+  } finally {
+    if (Get.isRegistered<T>(tag: controllerTag)) {
+      Get.delete<T>(tag: controllerTag);
+    }
+  }
+}
+
+class _SalesRegisterEmailPdfButton extends StatefulWidget {
+  const _SalesRegisterEmailPdfButton({
+    required this.canEmail,
+    required this.onOpen,
+  });
+
+  final bool canEmail;
+  final Future<void> Function() onOpen;
+
+  @override
+  State<_SalesRegisterEmailPdfButton> createState() =>
+      _SalesRegisterEmailPdfButtonState();
+}
+
+class _SalesRegisterEmailPdfButtonState
+    extends State<_SalesRegisterEmailPdfButton> {
+  bool _isOpening = false;
+
+  Future<void> _open() async {
+    if (_isOpening || !widget.canEmail) return;
+    setState(() => _isOpening = true);
+    try {
+      await widget.onOpen();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to open Email PDF: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isOpening = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.canEmail
+          ? 'Email PDF'
+          : 'Email PDF is available after posting the document',
+      child: IconButton(
+        onPressed: widget.canEmail && !_isOpening ? _open : null,
+        icon: _isOpening
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.attach_email_outlined),
+      ),
+    );
+  }
+}
 
 Set<T> _selectedSet<T>(dynamic value) {
   if (value is Set<T>) {
@@ -971,6 +1062,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 3),
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 1),
             _SalesRegisterFooterCell(
               flex: 2,
               text: _salesTotalSummary(totalAmount, pageTotalAmount),
@@ -1028,6 +1120,27 @@ class SalesQuotationRegisterPage extends StatelessWidget {
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'quotation_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _SalesRegisterEmailPdfButton(
+            canEmail: salesQuotationCanOpenEmailPdf(row),
+            onOpen: () => _sendSalesRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'SalesQuotationRegisterEmailPdfController',
+              createController: SalesQuotationManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  salesQuotationCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
           ),
         ),
         PurchaseRegisterColumn(
@@ -1177,6 +1290,7 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 1),
             _SalesRegisterFooterCell(
               flex: 2,
               text: _salesTotalSummary(totalAmount, pageTotalAmount),
@@ -1227,6 +1341,27 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'proforma_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _SalesRegisterEmailPdfButton(
+            canEmail: salesProformaInvoiceCanOpenEmailPdf(row),
+            onOpen: () => _sendSalesRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'SalesProformaRegisterEmailPdfController',
+              createController: SalesProformaInvoiceManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  salesProformaInvoiceCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
           ),
         ),
         PurchaseRegisterColumn(
@@ -1436,6 +1571,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 3),
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 1),
             _SalesRegisterFooterCell(
               flex: 2,
               text: _salesTotalSummary(totalAmount, pageTotalAmount),
@@ -1490,6 +1626,27 @@ class SalesOrderRegisterPage extends StatelessWidget {
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'order_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _SalesRegisterEmailPdfButton(
+            canEmail: salesOrderCanOpenEmailPdf(row),
+            onOpen: () => _sendSalesRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'SalesOrderRegisterEmailPdfController',
+              createController: SalesOrderManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  salesOrderCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
           ),
         ),
         PurchaseRegisterColumn(
@@ -1950,6 +2107,27 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
             statusKey: 'delivery_status',
           ),
         ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _SalesRegisterEmailPdfButton(
+            canEmail: salesDeliveryCanOpenEmailPdf(row),
+            onOpen: () => _sendSalesRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'SalesDeliveryRegisterEmailPdfController',
+              createController: SalesDeliveryManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  salesDeliveryCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
+          ),
+        ),
       ],
       rowRoute: (row) => '/sales/deliveries/${intValue(row.toJson(), 'id')}',
     );
@@ -2065,6 +2243,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
             const _SalesRegisterFooterCell(flex: 2),
             const _SalesRegisterFooterCell(flex: 3),
             const _SalesRegisterFooterCell(flex: 2),
+            const _SalesRegisterFooterCell(flex: 1),
             _SalesRegisterFooterCell(
               flex: 2,
               text: _salesTotalSummary(totalAmount, pageTotalAmount),
@@ -2113,6 +2292,27 @@ class SalesReceiptRegisterPage extends StatelessWidget {
           detailBuilder: (row) => salesRegisterCancelReasonDetail(
             row.toJson(),
             statusKey: 'receipt_status',
+          ),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _SalesRegisterEmailPdfButton(
+            canEmail: salesReceiptCanOpenEmailPdf(row),
+            onOpen: () => _sendSalesRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'SalesReceiptRegisterEmailPdfController',
+              createController: SalesReceiptManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  salesReceiptCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
           ),
         ),
         PurchaseRegisterColumn(

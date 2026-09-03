@@ -93,6 +93,7 @@ class SalesReceiptManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -967,6 +968,35 @@ class SalesReceiptManagementController extends GetxController {
       allowDownload: canOutput,
       allowTemplateEditing: true,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      final number = selectedItem?.receiptNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'sales',
+            documentType: 'sales_receipt',
+          ),
+          title: 'Sales Receipt',
+          documentId: id,
+          documentData: salesReceiptPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'sales_receipt_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   Future<void> cancelSelected(BuildContext context) async {

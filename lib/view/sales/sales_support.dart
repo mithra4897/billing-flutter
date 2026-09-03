@@ -27,13 +27,41 @@ String salesInvoiceStatusLabel(String? status) {
 }
 
 bool salesInvoiceCanOpenEmailPdf(SalesInvoiceModel? invoice) {
-  if (invoice?.id == null) {
-    return false;
-  }
-  return !const <String>{
-    'draft',
-    'cancelled',
-  }.contains((invoice?.invoiceStatus ?? '').trim().toLowerCase());
+  return salesDocumentCanOpenEmailPdf(invoice?.id, invoice?.invoiceStatus);
+}
+
+bool salesDocumentCanOpenEmailPdf(int? id, String? status) {
+  return id != null &&
+      !const <String>{
+        'draft',
+        'cancelled',
+      }.contains((status ?? '').trim().toLowerCase());
+}
+
+bool salesQuotationCanOpenEmailPdf(SalesQuotationModel? quotation) {
+  return salesDocumentCanOpenEmailPdf(
+    quotation?.id,
+    quotation?.quotationStatus,
+  );
+}
+
+bool salesProformaInvoiceCanOpenEmailPdf(SalesProformaInvoiceModel? invoice) {
+  return salesDocumentCanOpenEmailPdf(
+    invoice?.id,
+    invoice?.proformaInvoiceStatus,
+  );
+}
+
+bool salesOrderCanOpenEmailPdf(SalesOrderModel? order) {
+  return salesDocumentCanOpenEmailPdf(order?.id, order?.orderStatus);
+}
+
+bool salesDeliveryCanOpenEmailPdf(SalesDeliveryModel? delivery) {
+  return salesDocumentCanOpenEmailPdf(delivery?.id, delivery?.deliveryStatus);
+}
+
+bool salesReceiptCanOpenEmailPdf(SalesReceiptModel? receipt) {
+  return salesDocumentCanOpenEmailPdf(receipt?.id, receipt?.receiptStatus);
 }
 
 String salesQuotationStatusLabel(String? status, {bool isConverted = false}) {

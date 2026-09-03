@@ -1,5 +1,8 @@
 import '../../screen.dart';
 import '../../controller/purchase/purchase_module_refresh_controller.dart';
+import '../../controller/purchase/purchase_invoice_management_controller.dart';
+import '../../controller/purchase/purchase_order_management_controller.dart';
+import '../../controller/purchase/purchase_payment_management_controller.dart';
 
 typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(
@@ -23,6 +26,91 @@ typedef PurchaseRegisterDashboardMatcher<T> =
 typedef PurchaseRegisterDateValue<T> = String? Function(T row);
 typedef PurchaseRegisterDocumentValue<T> = String Function(T row);
 typedef PurchaseRegisterBalanceValue<T> = double? Function(T row);
+
+Future<void> _sendPurchaseRegisterEmailPdf<T extends GetxController>({
+  required BuildContext context,
+  required int documentId,
+  required String controllerName,
+  required T Function() createController,
+  required Future<void> Function(T controller) initialize,
+  required bool Function(T controller) canEmail,
+  required Future<void> Function(T controller, BuildContext context) send,
+}) async {
+  final controllerTag = persistentControllerTag(
+    controllerName,
+    scope: <String, Object?>{'documentId': documentId},
+  );
+  final controller = Get.put(createController(), tag: controllerTag);
+  try {
+    await initialize(controller);
+    if (!context.mounted) return;
+    if (!canEmail(controller)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email PDF is available after posting the document.'),
+        ),
+      );
+      return;
+    }
+    await send(controller, context);
+  } finally {
+    if (Get.isRegistered<T>(tag: controllerTag)) {
+      Get.delete<T>(tag: controllerTag);
+    }
+  }
+}
+
+class _PurchaseRegisterEmailPdfButton extends StatefulWidget {
+  const _PurchaseRegisterEmailPdfButton({
+    required this.canEmail,
+    required this.onOpen,
+  });
+
+  final bool canEmail;
+  final Future<void> Function() onOpen;
+
+  @override
+  State<_PurchaseRegisterEmailPdfButton> createState() =>
+      _PurchaseRegisterEmailPdfButtonState();
+}
+
+class _PurchaseRegisterEmailPdfButtonState
+    extends State<_PurchaseRegisterEmailPdfButton> {
+  bool _isOpening = false;
+
+  Future<void> _open() async {
+    if (_isOpening || !widget.canEmail) return;
+    setState(() => _isOpening = true);
+    try {
+      await widget.onOpen();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(printableDocumentEmailFailureMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isOpening = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: widget.canEmail
+        ? 'Email PDF'
+        : 'Email PDF is available after posting the document',
+    child: IconButton(
+      onPressed: widget.canEmail && !_isOpening ? _open : null,
+      icon: _isOpening
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.attach_email_outlined),
+    ),
+  );
+}
 
 Set<T> _purchaseSelectedSet<T>(dynamic value) {
   if (value is Set<T>) {
@@ -1141,6 +1229,27 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
           ),
         ),
         PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _PurchaseRegisterEmailPdfButton(
+            canEmail: purchaseOrderCanOpenEmailPdf(row),
+            onOpen: () => _sendPurchaseRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'PurchaseOrderRegisterEmailPdfController',
+              createController: PurchaseOrderManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  purchaseOrderCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
+          ),
+        ),
+        PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
           valueBuilder: (row) => formatAmount(row.totalAmount ?? 0),
@@ -1165,6 +1274,7 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 3),
             const _PurchaseRegisterFooterCell(flex: 2),
             const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 1),
             _PurchaseRegisterFooterCell(
               flex: 2,
               text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
@@ -1509,6 +1619,27 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
           ),
         ),
         PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _PurchaseRegisterEmailPdfButton(
+            canEmail: purchaseInvoiceCanOpenEmailPdf(row),
+            onOpen: () => _sendPurchaseRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'PurchaseInvoiceRegisterEmailPdfController',
+              createController: PurchaseInvoiceManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  purchaseInvoiceCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
+          ),
+        ),
+        PurchaseRegisterColumn(
           label: 'Total',
           alignRight: true,
           valueBuilder: (row) => formatAmount(row.totalAmount ?? 0),
@@ -1547,6 +1678,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 3),
             const _PurchaseRegisterFooterCell(flex: 2),
             const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 1),
             _PurchaseRegisterFooterCell(
               flex: 2,
               text: _purchaseTotalSummary(totalAmount, pageTotalAmount),
@@ -1685,6 +1817,27 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
           ),
         ),
         PurchaseRegisterColumn(
+          label: 'Email PDF',
+          flex: 1,
+          center: true,
+          valueBuilder: (_) => '',
+          widgetBuilder: (context, row) => _PurchaseRegisterEmailPdfButton(
+            canEmail: purchasePaymentCanOpenEmailPdf(row),
+            onOpen: () => _sendPurchaseRegisterEmailPdf(
+              context: context,
+              documentId: row.id!,
+              controllerName: 'PurchasePaymentRegisterEmailPdfController',
+              createController: PurchasePaymentManagementController.new,
+              initialize: (controller) =>
+                  controller.initialize(initialId: row.id, editorOnly: true),
+              canEmail: (controller) =>
+                  purchasePaymentCanOpenEmailPdf(controller.selectedItem),
+              send: (controller, context) =>
+                  controller.sendEmailPdfDirectly(context),
+            ),
+          ),
+        ),
+        PurchaseRegisterColumn(
           label: 'Paid Amount',
           alignRight: true,
           valueBuilder: (row) => formatAmount(row.paidAmount ?? 0),
@@ -1723,6 +1876,7 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
             const _PurchaseRegisterFooterCell(flex: 3),
             const _PurchaseRegisterFooterCell(flex: 2),
             const _PurchaseRegisterFooterCell(flex: 2),
+            const _PurchaseRegisterFooterCell(flex: 1),
             _PurchaseRegisterFooterCell(
               flex: 2,
               text: _purchaseTotalSummary(paidAmount, pagePaidAmount),

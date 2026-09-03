@@ -1,5 +1,25 @@
 import '../../screen.dart';
 
+bool purchaseDocumentCanOpenEmailPdf(int? id, String? status) {
+  return id != null &&
+      !const <String>{
+        'draft',
+        'cancelled',
+      }.contains((status ?? '').trim().toLowerCase());
+}
+
+bool purchaseOrderCanOpenEmailPdf(PurchaseOrderModel? order) {
+  return purchaseDocumentCanOpenEmailPdf(order?.id, order?.orderStatus);
+}
+
+bool purchaseInvoiceCanOpenEmailPdf(PurchaseInvoiceModel? invoice) {
+  return purchaseDocumentCanOpenEmailPdf(invoice?.id, invoice?.invoiceStatus);
+}
+
+bool purchasePaymentCanOpenEmailPdf(PurchasePaymentModel? payment) {
+  return purchaseDocumentCanOpenEmailPdf(payment?.id, payment?.paymentStatus);
+}
+
 String purchaseStatusLabel(String? status) {
   final normalized = status?.trim();
   if (normalized == null || normalized.isEmpty) {

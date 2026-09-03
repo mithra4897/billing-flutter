@@ -1000,6 +1000,37 @@ class SalesQuotationManagementController extends GetxController {
     );
   }
 
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      await ensureCustomerPrintContext(customerPartyId);
+      if (!context.mounted) return;
+      final number = selectedItem?.quotationNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'sales',
+            documentType: 'sales_quotation',
+          ),
+          title: 'Quotation',
+          documentId: id,
+          documentData: quotationPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'sales_quotation_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
+  }
+
   void addLine() {
     lines = List<QuotationLineDraft>.from(lines)..add(QuotationLineDraft());
     refreshComputedState();

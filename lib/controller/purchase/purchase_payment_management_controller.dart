@@ -134,6 +134,7 @@ class PurchasePaymentManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   bool autoAllocating = false;
   String? pageError;
   String? formError;
@@ -237,6 +238,7 @@ class PurchasePaymentManagementController extends GetxController {
   Future<void> initialize({
     int? initialId,
     int? initialPurchaseInvoiceId,
+    bool editorOnly = false,
   }) async {
     if (!_initialized) {
       _initialized = true;
@@ -244,8 +246,11 @@ class PurchasePaymentManagementController extends GetxController {
     await loadPage(
       selectId: initialId,
       initialPurchaseInvoiceId: initialPurchaseInvoiceId,
+      editorOnly: editorOnly,
     );
-    _refreshController.notifyChanged(source: 'purchase_payment');
+    if (!editorOnly) {
+      _refreshController.notifyChanged(source: 'purchase_payment');
+    }
   }
 
   Future<void> _handleWorkingContextChanged() async {
@@ -1167,6 +1172,36 @@ class PurchasePaymentManagementController extends GetxController {
       allowDownload: canOutput,
       allowTemplateEditing: true,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      final number = selectedItem?.paymentNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        rethrowOnError: true,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'purchase',
+            documentType: 'purchase_payment',
+          ),
+          title: 'Purchase Payment',
+          documentId: id,
+          documentData: purchasePaymentPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'purchase_payment_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   Future<void> saveRemainingAllocations(BuildContext context) async {

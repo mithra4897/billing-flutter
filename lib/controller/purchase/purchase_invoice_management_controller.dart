@@ -50,6 +50,7 @@ class PurchaseInvoiceManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -153,14 +154,18 @@ class PurchaseInvoiceManagementController extends GetxController {
     int? initialId,
     int? initialPurchaseOrderId,
     int? initialPurchaseReceiptId,
+    bool editorOnly = false,
   }) async {
     if (!_initialized) _initialized = true;
     await loadPage(
       selectId: initialId,
       initialPurchaseOrderId: initialPurchaseOrderId,
       initialPurchaseReceiptId: initialPurchaseReceiptId,
+      editorOnly: editorOnly,
     );
-    _refreshController.notifyChanged(source: 'purchase_invoice');
+    if (!editorOnly) {
+      _refreshController.notifyChanged(source: 'purchase_invoice');
+    }
   }
 
   Future<void> _handleWorkingContextChanged() async {
@@ -172,6 +177,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     int? selectId,
     int? initialPurchaseOrderId,
     int? initialPurchaseReceiptId,
+    bool editorOnly = false,
   }) async {
     initialLoading = items.isEmpty;
     pageError = null;
@@ -656,6 +662,38 @@ class PurchaseInvoiceManagementController extends GetxController {
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      await ensureSupplierPrintContext(supplierPartyId);
+      if (!context.mounted) return;
+      final number = selectedItem?.invoiceNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        rethrowOnError: true,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'purchase',
+            documentType: 'purchase_invoice',
+          ),
+          title: 'Purchase Invoice',
+          documentId: id,
+          documentData: purchaseInvoicePrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'purchase_invoice_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   String? resolveCompanyStateCodeForSummary() {

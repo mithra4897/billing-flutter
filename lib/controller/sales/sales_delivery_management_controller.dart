@@ -160,6 +160,7 @@ class SalesDeliveryManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool emailing = false;
   String? pageError;
   String? formError;
   String statusFilter = '';
@@ -1306,6 +1307,37 @@ class SalesDeliveryManagementController extends GetxController {
       allowDownload: allowDownload,
       allowTemplateEditing: allowTemplateEditing,
     );
+  }
+
+  Future<void> sendEmailPdfDirectly(BuildContext context) async {
+    final id = selectedItem?.id;
+    if (id == null || emailing) return;
+    emailing = true;
+    update();
+    try {
+      await ensureCustomerPrintContext(customerPartyId);
+      if (!context.mounted) return;
+      final number = selectedItem?.deliveryNo?.trim();
+      await sendPrintableDocumentEmailDirectly(
+        context,
+        payload: PrintableDocumentEmailPayload(
+          target: const PrintableDocumentEmailTarget(
+            module: 'sales',
+            documentType: 'sales_delivery',
+          ),
+          title: 'Delivery Challan',
+          documentId: id,
+          documentData: salesDeliveryPrintData(),
+          companyId: companyId,
+          fileName: number == null || number.isEmpty
+              ? 'sales_delivery_$id.pdf'
+              : '${number.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}.pdf',
+        ),
+      );
+    } finally {
+      emailing = false;
+      update();
+    }
   }
 
   Future<void> applySalesOrderSelection(int? orderId) async {
