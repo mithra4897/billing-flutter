@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-04 — Show all projects to Project Heads
+
+- Project Heads now see all projects in the current company context through
+  the existing `can_view_all_projects` visibility path.
+- Project Heads now also receive all nested tasks and task statuses rather than
+  only tasks where they are an assignee.
+
+## 2026-09-04 — Shared centered AppDialog presentation
+
+- Added the reusable `AppDialog` component with themed header, close action,
+  divider, scrollable content, and optional sticky actions.
+- Updated `showAppFilterPanel` to use a centered modal while preserving its
+  existing API and all current filter/task editor callers.
+- Expanded Project task form fields across two equal dialog columns, removing
+  the unused right-side space, and made the open dialog react to controller
+  updates so the Billable switch and save/error states refresh correctly.
+
 ## 2026-09-04 — Project task priority badges
 
 - Added Low/Medium/High/Critical task priority persistence and API validation,

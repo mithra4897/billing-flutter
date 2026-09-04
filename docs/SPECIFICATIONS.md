@@ -1,5 +1,33 @@
 # Specifications
 
+## Project Head task monitoring — 2026-09-04
+
+Status: Implemented
+
+Users with `project_head.access` can view all projects in the selected company
+context and all tasks nested under those projects, including tasks assigned to
+other employees. Ordinary employees continue to see only projects containing
+their assigned tasks and only their assigned task records. Project Head access
+changes visibility only; task mutation permissions remain governed by the
+existing Project create/update/delete permissions.
+
+## Shared centered dialog presentation — 2026-09-04
+
+Status: Implemented
+
+Filter panels and project task editors use a centered `AppDialog` shell with a
+themed header, close action, divider, scrollable content, and optional sticky
+actions area. Existing responsive `SettingsFormWrap` layouts remain in place;
+the dialog changes presentation and spacing without changing form behavior,
+validation, save flows, or filter semantics. Existing confirmation/detail
+dialogs are out of scope for this focused migration.
+
+The Project task dialog uses two equal-width responsive columns across the
+available content width and collapses to one column below the existing mobile
+breakpoint. Its editor subscribes to the task controller while open, so
+Billable, saving, validation-error, and other controller-driven states update
+inside the modal immediately.
+
 ## Project task priority badges — 2026-09-04
 
 Status: Implemented

@@ -1,5 +1,22 @@
 # Testing
 
+## Project Head task monitoring — 2026-09-04
+
+- PHP syntax checks cover the shared task model and Project session endpoint.
+- Manual authenticated verification should confirm a Project Head sees tasks
+  assigned to multiple employees, while an ordinary employee sees only their
+  assigned tasks.
+
+## Shared centered dialog presentation — 2026-09-04
+
+- Focused Flutter analysis covers `AppDialog`, `showAppFilterPanel`, and the
+  Project task editor.
+- Manual verification remains required for centered filter/task dialogs,
+  responsive form wrapping, keyboard insets, scrolling, close behavior, and
+  narrow/mobile widths.
+- Project task verification must toggle Billable in the open dialog and confirm
+  the switch changes immediately, then save/reopen and confirm persistence.
+
 ## Project task priority badges — 2026-09-04
 
 - Focused model/helper coverage and Flutter static analysis cover priority

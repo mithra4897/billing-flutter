@@ -343,6 +343,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SettingsFormWrap(
+              maxWidth: double.infinity,
               children: [
                 if (!controller.isProjectConstrained)
                   AppDropdownField<int>.fromMapped(
@@ -471,12 +472,13 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   labelText: 'Progress Percent (Based on Status)',
                   readOnly: true,
                 ),
-                AppFormTextField(
-                  controller: controller.descriptionController,
-                  labelText: 'Description',
-                  maxLines: 3,
-                ),
               ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppFormTextField(
+              controller: controller.descriptionController,
+              labelText: 'Description',
+              maxLines: 3,
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
@@ -550,10 +552,13 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       context: context,
       title: row?.task.taskName ?? 'New Project Task',
       maxWidth: 960,
-      builder: (dialogContext) => _buildEditorForm(
-        dialogContext,
-        controller,
-        onSaved: () => Navigator.of(dialogContext).pop(),
+      builder: (dialogContext) => GetBuilder<ProjectTaskManagementController>(
+        tag: _controllerTag,
+        builder: (dialogController) => _buildEditorForm(
+          dialogContext,
+          dialogController,
+          onSaved: () => Navigator.of(dialogContext).pop(),
+        ),
       ),
     );
   }

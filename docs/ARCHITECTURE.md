@@ -1,5 +1,24 @@
 # Architecture
 
+## 2026-09-04 — Project Head task visibility
+
+The Project session endpoint and `ProjectTask::visibleToUser` use the same
+`project_head.access` permission. Project list eager loading, task management,
+task dashboard summaries, and task update/delete lookups all reuse that shared
+scope, so Project Heads receive complete task status data while regular users
+retain assignment-only visibility. The check is O(1) per query construction;
+database filtering and pagination remain unchanged.
+
+## 2026-09-04 — Shared AppDialog shell
+
+`AppDialog` is the shared presentation shell for centered modal content. It
+owns responsive insets, themed surface decoration, title/close header, divider,
+scrolling content, keyboard inset handling, and optional sticky actions. The
+existing `showAppFilterPanel` API remains the call-site adapter, so current
+filter and Project task editor callers require no dialog orchestration changes.
+Confirmation and specialized dialogs continue using their existing widgets
+until they need the same shell behavior.
+
 ## 2026-09-04 — Project task priority
 
 `project_tasks.priority` is a required database enum with a `medium` default.
