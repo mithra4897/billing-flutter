@@ -2066,3 +2066,35 @@
   difference remains a separate correction.
 - Focused backend tests passed (22 tests, 76 assertions); focused Flutter
   analysis and 2 tests passed.
+
+## 2026-09-04 — Shared filters across the Project module
+
+- Request: Use the shared Sales-style filter experience throughout Project and
+  expose all relevant persisted filter dimensions.
+- Specification: Added the eight-register filter matrix and constrained-
+  project Clear behavior.
+- Implementation: Projects, Tasks, Milestones, Timesheets, Expenses, Resource
+  Usage, Vendor Works, and Billings now use `AppRegisterFilters` with relevant
+  date, status, relationship, type, category, and priority choices. The shared
+  component gained an optional search slot and configurable item/type/category
+  labels; embedded subtabs keep the full filter surface reachable without
+  shell actions.
+- Task and Milestone standalone Kanban pages now follow the same top-bar Filter
+  interaction as the other Project registers, while constrained embedded tabs
+  keep their filters visible.
+- Task and Milestone reuse `AppRegisterFiltersSection` for the existing app
+  filter background and animation; no Project-specific filter wrapper exists.
+- Files changed: Shared register filter, eight Project pages, eight Project
+  controllers, focused tests, and durable documentation.
+- Database/API impact: None; filtering uses already-loaded authorized records.
+- Security impact: None; company, user, and constrained-project scopes remain
+  authoritative before filters run.
+- Tests added or updated: Shared filter rendering and combined Task filtering.
+- Tests executed and results: Focused analysis passed; 2 focused tests and the
+  full 9-test Flutter suite passed.
+- Documentation updated: README, specification, architecture, ADR-0044,
+  testing notes, and changelog.
+- Known limitations: Vendor Work has no persisted date field, so it has no date
+  filter. Authenticated visual verification remains manual.
+- Follow-up work: Consider server-side Project register filtering if nested
+  project payloads become paginated or materially larger.

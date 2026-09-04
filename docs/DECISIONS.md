@@ -942,3 +942,26 @@
   required.
 - Related files: Stock Movement list query/controller/model, shared register
   filters, Inventory register controller/page, tests, and frontend/backend docs.
+
+## ADR-0044: Reuse the shared register filter for all Project registers
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Project registers mixed custom two-field cards with partially
+  configured shared filters, so users could not consistently narrow project
+  work by its persisted relationships and dates.
+- Decision: Configure `AppRegisterFilters` on all eight Project registers and
+  compatibly add custom labels to its existing item, type, and category slots.
+  Keep filter state in each existing controller and filter only its already-
+  scoped records.
+- Reason: The Sales-style component already owns responsive layout, multi-
+  select behavior, date controls, and Clear behavior. Reusing it avoids a
+  Project-only generic widget and keeps authorization/loading unchanged.
+- Alternatives considered: Create a second Project filter component; add
+  server endpoints for local nested collections; keep custom Task and
+  Milestone filter cards.
+- Consequences: Project filtering has one visual contract, option membership
+  is set-based, filtering is O(n) per interaction, and no database or API
+  migration is required.
+- Related files: `lib/components/app_register_filters.dart`, Project register
+  pages and controllers, and Project filter tests.

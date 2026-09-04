@@ -1534,3 +1534,28 @@ been packaged successfully.
   is not installed in this checkout.
 - Authenticated browser/API verification of party-source matching, suggestion
   chips, responsive totals, and multi-page aggregates remains manual.
+
+## 2026-09-04 — Shared Project register filters
+
+- `dart format` completed for the shared filter, eight Project pages, eight
+  Project controllers, and focused tests.
+- Focused `flutter analyze` passed with no issues for the shared filter,
+  Project controllers/pages, and tests.
+- `flutter test --no-pub test/components/app_register_filters_test.dart
+  test/project/project_task_filters_test.dart` passed 2 tests covering custom
+  shared-slot labels and combined Project/Employee/Status/Priority/date/search
+  task filtering.
+- Full `flutter test --no-pub` passed all 9 tests.
+- Full `flutter analyze` was attempted and stopped on two unrelated existing
+  warnings: an unused `foundation.dart` import in `app_config.dart` and the
+  unused `_buildGapList` declaration in `crm_followups_page.dart`. The focused
+  analysis covering every changed filter/Project file passed with no issues.
+- Standalone Task and Milestone pages keep the shared filters behind their
+  top-bar Filter buttons; constrained embedded tabs retain visible filters.
+- The shared-filter widget test wraps the panel in `AppRegisterFiltersSection`
+  and verifies the standard `AppSectionCard` background is present.
+- Focused analysis and the shared-filter/task-filter tests passed after adopting
+  the standard wrapper.
+- Authenticated manual verification remains for each register's dropdown
+  options, responsive wrapping, constrained-subtab Clear behavior, and empty
+  results against production-shaped data.

@@ -23,6 +23,8 @@ class ProjectBillingManagementController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   Set<String> selectedStatuses = const <String>{};
+  Set<int> filterProjectIds = const <int>{};
+  Set<String> selectedBases = const <String>{};
   final TextEditingController billingDateController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -98,6 +100,7 @@ class ProjectBillingManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
     await loadData();
   }
 
@@ -179,7 +182,17 @@ class ProjectBillingManagementController extends GetxController {
   }
 
   List<ProjectBillingRow> _filterRows(List<ProjectBillingRow> items) {
-    var result = filterMasterList(items, searchController.text, (row) {
+    final scopedRows = items
+        .where((row) {
+          return (filterProjectIds.isEmpty ||
+                  filterProjectIds.contains(row.project.id)) &&
+              (selectedStatuses.isEmpty ||
+                  selectedStatuses.contains(row.billing.billingStatus ?? '')) &&
+              (selectedBases.isEmpty ||
+                  selectedBases.contains(row.billing.billingBasis ?? ''));
+        })
+        .toList(growable: false);
+    var result = filterMasterList(scopedRows, searchController.text, (row) {
       return [
         row.project.projectName ?? '',
         row.billing.billingDate ?? '',
@@ -187,13 +200,6 @@ class ProjectBillingManagementController extends GetxController {
         row.billing.billingStatus ?? '',
       ];
     });
-    if (selectedStatuses.isNotEmpty) {
-      result = result
-          .where(
-            (row) => selectedStatuses.contains(row.billing.billingStatus ?? ''),
-          )
-          .toList(growable: false);
-    }
     final from = dateFromController.text.trim();
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
@@ -215,7 +221,17 @@ class ProjectBillingManagementController extends GetxController {
   }
 
   void setStatuses(Set<String> values) {
-    selectedStatuses = values;
+    selectedStatuses = Set<String>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setBases(Set<String> values) {
+    selectedBases = Set<String>.from(values);
     _applyFilters();
   }
 
@@ -223,6 +239,8 @@ class ProjectBillingManagementController extends GetxController {
     dateFromController.clear();
     dateToController.clear();
     selectedStatuses = const <String>{};
+    filterProjectIds = const <int>{};
+    selectedBases = const <String>{};
     _applyFilters();
   }
 

@@ -778,3 +778,22 @@ Totals are rendered for every filter state.
 Common movement groups are optional `AppRegisterFilterSuggestion` values owned
 by the shared filter surface. Selecting one replaces the Type set and triggers
 the same single debounced reload as a direct type selection.
+
+## 2026-09-04 — Project register filter composition
+
+All Project registers compose the existing `AppRegisterFilters` surface. The
+shared component now accepts labels for its item, type, and category slots so
+Project screens can present Task, Asset, Priority, Project Type, Expense
+Category, or Billing Basis without duplicating dropdown layout code.
+
+Each Project controller owns typed `Set<int>` and `Set<String>` selections and
+applies them to the nested project records it already loaded within the current
+company, user, and constrained-project boundary. Option lists are derived from
+those scoped records; task options use an ID-keyed map to avoid duplicates.
+Filtering remains local, linear in the number of visible records, and does not
+issue additional API requests. Search remains in the existing shell or list
+search control and composes with the shared filters; the shared surface's
+optional search slot is used only by embedded subtabs that have no shell
+actions. Task and Milestone compose the existing `AppRegisterFiltersSection`
+around that surface, reusing its app-standard card background and reveal
+animation rather than introducing Project-specific filter chrome.

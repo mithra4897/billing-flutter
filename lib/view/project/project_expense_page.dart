@@ -237,17 +237,40 @@ class _ProjectExpenseManagementPageState
         controller.selectRow(row);
         _openEditor(context, controller);
       },
-      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+      filters: _filtersVisible || (widget.embedded && !widget.useShellActions)
+          ? _buildFilterPanel(controller)
+          : null,
     );
   }
 
   Widget _buildFilterPanel(ProjectExpenseManagementController controller) {
     return AppRegisterFilters(
+      searchController: widget.embedded && !widget.useShellActions
+          ? controller.searchController
+          : null,
+      searchLabel: 'Search expenses',
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,
+      partyLabel: controller.isProjectConstrained ? null : 'Project',
+      partyItems: controller.isProjectConstrained
+          ? null
+          : controller.projectItems,
+      selectedPartyIds: controller.filterProjectIds,
+      onPartyChanged: controller.setFilterProjectIds,
+      secondaryPartyLabel: 'Supplier',
+      secondaryPartyItems: controller.partyItems,
+      selectedSecondaryPartyIds: controller.filterSupplierIds,
+      onSecondaryPartyChanged: controller.setFilterSupplierIds,
+      itemLabel: 'Task',
+      itemItems: controller.filterTaskItems,
+      selectedItemIds: controller.filterTaskIds,
+      onItemsChanged: controller.setFilterTaskIds,
       statusItems: _statusItems,
       selectedStatuses: controller.selectedStatuses,
       onStatusesChanged: controller.setStatuses,
+      categoryItems: controller.categoryFilterItems,
+      selectedCategories: controller.selectedCategories,
+      onCategoriesChanged: controller.setCategories,
       onClear: controller.clearFilters,
     );
   }

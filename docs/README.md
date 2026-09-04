@@ -81,3 +81,6 @@ For a backend and frontend change that belongs to one feature, use the same deci
   ADR-0041 in `DECISIONS.md`, and the 2026-09-04 entries in `TESTING.md` and
   `CHANGELOG.md`; backend deployment details are in
   `billing-api/doc/project-task-priority.md`.
+- Shared Project register filters — see `SPECIFICATIONS.md`, `ARCHITECTURE.md`,
+  ADR-0044 in `DECISIONS.md`, and the 2026-09-04 entries in `TESTING.md` and
+  `CHANGELOG.md`.

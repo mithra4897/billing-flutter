@@ -22,6 +22,9 @@ class ProjectResourceUsageManagementController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
+  Set<int> filterProjectIds = const <int>{};
+  Set<int> filterTaskIds = const <int>{};
+  Set<int> filterAssetIds = const <int>{};
   final TextEditingController resourceNameController = TextEditingController();
   final TextEditingController usageDateController = TextEditingController();
   final TextEditingController usageHoursController = TextEditingController();
@@ -112,6 +115,8 @@ class ProjectResourceUsageManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
     await loadData();
   }
 
@@ -195,7 +200,17 @@ class ProjectResourceUsageManagementController extends GetxController {
   List<ProjectResourceUsageRow> _filterRows(
     List<ProjectResourceUsageRow> items,
   ) {
-    var result = filterMasterList(items, searchController.text, (row) {
+    final scopedRows = items
+        .where((row) {
+          return (filterProjectIds.isEmpty ||
+                  filterProjectIds.contains(row.project.id)) &&
+              (filterTaskIds.isEmpty ||
+                  filterTaskIds.contains(row.usage.projectTaskId)) &&
+              (filterAssetIds.isEmpty ||
+                  filterAssetIds.contains(row.usage.assetId));
+        })
+        .toList(growable: false);
+    var result = filterMasterList(scopedRows, searchController.text, (row) {
       return [
         row.usage.resourceName ?? '',
         row.project.projectName ?? '',
@@ -226,6 +241,24 @@ class ProjectResourceUsageManagementController extends GetxController {
   void clearFilters() {
     dateFromController.clear();
     dateToController.clear();
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
+    filterAssetIds = const <int>{};
+    _applyFilters();
+  }
+
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterTaskIds(Set<int> values) {
+    filterTaskIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterAssetIds(Set<int> values) {
+    filterAssetIds = Set<int>.from(values);
     _applyFilters();
   }
 
@@ -307,6 +340,25 @@ class ProjectResourceUsageManagementController extends GetxController {
       )
       .where((item) => item.value != 0)
       .toList(growable: false);
+
+  List<AppDropdownItem<int>> get filterTaskItems {
+    final tasksById = <int, AppDropdownItem<int>>{};
+    for (final project in projects) {
+      if (filterProjectIds.isNotEmpty &&
+          !filterProjectIds.contains(project.id)) {
+        continue;
+      }
+      for (final task in project.tasks) {
+        final id = task.id;
+        if (id == null) continue;
+        tasksById[id] = AppDropdownItem<int>(
+          value: id,
+          label: task.taskName ?? task.taskCode ?? 'Task',
+        );
+      }
+    }
+    return tasksById.values.toList(growable: false);
+  }
 
   AssetModel? assetById(int? id) => assets.cast<AssetModel?>().firstWhere(
     (item) => item?.id == id,

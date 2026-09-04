@@ -249,17 +249,33 @@ class _ProjectBillingManagementPageState
         controller.selectRow(row);
         _openEditor(context, controller);
       },
-      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+      filters: _filtersVisible || (widget.embedded && !widget.useShellActions)
+          ? _buildFilterPanel(controller)
+          : null,
     );
   }
 
   Widget _buildFilterPanel(ProjectBillingManagementController controller) {
     return AppRegisterFilters(
+      searchController: widget.embedded && !widget.useShellActions
+          ? controller.searchController
+          : null,
+      searchLabel: 'Search billings',
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,
+      partyLabel: controller.isProjectConstrained ? null : 'Project',
+      partyItems: controller.isProjectConstrained
+          ? null
+          : controller.projectItems,
+      selectedPartyIds: controller.filterProjectIds,
+      onPartyChanged: controller.setFilterProjectIds,
       statusItems: _statusItems,
       selectedStatuses: controller.selectedStatuses,
       onStatusesChanged: controller.setStatuses,
+      typeLabel: 'Billing basis',
+      typeItems: _basisItems,
+      selectedTypes: controller.selectedBases,
+      onTypesChanged: controller.setBases,
       onClear: controller.clearFilters,
     );
   }

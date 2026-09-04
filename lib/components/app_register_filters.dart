@@ -29,7 +29,7 @@ class AppRegisterFiltersSection extends StatelessWidget {
       transitionBuilder: (child, animation) {
         return SizeTransition(
           sizeFactor: animation,
-          alignment: Alignment.topCenter,
+          axisAlignment: -1,
           child: FadeTransition(opacity: animation, child: child),
         );
       },
@@ -52,6 +52,9 @@ class AppRegisterFiltersSection extends StatelessWidget {
 class AppRegisterFilters extends StatelessWidget {
   const AppRegisterFilters({
     super.key,
+    this.searchController,
+    this.searchLabel = 'Search',
+    this.searchHint,
     this.dateFromController,
     this.dateToController,
     this.statusItems,
@@ -69,12 +72,15 @@ class AppRegisterFilters extends StatelessWidget {
     this.selectedSecondaryPartyIds,
     this.onSecondaryPartyChanged,
     this.itemItems,
+    this.itemLabel = 'Item',
     this.selectedItemIds,
     this.onItemsChanged,
     this.typeItems,
+    this.typeLabel = 'Type',
     this.selectedTypes,
     this.onTypesChanged,
     this.categoryItems,
+    this.categoryLabel = 'Category',
     this.selectedCategories,
     this.onCategoriesChanged,
     this.showDateFilters = true,
@@ -83,6 +89,9 @@ class AppRegisterFilters extends StatelessWidget {
     this.suggestions = const <AppRegisterFilterSuggestion>[],
   });
 
+  final TextEditingController? searchController;
+  final String searchLabel;
+  final String? searchHint;
   final TextEditingController? dateFromController;
   final TextEditingController? dateToController;
   final List<AppDropdownItem<String>>? statusItems;
@@ -100,12 +109,15 @@ class AppRegisterFilters extends StatelessWidget {
   final Set<int>? selectedSecondaryPartyIds;
   final ValueChanged<Set<int>>? onSecondaryPartyChanged;
   final List<AppDropdownItem<int>>? itemItems;
+  final String itemLabel;
   final Set<int>? selectedItemIds;
   final ValueChanged<Set<int>>? onItemsChanged;
   final List<AppDropdownItem<String>>? typeItems;
+  final String typeLabel;
   final Set<String>? selectedTypes;
   final ValueChanged<Set<String>>? onTypesChanged;
   final List<AppDropdownItem<String>>? categoryItems;
+  final String categoryLabel;
   final Set<String>? selectedCategories;
   final ValueChanged<Set<String>>? onCategoriesChanged;
   final bool showDateFilters;
@@ -203,6 +215,13 @@ class AppRegisterFilters extends StatelessWidget {
           maxColumns: 6,
           expandChildren: true,
           children: [
+            if (searchController != null)
+              AppFormTextField(
+                controller: searchController!,
+                labelText: searchLabel,
+                hintText: searchHint,
+                prefixIcon: const Icon(Icons.search_outlined),
+              ),
             if (hasParty)
               AppDropdownField<int>.fromMapped(
                 labelText: partyLabel!,
@@ -227,10 +246,10 @@ class AppRegisterFilters extends StatelessWidget {
               ),
             if (hasItem)
               AppDropdownField<int>.fromMapped(
-                labelText: 'Item',
+                labelText: itemLabel,
                 mappedItems: itemItems!,
                 multiInitialValues: selectedItemIds!,
-                multiHintText: 'Select items',
+                multiHintText: 'Select ${itemLabel.toLowerCase()}s',
                 onMultiChanged: onItemsChanged,
                 onClear: selectedItemIds!.isEmpty
                     ? null
@@ -238,10 +257,10 @@ class AppRegisterFilters extends StatelessWidget {
               ),
             if (hasType)
               AppDropdownField<String>.fromMapped(
-                labelText: 'Type',
+                labelText: typeLabel,
                 mappedItems: typeItems!,
                 multiInitialValues: selectedTypes!,
-                multiHintText: 'Select types',
+                multiHintText: 'Select ${typeLabel.toLowerCase()}s',
                 onMultiChanged: onTypesChanged,
                 onClear: selectedTypes!.isEmpty
                     ? null
@@ -269,12 +288,12 @@ class AppRegisterFilters extends StatelessWidget {
               ),
             if (hasCategory)
               AppDropdownField<String>.fromMapped(
-                labelText: 'Category',
+                labelText: categoryLabel,
                 mappedItems: categoryItems!
                     .where((item) => item.value.trim().isNotEmpty)
                     .toList(growable: false),
                 multiInitialValues: selectedCategories!,
-                multiHintText: 'Select categories',
+                multiHintText: 'Select ${categoryLabel.toLowerCase()} values',
                 onMultiChanged: onCategoriesChanged,
                 onClear: selectedCategories!.isEmpty
                     ? null

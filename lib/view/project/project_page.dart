@@ -21,6 +21,7 @@ class ProjectManagementPage extends StatefulWidget {
 
 class _ProjectManagementPageState extends State<ProjectManagementPage>
     with SingleTickerProviderStateMixin {
+  bool _filtersVisible = false;
   static const List<AppDropdownItem<String>> _billingMethodItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'fixed', label: 'Fixed'),
@@ -98,23 +99,26 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     }
 
     final perms = controller.permissionCodes;
-    return _allTabs.where((tab) {
-      switch (tab.key) {
-        case 'timesheets':
-          return perms.contains('project_timesheet.view');
-        case 'expenses':
-          return perms.contains('project_expense.view');
-        case 'resources':
-          return perms.contains('project_resource.view');
-        case 'vendor_works':
-          return perms.contains('project_vendor.view');
-        case 'billings':
-          return perms.contains('project_billing.view');
-        default:
-          return true;
-      }
-    }).toList(growable: false);
+    return _allTabs
+        .where((tab) {
+          switch (tab.key) {
+            case 'timesheets':
+              return perms.contains('project_timesheet.view');
+            case 'expenses':
+              return perms.contains('project_expense.view');
+            case 'resources':
+              return perms.contains('project_resource.view');
+            case 'vendor_works':
+              return perms.contains('project_vendor.view');
+            case 'billings':
+              return perms.contains('project_billing.view');
+            default:
+              return true;
+          }
+        })
+        .toList(growable: false);
   }
+
   TabController _resolveTabController(
     ProjectManagementController controller,
     List<_ProjectMasterTab> tabs,
@@ -127,13 +131,14 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
         ? 0
         : widget.initialTabIndex.clamp(0, tabs.length - 1);
     _lastTabCount = tabs.length;
-    _tabController = TabController(
-      length: tabs.length,
-      vsync: this,
-      initialIndex: initialIndex,
-    )..addListener(() {
-      if (mounted) setState(() {});
-    });
+    _tabController =
+        TabController(
+          length: tabs.length,
+          vsync: this,
+          initialIndex: initialIndex,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
     return _tabController!;
   }
 
@@ -166,6 +171,11 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_list_outlined,
+            label: 'Filter',
+          ),
           AdaptiveShellActionButton(
             onPressed: () => controller.startNewProject(
               isDesktop: Responsive.isDesktop(context),
@@ -214,6 +224,30 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
           controller.selectedProject?.projectName ??
           controller.selectedProject?.projectCode,
       scrollController: controller.pageScrollController,
+      fullWidthHeader: _filtersVisible
+          ? AppSectionCard(
+              child: AppRegisterFilters(
+                dateFromController: controller.dateFromController,
+                dateToController: controller.dateToController,
+                partyLabel: 'Customer',
+                partyItems: controller.customerFilterItems,
+                selectedPartyIds: controller.filterCustomerIds,
+                onPartyChanged: controller.setFilterCustomerIds,
+                statusItems: _projectStatusItems,
+                selectedStatuses: controller.selectedStatuses,
+                onStatusesChanged: controller.setSelectedStatuses,
+                typeLabel: 'Project type',
+                typeItems: controller.projectTypeFilterItems,
+                selectedTypes: controller.selectedProjectTypes,
+                onTypesChanged: controller.setSelectedProjectTypes,
+                categoryLabel: 'Billing method',
+                categoryItems: controller.billingMethodFilterItems,
+                selectedCategories: controller.selectedBillingMethods,
+                onCategoriesChanged: controller.setSelectedBillingMethods,
+                onClear: controller.clearFilters,
+              ),
+            )
+          : null,
       list: SettingsListCard<ProjectModel>(
         searchController: controller.searchController,
         searchHint: 'Search projects',

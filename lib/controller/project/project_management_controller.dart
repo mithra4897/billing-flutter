@@ -17,6 +17,12 @@ class ProjectManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
+  Set<int> filterCustomerIds = const <int>{};
+  Set<String> selectedStatuses = const <String>{};
+  Set<String> selectedProjectTypes = const <String>{};
+  Set<String> selectedBillingMethods = const <String>{};
 
   final TextEditingController projectCodeController = TextEditingController();
   final TextEditingController projectNameController = TextEditingController();
@@ -64,6 +70,8 @@ class ProjectManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    dateFromController.addListener(_applySearch);
+    dateToController.addListener(_applySearch);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -82,6 +90,12 @@ class ProjectManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applySearch)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applySearch)
+      ..dispose();
+    dateToController
       ..removeListener(_applySearch)
       ..dispose();
     projectCodeController.dispose();
@@ -220,6 +234,25 @@ class ProjectManagementController extends GetxController {
           })
           .toList(growable: false);
     }
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    scoped = scoped
+        .where((project) {
+          final date = project.expectedStartDate ?? '';
+          return (filterCustomerIds.isEmpty ||
+                  filterCustomerIds.contains(project.customerPartyId)) &&
+              (selectedStatuses.isEmpty ||
+                  selectedStatuses.contains(project.projectStatus ?? '')) &&
+              (selectedProjectTypes.isEmpty ||
+                  selectedProjectTypes.contains(project.projectType ?? '')) &&
+              (selectedBillingMethods.isEmpty ||
+                  selectedBillingMethods.contains(
+                    project.billingMethod ?? '',
+                  )) &&
+              (from.isEmpty || date.compareTo(from) >= 0) &&
+              (to.isEmpty || date.compareTo(to) <= 0);
+        })
+        .toList(growable: false);
     return filterMasterList(scoped, query, (project) {
       return [
         project.projectCode ?? '',
@@ -425,6 +458,69 @@ class ProjectManagementController extends GetxController {
       )
       .where((item) => item.value != 0)
       .toList(growable: false);
+
+  List<AppDropdownItem<int>> get customerFilterItems {
+    final customerIds = projects
+        .map((project) => project.customerPartyId)
+        .whereType<int>()
+        .toSet();
+    return parties
+        .where((party) => party.id != null && customerIds.contains(party.id))
+        .map(
+          (party) =>
+              AppDropdownItem<int>(value: party.id!, label: party.toString()),
+        )
+        .toList(growable: false);
+  }
+
+  List<AppDropdownItem<String>> get projectTypeFilterItems => projects
+      .map((project) => project.projectType?.trim() ?? '')
+      .where((value) => value.isNotEmpty)
+      .toSet()
+      .map((value) => AppDropdownItem<String>(value: value, label: value))
+      .toList(growable: false);
+
+  List<AppDropdownItem<String>> get billingMethodFilterItems => projects
+      .map((project) => project.billingMethod?.trim() ?? '')
+      .where((value) => value.isNotEmpty)
+      .toSet()
+      .map(
+        (value) => AppDropdownItem<String>(
+          value: value,
+          label: value.replaceAll('_', ' ').titleCase,
+        ),
+      )
+      .toList(growable: false);
+
+  void setFilterCustomerIds(Set<int> values) {
+    filterCustomerIds = Set<int>.from(values);
+    _applySearch();
+  }
+
+  void setSelectedStatuses(Set<String> values) {
+    selectedStatuses = Set<String>.from(values);
+    _applySearch();
+  }
+
+  void setSelectedProjectTypes(Set<String> values) {
+    selectedProjectTypes = Set<String>.from(values);
+    _applySearch();
+  }
+
+  void setSelectedBillingMethods(Set<String> values) {
+    selectedBillingMethods = Set<String>.from(values);
+    _applySearch();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    filterCustomerIds = const <int>{};
+    selectedStatuses = const <String>{};
+    selectedProjectTypes = const <String>{};
+    selectedBillingMethods = const <String>{};
+    _applySearch();
+  }
 
   String companyName(int? id) {
     return companies

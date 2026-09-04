@@ -23,6 +23,9 @@ class ProjectTimesheetManagementController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   Set<String> selectedStatuses = const <String>{};
+  Set<int> filterProjectIds = const <int>{};
+  Set<int> filterTaskIds = const <int>{};
+  Set<int> filterEmployeeIds = const <int>{};
   final TextEditingController workDateController = TextEditingController();
   final TextEditingController hoursWorkedController = TextEditingController();
   final TextEditingController hourlyCostController = TextEditingController();
@@ -114,6 +117,8 @@ class ProjectTimesheetManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
     await loadData();
   }
 
@@ -197,7 +202,25 @@ class ProjectTimesheetManagementController extends GetxController {
   }
 
   List<ProjectTimesheetRow> _filterRows(List<ProjectTimesheetRow> items) {
-    var result = filterMasterList(items, searchController.text, (row) {
+    final scopedRows = items
+        .where((row) {
+          if (filterProjectIds.isNotEmpty &&
+              !filterProjectIds.contains(row.project.id)) {
+            return false;
+          }
+          if (filterTaskIds.isNotEmpty &&
+              !filterTaskIds.contains(row.timesheet.projectTaskId)) {
+            return false;
+          }
+          if (filterEmployeeIds.isNotEmpty &&
+              !filterEmployeeIds.contains(row.timesheet.employeeId)) {
+            return false;
+          }
+          return selectedStatuses.isEmpty ||
+              selectedStatuses.contains(row.timesheet.timesheetStatus ?? '');
+        })
+        .toList(growable: false);
+    var result = filterMasterList(scopedRows, searchController.text, (row) {
       return [
         row.project.projectName ?? '',
         employeeName(row.timesheet.employeeId),
@@ -205,14 +228,6 @@ class ProjectTimesheetManagementController extends GetxController {
         row.timesheet.timesheetStatus ?? '',
       ];
     });
-    if (selectedStatuses.isNotEmpty) {
-      result = result
-          .where(
-            (row) =>
-                selectedStatuses.contains(row.timesheet.timesheetStatus ?? ''),
-          )
-          .toList(growable: false);
-    }
     final from = dateFromController.text.trim();
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
@@ -234,7 +249,23 @@ class ProjectTimesheetManagementController extends GetxController {
   }
 
   void setStatuses(Set<String> values) {
-    selectedStatuses = values;
+    selectedStatuses = Set<String>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    filterTaskIds = filterTaskIds.where(_taskBelongsToFilteredProject).toSet();
+    _applyFilters();
+  }
+
+  void setFilterTaskIds(Set<int> values) {
+    filterTaskIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterEmployeeIds(Set<int> values) {
+    filterEmployeeIds = Set<int>.from(values);
     _applyFilters();
   }
 
@@ -242,7 +273,19 @@ class ProjectTimesheetManagementController extends GetxController {
     dateFromController.clear();
     dateToController.clear();
     selectedStatuses = const <String>{};
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
+    filterEmployeeIds = const <int>{};
     _applyFilters();
+  }
+
+  bool _taskBelongsToFilteredProject(int taskId) {
+    if (filterProjectIds.isEmpty) return true;
+    return projects.any(
+      (project) =>
+          filterProjectIds.contains(project.id) &&
+          project.tasks.any((task) => task.id == taskId),
+    );
   }
 
   void selectRow(ProjectTimesheetRow row, {bool notify = true}) {
@@ -305,6 +348,25 @@ class ProjectTimesheetManagementController extends GetxController {
       )
       .where((item) => item.value != 0)
       .toList(growable: false);
+
+  List<AppDropdownItem<int>> get filterTaskItems {
+    final tasksById = <int, AppDropdownItem<int>>{};
+    for (final project in projects) {
+      if (filterProjectIds.isNotEmpty &&
+          !filterProjectIds.contains(project.id)) {
+        continue;
+      }
+      for (final task in project.tasks) {
+        final id = task.id;
+        if (id == null) continue;
+        tasksById[id] = AppDropdownItem<int>(
+          value: id,
+          label: task.taskName ?? task.taskCode ?? 'Task',
+        );
+      }
+    }
+    return tasksById.values.toList(growable: false);
+  }
 
   List<AppDropdownItem<int>> get taskItems {
     final project = projects.cast<ProjectModel?>().firstWhere(

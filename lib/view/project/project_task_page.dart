@@ -39,8 +39,6 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
 
   static const List<AppDropdownItem<String>> _taskListStatusFilterItems =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'all', label: 'All Statuses'),
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'working', label: 'Working'),
         AppDropdownItem(value: 'on_hold', label: 'In Review'),
@@ -49,6 +47,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       ];
 
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -91,6 +90,18 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!controller.isProjectConstrained)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search tasks',
+            ),
+          if (!controller.isProjectConstrained)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+            ),
           AdaptiveShellActionButton(
             onPressed: () {
               if (controller.isProjectConstrained) {
@@ -155,8 +166,10 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTaskFilters(controller, includeSearch: true),
-          const SizedBox(height: AppUiConstants.spacingMd),
+          if (_filtersVisible) ...[
+            _buildTaskFilters(controller),
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
           ProjectKanbanBoard.task(
             rows: controller.filteredRows,
             statusFilter: controller.listStatusFilter,
@@ -176,35 +189,37 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
     );
   }
 
-  Widget _buildTaskFilters(
-    ProjectTaskManagementController controller, {
-    bool includeSearch = false,
-  }) {
-    return AppSectionCard(
-      child: SettingsFormWrap(
-        children: [
-          if (includeSearch)
-            AppFormTextField(
-              controller: controller.searchController,
-              labelText: 'Search Tasks',
-              hintText: 'Name, code, project, or employee',
-              prefixIcon: const Icon(Icons.search_outlined),
-            ),
-          AppDropdownField<String>.fromMapped(
-            labelText: 'Task status',
-            mappedItems: _taskListStatusFilterItems,
-            initialValue: controller.listStatusFilter,
-            onChanged: controller.setListStatusFilter,
-          ),
-          if (controller.isSuperAdmin)
-            AppDropdownField<int>.fromMapped(
-              labelText: 'Assigned employees',
-              mappedItems: controller.assignedEmployeeFilterItems,
-              multiInitialValues: controller.filterEmployeeIds,
-              multiHintText: 'All assigned employees',
-              onMultiChanged: controller.setFilterEmployeeIds,
-            ),
-        ],
+  Widget _buildTaskFilters(ProjectTaskManagementController controller) {
+    return AppRegisterFiltersSection(
+      keyPrefix: 'project-tasks',
+      filters: AppRegisterFilters(
+        searchController: controller.isProjectConstrained
+            ? controller.searchController
+            : null,
+        searchLabel: 'Search tasks',
+        searchHint: 'Name, code, project, or employee',
+        dateFromController: controller.dateFromController,
+        dateToController: controller.dateToController,
+        partyLabel: controller.isProjectConstrained ? null : 'Project',
+        partyItems: controller.isProjectConstrained
+            ? null
+            : controller.projectItems,
+        selectedPartyIds: controller.filterProjectIds,
+        onPartyChanged: controller.setFilterProjectIds,
+        secondaryPartyLabel: controller.isSuperAdmin ? 'Employee' : null,
+        secondaryPartyItems: controller.isSuperAdmin
+            ? controller.assignedEmployeeFilterItems
+            : null,
+        selectedSecondaryPartyIds: controller.filterEmployeeIds,
+        onSecondaryPartyChanged: controller.setFilterEmployeeIds,
+        statusItems: _taskListStatusFilterItems,
+        selectedStatuses: controller.selectedStatuses,
+        onStatusesChanged: controller.setSelectedStatuses,
+        categoryLabel: 'Priority',
+        categoryItems: _taskPriorityItems,
+        selectedCategories: controller.selectedPriorities,
+        onCategoriesChanged: controller.setSelectedPriorities,
+        onClear: controller.clearFilters,
       ),
     );
   }

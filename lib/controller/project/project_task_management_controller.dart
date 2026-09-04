@@ -22,6 +22,8 @@ class ProjectTaskManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
 
   final TextEditingController taskCodeController = TextEditingController();
   final TextEditingController taskNameController = TextEditingController();
@@ -65,6 +67,9 @@ class ProjectTaskManagementController extends GetxController {
   bool isSuperAdmin = false;
   int? linkedEmployeeId;
   String listStatusFilter = 'all';
+  Set<String> selectedStatuses = const <String>{};
+  Set<String> selectedPriorities = const <String>{};
+  Set<int> filterProjectIds = const <int>{};
   Set<int> filterEmployeeIds = <int>{};
   Set<int> movingTaskIds = <int>{};
 
@@ -80,6 +85,8 @@ class ProjectTaskManagementController extends GetxController {
     super.onInit();
     _applyInitialDashboardFilter();
     searchController.addListener(_applySearch);
+    dateFromController.addListener(_applySearch);
+    dateToController.addListener(_applySearch);
     taskCodeController.addListener(_handleTaskCodeChanged);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
@@ -99,6 +106,12 @@ class ProjectTaskManagementController extends GetxController {
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
+      ..removeListener(_applySearch)
+      ..dispose();
+    dateFromController
+      ..removeListener(_applySearch)
+      ..dispose();
+    dateToController
       ..removeListener(_applySearch)
       ..dispose();
     taskCodeController
@@ -133,6 +146,11 @@ class ProjectTaskManagementController extends GetxController {
       'cancelled',
     }.contains(requested)) {
       listStatusFilter = requested;
+      selectedStatuses = switch (requested) {
+        'pending' => const <String>{'open', 'working', 'on_hold'},
+        'all' => const <String>{},
+        _ => <String>{requested},
+      };
     }
   }
 
@@ -141,6 +159,7 @@ class ProjectTaskManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
     await loadData();
   }
 
@@ -282,6 +301,16 @@ class ProjectTaskManagementController extends GetxController {
   List<ProjectTaskRow> filterRows(List<ProjectTaskRow> items, String query) {
     var visibleRows = items
         .where((row) {
+          if (filterProjectIds.isNotEmpty &&
+              !filterProjectIds.contains(row.project.id)) {
+            return false;
+          }
+          if (selectedPriorities.isNotEmpty &&
+              !selectedPriorities.contains(
+                (row.task.priority ?? 'medium').trim().toLowerCase(),
+              )) {
+            return false;
+          }
           if (isSuperAdmin) {
             if (filterEmployeeIds.isEmpty) return true;
             return filterEmployeeIds.any(
@@ -301,6 +330,9 @@ class ProjectTaskManagementController extends GetxController {
             return true;
           }
           final status = (row.task.taskStatus ?? 'open').trim().toLowerCase();
+          if (selectedStatuses.isNotEmpty) {
+            return selectedStatuses.contains(status);
+          }
           if (statusFilter == 'all') return true;
           if (statusFilter == 'pending') {
             return const <String>{
@@ -312,6 +344,18 @@ class ProjectTaskManagementController extends GetxController {
           return status == statusFilter;
         })
         .toList(growable: false);
+
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty || to.isNotEmpty) {
+      visibleRows = visibleRows
+          .where((row) {
+            final date = row.task.plannedStartDate ?? '';
+            return (from.isEmpty || date.compareTo(from) >= 0) &&
+                (to.isEmpty || date.compareTo(to) <= 0);
+          })
+          .toList(growable: false);
+    }
 
     return filterMasterList(visibleRows, query, (row) {
       return [
@@ -627,8 +671,50 @@ class ProjectTaskManagementController extends GetxController {
     update();
   }
 
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    _refreshFilteredRows();
+  }
+
+  void setSelectedStatuses(Set<String> values) {
+    selectedStatuses = Set<String>.from(values);
+    listStatusFilter = selectedStatuses.length == 1
+        ? selectedStatuses.first
+        : 'all';
+    _refreshFilteredRows();
+  }
+
+  void setSelectedPriorities(Set<String> values) {
+    selectedPriorities = Set<String>.from(values);
+    _refreshFilteredRows();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    selectedStatuses = const <String>{};
+    selectedPriorities = const <String>{};
+    filterProjectIds = const <int>{};
+    filterEmployeeIds = <int>{};
+    listStatusFilter = 'all';
+    _refreshFilteredRows();
+  }
+
+  void _refreshFilteredRows() {
+    filteredRows = filterRows(rows, searchController.text);
+    if (selectedRow != null && !filteredRows.contains(selectedRow)) {
+      selectedRow = null;
+    }
+    update();
+  }
+
   void setListStatusFilter(String? value) {
     listStatusFilter = value ?? 'all';
+    selectedStatuses = switch (listStatusFilter) {
+      'pending' => const <String>{'open', 'working', 'on_hold'},
+      'all' => const <String>{},
+      _ => <String>{listStatusFilter},
+    };
     filteredRows = filterRows(rows, searchController.text);
     if (selectedRow != null && !filteredRows.contains(selectedRow)) {
       selectedRow = null;

@@ -17,6 +17,8 @@ class ProjectMilestoneManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController targetDateController = TextEditingController();
   final TextEditingController completionDateController =
@@ -34,6 +36,8 @@ class ProjectMilestoneManagementController extends GetxController {
   int? projectId;
   String status = 'open';
   String listStatusFilter = 'all';
+  Set<String> selectedStatuses = const <String>{};
+  Set<int> filterProjectIds = const <int>{};
   Set<int> movingMilestoneIds = <int>{};
   Worker? _refreshWorker;
 
@@ -46,6 +50,8 @@ class ProjectMilestoneManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    dateFromController.addListener(_applySearch);
+    dateToController.addListener(_applySearch);
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -66,6 +72,12 @@ class ProjectMilestoneManagementController extends GetxController {
     searchController
       ..removeListener(_applySearch)
       ..dispose();
+    dateFromController
+      ..removeListener(_applySearch)
+      ..dispose();
+    dateToController
+      ..removeListener(_applySearch)
+      ..dispose();
     nameController.dispose();
     targetDateController.dispose();
     completionDateController.dispose();
@@ -81,6 +93,7 @@ class ProjectMilestoneManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
     await loadData();
   }
 
@@ -160,7 +173,12 @@ class ProjectMilestoneManagementController extends GetxController {
     List<ProjectMilestoneRow> items,
     String query,
   ) {
-    var scopedRows = items;
+    var scopedRows = items
+        .where((row) {
+          return filterProjectIds.isEmpty ||
+              filterProjectIds.contains(row.project.id);
+        })
+        .toList(growable: false);
     if (initialDashboardFilter.trim() == 'due_today') {
       final now = DateTime.now();
       scopedRows = scopedRows
@@ -177,7 +195,15 @@ class ProjectMilestoneManagementController extends GetxController {
     }
 
     final normalizedStatusFilter = listStatusFilter.trim().toLowerCase();
-    if (normalizedStatusFilter == 'pending') {
+    if (selectedStatuses.isNotEmpty) {
+      scopedRows = scopedRows
+          .where(
+            (row) => selectedStatuses.contains(
+              (row.milestone.milestoneStatus ?? 'open').trim().toLowerCase(),
+            ),
+          )
+          .toList(growable: false);
+    } else if (normalizedStatusFilter == 'pending') {
       scopedRows = scopedRows
           .where(
             (row) =>
@@ -197,6 +223,18 @@ class ProjectMilestoneManagementController extends GetxController {
                     .toLowerCase() ==
                 normalizedStatusFilter,
           )
+          .toList(growable: false);
+    }
+
+    final from = dateFromController.text.trim();
+    final to = dateToController.text.trim();
+    if (from.isNotEmpty || to.isNotEmpty) {
+      scopedRows = scopedRows
+          .where((row) {
+            final date = row.milestone.targetDate ?? '';
+            return (from.isEmpty || date.compareTo(from) >= 0) &&
+                (to.isEmpty || date.compareTo(to) <= 0);
+          })
           .toList(growable: false);
     }
 
@@ -221,6 +259,36 @@ class ProjectMilestoneManagementController extends GetxController {
       return;
     }
     listStatusFilter = next;
+    selectedStatuses = switch (next) {
+      'pending' => const <String>{'open'},
+      'all' => const <String>{},
+      _ => <String>{next},
+    };
+    filteredRows = _filterRows(rows, searchController.text);
+    update();
+  }
+
+  void setSelectedStatuses(Set<String> values) {
+    selectedStatuses = Set<String>.from(values);
+    listStatusFilter = selectedStatuses.length == 1
+        ? selectedStatuses.first
+        : 'all';
+    filteredRows = _filterRows(rows, searchController.text);
+    update();
+  }
+
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    filteredRows = _filterRows(rows, searchController.text);
+    update();
+  }
+
+  void clearFilters() {
+    dateFromController.clear();
+    dateToController.clear();
+    selectedStatuses = const <String>{};
+    filterProjectIds = const <int>{};
+    listStatusFilter = 'all';
     filteredRows = _filterRows(rows, searchController.text);
     update();
   }

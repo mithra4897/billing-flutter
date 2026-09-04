@@ -33,16 +33,8 @@ class _ProjectMilestoneManagementPageState
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
-  static const List<AppDropdownItem<String>> _milestoneListStatusFilterItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'all', label: 'All Statuses'),
-        AppDropdownItem(value: 'open', label: 'Open'),
-        AppDropdownItem(value: 'completed', label: 'Completed'),
-        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-      ];
-
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -83,6 +75,18 @@ class _ProjectMilestoneManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!controller.isProjectConstrained)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search milestones',
+            ),
+          if (!controller.isProjectConstrained)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+            ),
           AdaptiveShellActionButton(
             onPressed: () {
               if (controller.isProjectConstrained) {
@@ -147,8 +151,10 @@ class _ProjectMilestoneManagementPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMilestoneFilters(controller, includeSearch: true),
-          const SizedBox(height: AppUiConstants.spacingMd),
+          if (_filtersVisible) ...[
+            _buildMilestoneFilters(controller),
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
           ProjectKanbanBoard.milestone(
             rows: controller.filteredRows,
             statusFilter: controller.listStatusFilter,
@@ -172,26 +178,28 @@ class _ProjectMilestoneManagementPageState
   }
 
   Widget _buildMilestoneFilters(
-    ProjectMilestoneManagementController controller, {
-    bool includeSearch = false,
-  }) {
-    return AppSectionCard(
-      child: SettingsFormWrap(
-        children: [
-          if (includeSearch)
-            AppFormTextField(
-              controller: controller.searchController,
-              labelText: 'Search Milestones',
-              hintText: 'Name, remarks, or project',
-              prefixIcon: const Icon(Icons.search_outlined),
-            ),
-          AppDropdownField<String>.fromMapped(
-            labelText: 'Milestone status',
-            mappedItems: _milestoneListStatusFilterItems,
-            initialValue: controller.listStatusFilter,
-            onChanged: controller.setListStatusFilter,
-          ),
-        ],
+    ProjectMilestoneManagementController controller,
+  ) {
+    return AppRegisterFiltersSection(
+      keyPrefix: 'project-milestones',
+      filters: AppRegisterFilters(
+        searchController: controller.isProjectConstrained
+            ? controller.searchController
+            : null,
+        searchLabel: 'Search milestones',
+        searchHint: 'Name, remarks, or project',
+        dateFromController: controller.dateFromController,
+        dateToController: controller.dateToController,
+        partyLabel: controller.isProjectConstrained ? null : 'Project',
+        partyItems: controller.isProjectConstrained
+            ? null
+            : controller.projectItems,
+        selectedPartyIds: controller.filterProjectIds,
+        onPartyChanged: controller.setFilterProjectIds,
+        statusItems: _statusItems,
+        selectedStatuses: controller.selectedStatuses,
+        onStatusesChanged: controller.setSelectedStatuses,
+        onClear: controller.clearFilters,
       ),
     );
   }

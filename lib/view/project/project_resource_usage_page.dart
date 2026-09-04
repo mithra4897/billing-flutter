@@ -196,7 +196,9 @@ class _ProjectResourceUsageManagementPageState
         controller.selectRow(row);
         _openEditor(context, controller);
       },
-      filters: _filtersVisible ? _buildFilterPanel(controller) : null,
+      filters: _filtersVisible || (widget.embedded && !widget.useShellActions)
+          ? _buildFilterPanel(controller)
+          : null,
     );
   }
 
@@ -204,8 +206,26 @@ class _ProjectResourceUsageManagementPageState
     ProjectResourceUsageManagementController controller,
   ) {
     return AppRegisterFilters(
+      searchController: widget.embedded && !widget.useShellActions
+          ? controller.searchController
+          : null,
+      searchLabel: 'Search resource usage',
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,
+      partyLabel: controller.isProjectConstrained ? null : 'Project',
+      partyItems: controller.isProjectConstrained
+          ? null
+          : controller.projectItems,
+      selectedPartyIds: controller.filterProjectIds,
+      onPartyChanged: controller.setFilterProjectIds,
+      secondaryPartyLabel: 'Asset',
+      secondaryPartyItems: controller.assetItems,
+      selectedSecondaryPartyIds: controller.filterAssetIds,
+      onSecondaryPartyChanged: controller.setFilterAssetIds,
+      itemLabel: 'Task',
+      itemItems: controller.filterTaskItems,
+      selectedItemIds: controller.filterTaskIds,
+      onItemsChanged: controller.setFilterTaskIds,
       onClear: controller.clearFilters,
     );
   }

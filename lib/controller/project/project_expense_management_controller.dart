@@ -24,6 +24,10 @@ class ProjectExpenseManagementController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   Set<String> selectedStatuses = const <String>{};
+  Set<int> filterProjectIds = const <int>{};
+  Set<int> filterTaskIds = const <int>{};
+  Set<int> filterSupplierIds = const <int>{};
+  Set<String> selectedCategories = const <String>{};
   final TextEditingController expenseDateController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -106,6 +110,8 @@ class ProjectExpenseManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
     await loadData();
   }
 
@@ -196,7 +202,23 @@ class ProjectExpenseManagementController extends GetxController {
   }
 
   List<ProjectExpenseRow> _filterRows(List<ProjectExpenseRow> items) {
-    var result = filterMasterList(items, searchController.text, (row) {
+    final scopedRows = items
+        .where((row) {
+          return (filterProjectIds.isEmpty ||
+                  filterProjectIds.contains(row.project.id)) &&
+              (filterTaskIds.isEmpty ||
+                  filterTaskIds.contains(row.expense.projectTaskId)) &&
+              (filterSupplierIds.isEmpty ||
+                  filterSupplierIds.contains(row.expense.supplierPartyId)) &&
+              (selectedStatuses.isEmpty ||
+                  selectedStatuses.contains(row.expense.expenseStatus ?? '')) &&
+              (selectedCategories.isEmpty ||
+                  selectedCategories.contains(
+                    row.expense.expenseCategory ?? '',
+                  ));
+        })
+        .toList(growable: false);
+    var result = filterMasterList(scopedRows, searchController.text, (row) {
       return [
         row.expense.expenseCategory ?? '',
         row.project.projectName ?? '',
@@ -204,13 +226,6 @@ class ProjectExpenseManagementController extends GetxController {
         row.expense.expenseStatus ?? '',
       ];
     });
-    if (selectedStatuses.isNotEmpty) {
-      result = result
-          .where(
-            (row) => selectedStatuses.contains(row.expense.expenseStatus ?? ''),
-          )
-          .toList(growable: false);
-    }
     final from = dateFromController.text.trim();
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
@@ -232,7 +247,27 @@ class ProjectExpenseManagementController extends GetxController {
   }
 
   void setStatuses(Set<String> values) {
-    selectedStatuses = values;
+    selectedStatuses = Set<String>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterProjectIds(Set<int> values) {
+    filterProjectIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterTaskIds(Set<int> values) {
+    filterTaskIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setFilterSupplierIds(Set<int> values) {
+    filterSupplierIds = Set<int>.from(values);
+    _applyFilters();
+  }
+
+  void setCategories(Set<String> values) {
+    selectedCategories = Set<String>.from(values);
     _applyFilters();
   }
 
@@ -240,6 +275,10 @@ class ProjectExpenseManagementController extends GetxController {
     dateFromController.clear();
     dateToController.clear();
     selectedStatuses = const <String>{};
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
+    filterSupplierIds = const <int>{};
+    selectedCategories = const <String>{};
     _applyFilters();
   }
 
@@ -320,6 +359,32 @@ class ProjectExpenseManagementController extends GetxController {
             AppDropdownItem<int>(value: item.id ?? 0, label: item.toString()),
       )
       .where((item) => item.value != 0)
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get filterTaskItems {
+    final tasksById = <int, AppDropdownItem<int>>{};
+    for (final project in projects) {
+      if (filterProjectIds.isNotEmpty &&
+          !filterProjectIds.contains(project.id)) {
+        continue;
+      }
+      for (final task in project.tasks) {
+        final id = task.id;
+        if (id == null) continue;
+        tasksById[id] = AppDropdownItem<int>(
+          value: id,
+          label: task.taskName ?? task.taskCode ?? 'Task',
+        );
+      }
+    }
+    return tasksById.values.toList(growable: false);
+  }
+
+  List<AppDropdownItem<String>> get categoryFilterItems => rows
+      .map((row) => row.expense.expenseCategory?.trim() ?? '')
+      .where((value) => value.isNotEmpty)
+      .toSet()
+      .map((value) => AppDropdownItem<String>(value: value, label: value))
       .toList(growable: false);
 
   PurchaseInvoiceModel? purchaseInvoiceById(int? id) {

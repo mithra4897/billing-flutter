@@ -32,9 +32,9 @@ class ProjectVendorWorkManagementController extends GetxController {
   String? pageError;
   String? formError;
   int? constrainedProjectId;
-  int? filterProjectId;
-  int? filterTaskId;
-  int? filterVendorPartyId;
+  Set<int> filterProjectIds = const <int>{};
+  Set<int> filterTaskIds = const <int>{};
+  Set<int> filterVendorPartyIds = const <int>{};
   int? projectId;
   int? taskId;
   int? vendorPartyId;
@@ -97,8 +97,8 @@ class ProjectVendorWorkManagementController extends GetxController {
       return;
     }
     constrainedProjectId = value;
-    filterProjectId = value;
-    filterTaskId = null;
+    filterProjectIds = value == null ? const <int>{} : <int>{value};
+    filterTaskIds = const <int>{};
     await loadData();
   }
 
@@ -163,7 +163,7 @@ class ProjectVendorWorkManagementController extends GetxController {
 
       projects = scopedProjects;
       if (isProjectConstrained) {
-        filterProjectId = constrainedProjectId;
+        filterProjectIds = const <int>{};
       }
       parties = nextParties
           .where((item) => item.isActive)
@@ -200,14 +200,16 @@ class ProjectVendorWorkManagementController extends GetxController {
   List<ProjectVendorWorkRow> filterRows(List<ProjectVendorWorkRow> items) {
     final scoped = items
         .where((row) {
-          if (filterProjectId != null && row.project.id != filterProjectId) {
+          if (filterProjectIds.isNotEmpty &&
+              !filterProjectIds.contains(row.project.id)) {
             return false;
           }
-          if (filterTaskId != null && row.work.projectTaskId != filterTaskId) {
+          if (filterTaskIds.isNotEmpty &&
+              !filterTaskIds.contains(row.work.projectTaskId)) {
             return false;
           }
-          if (filterVendorPartyId != null &&
-              row.work.vendorPartyId != filterVendorPartyId) {
+          if (filterVendorPartyIds.isNotEmpty &&
+              !filterVendorPartyIds.contains(row.work.vendorPartyId)) {
             return false;
           }
           return true;
@@ -378,56 +380,51 @@ class ProjectVendorWorkManagementController extends GetxController {
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get filterTaskItems {
-    final project = projects.cast<ProjectModel?>().firstWhere(
-      (item) => item?.id == filterProjectId,
-      orElse: () => null,
-    );
-    final source = project == null
-        ? projects.expand((item) => item.tasks).toList(growable: false)
-        : project.tasks;
-    return source
-        .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id ?? 0,
-            label: item.taskName ?? item.taskCode ?? 'Task',
-          ),
-        )
-        .where((item) => item.value != 0)
-        .toList(growable: false);
+    final tasksById = <int, AppDropdownItem<int>>{};
+    for (final project in projects) {
+      if (filterProjectIds.isNotEmpty &&
+          !filterProjectIds.contains(project.id)) {
+        continue;
+      }
+      for (final task in project.tasks) {
+        final id = task.id;
+        if (id == null) continue;
+        tasksById[id] = AppDropdownItem<int>(
+          value: id,
+          label: task.taskName ?? task.taskCode ?? 'Task',
+        );
+      }
+    }
+    return tasksById.values.toList(growable: false);
   }
 
-  void setFilterProjectId(int? value) {
+  void setFilterProjectIds(Set<int> values) {
     if (isProjectConstrained) {
-      filterProjectId = constrainedProjectId;
       update();
       return;
     }
-    filterProjectId = value;
-    final taskExists = filterTaskItems.any(
-      (item) => item.value == filterTaskId,
-    );
-    if (!taskExists) {
-      filterTaskId = null;
-    }
-    update();
+    filterProjectIds = Set<int>.from(values);
+    final validTaskIds = filterTaskItems.map((item) => item.value).toSet();
+    filterTaskIds = filterTaskIds.intersection(validTaskIds);
+    _applyFilters();
   }
 
-  void setFilterTaskId(int? value) {
-    filterTaskId = value;
-    update();
+  void setFilterTaskIds(Set<int> values) {
+    filterTaskIds = Set<int>.from(values);
+    _applyFilters();
   }
 
-  void setFilterVendorPartyId(int? value) {
-    filterVendorPartyId = value;
-    update();
+  void setFilterVendorPartyIds(Set<int> values) {
+    filterVendorPartyIds = Set<int>.from(values);
+    _applyFilters();
   }
 
   void clearFilters() {
     selectedStatuses = const <String>{};
     searchController.clear();
-    filterProjectId = constrainedProjectId;
-    filterTaskId = null;
-    filterVendorPartyId = null;
+    filterProjectIds = const <int>{};
+    filterTaskIds = const <int>{};
+    filterVendorPartyIds = const <int>{};
     _applyFilters();
   }
 
