@@ -1,5 +1,15 @@
 import '../screen.dart';
 
+class AppRegisterFilterSuggestion {
+  const AppRegisterFilterSuggestion({
+    required this.label,
+    required this.onSelected,
+  });
+
+  final String label;
+  final VoidCallback onSelected;
+}
+
 class AppRegisterFiltersSection extends StatelessWidget {
   const AppRegisterFiltersSection({
     super.key,
@@ -19,7 +29,7 @@ class AppRegisterFiltersSection extends StatelessWidget {
       transitionBuilder: (child, animation) {
         return SizeTransition(
           sizeFactor: animation,
-          axisAlignment: -1,
+          alignment: Alignment.topCenter,
           child: FadeTransition(opacity: animation, child: child),
         );
       },
@@ -54,12 +64,23 @@ class AppRegisterFilters extends StatelessWidget {
     this.partyItems,
     this.selectedPartyIds,
     this.onPartyChanged,
+    this.secondaryPartyLabel,
+    this.secondaryPartyItems,
+    this.selectedSecondaryPartyIds,
+    this.onSecondaryPartyChanged,
+    this.itemItems,
+    this.selectedItemIds,
+    this.onItemsChanged,
+    this.typeItems,
+    this.selectedTypes,
+    this.onTypesChanged,
     this.categoryItems,
     this.selectedCategories,
     this.onCategoriesChanged,
     this.showDateFilters = true,
     required this.onClear,
     this.maxWidth,
+    this.suggestions = const <AppRegisterFilterSuggestion>[],
   });
 
   final TextEditingController? dateFromController;
@@ -74,12 +95,23 @@ class AppRegisterFilters extends StatelessWidget {
   final List<AppDropdownItem<int>>? partyItems;
   final Set<int>? selectedPartyIds;
   final ValueChanged<Set<int>>? onPartyChanged;
+  final String? secondaryPartyLabel;
+  final List<AppDropdownItem<int>>? secondaryPartyItems;
+  final Set<int>? selectedSecondaryPartyIds;
+  final ValueChanged<Set<int>>? onSecondaryPartyChanged;
+  final List<AppDropdownItem<int>>? itemItems;
+  final Set<int>? selectedItemIds;
+  final ValueChanged<Set<int>>? onItemsChanged;
+  final List<AppDropdownItem<String>>? typeItems;
+  final Set<String>? selectedTypes;
+  final ValueChanged<Set<String>>? onTypesChanged;
   final List<AppDropdownItem<String>>? categoryItems;
   final Set<String>? selectedCategories;
   final ValueChanged<Set<String>>? onCategoriesChanged;
   final bool showDateFilters;
   final VoidCallback onClear;
   final double? maxWidth;
+  final List<AppRegisterFilterSuggestion> suggestions;
 
   Widget _dateField({
     required String label,
@@ -132,6 +164,25 @@ class AppRegisterFilters extends StatelessWidget {
         selectedStatuses != null &&
         onStatusesChanged != null;
 
+    final hasSecondaryParty =
+        secondaryPartyLabel != null &&
+        secondaryPartyItems != null &&
+        secondaryPartyItems!.isNotEmpty &&
+        selectedSecondaryPartyIds != null &&
+        onSecondaryPartyChanged != null;
+
+    final hasItem =
+        itemItems != null &&
+        itemItems!.isNotEmpty &&
+        selectedItemIds != null &&
+        onItemsChanged != null;
+
+    final hasType =
+        typeItems != null &&
+        typeItems!.isNotEmpty &&
+        selectedTypes != null &&
+        onTypesChanged != null;
+
     final hasSort =
         sortItems != null &&
         sortItems!.isNotEmpty &&
@@ -162,6 +213,39 @@ class AppRegisterFilters extends StatelessWidget {
                 onClear: selectedPartyIds!.isEmpty
                     ? null
                     : () => onPartyChanged!(<int>{}),
+              ),
+            if (hasSecondaryParty)
+              AppDropdownField<int>.fromMapped(
+                labelText: secondaryPartyLabel!,
+                mappedItems: secondaryPartyItems!,
+                multiInitialValues: selectedSecondaryPartyIds!,
+                multiHintText: 'Select ${secondaryPartyLabel!.toLowerCase()}s',
+                onMultiChanged: onSecondaryPartyChanged,
+                onClear: selectedSecondaryPartyIds!.isEmpty
+                    ? null
+                    : () => onSecondaryPartyChanged!(<int>{}),
+              ),
+            if (hasItem)
+              AppDropdownField<int>.fromMapped(
+                labelText: 'Item',
+                mappedItems: itemItems!,
+                multiInitialValues: selectedItemIds!,
+                multiHintText: 'Select items',
+                onMultiChanged: onItemsChanged,
+                onClear: selectedItemIds!.isEmpty
+                    ? null
+                    : () => onItemsChanged!(<int>{}),
+              ),
+            if (hasType)
+              AppDropdownField<String>.fromMapped(
+                labelText: 'Type',
+                mappedItems: typeItems!,
+                multiInitialValues: selectedTypes!,
+                multiHintText: 'Select types',
+                onMultiChanged: onTypesChanged,
+                onClear: selectedTypes!.isEmpty
+                    ? null
+                    : () => onTypesChanged!(<String>{}),
               ),
             if (hasStatus)
               AppDropdownField<String>.fromMapped(
@@ -206,6 +290,26 @@ class AppRegisterFilters extends StatelessWidget {
             _actionField(context),
           ],
         ),
+        if (suggestions.isNotEmpty) ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingXs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Text(
+                'Suggestions:',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              ...suggestions.map(
+                (suggestion) => ActionChip(
+                  label: Text(suggestion.label),
+                  onPressed: suggestion.onSelected,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

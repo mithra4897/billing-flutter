@@ -12,6 +12,94 @@ typedef InventoryRegisterValueGetter<T> = String? Function(T row);
 typedef InventoryRegisterValuesGetter<T> = List<String> Function(T row);
 typedef InventoryRegisterDropdownLoader =
     Future<List<AppDropdownItem<String>>> Function(InventoryService service);
+typedef InventoryRegisterFilterOptionsLoader =
+    Future<InventoryRegisterFilterOptions> Function();
+typedef InventoryRegisterFooterBuilder<T> =
+    Widget? Function(
+      BuildContext context,
+      InventoryRegisterController<T> controller,
+      int currentPage,
+    );
+
+class InventoryRegisterFilterOptions {
+  const InventoryRegisterFilterOptions({
+    this.customerItems = const <AppDropdownItem<int>>[],
+    this.supplierItems = const <AppDropdownItem<int>>[],
+    this.itemItems = const <AppDropdownItem<int>>[],
+    this.typeItems = const <AppDropdownItem<String>>[],
+  });
+
+  final List<AppDropdownItem<int>> customerItems;
+  final List<AppDropdownItem<int>> supplierItems;
+  final List<AppDropdownItem<int>> itemItems;
+  final List<AppDropdownItem<String>> typeItems;
+}
+
+const List<AppDropdownItem<String>> _stockMovementTypeFilterItems =
+    <AppDropdownItem<String>>[
+      AppDropdownItem(value: 'opening', label: 'Opening'),
+      AppDropdownItem(value: 'purchase_receipt', label: 'Purchase receipt'),
+      AppDropdownItem(value: 'purchase_return', label: 'Purchase return'),
+      AppDropdownItem(value: 'sales_delivery', label: 'Sales / delivery'),
+      AppDropdownItem(value: 'sales_return', label: 'Sales return'),
+      AppDropdownItem(value: 'stock_transfer_in', label: 'Transfer in'),
+      AppDropdownItem(value: 'stock_transfer_out', label: 'Transfer out'),
+      AppDropdownItem(value: 'stock_adjustment_in', label: 'Adjustment in'),
+      AppDropdownItem(value: 'stock_adjustment_out', label: 'Adjustment out'),
+      AppDropdownItem(value: 'production_issue', label: 'Production issue'),
+      AppDropdownItem(value: 'production_receipt', label: 'Production receipt'),
+      AppDropdownItem(value: 'jobwork_issue', label: 'Jobwork issue'),
+      AppDropdownItem(value: 'jobwork_receipt', label: 'Jobwork receipt'),
+      AppDropdownItem(value: 'damage', label: 'Damage'),
+      AppDropdownItem(value: 'expiry', label: 'Expiry'),
+      AppDropdownItem(value: 'sample_issue', label: 'Sample issue'),
+      AppDropdownItem(value: 'sample_receipt', label: 'Sample receipt'),
+      AppDropdownItem(value: 'internal_issue', label: 'Internal issue'),
+      AppDropdownItem(value: 'internal_receipt', label: 'Internal receipt'),
+    ];
+
+Future<InventoryRegisterFilterOptions> _loadStockMovementFilterOptions() async {
+  await MasterDataCache.to.ensureLoaded();
+  final cache = MasterDataCache.to;
+  final customers = salesCustomers(
+    parties: cache.activeParties,
+    partyTypes: cache.activePartyTypes,
+  );
+  final suppliers = purchaseSuppliers(
+    parties: cache.activeParties,
+    partyTypes: cache.activePartyTypes,
+  );
+
+  List<AppDropdownItem<int>> partyItems(List<PartyModel> parties) => parties
+      .where((party) => party.id != null)
+      .map(
+        (party) =>
+            AppDropdownItem<int>(value: party.id!, label: party.toString()),
+      )
+      .toList(growable: false);
+
+  return InventoryRegisterFilterOptions(
+    customerItems: partyItems(customers),
+    supplierItems: partyItems(suppliers),
+    itemItems: cache.activeItems
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: JsonModel.combineValues(
+              <dynamic>[
+                item.itemName,
+                if (item.itemCode.trim().isNotEmpty) '(${item.itemCode})',
+              ],
+              separator: ' ',
+              defaultValue: 'Item',
+            ),
+          ),
+        )
+        .toList(growable: false),
+    typeItems: _stockMovementTypeFilterItems,
+  );
+}
 
 List<AppDropdownItem<String>> _inventoryStatusItems(List<String> values) =>
     values
@@ -158,6 +246,7 @@ class InventoryRegisterController<T> extends GetxController {
     this.dateValue,
     this.categoryValues,
     this.categoryItemsLoader,
+    this.filterOptionsLoader,
   });
 
   final InventoryRegisterLoader<T> loader;
@@ -167,6 +256,7 @@ class InventoryRegisterController<T> extends GetxController {
   final InventoryRegisterValueGetter<T>? dateValue;
   final InventoryRegisterValuesGetter<T>? categoryValues;
   final InventoryRegisterDropdownLoader? categoryItemsLoader;
+  final InventoryRegisterFilterOptionsLoader? filterOptionsLoader;
   final InventoryService _service = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
@@ -179,6 +269,12 @@ class InventoryRegisterController<T> extends GetxController {
   List<T> rows = <T>[];
   Set<String> statuses = <String>{};
   Set<String> categories = <String>{};
+  Set<int> customerIds = <int>{};
+  Set<int> supplierIds = <int>{};
+  Set<int> itemIds = <int>{};
+  Set<String> movementTypes = <String>{};
+  InventoryRegisterFilterOptions filterOptions =
+      const InventoryRegisterFilterOptions();
   List<AppDropdownItem<String>> loadedCategoryItems =
       const <AppDropdownItem<String>>[];
   Worker? _refreshWorker;
@@ -186,6 +282,7 @@ class InventoryRegisterController<T> extends GetxController {
   Timer? _filterDebounce;
   int _loadSequence = 0;
   bool _categoryItemsRequested = false;
+  bool _filterOptionsRequested = false;
 
   List<T> get filteredRows => rows;
 
@@ -264,6 +361,7 @@ class InventoryRegisterController<T> extends GetxController {
       },
     );
     unawaited(_loadCategoryItemsOnce());
+    unawaited(_loadFilterOptionsOnce());
     unawaited(load());
   }
 
@@ -301,12 +399,43 @@ class InventoryRegisterController<T> extends GetxController {
     _scheduleReload();
   }
 
+  void setCustomerIds(Set<int> values) {
+    customerIds = Set<int>.from(values);
+    update();
+    _scheduleReload();
+  }
+
+  void setSupplierIds(Set<int> values) {
+    supplierIds = Set<int>.from(values);
+    update();
+    _scheduleReload();
+  }
+
+  void setItemIds(Set<int> values) {
+    itemIds = Set<int>.from(values);
+    update();
+    _scheduleReload();
+  }
+
+  void setMovementTypes(Set<String> values) {
+    movementTypes = values
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    update();
+    _scheduleReload();
+  }
+
   void clearFilters() {
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
     statuses = <String>{};
     categories = <String>{};
+    customerIds = <int>{};
+    supplierIds = <int>{};
+    itemIds = <int>{};
+    movementTypes = <String>{};
     update();
     unawaited(load(page: 1));
   }
@@ -345,6 +474,10 @@ class InventoryRegisterController<T> extends GetxController {
         if (statuses.length == 1) 'status': statuses.single,
         if (statuses.length > 1) 'statuses': statuses.join(','),
         if (categories.isNotEmpty) 'categories': categories.join(','),
+        if (customerIds.isNotEmpty) 'customer_ids': customerIds.join(','),
+        if (supplierIds.isNotEmpty) 'supplier_ids': supplierIds.join(','),
+        if (itemIds.isNotEmpty) 'item_ids': itemIds.join(','),
+        if (movementTypes.isNotEmpty) 'movement_types': movementTypes.join(','),
       };
       final response = await loader(_service, filters);
       if (loadSequence != _loadSequence) {
@@ -376,6 +509,19 @@ class InventoryRegisterController<T> extends GetxController {
       // Category lookup is optional; list loading and other filters still work.
     }
   }
+
+  Future<void> _loadFilterOptionsOnce() async {
+    if (filterOptionsLoader == null || _filterOptionsRequested) {
+      return;
+    }
+    _filterOptionsRequested = true;
+    try {
+      filterOptions = await filterOptionsLoader!();
+      update();
+    } catch (_) {
+      // Optional filter lookups must not prevent the register from loading.
+    }
+  }
 }
 
 class _InventoryRegisterShell<T> extends StatefulWidget {
@@ -396,6 +542,8 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
     this.dateValue,
     this.categoryValues,
     this.categoryItemsLoader,
+    this.filterOptionsLoader,
+    this.footerBuilder,
   });
 
   final String controllerName;
@@ -414,6 +562,8 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
   final InventoryRegisterValueGetter<T>? dateValue;
   final InventoryRegisterValuesGetter<T>? categoryValues;
   final InventoryRegisterDropdownLoader? categoryItemsLoader;
+  final InventoryRegisterFilterOptionsLoader? filterOptionsLoader;
+  final InventoryRegisterFooterBuilder<T>? footerBuilder;
 
   @override
   State<_InventoryRegisterShell<T>> createState() =>
@@ -441,6 +591,7 @@ class _InventoryRegisterShellState<T>
           dateValue: widget.dateValue,
           categoryValues: widget.categoryValues,
           categoryItemsLoader: widget.categoryItemsLoader,
+          filterOptionsLoader: widget.filterOptionsLoader,
         ),
         tag: _controllerTag,
       );
@@ -496,6 +647,48 @@ class _InventoryRegisterShellState<T>
                   categoryItems: controller.categoryItems,
                   selectedCategories: controller.categories,
                   onCategoriesChanged: controller.setCategories,
+                  partyLabel: 'Customer',
+                  partyItems: controller.filterOptions.customerItems,
+                  selectedPartyIds: controller.customerIds,
+                  onPartyChanged: controller.setCustomerIds,
+                  secondaryPartyLabel: 'Supplier',
+                  secondaryPartyItems: controller.filterOptions.supplierItems,
+                  selectedSecondaryPartyIds: controller.supplierIds,
+                  onSecondaryPartyChanged: controller.setSupplierIds,
+                  itemItems: controller.filterOptions.itemItems,
+                  selectedItemIds: controller.itemIds,
+                  onItemsChanged: controller.setItemIds,
+                  typeItems: controller.filterOptions.typeItems,
+                  selectedTypes: controller.movementTypes,
+                  onTypesChanged: controller.setMovementTypes,
+                  suggestions: controller.filterOptions.typeItems.isEmpty
+                      ? const <AppRegisterFilterSuggestion>[]
+                      : <AppRegisterFilterSuggestion>[
+                          AppRegisterFilterSuggestion(
+                            label: 'Customer movements',
+                            onSelected: () => controller.setMovementTypes(
+                              <String>{'sales_delivery', 'sales_return'},
+                            ),
+                          ),
+                          AppRegisterFilterSuggestion(
+                            label: 'Supplier movements',
+                            onSelected: () =>
+                                controller.setMovementTypes(<String>{
+                                  'purchase_receipt',
+                                  'purchase_return',
+                                  'jobwork_issue',
+                                  'jobwork_receipt',
+                                }),
+                          ),
+                          AppRegisterFilterSuggestion(
+                            label: 'Transfers',
+                            onSelected: () =>
+                                controller.setMovementTypes(<String>{
+                                  'stock_transfer_in',
+                                  'stock_transfer_out',
+                                }),
+                          ),
+                        ],
                   onClear: controller.clearFilters,
                 )
               : null,
@@ -507,6 +700,8 @@ class _InventoryRegisterShellState<T>
           remoteCurrentPage: controller.pagination?.currentPage,
           remotePerPage: controller.pagination?.perPage,
           onRemotePageChanged: controller.goToPage,
+          footerBuilder: (context, currentPage) =>
+              widget.footerBuilder?.call(context, controller, currentPage),
         );
       },
     );
@@ -1053,6 +1248,23 @@ class StockMovementRegisterPage extends StatelessWidget {
       newLabel: 'New Stock Movement',
       searchHint: 'Search movements',
       dateValue: (row) => nullableStringValue(row.toJson(), 'movement_date'),
+      filterOptionsLoader: _loadStockMovementFilterOptions,
+      footerBuilder: (context, controller, currentPage) {
+        final pageQtyIn = controller.rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.qtyIn ?? 0),
+        );
+        final pageQtyOut = controller.rows.fold<double>(
+          0,
+          (sum, row) => sum + (row.qtyOut ?? 0),
+        );
+        return _StockMovementSummaryFooter(
+          pageQtyIn: pageQtyIn,
+          pageQtyOut: pageQtyOut,
+          overallQtyIn: controller.pagination?.qtyInTotal ?? 0,
+          overallQtyOut: controller.pagination?.qtyOutTotal ?? 0,
+        );
+      },
       columns: [
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Date',
@@ -1070,6 +1282,11 @@ class StockMovementRegisterPage extends StatelessWidget {
           valueBuilder: (row) => stringValue(row.toJson(), 'reference_no'),
         ),
         PurchaseRegisterColumn<StockMovementModel>(
+          label: 'Party',
+          flex: 3,
+          valueBuilder: (row) => row.partyName ?? '',
+        ),
+        PurchaseRegisterColumn<StockMovementModel>(
           label: 'Qty',
           valueBuilder: (row) =>
               formatQuantity(doubleValue(row.toJson(), 'qty')),
@@ -1077,6 +1294,81 @@ class StockMovementRegisterPage extends StatelessWidget {
       ],
       rowRoute: (row) =>
           '/inventory/stock-movements/${intValue(row.toJson(), 'id')}',
+    );
+  }
+}
+
+class _StockMovementSummaryFooter extends StatelessWidget {
+  const _StockMovementSummaryFooter({
+    required this.pageQtyIn,
+    required this.pageQtyOut,
+    required this.overallQtyIn,
+    required this.overallQtyOut,
+  });
+
+  final double pageQtyIn;
+  final double pageQtyOut;
+  final double overallQtyIn;
+  final double overallQtyOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final pageNet = pageQtyIn - pageQtyOut;
+    final overallNet = overallQtyIn - overallQtyOut;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingXs,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: Border(
+          top: BorderSide(color: theme.dividerColor),
+          bottom: BorderSide(color: theme.dividerColor),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                headingRowHeight: 42,
+                dataRowMinHeight: 42,
+                dataRowMaxHeight: 48,
+                columns: const <DataColumn>[
+                  DataColumn(label: Text('')),
+                  DataColumn(numeric: true, label: Text('Stock In')),
+                  DataColumn(numeric: true, label: Text('Stock Out')),
+                  DataColumn(numeric: true, label: Text('Net')),
+                ],
+                rows: <DataRow>[
+                  DataRow(
+                    cells: <DataCell>[
+                      const DataCell(Text('Page total')),
+                      DataCell(Text(formatQuantity(pageQtyIn))),
+                      DataCell(Text(formatQuantity(pageQtyOut))),
+                      DataCell(Text(formatQuantity(pageNet))),
+                    ],
+                  ),
+                  DataRow(
+                    cells: <DataCell>[
+                      const DataCell(Text('Overall page total')),
+                      DataCell(Text(formatQuantity(overallQtyIn))),
+                      DataCell(Text(formatQuantity(overallQtyOut))),
+                      DataCell(Text(formatQuantity(overallNet))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

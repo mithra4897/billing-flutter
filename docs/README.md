@@ -62,6 +62,10 @@ For a backend and frontend change that belongs to one feature, use the same deci
   ADR-0040 in `DECISIONS.md`, and the 2026-09-03 testing/changelog entries;
   backend deployment details are in
   `billing-api/doc/sales-customer-advance-allocation.md`.
+- Stock Movement party/item/type filters and filtered quantity totals — see
+  `SPECIFICATIONS.md`, `ARCHITECTURE.md`, ADR-0043 in `DECISIONS.md`, and the
+  2026-09-04 testing/changelog entries; the backend API contract is documented
+  in `billing-api/doc/stock-movement-register-filters.md`.
 - [Party code synchronization](party-code-type-sync.md) — regenerate the
   read-only party code when an existing party's type changes.
 - Global StaffU-inspired theme foundation — see `SPECIFICATIONS.md`,

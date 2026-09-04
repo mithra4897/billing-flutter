@@ -2005,6 +2005,19 @@
   including distinct-layer, luminance, and contrast assertions.
 - Known limitation: Authenticated visual QA across all legacy module-local
   hardcoded colors remains manual.
+
+## 2026-09-04 — Stock Movement party, item, and type filters
+
+- Extended the shared register filter with optional second-party, item, type,
+  and suggestion controls, all retaining individual clear actions.
+- Stock Movement now filters customers, suppliers, items, and movement types on
+  the server with one debounced list request and cached lookup options.
+- Added a Party register column and an always-visible summary table with Stock
+  In, Stock Out, and Net columns plus Page total and Overall page total rows.
+- Corrected outward movement row quantity parsing so a zero `qty_in` no longer
+  hides a positive `qty_out`.
+- No database migration is required. Focused analysis and 2 focused Flutter
+  tests passed; authenticated browser/API verification remains manual.
 # 2026-08-26 — CRM lead completion after delivery or invoice
 
 - CRM documentation now records that quotation/order creation keeps a linked

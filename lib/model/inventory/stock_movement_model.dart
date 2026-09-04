@@ -42,6 +42,10 @@ class StockMovementModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.customerPartyId,
+    this.supplierPartyId,
+    this.partyName,
+    this.partyRole,
   });
   final int? companyId;
   final int? branchId;
@@ -82,6 +86,10 @@ class StockMovementModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final int? customerPartyId;
+  final int? supplierPartyId;
+  final String? partyName;
+  final String? partyRole;
 
   factory StockMovementModel.fromJson(Map<String, dynamic> json) {
     return StockMovementModel(
@@ -108,10 +116,7 @@ class StockMovementModel extends JsonModel {
       referenceId: JsonModel.nullableInt(json['reference_id']),
       referenceLineId: JsonModel.nullableInt(json['reference_line_id']),
       referenceNo: json['reference_no']?.toString(),
-      qty:
-          JsonModel.nullableDouble(json['qty']) ??
-          JsonModel.nullableDouble(json['qty_in']) ??
-          JsonModel.nullableDouble(json['qty_out']),
+      qty: _movementQuantity(json),
       qtyIn: JsonModel.nullableDouble(json['qty_in']),
       qtyOut: JsonModel.nullableDouble(json['qty_out']),
       unitCost: JsonModel.nullableDouble(json['unit_cost']),
@@ -136,6 +141,10 @@ class StockMovementModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      partyName: json['party_name']?.toString(),
+      partyRole: json['party_role']?.toString(),
     );
   }
   @override
@@ -188,5 +197,19 @@ class StockMovementModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (customerPartyId != null) 'customer_party_id': customerPartyId,
+    if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,
+    if (partyName != null) 'party_name': partyName,
+    if (partyRole != null) 'party_role': partyRole,
   };
+
+  static double? _movementQuantity(Map<String, dynamic> json) {
+    final explicitQty = JsonModel.nullableDouble(json['qty']);
+    if (explicitQty != null) {
+      return explicitQty;
+    }
+    final qtyIn = JsonModel.nullableDouble(json['qty_in']) ?? 0;
+    final qtyOut = JsonModel.nullableDouble(json['qty_out']) ?? 0;
+    return qtyIn != 0 ? qtyIn : qtyOut;
+  }
 }

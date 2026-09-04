@@ -2452,3 +2452,49 @@ ERP milestone validation, permissions, and embedded Project subtab behavior.
 - Unit and widget tests cover lane resolution, grouping, drop validation, and
   status transformations.
 - `flutter test` and `flutter analyze` pass with zero regressions.
+
+## 2026-09-04 — Stock Movement party, item, and type filters
+
+### Objective
+
+Make the Stock Movement register useful for tracing item movement by customer,
+supplier, item, and movement type without loading unbounded movement history or
+calculating overall quantities from only the visible page.
+
+### Scope and business rules
+
+- Reuse the shared expandable `AppRegisterFilters` surface, including automatic
+  debounced application, the shared Clear action, and individual field clear
+  controls.
+- Provide multi-select Customer, Supplier, Item, and Type filters. Customer and
+  Supplier selections are combined as an inclusive party match because one
+  stock movement can originate from only one linked business document.
+- Resolve Customer and Supplier through the movement's persisted
+  `reference_table` and `reference_id`. Movements without a matching customer-
+  or supplier-owned source document do not match an active party filter.
+- Filter and paginate on the server. A filter change issues one stock-movement
+  list request; active party and item option lists reuse the tenant-scoped
+  master-data cache.
+- Show the resolved Customer or Supplier name in a Party column for linked
+  movements. Internal movements show no party.
+- Provide explicit suggestion chips for common Customer movements, Supplier
+  movements, and Transfers. A suggestion changes Type only after the user
+  selects it.
+- Always show page and overall movement totals using the user-facing labels
+  Stock In, Stock Out, and Net. Present the values in a summary table with
+  Page total and Overall page total rows. Overall totals are computed over the
+  fully filtered server query and returned with the same paginated response.
+  The summary remains visible with no filters and with any combination of
+  customer, supplier, item, type, date, and search filters.
+
+### Acceptance criteria
+
+1. Each filter can be selected, combined, and cleared without an Apply button.
+2. Customer and Supplier filters match their linked Sales, Purchase, or Jobwork
+   source documents and preserve company/context scoping.
+3. Type and Item accept one or more values and are applied before pagination.
+4. A filter interaction produces no duplicate stock-movement request.
+5. Party labels are returned for the visible page without per-row API calls.
+6. Page and overall quantity totals remain visible and correct across filters
+   and pages.
+7. Loading, empty, error, retry, and remote pagination behavior remain intact.

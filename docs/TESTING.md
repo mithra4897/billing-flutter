@@ -1500,3 +1500,20 @@ been packaged successfully.
   existing Project Kanban tests.
 - Live browser verification was attempted at `localhost:59710`, but the local
   development server was not running (`ERR_CONNECTION_REFUSED`).
+
+## 2026-09-04 — Stock Movement filters and quantity totals
+
+- `dart format` completed for the shared filter, pagination metadata, Stock
+  Movement model/register, and focused test.
+- Focused `flutter analyze` passed with no issues for all changed Dart files and
+  the focused test.
+- `flutter test --no-pub test/inventory/stock_movement_filter_response_test.dart`
+  passed 2 tests covering aggregate metadata and resolved party/outward-quantity
+  parsing.
+- Quantity summaries are expected for unfiltered and filtered requests, not
+  only when one item is selected.
+- Backend PHP syntax checks passed for the Stock Movement controller and list
+  query service. Backend PHPUnit was unavailable because `vendor/bin/phpunit`
+  is not installed in this checkout.
+- Authenticated browser/API verification of party-source matching, suggestion
+  chips, responsive totals, and multi-page aggregates remains manual.

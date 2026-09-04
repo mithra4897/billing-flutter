@@ -738,3 +738,24 @@ across `open`, `completed`, and `cancelled` statuses. Card drops invoke
 via `ProjectModuleRefreshController`, reloads authoritative data, and notifies
 listeners. In-flight drops are tracked in a `Set<int>` to prevent concurrent
 mutations on the same milestone.
+
+## 2026-09-04 — Stock Movement register filtering and totals
+
+The Stock Movement register extends the existing generic Inventory register
+controller and shared `AppRegisterFilters`; it does not introduce a parallel
+page or filter implementation. Optional filter-option configuration keeps other
+Inventory registers unchanged. Customer, Supplier, Item, and Type selections
+are stored as `Set` values for deterministic uniqueness and serialized once
+into the debounced paginated request.
+
+Party and item options reuse `MasterDataCache`. The API resolves source-document
+party ownership and returns party display attributes with each visible row, so
+the Flutter page performs no per-row lookup request. `PaginationMeta` accepts
+optional quantity aggregates while preserving every existing pagination
+caller. The page folds at most the bounded visible page for page totals in O(p)
+time and O(1) space; overall totals come from the server's fully filtered query.
+Totals are rendered for every filter state.
+
+Common movement groups are optional `AppRegisterFilterSuggestion` values owned
+by the shared filter surface. Selecting one replaces the Type set and triggers
+the same single debounced reload as a direct type selection.

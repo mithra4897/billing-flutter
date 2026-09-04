@@ -919,3 +919,26 @@
   with addressable content.
 - Consequences: No API or database changes. Route parsing and lookup remain O(1),
   and direct editor URLs load the requested record through existing controllers.
+
+## ADR-0043: Resolve Stock Movement parties from source documents
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: `stock_movements` records the source table and ID but has no customer
+  or supplier column. Copying party IDs into the movement table would duplicate
+  transactional ownership and require a production schema migration.
+- Decision: Filter customer and supplier movements with correlated existence
+  checks against the supported source document tables. Batch-resolve party
+  labels only for the paginated result. Return filtered quantity aggregates in
+  the list response metadata.
+- Reason: The persisted source document remains authoritative, historical
+  movements work without a backfill, and the UI needs only one list request.
+- Alternatives considered: Add customer/supplier columns to stock movements;
+  fetch every movement and filter locally; make one source-document request per
+  visible row.
+- Consequences: Filtering adds indexed source-document existence checks and the
+  visible page uses a bounded number of batched source lookups. Aggregate sums
+  add one database query per filtered list request. No database migration is
+  required.
+- Related files: Stock Movement list query/controller/model, shared register
+  filters, Inventory register controller/page, tests, and frontend/backend docs.
