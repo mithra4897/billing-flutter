@@ -55,6 +55,11 @@ class ProjectManagementController extends GetxController {
   String projectStatus = 'draft';
   bool isActive = true;
 
+  bool canViewAllProjects = false;
+  Set<String> permissionCodes = const <String>{};
+
+  int? linkedEmployeeId;
+
   @override
   void onInit() {
     super.onInit();
@@ -126,14 +131,32 @@ class ProjectManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
+      final cid = contextSelection.companyId;
+      if (cid != null) {
+        try {
+          final ctxRes = await _projectService.linkedEmployee(companyId: cid);
+          final ctx = ctxRes.data ?? const <String, dynamic>{};
+          canViewAllProjects =
+              ctx['can_view_all_projects'] == true ||
+              ctx['can_view_all_projects'] == 1;
+          linkedEmployeeId = intValue(ctx, 'employee_id');
+        } catch (_) {
+          canViewAllProjects = false;
+          linkedEmployeeId = null;
+        }
+      } else {
+        canViewAllProjects = false;
+        linkedEmployeeId = null;
+      }
 
       projects = nextProjects;
       companies = nextCompanies;
       parties = nextParties
           .where((item) => item.isActive)
           .toList(growable: false);
-      contextCompanyId = contextSelection.companyId;
+      contextCompanyId = cid;
       filteredProjects = filterProjects(nextProjects, searchController.text);
+      permissionCodes = (await SessionStorage.getPermissionCodes()).toSet();
       initialLoading = false;
       update();
 
@@ -172,6 +195,21 @@ class ProjectManagementController extends GetxController {
     var scoped = contextCompanyId == null
         ? items
         : items.where((item) => item.companyId == contextCompanyId).toList();
+    if (!canViewAllProjects) {
+      final empId = linkedEmployeeId;
+      if (empId == null) {
+        scoped = <ProjectModel>[];
+      } else {
+        scoped = scoped.where((project) {
+          return project.tasks.any((task) {
+            final ids = task.assignedEmployeeIds;
+            return task.assignedEmployeeId == empId ||
+                (ids.isNotEmpty && ids.contains(empId));
+          });
+        }).toList(growable: false);
+      }
+    }
+
     if (initialDashboardFilter.trim() == 'active') {
       scoped = scoped
           .where((project) {

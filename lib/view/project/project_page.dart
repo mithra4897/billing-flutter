@@ -83,14 +83,58 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
   ];
 
   late final String _controllerTag;
-  late final TabController _tabController;
-
-  List<_ProjectMasterTab> get _visibleTabs {
+  TabController? _tabController;
+  int _lastTabCount = 0;
+  List<_ProjectMasterTab> _computeVisibleTabs(
+    ProjectManagementController controller,
+  ) {
     final showOnly = widget.showOnlyTabIndex;
     if (showOnly != null && showOnly >= 0 && showOnly < _allTabs.length) {
       return <_ProjectMasterTab>[_allTabs[showOnly]];
     }
-    return _allTabs;
+
+    if (controller.canViewAllProjects || controller.initialLoading) {
+      return _allTabs;
+    }
+
+    final perms = controller.permissionCodes;
+    return _allTabs.where((tab) {
+      switch (tab.key) {
+        case 'timesheets':
+          return perms.contains('project_timesheet.view');
+        case 'expenses':
+          return perms.contains('project_expense.view');
+        case 'resources':
+          return perms.contains('project_resource.view');
+        case 'vendor_works':
+          return perms.contains('project_vendor.view');
+        case 'billings':
+          return perms.contains('project_billing.view');
+        default:
+          return true;
+      }
+    }).toList(growable: false);
+  }
+  TabController _resolveTabController(
+    ProjectManagementController controller,
+    List<_ProjectMasterTab> tabs,
+  ) {
+    if (_tabController != null && tabs.length == _lastTabCount) {
+      return _tabController!;
+    }
+    _tabController?.dispose();
+    final initialIndex = widget.showOnlyTabIndex != null
+        ? 0
+        : widget.initialTabIndex.clamp(0, tabs.length - 1);
+    _lastTabCount = tabs.length;
+    _tabController = TabController(
+      length: tabs.length,
+      vsync: this,
+      initialIndex: initialIndex,
+    )..addListener(() {
+      if (mounted) setState(() {});
+    });
+    return _tabController!;
   }
 
   @override
@@ -108,26 +152,11 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
         tag: _controllerTag,
       );
     }
-
-    final tabs = _visibleTabs;
-    final initialIndex = widget.showOnlyTabIndex != null
-        ? 0
-        : widget.initialTabIndex.clamp(0, tabs.length - 1);
-    _tabController =
-        TabController(
-          length: tabs.length,
-          vsync: this,
-          initialIndex: initialIndex,
-        )..addListener(() {
-          if (mounted) {
-            setState(() {});
-          }
-        });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -219,15 +248,17 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     BuildContext context,
     ProjectManagementController controller,
   ) {
-    final tabs = _visibleTabs;
-    final activeTab = tabs[_tabController.index];
+    final tabs = _computeVisibleTabs(controller);
+    final tabCtrl = _resolveTabController(controller, tabs);
+    final safeIndex = tabCtrl.index.clamp(0, tabs.length - 1);
+    final activeTab = tabs[safeIndex];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (tabs.length > 1) ...[
           TabBar(
-            controller: _tabController,
+            controller: tabCtrl,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: tabs

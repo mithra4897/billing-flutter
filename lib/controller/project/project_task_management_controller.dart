@@ -62,6 +62,7 @@ class ProjectTaskManagementController extends GetxController {
   String taskStatus = 'open';
   bool isBillable = true;
   bool isSuperAdmin = false;
+  int? linkedEmployeeId;
   String listStatusFilter = 'all';
   Set<int> filterEmployeeIds = <int>{};
   Set<int> movingTaskIds = <int>{};
@@ -179,6 +180,29 @@ class ProjectTaskManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
+      if (!isSuperAdmin) {
+        final cid = contextSelection.companyId;
+        if (cid != null) {
+          try {
+            final ctxRes = await _projectService.linkedEmployee(companyId: cid);
+            final ctx = ctxRes.data ?? const <String, dynamic>{};
+            final viewAll =
+                ctx['can_view_all_projects'] == true ||
+                ctx['can_view_all_projects'] == 1;
+            if (viewAll) {
+              isSuperAdmin = true;
+              linkedEmployeeId = null;
+            } else {
+              linkedEmployeeId = intValue(ctx, 'employee_id');
+            }
+          } catch (_) {
+            linkedEmployeeId = null;
+          }
+        }
+      } else {
+        linkedEmployeeId = null;
+      }
+
       var scopedProjects = contextSelection.companyId == null
           ? nextProjects
           : nextProjects
@@ -257,15 +281,15 @@ class ProjectTaskManagementController extends GetxController {
   List<ProjectTaskRow> filterRows(List<ProjectTaskRow> items, String query) {
     var visibleRows = items
         .where((row) {
-          if (!isSuperAdmin) {
-            return true;
+          if (isSuperAdmin) {
+            if (filterEmployeeIds.isEmpty) return true;
+            return filterEmployeeIds.any(
+              (employeeId) => _isAssignedTo(row.task, employeeId),
+            );
           }
-          if (filterEmployeeIds.isEmpty) {
-            return true;
-          }
-          return filterEmployeeIds.any(
-            (employeeId) => _isAssignedTo(row.task, employeeId),
-          );
+          final empId = linkedEmployeeId;
+          if (empId == null) return false;
+          return _isAssignedTo(row.task, empId);
         })
         .toList(growable: false);
 

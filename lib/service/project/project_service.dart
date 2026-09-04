@@ -17,6 +17,19 @@ class ProjectService extends ErpModuleService {
     return object('/projects/$id', fromJson: ProjectModel.fromJson);
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> linkedEmployee({
+    required int companyId,
+  }) =>
+      client.get<Map<String, dynamic>>(
+        '/projects/linked-employee',
+        queryParameters: <String, dynamic>{'company_id': companyId},
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) return json;
+          if (json is Map) return Map<String, dynamic>.from(json);
+          return <String, dynamic>{};
+        },
+      );
+
   Future<String?> nextProjectCode({
     required int companyId,
     String prefix = 'PROJ',
