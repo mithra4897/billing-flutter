@@ -1,5 +1,13 @@
 # Testing
 
+## Project task priority badges — 2026-09-04
+
+- Focused model/helper coverage and Flutter static analysis cover priority
+  serialization, editor state, and badge mapping.
+- Manual verification remains required for applying the SQL patch, creating or
+  updating a Critical task, and checking list/Kanban badges at narrow and wide
+  widths. Existing status filtering and drag/drop should be regression-checked.
+
 ## Project status label wording — 2026-09-03
 
 - Focused analysis verifies the updated Project and dashboard presentation

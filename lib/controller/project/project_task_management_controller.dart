@@ -60,6 +60,7 @@ class ProjectTaskManagementController extends GetxController {
   int? assignedEmployeeId;
   Set<int> assignedEmployeeIds = <int>{};
   String taskStatus = 'open';
+  String taskPriority = 'medium';
   bool isBillable = true;
   bool isSuperAdmin = false;
   int? linkedEmployeeId;
@@ -364,6 +365,7 @@ class ProjectTaskManagementController extends GetxController {
         ? <int>{row.task.assignedEmployeeId!}
         : row.task.assignedEmployeeIds.toSet();
     taskStatus = row.task.taskStatus ?? 'open';
+    taskPriority = row.task.priority ?? 'medium';
     isBillable = row.task.isBillable ?? true;
     loadingTaskCode = false;
     formError = null;
@@ -393,6 +395,7 @@ class ProjectTaskManagementController extends GetxController {
     assignedEmployeeId = null;
     assignedEmployeeIds = <int>{};
     taskStatus = 'open';
+    taskPriority = 'medium';
     isBillable = true;
     loadingTaskCode = false;
     formError = null;
@@ -481,6 +484,7 @@ class ProjectTaskManagementController extends GetxController {
         actualCost: doubleValue(actualCostController.text),
         progressPercent: doubleValue(progressPercentController.text),
         taskStatus: taskStatus,
+        priority: taskPriority,
         isBillable: isBillable,
         remarks: nullIfEmpty(remarksController.text),
       );
@@ -688,6 +692,11 @@ class ProjectTaskManagementController extends GetxController {
 
   void setTaskStatus(String value) {
     taskStatus = value;
+    update();
+  }
+
+  void setTaskPriority(String value) {
+    taskPriority = value;
     update();
   }
 

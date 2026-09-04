@@ -1,5 +1,17 @@
 # Architecture
 
+## 2026-09-04 — Project task priority
+
+`project_tasks.priority` is a required database enum with a `medium` default.
+The Laravel model and task validation expose the same lowercase values to the
+typed Flutter model. The task controller owns editor state and includes it in
+both create and update payloads.
+
+The existing shared `AppStatusBadge` renders priority in constrained task
+tiles and reusable Kanban task cards. The four-value switch helpers perform
+O(1) label/color lookup per displayed task; no new collection or extra scan is
+introduced, and no priority filter/sort state is added.
+
 ## Project status label wording
 
 Project presentation code maps the persisted `on_hold` status to the

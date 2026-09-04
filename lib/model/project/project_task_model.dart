@@ -19,6 +19,7 @@ class ProjectTaskModel extends JsonModel {
     this.actualCost,
     this.progressPercent,
     this.taskStatus,
+    this.priority,
     this.isBillable,
     this.remarks,
   });
@@ -38,6 +39,7 @@ class ProjectTaskModel extends JsonModel {
   final double? actualCost;
   final double? progressPercent;
   final String? taskStatus;
+  final String? priority;
   final bool? isBillable;
   final String? remarks;
 
@@ -72,6 +74,7 @@ class ProjectTaskModel extends JsonModel {
       actualCost: JsonModel.nullableDouble(json['actual_cost']),
       progressPercent: JsonModel.nullableDouble(json['progress_percent']),
       taskStatus: json['task_status']?.toString(),
+      priority: json['priority']?.toString(),
       isBillable: json['is_billable'] == null
           ? null
           : JsonModel.boolOf(json['is_billable']),
@@ -104,7 +107,31 @@ class ProjectTaskModel extends JsonModel {
     if (actualCost != null) 'actual_cost': actualCost,
     if (progressPercent != null) 'progress_percent': progressPercent,
     if (taskStatus != null) 'task_status': taskStatus,
+    if (priority != null) 'priority': priority,
     if (isBillable != null) 'is_billable': isBillable,
     if (remarks != null) 'remarks': remarks,
   };
+
+  ProjectTaskModel copyWith({String? priority}) => ProjectTaskModel(
+    id: id,
+    projectId: projectId,
+    taskCode: taskCode,
+    taskName: taskName,
+    description: description,
+    assignedEmployeeId: assignedEmployeeId,
+    assignedEmployeeIds: assignedEmployeeIds,
+    plannedStartDate: plannedStartDate,
+    plannedEndDate: plannedEndDate,
+    actualStartDate: actualStartDate,
+    actualEndDate: actualEndDate,
+    estimatedHours: estimatedHours,
+    actualHours: actualHours,
+    estimatedCost: estimatedCost,
+    actualCost: actualCost,
+    progressPercent: progressPercent,
+    taskStatus: taskStatus,
+    priority: priority ?? this.priority,
+    isBillable: isBillable,
+    remarks: remarks,
+  );
 }

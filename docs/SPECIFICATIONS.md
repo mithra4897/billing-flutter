@@ -1,5 +1,20 @@
 # Specifications
 
+## Project task priority badges — 2026-09-04
+
+Status: Implemented
+
+Project tasks persist one required priority value: `low`, `medium`, `high`, or
+`critical`. New tasks default to `medium`; the editor exposes the four values
+next to Task Status. Existing task list tiles and Kanban cards display the
+priority through the shared `AppStatusBadge` in the header. Kanban filtering
+and sorting remain status-based and are out of scope.
+
+The API accepts priority on task create and update and rejects other values.
+Existing rows are backfilled by the database default. Display mapping uses
+theme tokens: muted text for Low, warning for Medium, error for High, and the
+dark error foreground token for Critical.
+
 ## Project status label wording
 
 Status: Implemented (2026-09-03)

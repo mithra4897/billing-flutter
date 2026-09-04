@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-04 — Project task priority badges
+
+- Added Low/Medium/High/Critical task priority persistence and API validation,
+  with Medium as the default.
+- Added priority state and editor dropdown, and reused `AppStatusBadge` in
+  constrained task tiles and Kanban card headers with theme-based colors.
+- Kanban filtering/sorting remains status-based; existing installations need
+  `billing-api/task_priority_patch.sql`.
+
 ## 2026-09-03 — Defer responsive settings editor navigation
 
 - Deferred the compact SettingsWorkspace editor route state change until after

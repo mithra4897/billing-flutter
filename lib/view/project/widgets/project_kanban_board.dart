@@ -668,25 +668,7 @@ class _ProjectTaskCard extends StatelessWidget {
                       ),
                     ),
                     if (task.isBillable == true)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(
-                            AppUiConstants.pillRadius,
-                          ),
-                        ),
-                        child: Text(
-                          'Billable',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: accent,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                      AppStatusBadge(label: 'Billable', color: accent),
                     if (isMoving)
                       const Padding(
                         padding: EdgeInsets.all(10),
@@ -709,6 +691,10 @@ class _ProjectTaskCard extends StatelessWidget {
                           PopupMenuItem(value: 'delete', child: Text('Delete')),
                         ],
                       ),
+                    AppStatusBadge(
+                      label: taskPriorityLabel(task.priority),
+                      color: taskPriorityColor(context, task.priority),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppUiConstants.spacingSm),
@@ -1046,6 +1032,34 @@ Color _taskStatusAccent(BuildContext context, String status) {
       return theme.colorScheme.error;
     default:
       return appTheme.mutedText;
+  }
+}
+
+String taskPriorityLabel(String? priority) {
+  switch ((priority ?? 'medium').trim().toLowerCase()) {
+    case 'low':
+      return 'Low';
+    case 'high':
+      return 'High';
+    case 'critical':
+      return 'Critical';
+    default:
+      return 'Medium';
+  }
+}
+
+Color taskPriorityColor(BuildContext context, String? priority) {
+  final theme = Theme.of(context);
+  final appTheme = theme.extension<AppThemeExtension>()!;
+  switch ((priority ?? 'medium').trim().toLowerCase()) {
+    case 'low':
+      return appTheme.mutedText;
+    case 'high':
+      return theme.colorScheme.error;
+    case 'critical':
+      return theme.colorScheme.onErrorContainer;
+    default:
+      return appTheme.warning;
   }
 }
 

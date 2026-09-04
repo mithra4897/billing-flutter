@@ -38,6 +38,14 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
+  static const List<AppDropdownItem<String>> _taskPriorityItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'low', label: 'Low'),
+        AppDropdownItem(value: 'medium', label: 'Medium'),
+        AppDropdownItem(value: 'high', label: 'High'),
+        AppDropdownItem(value: 'critical', label: 'Critical'),
+      ];
+
   static const List<AppDropdownItem<String>> _taskListStatusFilterItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'pending', label: 'Pending'),
@@ -262,8 +270,15 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                 expanded: expanded,
                 highlighted: expanded,
                 leadingIcon: Icons.task_outlined,
-                trailing: controller.canDeleteTasks
-                    ? IconButton(
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppStatusBadge(
+                      label: taskPriorityLabel(row.task.priority),
+                      color: taskPriorityColor(context, row.task.priority),
+                    ),
+                    if (controller.canDeleteTasks)
+                      IconButton(
                         tooltip: 'Delete task',
                         onPressed: controller.saving
                             ? null
@@ -306,8 +321,9 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                                   );
                               },
                         icon: const Icon(Icons.remove_circle_outline),
-                      )
-                    : null,
+                      ),
+                  ],
+                ),
                 onToggle: () {
                   if (expanded) {
                     controller.resetForm();
@@ -381,6 +397,14 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   mappedItems: _taskStatusItems,
                   onChanged: (value) =>
                       controller.setTaskStatus(value ?? controller.taskStatus),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.taskPriority,
+                  labelText: 'Priority',
+                  mappedItems: _taskPriorityItems,
+                  onChanged: (value) => controller.setTaskPriority(
+                    value ?? controller.taskPriority,
+                  ),
                 ),
                 AppFormTextField(
                   controller: controller.plannedStartDateController,

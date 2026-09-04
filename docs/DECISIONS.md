@@ -1,5 +1,23 @@
 # Architecture decisions
 
+## ADR-0041: Use the existing status badge for project task priority
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Project tasks need an at-a-glance priority indicator without a
+  second badge style.
+- Decision: Persist a four-value lowercase priority enum, default to `medium`,
+  and render it with the existing `AppStatusBadge` in task headers. Keep
+  Kanban behavior status-based; priority filter/sort is out of scope.
+- Reason: Reuse preserves existing spacing, typography, borders, and theme
+  behavior without duplicating a component.
+- Alternatives considered: A separate priority widget, priority lanes, or
+  filter/sort controls; each expands or duplicates the requested behavior.
+- Consequences: Existing records require the supplied SQL patch.
+- Related files: `billing-api/task_priority_patch.sql`,
+  `billing-flutter/lib/model/project/project_task_model.dart`, and
+  `billing-flutter/lib/view/project/widgets/project_kanban_board.dart`.
+
 ## ADR-0040: Make Sales customer-advance allocation explicit and transactional
 
 - Date: 2026-09-03

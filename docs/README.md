@@ -73,3 +73,7 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - StaffU-inspired Project Tasks Kanban board — see `SPECIFICATIONS.md`,
   `ARCHITECTURE.md`, ADR-0040 in `DECISIONS.md`, and the 2026-09-03 entries in
   `TESTING.md` and `CHANGELOG.md`.
+- Project task priority badges — see `SPECIFICATIONS.md`, `ARCHITECTURE.md`,
+  ADR-0041 in `DECISIONS.md`, and the 2026-09-04 entries in `TESTING.md` and
+  `CHANGELOG.md`; backend deployment details are in
+  `billing-api/doc/project-task-priority.md`.
