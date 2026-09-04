@@ -33,6 +33,11 @@
 - Kept the compact header `+` only on the Open lane; it remains available after
   cards are dragged to other statuses.
 
+## 2026-09-04 — Remove Kanban drag-handle icon
+
+- Removed the visible “Drag to change status” icon from Task and Milestone
+  cards while preserving drag-and-drop status movement.
+
 
 ## 2026-09-03 — Rename Project status label
 

@@ -185,7 +185,6 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
               onDelete: isFeedback || !canDelete || isBusy || isMoving
                   ? null
                   : () => onDelete(row),
-              showDragHandle: taskId != null,
               isMoving: !isFeedback && isMoving,
             );
           },
@@ -245,7 +244,6 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
               onDelete: isFeedback || !canDelete || isBusy || isMoving
                   ? null
                   : () => onDelete(row),
-              showDragHandle: milestoneId != null,
               isMoving: !isFeedback && isMoving,
             );
           },
@@ -614,7 +612,6 @@ class _ProjectTaskCard extends StatelessWidget {
     required this.employeeNames,
     required this.onOpen,
     required this.onDelete,
-    required this.showDragHandle,
     required this.isMoving,
   });
 
@@ -623,7 +620,6 @@ class _ProjectTaskCard extends StatelessWidget {
   final List<String> Function(Iterable<int> ids) employeeNames;
   final VoidCallback onOpen;
   final VoidCallback? onDelete;
-  final bool showDragHandle;
   final bool isMoving;
 
   @override
@@ -712,14 +708,6 @@ class _ProjectTaskCard extends StatelessWidget {
                           PopupMenuItem(value: 'edit', child: Text('Edit')),
                           PopupMenuItem(value: 'delete', child: Text('Delete')),
                         ],
-                      ),
-                    if (showDragHandle && !isMoving)
-                      Tooltip(
-                        message: 'Drag to change status',
-                        child: Icon(
-                          Icons.drag_indicator,
-                          color: appTheme.mutedText,
-                        ),
                       ),
                   ],
                 ),
@@ -851,7 +839,6 @@ class _ProjectMilestoneCard extends StatelessWidget {
     required this.accent,
     required this.onOpen,
     required this.onDelete,
-    required this.showDragHandle,
     required this.isMoving,
   });
 
@@ -859,7 +846,6 @@ class _ProjectMilestoneCard extends StatelessWidget {
   final Color accent;
   final VoidCallback onOpen;
   final VoidCallback? onDelete;
-  final bool showDragHandle;
   final bool isMoving;
 
   @override
@@ -944,14 +930,6 @@ class _ProjectMilestoneCard extends StatelessWidget {
                           PopupMenuItem(value: 'edit', child: Text('Edit')),
                           PopupMenuItem(value: 'delete', child: Text('Delete')),
                         ],
-                      ),
-                    if (showDragHandle && !isMoving)
-                      Tooltip(
-                        message: 'Drag to change status',
-                        child: Icon(
-                          Icons.drag_indicator,
-                          color: appTheme.mutedText,
-                        ),
                       ),
                   ],
                 ),

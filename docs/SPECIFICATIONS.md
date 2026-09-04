@@ -652,6 +652,8 @@ company entitlement may be higher or lower.
 - Project Kanban boards expose one compact add (`+`) action in the Open lane;
   the duplicate full-width lane add button is removed. The Open-lane action
   remains available after cards move between statuses.
+- Kanban cards remain draggable for status changes, but do not display a
+  “Drag to change status” handle icon.
 - Company Settings renders only its selected tab body. It does not retain every
   tab in an `IndexedStack`, because the embedded Financial Years editor has its
   own stateful form and must not be mounted while hidden.
