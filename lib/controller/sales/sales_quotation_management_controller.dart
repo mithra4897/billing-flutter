@@ -124,7 +124,7 @@ class SalesQuotationManagementController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController quotationNoController = TextEditingController();
   final TextEditingController quotationDateController = TextEditingController();
   final TextEditingController validUntilController = TextEditingController();
@@ -184,6 +184,7 @@ class SalesQuotationManagementController extends GetxController {
   Map<String, dynamic>? salesChain;
   List<QuotationLineDraft> lines = <QuotationLineDraft>[];
   bool _newFormRequested = false;
+  final LatestRequestGuard _editorRequestGuard = LatestRequestGuard();
 
   bool _initialized = false;
 
@@ -332,6 +333,7 @@ class SalesQuotationManagementController extends GetxController {
     bool editorOnly = false,
     int page = 1,
   }) async {
+    final editorCheckpoint = _editorRequestGuard.checkpoint;
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -411,6 +413,10 @@ class SalesQuotationManagementController extends GetxController {
       contextFinancialYearId = contextSelection.financialYearId;
       initialLoading = false;
       _applyFilters(notify: false);
+      if (!_editorRequestGuard.isCurrent(editorCheckpoint)) {
+        update();
+        return;
+      }
       final selected = selectId != null
           ? items.cast<SalesQuotationModel?>().firstWhere(
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
@@ -430,8 +436,12 @@ class SalesQuotationManagementController extends GetxController {
                           orElse: () => selectedItem,
                         )));
       if (selected == null && selectId != null) {
+        final fallbackRevision = _editorRequestGuard.begin();
         try {
           final detail = (await _salesService.quotation(selectId)).data;
+          if (isClosed || !_editorRequestGuard.isCurrent(fallbackRevision)) {
+            return;
+          }
           if (detail != null) {
             await selectDocument(detail, notify: false);
             update();
@@ -463,7 +473,11 @@ class SalesQuotationManagementController extends GetxController {
     if (id == null) {
       return;
     }
+    final requestRevision = _editorRequestGuard.begin();
     final response = await _salesService.quotation(id);
+    if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+      return;
+    }
     final full = response.data ?? item;
     final data = full.toJson();
     final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
@@ -472,6 +486,7 @@ class SalesQuotationManagementController extends GetxController {
         .toList(growable: true);
     selectedItem = full;
     _newFormRequested = false;
+    formKey = GlobalKey<FormState>();
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -510,14 +525,16 @@ class SalesQuotationManagementController extends GetxController {
     refreshLineItemsSection();
     formError = null;
     unawaited(ensureCustomerPrintContext(customerPartyId));
-    await refreshSalesChain(notify: false);
+    await refreshSalesChain(notify: false, requestRevision: requestRevision);
     if (notify) {
       update();
     }
   }
 
   void resetForm({bool notify = true}) {
+    _editorRequestGuard.invalidate();
     _newFormRequested = true;
+    formKey = GlobalKey<FormState>();
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -549,31 +566,44 @@ class SalesQuotationManagementController extends GetxController {
     }
   }
 
-  Future<void> refreshSalesChain({bool notify = true}) async {
+  Future<void> refreshSalesChain({
+    bool notify = true,
+    int? requestRevision,
+  }) async {
     final savedId = intValue(selectedItem?.toJson() ?? const {}, 'id');
+    Map<String, dynamic>? nextSalesChain;
     try {
       if (savedId != null) {
         final response = await _crmService.salesChain(quotationId: savedId);
-        salesChain = response.data;
+        nextSalesChain = response.data;
       } else if (crmOpportunityId != null) {
         final response = await _crmService.salesChain(
           opportunityId: crmOpportunityId,
         );
-        salesChain = response.data;
+        nextSalesChain = response.data;
       } else {
-        salesChain = null;
+        nextSalesChain = null;
       }
     } catch (_) {
-      salesChain = null;
+      nextSalesChain = null;
     }
+    if (requestRevision != null &&
+        !_editorRequestGuard.isCurrent(requestRevision)) {
+      return;
+    }
+    salesChain = nextSalesChain;
     if (notify) {
       update();
     }
   }
 
   Future<void> applyOpportunityBootstrap(int opportunityId) async {
+    final requestRevision = _editorRequestGuard.begin();
     try {
       final response = await _crmService.opportunity(opportunityId);
+      if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+        return;
+      }
       final opportunity = response.data;
       if (opportunity == null) {
         return;
@@ -629,7 +659,8 @@ class SalesQuotationManagementController extends GetxController {
         _replaceLines(drafts, notify: false);
         refreshLineItemsSection();
       }
-      await refreshSalesChain(notify: false);
+      formKey = GlobalKey<FormState>();
+      await refreshSalesChain(notify: false, requestRevision: requestRevision);
       update();
     } catch (_) {
       // optional bootstrap

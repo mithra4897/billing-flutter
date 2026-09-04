@@ -637,10 +637,16 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     icon: Icons.request_page_outlined,
                     label: 'Create Proforma Invoice',
                     filled: false,
-                    onPressed: () => openModuleShellRoute(
-                      context,
-                      '/sales/proforma-invoices/new?quotation_id=${controller.selectedItem!.id}',
-                    ),
+                    onPressed: () {
+                      final route = Uri(
+                        path: '/sales/proforma-invoices/new',
+                        queryParameters: <String, String>{
+                          'quotation_id': controller.selectedItem!.id
+                              .toString(),
+                        },
+                      );
+                      openModuleShellRoute(context, route.toString());
+                    },
                   ),
                   AppActionButton(
                     icon: Icons.shopping_cart_checkout_outlined,

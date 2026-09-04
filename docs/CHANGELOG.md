@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-04 — Correct Sales Quotation and Proforma creation
+
+- Made Source Quotation optional for Sales Proforma Invoice creation.
+- Corrected quotation prefill to use today's Proforma date, the Proforma series,
+  explicit customer/reference/commercial fields, source-line IDs, and item tax
+  codes instead of leaking raw Quotation state.
+- Kept manual Proforma round-off values instead of immediately overwriting them
+  with the automatic suggestion.
+- Prevented stale detail and prefill responses from restoring old data after
+  New Quotation, New Proforma, or Create Proforma from Quotation.
+- Preserved the source quotation through Proforma editor initialization and
+  context reloads so Create Proforma reliably opens a prefilled new draft.
+- Prevented programmatic filter clearing from scheduling a delayed reload that
+  blanked the quotation-prefilled Proforma editor.
+- Retained the selected source quotation and hydrated its customer into the
+  Proforma dropdowns when either record was absent from cached lookup lists.
+- Added focused latest-request regression tests and deployment documentation.
+
 ## 2026-09-04 — Show all projects to Project Heads
 
 - Project Heads now see all projects in the current company context through
@@ -2066,61 +2084,3 @@
   difference remains a separate correction.
 - Focused backend tests passed (22 tests, 76 assertions); focused Flutter
   analysis and 2 tests passed.
-
-## 2026-09-04 — Shared filters across the Project module
-
-- Request: Use the shared Sales-style filter experience throughout Project and
-  expose all relevant persisted filter dimensions.
-- Specification: Added the eight-register filter matrix and constrained-
-  project Clear behavior.
-- Implementation: Projects, Tasks, Milestones, Timesheets, Expenses, Resource
-  Usage, Vendor Works, and Billings now use `AppRegisterFilters` with relevant
-  date, status, relationship, type, category, and priority choices. The shared
-  component gained an optional search slot and configurable item/type/category
-  labels; embedded subtabs keep the full filter surface reachable without
-  shell actions.
-- Task and Milestone standalone Kanban pages now follow the same top-bar Filter
-  interaction as the other Project registers, while constrained embedded tabs
-  keep their filters visible.
-- Task and Milestone reuse `AppRegisterFiltersSection` for the existing app
-  filter background and animation; no Project-specific filter wrapper exists.
-- Files changed: Shared register filter, eight Project pages, eight Project
-  controllers, focused tests, and durable documentation.
-- Database/API impact: None; filtering uses already-loaded authorized records.
-- Security impact: None; company, user, and constrained-project scopes remain
-  authoritative before filters run.
-- Tests added or updated: Shared filter rendering and combined Task filtering.
-- Tests executed and results: Focused analysis passed; 2 focused tests and the
-  full 9-test Flutter suite passed.
-- Documentation updated: README, specification, architecture, ADR-0044,
-  testing notes, and changelog.
-- Known limitations: Vendor Work has no persisted date field, so it has no date
-  filter. Authenticated visual verification remains manual.
-- Follow-up work: Consider server-side Project register filtering if nested
-  project payloads become paginated or materially larger.
-
-## 2026-09-04 — Project task Kanban roles and In Review
-
-- Added the persisted `in_review` task status and retained `on_hold` as a
-  separate lane.
-- Project Heads and Super Admins now manage all task fields and all Kanban
-  lanes; assigned users receive a status-only work-to-review flow.
-- API task mutations now enforce the role contract and preserve persisted task
-  details when a normal user updates status.
-
-## 2026-09-04 — Project board presentation
-
-- Request: Align the main Projects list/editor with the newer Task Kanban UI.
-- Implementation: Projects now use shared status lanes, task-style cards,
-  persistent horizontal scrolling, top-app-bar search, and the existing shared
-  filters. Selecting a card opens the existing multi-tab editor dialog.
-- Behavior: Project cards remain non-draggable; Project Status is still saved
-  only through the established form.
-- Validation: Focused analysis and 5 focused tests passed; the full Flutter
-  suite passed 14/14.
-- Known limitation: Authenticated visual verification remains manual.
-
-## 2026-09-04 — Project card and priority badge refinements
-
-- Project board cards now reuse the shared Active status pill.
-- Low task-priority badges use the app success/green token.

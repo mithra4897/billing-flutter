@@ -42,6 +42,25 @@ class ProformaInvoiceLineDraft {
     );
   }
 
+  factory ProformaInvoiceLineDraft.fromQuotationPrefill(
+    Map<String, dynamic> json,
+  ) {
+    return ProformaInvoiceLineDraft(
+      salesQuotationLineId:
+          intValue(json, 'sales_quotation_line_id') ?? intValue(json, 'id'),
+      itemId: intValue(json, 'item_id'),
+      uomId: intValue(json, 'uom_id'),
+      taxCodeId: intValue(json, 'tax_code_id'),
+      description: stringValue(json, 'description'),
+      qty: stringValue(json, 'qty'),
+      rate: stringValue(json, 'rate'),
+      discountPercent: stringValue(json, 'discount_percent'),
+      discountAmount: stringValue(json, 'discount_amount'),
+      discountMode: erpLineDiscountModeFromApi(json['discount_mode']),
+      remarks: stringValue(json, 'remarks'),
+    );
+  }
+
   int? id;
   int? itemId;
   int? uomId;
@@ -124,7 +143,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController proformaInvoiceNoController =
       TextEditingController();
   final TextEditingController proformaInvoiceDateController =
@@ -192,6 +211,12 @@ class SalesProformaInvoiceManagementController extends GetxController {
   List<ProformaInvoiceLineDraft> lines = <ProformaInvoiceLineDraft>[];
 
   bool _initialized = false;
+  bool _newFormRequested = false;
+  int? _lastRequestedSelectId;
+  int? _lastRequestedSalesQuotationId;
+  int? _lastRequestedCrmOpportunityId;
+  bool _lastRequestedEditorOnly = false;
+  final LatestRequestGuard _editorRequestGuard = LatestRequestGuard();
 
   @override
   void onInit() {
@@ -234,10 +259,20 @@ class SalesProformaInvoiceManagementController extends GetxController {
     if (!_initialized) {
       _initialized = true;
     }
-    await loadPage(selectId: initialId, editorOnly: editorOnly);
-    if (initialId == null && initialSalesQuotationId != null) {
-      await setSalesQuotationId(initialSalesQuotationId);
-    }
+    await loadPage(
+      selectId: initialId,
+      initialSalesQuotationId: initialSalesQuotationId,
+      editorOnly: editorOnly,
+    );
+  }
+
+  Future<void> reloadLastRequestedPage() {
+    return loadPage(
+      selectId: _lastRequestedSelectId,
+      initialSalesQuotationId: _lastRequestedSalesQuotationId,
+      initialCrmOpportunityId: _lastRequestedCrmOpportunityId,
+      editorOnly: _lastRequestedEditorOnly,
+    );
   }
 
   String errorMessage(Object error) {
@@ -347,9 +382,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
   void refreshLineItemsSection() => update(<Object>[lineItemsSectionId]);
 
   Future<void> _handleWorkingContextChanged() async {
-    await loadPage(
-      selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
-    );
+    await reloadLastRequestedPage();
   }
 
   List<DocumentSeriesModel> seriesOptions() {
@@ -369,10 +402,16 @@ class SalesProformaInvoiceManagementController extends GetxController {
 
   Future<void> loadPage({
     int? selectId,
+    int? initialSalesQuotationId,
     int? initialCrmOpportunityId,
     bool editorOnly = false,
     int page = 1,
   }) async {
+    _lastRequestedSelectId = selectId;
+    _lastRequestedSalesQuotationId = initialSalesQuotationId;
+    _lastRequestedCrmOpportunityId = initialCrmOpportunityId;
+    _lastRequestedEditorOnly = editorOnly;
+    final editorCheckpoint = _editorRequestGuard.checkpoint;
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -467,19 +506,30 @@ class SalesProformaInvoiceManagementController extends GetxController {
       contextFinancialYearId = contextSelection.financialYearId;
       initialLoading = false;
       _applyFilters(notify: false);
+      if (!_editorRequestGuard.isCurrent(editorCheckpoint)) {
+        update();
+        return;
+      }
       final selected = selectId != null
           ? items.cast<SalesProformaInvoiceModel?>().firstWhere(
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : (editorOnly
+          : (editorOnly || _newFormRequested
                 ? null
                 : (selectedItem == null
                       ? (items.isNotEmpty ? items.first : null)
-                      : null));
+                      : items.cast<SalesProformaInvoiceModel?>().firstWhere(
+                          (item) => item?.id == selectedItem?.id,
+                          orElse: () => selectedItem,
+                        )));
       if (selected == null && selectId != null) {
+        final fallbackRevision = _editorRequestGuard.begin();
         try {
           final detail = (await _salesService.proformaInvoice(selectId)).data;
+          if (isClosed || !_editorRequestGuard.isCurrent(fallbackRevision)) {
+            return;
+          }
           if (detail != null) {
             await selectDocument(detail, notify: false);
             update();
@@ -491,7 +541,9 @@ class SalesProformaInvoiceManagementController extends GetxController {
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
-        if (initialCrmOpportunityId != null) {
+        if (initialSalesQuotationId != null && editorOnly) {
+          await setSalesQuotationId(initialSalesQuotationId);
+        } else if (initialCrmOpportunityId != null) {
           await applyOpportunityBootstrap(initialCrmOpportunityId);
         }
       }
@@ -511,7 +563,11 @@ class SalesProformaInvoiceManagementController extends GetxController {
     if (id == null) {
       return;
     }
+    final requestRevision = _editorRequestGuard.begin();
     final response = await _salesService.proformaInvoice(id);
+    if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+      return;
+    }
     final full = response.data ?? item;
     final data = full.toJson();
     final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
@@ -519,6 +575,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
         .map(ProformaInvoiceLineDraft.fromJson)
         .toList(growable: true);
     selectedItem = full;
+    _newFormRequested = false;
+    formKey = GlobalKey<FormState>();
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -560,13 +618,17 @@ class SalesProformaInvoiceManagementController extends GetxController {
     refreshLineItemsSection();
     formError = null;
     unawaited(ensureCustomerPrintContext(customerPartyId));
-    await refreshSalesChain(notify: false);
+    await refreshSalesChain(notify: false, requestRevision: requestRevision);
     if (notify) {
       update();
     }
   }
 
   void resetForm({bool notify = true}) {
+    _editorRequestGuard.invalidate();
+    _newFormRequested = true;
+    formKey = GlobalKey<FormState>();
+    prefillingQuotation = false;
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -601,25 +663,38 @@ class SalesProformaInvoiceManagementController extends GetxController {
     }
   }
 
-  Future<void> refreshSalesChain({bool notify = true}) async {
+  Future<void> refreshSalesChain({
+    bool notify = true,
+    int? requestRevision,
+  }) async {
+    Map<String, dynamic>? nextSalesChain;
     try {
       final proformaId = selectedItem?.id;
-      salesChain = proformaId != null
+      nextSalesChain = proformaId != null
           ? (await _crmService.salesChain(proformaInvoiceId: proformaId)).data
           : salesQuotationId == null
           ? null
           : (await _crmService.salesChain(quotationId: salesQuotationId)).data;
     } catch (_) {
-      salesChain = null;
+      nextSalesChain = null;
     }
+    if (requestRevision != null &&
+        !_editorRequestGuard.isCurrent(requestRevision)) {
+      return;
+    }
+    salesChain = nextSalesChain;
     if (notify) {
       update();
     }
   }
 
   Future<void> applyOpportunityBootstrap(int opportunityId) async {
+    final requestRevision = _editorRequestGuard.begin();
     try {
       final response = await _crmService.opportunity(opportunityId);
+      if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+        return;
+      }
       if (response.data == null) {
         return;
       }
@@ -645,7 +720,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
       if (note.isNotEmpty && notesController.text.trim().isEmpty) {
         notesController.text = note;
       }
-      await refreshSalesChain(notify: false);
+      formKey = GlobalKey<FormState>();
+      await refreshSalesChain(notify: false, requestRevision: requestRevision);
       update();
     } catch (_) {
       // optional bootstrap
@@ -704,6 +780,9 @@ class SalesProformaInvoiceManagementController extends GetxController {
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
+    // These programmatic clears notify the field listeners. Cancel the
+    // resulting debounce so it cannot replace a route-driven new/prefill form.
+    _filterDebounce?.cancel();
     _applyFilters();
   }
 
@@ -768,6 +847,9 @@ class SalesProformaInvoiceManagementController extends GetxController {
       }
       final party = (responses[0] as ApiResponse<PartyModel>).data;
       if (party != null) {
+        if (!customers.any((item) => item.id == partyId)) {
+          customers = <PartyModel>[...customers, party];
+        }
         customerDetailsById[partyId] = party.copyWith(
           addresses:
               (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
@@ -782,6 +864,7 @@ class SalesProformaInvoiceManagementController extends GetxController {
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             const <PartyGstDetailModel>[];
+        update();
       }
     } catch (_) {}
   }
@@ -1142,8 +1225,17 @@ class SalesProformaInvoiceManagementController extends GetxController {
 
   Future<void> setSalesQuotationId(int? value) async {
     if (!canEdit) return;
+    final requestRevision = _editorRequestGuard.begin();
+    _newFormRequested = true;
+    if (selectedItem == null) {
+      _lastRequestedSalesQuotationId = value;
+    }
     salesQuotationId = value;
     if (value == null) {
+      for (final line in lines) {
+        line.salesQuotationLineId = null;
+      }
+      formKey = GlobalKey<FormState>();
       update();
       return;
     }
@@ -1151,14 +1243,64 @@ class SalesProformaInvoiceManagementController extends GetxController {
     formError = null;
     update();
     try {
-      final response = await _salesService.proformaPrefillFromQuotation(value);
-      final data = response.data ?? const <String, dynamic>{};
+      SalesQuotationModel? sourceQuotation = quotations
+          .cast<SalesQuotationModel?>()
+          .firstWhere(
+            (quotation) => quotation?.id == value,
+            orElse: () => null,
+          );
+      if (sourceQuotation == null || sourceQuotation.lines.isEmpty) {
+        sourceQuotation = (await _salesService.quotation(value)).data;
+      }
+      if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+        return;
+      }
+      if (sourceQuotation != null &&
+          !quotations.any((quotation) => quotation.id == value)) {
+        quotations = <SalesQuotationModel>[...quotations, sourceQuotation];
+      }
+      final sourceCustomerId = sourceQuotation?.customerPartyId;
+      final sourceCustomerData = sourceQuotation?.customer;
+      if (sourceCustomerId != null &&
+          sourceCustomerData != null &&
+          !customers.any((customer) => customer.id == sourceCustomerId)) {
+        customers = <PartyModel>[
+          ...customers,
+          PartyModel.fromJson(sourceCustomerData),
+        ];
+      }
+
+      Map<String, dynamic> prefillData = const <String, dynamic>{};
+      Object? prefillError;
+      try {
+        final response = await _salesService.proformaPrefillFromQuotation(
+          value,
+        );
+        prefillData = response.data ?? const <String, dynamic>{};
+      } catch (error) {
+        prefillError = error;
+      }
+      if (isClosed || !_editorRequestGuard.isCurrent(requestRevision)) {
+        return;
+      }
+      if (sourceQuotation == null && prefillData.isEmpty) {
+        throw prefillError ?? StateError('Sales quotation not found.');
+      }
+      final data = <String, dynamic>{
+        ...?sourceQuotation?.toJson(),
+        ...prefillData,
+      };
       companyId = intValue(data, 'company_id') ?? companyId;
       branchId = intValue(data, 'branch_id') ?? branchId;
       locationId = intValue(data, 'location_id') ?? locationId;
       financialYearId = intValue(data, 'financial_year_id') ?? financialYearId;
+      final series = seriesOptions();
+      documentSeriesId = series.isNotEmpty ? series.first.id : null;
       customerPartyId = intValue(data, 'customer_party_id');
       isDirectCustomer = boolValue(data, 'is_direct_customer');
+      if (isDirectCustomer) {
+        customerPartyId = null;
+      }
       directCustomerDetailsController.text = stringValue(
         data,
         'direct_customer_details',
@@ -1167,33 +1309,47 @@ class SalesProformaInvoiceManagementController extends GetxController {
       shippingAddressId = intValue(data, 'shipping_address_id');
       contactId = intValue(data, 'contact_id');
       priceType = nullableStringValue(data, 'price_type');
-      proformaInvoiceDateController.text = displayDate(
-        nullableStringValue(data, 'proforma_date'),
-      );
-      validUntilController.text = displayDate(
+      proformaInvoiceNoController.clear();
+      proformaInvoiceDateController.text = displayTodayDate();
+      final sourceValidUntil = parseNormalizedDateValue(
         nullableStringValue(data, 'valid_until'),
       );
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      validUntilController.text =
+          sourceValidUntil != null && !sourceValidUntil.isBefore(today)
+          ? displayDate(sourceValidUntil.toIso8601String())
+          : '';
       customerRefNoController.text = stringValue(data, 'customer_reference_no');
       customerRefDateController.text = displayDate(
         nullableStringValue(data, 'customer_reference_date'),
       );
       roundOffController.text = stringValue(data, 'round_off_amount');
       notesController.text = stringValue(data, 'notes');
-      termsController.text = stringValue(data, 'terms_conditions');
+      final sourceTerms = stringValue(data, 'terms_conditions').trim();
+      termsController.text = sourceTerms.isEmpty
+          ? documentTermsDefault('sales_proforma_invoice')
+          : sourceTerms;
+      isActive = boolValue(data, 'is_active', fallback: true);
       final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
-          .map(ProformaInvoiceLineDraft.fromJson)
+          .map(ProformaInvoiceLineDraft.fromQuotationPrefill)
           .toList(growable: true);
       _replaceLines(nextLines, notify: false);
       _syncAutoRoundOff();
       refreshLineItemsSection();
+      formKey = GlobalKey<FormState>();
       unawaited(ensureCustomerPrintContext(customerPartyId));
-      await refreshSalesChain(notify: false);
+      await refreshSalesChain(notify: false, requestRevision: requestRevision);
     } catch (error) {
-      formError = errorMessage(error);
+      if (_editorRequestGuard.isCurrent(requestRevision)) {
+        formError = errorMessage(error);
+      }
     } finally {
-      prefillingQuotation = false;
-      update();
+      if (_editorRequestGuard.isCurrent(requestRevision)) {
+        prefillingQuotation = false;
+        update();
+      }
     }
   }
 
@@ -1237,6 +1393,10 @@ class SalesProformaInvoiceManagementController extends GetxController {
 
   void refreshComputedState() {
     _syncAutoRoundOff();
+    refreshLineItemsSection();
+  }
+
+  void refreshManualRoundOff() {
     refreshLineItemsSection();
   }
 

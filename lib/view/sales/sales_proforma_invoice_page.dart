@@ -28,6 +28,10 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
   SalesProformaInvoiceManagementController get _controller =>
       Get.find<SalesProformaInvoiceManagementController>(tag: _controllerTag);
 
+  int? get _initialSalesQuotationId =>
+      widget.initialSalesQuotationId ??
+      int.tryParse(widget.queryParameters['quotation_id'] ?? '');
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +47,7 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
       unawaited(
         _controller.initialize(
           initialId: widget.initialId,
-          initialSalesQuotationId: widget.initialSalesQuotationId,
+          initialSalesQuotationId: _initialSalesQuotationId,
           editorOnly: widget.editorOnly,
         ),
       );
@@ -62,6 +66,28 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
   @override
   void didUpdateWidget(covariant SalesProformaInvoicePage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldQuotationId =
+        oldWidget.initialSalesQuotationId ??
+        int.tryParse(oldWidget.queryParameters['quotation_id'] ?? '');
+    if (oldWidget.initialId != widget.initialId ||
+        oldQuotationId != _initialSalesQuotationId ||
+        oldWidget.editorOnly != widget.editorOnly) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<SalesProformaInvoiceManagementController>(
+              tag: _controllerTag,
+            )) {
+          return;
+        }
+        unawaited(
+          _controller.initialize(
+            initialId: widget.initialId,
+            initialSalesQuotationId: _initialSalesQuotationId,
+            editorOnly: widget.editorOnly,
+          ),
+        );
+      });
+    }
     if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted ||
@@ -442,15 +468,12 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Source Quotation',
+                  labelText: 'Source Quotation (Optional)',
                   initialValue: controller.salesQuotationId,
                   mappedItems: controller.quotationDropdownItems,
                   enabled:
                       controller.canEdit && controller.selectedItem == null,
                   onChanged: controller.setSalesQuotationId,
-                  validator: (_) => controller.salesQuotationId == null
-                      ? 'Source Quotation is required'
-                      : null,
                 ),
                 ...buildSalesDocumentContextFields(
                   documentSeriesItems: controller.documentSeriesDropdownItems,
@@ -592,7 +615,7 @@ class _SalesProformaInvoicePageState extends State<SalesProformaInvoicePage> {
                         ? 'Round off must be a valid number'
                         : null;
                   },
-                  onChanged: (_) => controller.refreshComputedState(),
+                  onChanged: (_) => controller.refreshManualRoundOff(),
                 ),
                 AppSwitchTile(
                   label: 'Apply round off',

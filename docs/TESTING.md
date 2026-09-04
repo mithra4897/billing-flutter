@@ -38,6 +38,25 @@
 - Project task verification must toggle Billable in the open dialog and confirm
   the switch changes immediately, then save/reopen and confirm persistence.
 
+## Sales Proforma source, round-off, and fresh editor state — 2026-09-04
+
+- Focused Flutter analysis passed for both Sales editor controllers, the
+  Proforma page, the shared latest-request guard, and its test.
+- `flutter test test/helper/latest_request_guard_test.dart
+  test/sales/sales_proforma_prefill_test.dart --no-pub` passed (4/4), covering
+  newest-request precedence, reset invalidation, source-line identity, and
+  quotation commercial-value mapping.
+- Full `flutter test --no-pub` passed (11/11). Full-project analysis completed
+  with four unrelated existing warnings/deprecations; focused Proforma analysis
+  remains clean.
+- Backend PHP syntax checks passed for the Proforma controller, service, and
+  nullable-column migration.
+- Focused backend PHPUnit execution was unavailable because
+  `billing-api/vendor/bin/phpunit` is not installed in this checkout.
+- Manual authenticated verification remains required for direct Proforma save,
+  quotation-prefilled Proforma save, signed manual round-off, rapid New during
+  a slow detail load, and migration execution on a disposable database.
+
 ## Project task priority badges — 2026-09-04
 
 - Focused model/helper coverage and Flutter static analysis cover priority
@@ -1555,28 +1574,3 @@ been packaged successfully.
   is not installed in this checkout.
 - Authenticated browser/API verification of party-source matching, suggestion
   chips, responsive totals, and multi-page aggregates remains manual.
-
-## 2026-09-04 — Shared Project register filters
-
-- `dart format` completed for the shared filter, eight Project pages, eight
-  Project controllers, and focused tests.
-- Focused `flutter analyze` passed with no issues for the shared filter,
-  Project controllers/pages, and tests.
-- `flutter test --no-pub test/components/app_register_filters_test.dart
-  test/project/project_task_filters_test.dart` passed 2 tests covering custom
-  shared-slot labels and combined Project/Employee/Status/Priority/date/search
-  task filtering.
-- Full `flutter test --no-pub` passed all 9 tests.
-- Full `flutter analyze` was attempted and stopped on two unrelated existing
-  warnings: an unused `foundation.dart` import in `app_config.dart` and the
-  unused `_buildGapList` declaration in `crm_followups_page.dart`. The focused
-  analysis covering every changed filter/Project file passed with no issues.
-- Standalone Task and Milestone pages keep the shared filters behind their
-  top-bar Filter buttons; constrained embedded tabs retain visible filters.
-- The shared-filter widget test wraps the panel in `AppRegisterFiltersSection`
-  and verifies the standard `AppSectionCard` background is present.
-- Focused analysis and the shared-filter/task-filter tests passed after adopting
-  the standard wrapper.
-- Authenticated manual verification remains for each register's dropdown
-  options, responsive wrapping, constrained-subtab Clear behavior, and empty
-  results against production-shaped data.

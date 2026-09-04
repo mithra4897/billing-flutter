@@ -1,5 +1,28 @@
 # Architecture decisions
 
+## ADR-0044: Make Proforma source optional and editor writes latest-only
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Proforma creation incorrectly required a quotation, manual round-off
+  was overwritten by automatic synchronization, and slow document responses
+  could repopulate a newly reset Quotation or Proforma editor.
+- Decision: Store a nullable Proforma quotation link; preserve strict source
+  validation only when a quotation is selected; separate manual round-off
+  refresh from automatic synchronization; and accept editor mutations only
+  from the latest versioned async request.
+- Reason: Direct proformas are a valid business document, users must retain
+  explicit round-off control, and an older response must never override a newer
+  New or prefill action.
+- Alternatives considered: Require placeholder quotations, disable manual
+  round-off, delay New until all requests finish, or add a request queue.
+- Consequences: Existing databases require the nullable-column migration or SQL
+  patch. The shared request guard keeps only one integer revision and adds no
+  collection scan or network request.
+- Related files: Sales Quotation/Proforma controllers and pages,
+  `sales-proforma-editor-correctness.md`, and
+  `billing-api/doc/sales-proforma-optional-source.md`.
+
 ## ADR-0041: Use the existing status badge for project task priority
 
 - Date: 2026-09-04

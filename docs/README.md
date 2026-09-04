@@ -24,6 +24,9 @@ For a backend and frontend change that belongs to one feature, use the same deci
   choose `%` or fixed `Amt` in editable sales and purchase line tables.
 - [Sales master lookup freshness](sales-master-lookup-freshness.md) — refresh
   Item and customer Party options when Invoice or Quotation opens.
+- [Sales Proforma editor correctness](sales-proforma-editor-correctness.md) —
+  allow direct proformas, preserve manual round-off, and keep New/prefill editor
+  state safe from stale async responses.
 - [Production verification — 2026-08-05](production-verification-2026-08-05.md)
   — verified tests, live API connectivity, and the production web artifact.
 - [Lazy master data at startup](lazy-master-data-startup.md) — defer broad
