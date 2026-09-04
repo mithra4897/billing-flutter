@@ -171,6 +171,10 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search projects',
+          ),
           AdaptiveShellActionButton(
             onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_list_outlined,
@@ -249,8 +253,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
             )
           : null,
       list: SettingsListCard<ProjectModel>(
-        searchController: controller.searchController,
-        searchHint: 'Search projects',
+        showSearchBar: false,
         items: controller.filteredProjects,
         selectedItem: controller.selectedProject == null
             ? null

@@ -40,7 +40,7 @@ and sorting remain status-based and are out of scope.
 
 The API accepts priority on task create and update and rejects other values.
 Existing rows are backfilled by the database default. Display mapping uses
-theme tokens: muted text for Low, warning for Medium, error for High, and the
+theme tokens: success green for Low, warning for Medium, error for High, and the
 dark error foreground token for Critical.
 
 ## Project task Kanban status and role restrictions — 2026-09-04
@@ -73,6 +73,24 @@ Acceptance criteria:
 4. Schema, API validation, status-progress logic, Flutter model/controller, and
    Kanban presentation accept the same six values.
 5. Focused backend/Flutter tests cover status and role gates.
+
+## Project board presentation — 2026-09-04
+
+Status: Implemented
+
+The standalone Projects route uses the Project Tasks Kanban visual language:
+status lanes, task-style cards, a persistent bottom scrollbar, top-app-bar
+project search, shared filters, and card selection. Existing fields, scoped
+loading, child tabs, validation, and save APIs remain unchanged. Cards are
+selection-only; Project Status remains editable only in the existing form.
+
+Acceptance criteria:
+
+1. Projects are grouped into persisted-status lanes after the existing filters
+   and top-app-bar search have been applied.
+2. Selecting a project opens the existing multi-tab editor in `AppDialog`.
+3. No new request, data source, or status drag/drop mutation is introduced.
+4. The view reuses `ProjectKanbanBoard` and is covered by focused tests.
 
 ## Project register readability
 

@@ -2107,3 +2107,20 @@
   lanes; assigned users receive a status-only work-to-review flow.
 - API task mutations now enforce the role contract and preserve persisted task
   details when a normal user updates status.
+
+## 2026-09-04 — Project board presentation
+
+- Request: Align the main Projects list/editor with the newer Task Kanban UI.
+- Implementation: Projects now use shared status lanes, task-style cards,
+  persistent horizontal scrolling, top-app-bar search, and the existing shared
+  filters. Selecting a card opens the existing multi-tab editor dialog.
+- Behavior: Project cards remain non-draggable; Project Status is still saved
+  only through the established form.
+- Validation: Focused analysis and 5 focused tests passed; the full Flutter
+  suite passed 14/14.
+- Known limitation: Authenticated visual verification remains manual.
+
+## 2026-09-04 — Project card and priority badge refinements
+
+- Project board cards now reuse the shared Active status pill.
+- Low task-priority badges use the app success/green token.

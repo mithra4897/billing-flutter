@@ -3,6 +3,36 @@ import '../../../controller/project/project_milestone_management_controller.dart
 import '../../../controller/project/project_task_management_controller.dart';
 import '../../../screen.dart';
 
+const List<String> projectBoardStatusOrder = <String>[
+  'draft',
+  'open',
+  'working',
+  'on_hold',
+  'completed',
+  'cancelled',
+];
+
+List<String> projectBoardStatuses(Set<String> selectedStatuses) {
+  if (selectedStatuses.isEmpty) return projectBoardStatusOrder;
+  return projectBoardStatusOrder
+      .where(selectedStatuses.contains)
+      .toList(growable: false);
+}
+
+Map<String, List<ProjectModel>> groupProjectsByStatus(
+  Iterable<ProjectModel> projects,
+  Iterable<String> statuses,
+) {
+  final grouped = <String, List<ProjectModel>>{
+    for (final status in statuses) status: <ProjectModel>[],
+  };
+  for (final project in projects) {
+    final status = (project.projectStatus ?? 'draft').trim().toLowerCase();
+    grouped[status]?.add(project);
+  }
+  return grouped;
+}
+
 // --- Task board status definitions and helpers ---
 
 const List<String> projectTaskStatusOrder = <String>[
@@ -231,6 +261,48 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
               isMoving: !isFeedback && isMoving,
             );
           },
+        )
+        as ProjectKanbanBoard<T>;
+  }
+
+  factory ProjectKanbanBoard.project({
+    Key? key,
+    required List<ProjectModel> projects,
+    required Set<String> selectedStatuses,
+    required String Function(int? id) customerName,
+    required ValueChanged<ProjectModel> onOpen,
+    double? laneWidth,
+    double minLaneWidth = 200.0,
+    bool fitToScreen = true,
+  }) {
+    final statuses = projectBoardStatuses(selectedStatuses);
+    final grouped = groupProjectsByStatus(projects, statuses);
+
+    return ProjectKanbanBoard<ProjectModel>(
+          key: key,
+          statuses: statuses,
+          groupedItems: grouped,
+          itemLabel: 'Project',
+          statusLabel: _projectStatusLabel,
+          statusAccent: _projectStatusAccent,
+          isBusy: false,
+          laneWidth: laneWidth,
+          minLaneWidth: minLaneWidth,
+          fitToScreen: fitToScreen,
+          hasItemId: (project) => project.id != null,
+          isItemMoving: (_) => false,
+          canDrop: (project, destinationStatus) => false,
+          canDrag: (_) => false,
+          canAdd: false,
+          onAdd: (_) {},
+          onMove: (project, destinationStatus) async {},
+          cardBuilder: (context, project, accent, {required bool isFeedback}) =>
+              _ProjectCard(
+                project: project,
+                accent: accent,
+                customerName: customerName,
+                onOpen: isFeedback ? () {} : () => onOpen(project),
+              ),
         )
         as ProjectKanbanBoard<T>;
   }
@@ -664,6 +736,110 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
   }
 }
 
+class _ProjectCard extends StatelessWidget {
+  const _ProjectCard({
+    required this.project,
+    required this.accent,
+    required this.customerName,
+    required this.onOpen,
+  });
+
+  final ProjectModel project;
+  final Color accent;
+  final String Function(int? id) customerName;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    final progress = (project.percentCompletion ?? 0).clamp(0, 100).toDouble();
+    final dueDate = normalizeDateValue(
+      project.expectedEndDate ?? project.expectedStartDate,
+    );
+    final customer = customerName(project.customerPartyId);
+
+    return Material(
+      color: appTheme.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        side: BorderSide(color: appTheme.tableBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.circle, size: 9, color: accent),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      dueDate.isEmpty ? 'No target date' : dueDate,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  SettingsStatusPill(
+                    label: project.isActive == false ? 'Inactive' : 'Active',
+                    active: project.isActive != false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Text(
+                project.projectName ?? 'Project',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if ((project.projectType ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  project.projectType!.trim(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: appTheme.mutedText,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppUiConstants.spacingLg),
+              AppProgressBar(
+                label: 'Progress',
+                progress: progress / 100,
+                color: accent,
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Divider(color: appTheme.tableBorder),
+              const SizedBox(height: AppUiConstants.spacingXs),
+              Text(
+                [
+                  project.projectCode ?? '',
+                  customer,
+                ].where((part) => part.trim().isNotEmpty).join(' • '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: appTheme.mutedText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // --- Task card presentation ---
 
 class _ProjectTaskCard extends StatelessWidget {
@@ -1069,6 +1245,46 @@ class _ProjectMilestoneCard extends StatelessWidget {
 
 // --- Status label and accent mappings (strictly from theme) ---
 
+String _projectStatusLabel(String status) {
+  switch (status) {
+    case 'draft':
+      return 'Draft';
+    case 'open':
+      return 'Open';
+    case 'working':
+      return 'In Progress';
+    case 'on_hold':
+      return 'In Review';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
+  }
+}
+
+Color _projectStatusAccent(BuildContext context, String status) {
+  final theme = Theme.of(context);
+  final appTheme = theme.extension<AppThemeExtension>()!;
+  switch (status) {
+    case 'draft':
+      return appTheme.mutedText;
+    case 'open':
+      return theme.colorScheme.primary;
+    case 'working':
+      return appTheme.info;
+    case 'on_hold':
+      return appTheme.warning;
+    case 'completed':
+      return appTheme.success;
+    case 'cancelled':
+      return theme.colorScheme.error;
+    default:
+      return appTheme.mutedText;
+  }
+}
+
 String _taskStatusLabel(String status) {
   switch (status) {
     case 'open':
@@ -1127,7 +1343,7 @@ Color taskPriorityColor(BuildContext context, String? priority) {
   final appTheme = theme.extension<AppThemeExtension>()!;
   switch ((priority ?? 'medium').trim().toLowerCase()) {
     case 'low':
-      return appTheme.mutedText;
+      return appTheme.success;
     case 'high':
       return theme.colorScheme.error;
     case 'critical':

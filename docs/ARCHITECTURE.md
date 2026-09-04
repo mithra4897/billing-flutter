@@ -808,3 +808,14 @@ disable creation/deletion, and reject forbidden drags. The task editor uses the
 same capability to make every task-detail control read-only for normal users
 while retaining an allowed status-only update path. The API independently
 enforces this contract so crafted requests cannot modify protected fields.
+
+## 2026-09-04 — Project board presentation
+
+The standalone Projects route composes `ProjectKanbanBoard.project`. The
+factory groups the controller's already-filtered `List<ProjectModel>` by
+persisted status in one O(n) pass, using the shared lanes, cards, and bottom
+scrollbar. Project cards deliberately reject drag/drop so the Project editor's
+existing status field remains the only mutation path. Selecting a card renders
+the existing multi-tab editor in `AppDialog`; embedded Project views retain
+their `SettingsWorkspace` composition. The existing search controller is bound
+to the top app-bar search field rather than duplicated inside the list.

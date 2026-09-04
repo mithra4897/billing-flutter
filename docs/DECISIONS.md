@@ -981,3 +981,18 @@
   making browser controls the security boundary.
 - Consequences: Existing `on_hold` records remain unchanged. The database enum
   requires a reviewed deployment patch before frontend deployment.
+
+## ADR-0046: Present Projects with the shared Kanban board
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Projects used a two-pane editor layout while related Tasks use the
+  current status-lane visual language.
+- Decision: Add a Project factory to `ProjectKanbanBoard` and use it on the
+  standalone Projects route. Keep cards non-draggable and open the established
+  Project editor in `AppDialog`; move the existing search controller to the
+  top app bar.
+- Reason: This aligns the main Project experience while preserving the existing
+  status mutation and child-tab workflows.
+- Consequences: Grouping is one O(n) pass over already filtered projects. No
+  API, schema, permission, or additional network request is introduced.

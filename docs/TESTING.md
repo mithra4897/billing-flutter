@@ -1,5 +1,14 @@
 # Testing
 
+## Project board presentation — 2026-09-04
+
+- Focused `flutter analyze` passed for the Projects page, shared Kanban board,
+  and Project board test.
+- Focused Project board/task-board tests passed (5/5); the full Flutter suite
+  passed (14/14).
+- Manual authenticated verification remains for top-bar search, dialog editor
+  tabs, responsive board scrolling, and save/reopen behavior.
+
 ## Project task Kanban roles and In Review — 2026-09-04
 
 - `dart format` completed for the task board, task controller/page, and role
