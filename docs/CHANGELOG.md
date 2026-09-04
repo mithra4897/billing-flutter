@@ -26,6 +26,13 @@
   Project no longer duplicates the callback implementation or a one-line route
   formatter helper.
 
+## 2026-09-04 — Simplify Project Kanban add actions
+
+- Removed duplicate full-width Add Task/Add Milestone buttons from Kanban
+  lanes.
+- Kept the compact header `+` only on the Open lane; it remains available after
+  cards are dragged to other statuses.
+
 
 ## 2026-09-03 — Rename Project status label
 

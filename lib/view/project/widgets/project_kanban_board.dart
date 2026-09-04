@@ -473,7 +473,9 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
                 label: label,
                 count: items.length,
                 accent: accent,
-                onAdd: isBusy ? null : onAdd,
+                // New items always start in Open. Keep creation in the Open lane
+                // after a card is dragged to another status.
+                onAdd: isBusy || status != 'open' ? null : onAdd,
                 itemLabel: itemLabel,
               ),
               const SizedBox(height: AppUiConstants.spacingLg),
@@ -502,16 +504,6 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
                   _buildDraggableCard(context, item),
                   const SizedBox(height: AppUiConstants.spacingSm),
                 ],
-              OutlinedButton.icon(
-                onPressed: isBusy ? null : onAdd,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text('Add $itemLabel'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: accent,
-                  side: BorderSide(color: accent.withValues(alpha: 0.60)),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-              ),
             ],
           ),
         );
