@@ -965,3 +965,19 @@
   migration is required.
 - Related files: `lib/components/app_register_filters.dart`, Project register
   pages and controllers, and Project filter tests.
+
+## ADR-0045: Gate Project task changes by role while preserving status handoff
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Assigned employees need to report work progress, but task scope,
+  completion verification, and exception states belong to Project Heads.
+- Decision: Persist `in_review` as a distinct task status. Project Heads and
+  Super Admins manage all task fields and all six lanes. Assigned users see
+  only Open, In Progress, In Review, and Completed; they may submit an active
+  task only to Open, In Progress, or In Review. The API replaces all other
+  user-submitted fields with persisted values before updating.
+- Reason: The UI gives contributors a clear work-to-review handoff without
+  making browser controls the security boundary.
+- Consequences: Existing `on_hold` records remain unchanged. The database enum
+  requires a reviewed deployment patch before frontend deployment.

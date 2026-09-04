@@ -43,13 +43,36 @@ Existing rows are backfilled by the database default. Display mapping uses
 theme tokens: muted text for Low, warning for Medium, error for High, and the
 dark error foreground token for Critical.
 
-## Project status label wording
+## Project task Kanban status and role restrictions — 2026-09-04
 
-Status: Implemented (2026-09-03)
+Status: Implemented
 
-The API status value `on_hold` remains unchanged for compatibility, while
-Project dropdowns, filters, Kanban lanes, and dashboard labels display it as
-“In Review”.
+Project tasks persist six statuses: `open`, `working`, `in_review`, `completed`,
+`on_hold`, and `cancelled`. `in_review` is a distinct review stage; `on_hold`
+is retained as a separate paused state. Existing `on_hold` tasks are not
+rewritten.
+
+- Normal assigned users see Open, Working, In Review, and Completed columns.
+  They cannot create or delete tasks, edit task details, move a completed task,
+  or move a task into Completed, On Hold, or Cancelled.
+- Normal assigned users may update only the status of their own non-completed
+  task to Open, Working, or In Review. Progress remains status-derived.
+- Project Heads (`project_head.access`) and Super Admins see all six columns
+  and retain full create, edit, delete, and status-transition access.
+- The Flutter UI must make detail fields read-only for normal users, while the
+  API remains authoritative and discards/rejects restricted mutations.
+- Standalone Task Kanban creation and lane-plus actions are management-only.
+
+Acceptance criteria:
+
+1. `in_review` appears as an independent Kanban/status/filter value; `on_hold`
+   displays as “On Hold”.
+2. Role-specific columns and drag restrictions follow the rules above.
+3. Normal user task updates cannot alter fields other than an allowed status,
+   even when sent directly to the API.
+4. Schema, API validation, status-progress logic, Flutter model/controller, and
+   Kanban presentation accept the same six values.
+5. Focused backend/Flutter tests cover status and role gates.
 
 ## Project register readability
 

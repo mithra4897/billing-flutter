@@ -181,7 +181,8 @@ CrmFollowupTimingBucket? _crmBoardFollowupBucket(
   Map<String, dynamic> row,
   DateTime currentDate,
 ) {
-  final rawDate = nullableStringValue(row, 'next_followup') ??
+  final rawDate =
+      nullableStringValue(row, 'next_followup') ??
       nullableStringValue(row, 'followup_date');
   final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
   if (parsed == null) {
@@ -282,10 +283,13 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   final followupBoardResponse = await crmService.opportunityFollowupsBoard();
   final followupBoardData =
       followupBoardResponse.data ?? const <String, dynamic>{};
-  final followupBoardRows = <Map<String, dynamic>>[
-    ...(followupBoardData['followups'] as List<dynamic>? ?? const <dynamic>[]),
-    ...(followupBoardData['next_followups'] as List<dynamic>? ?? const <dynamic>[]),
-  ]
+  final followupBoardRows =
+      <Map<String, dynamic>>[
+            ...(followupBoardData['followups'] as List<dynamic>? ??
+                const <dynamic>[]),
+            ...(followupBoardData['next_followups'] as List<dynamic>? ??
+                const <dynamic>[]),
+          ]
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .where(
@@ -303,19 +307,23 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     if (id == null || id <= 0) return;
     final name = stringValue(map, 'display_name').trim();
     final uname = stringValue(map, 'username').trim();
-    final label = name.isNotEmpty ? name : (uname.isNotEmpty ? uname : 'Employee $id');
+    final label = name.isNotEmpty
+        ? name
+        : (uname.isNotEmpty ? uname : 'Employee $id');
     dashboardAssignedEmployees['$id'] = label;
   }
 
   if (isSuperAdmin) {
     try {
       final crmEmployeesResponse = await crmService.crmDashboardEmployees();
-      for (final emp in crmEmployeesResponse.data ?? const <Map<String, dynamic>>[]) {
+      for (final emp
+          in crmEmployeesResponse.data ?? const <Map<String, dynamic>>[]) {
         final id = intValue(emp, 'id');
         if (id == null || id <= 0) continue;
         final name = stringValue(emp, 'name').trim();
-        dashboardAssignedEmployees['$id'] =
-            name.isNotEmpty ? name : 'Employee $id';
+        dashboardAssignedEmployees['$id'] = name.isNotEmpty
+            ? name
+            : 'Employee $id';
       }
     } catch (_) {}
 
@@ -325,7 +333,8 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       'completed_followups',
       'opportunities_without_followups',
     ]) {
-      final list = followupBoardData[key] as List<dynamic>? ?? const <dynamic>[];
+      final list =
+          followupBoardData[key] as List<dynamic>? ?? const <dynamic>[];
       for (final item in list) {
         if (item is! Map) continue;
         addFromUserMap(item['assigned_user']);
@@ -493,13 +502,19 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                   label: 'All employees',
                 ),
                 ...dashboardAssignedEmployees.entries
-                    .where((employee) => int.tryParse(employee.key) != null && !employee.value.toLowerCase().contains('employee employee'))
+                    .where(
+                      (employee) =>
+                          int.tryParse(employee.key) != null &&
+                          !employee.value.toLowerCase().contains(
+                            'employee employee',
+                          ),
+                    )
                     .map(
-                  (employee) => ErpDashboardListFilterOption(
-                    value: 'employee:${employee.key}',
-                    label: employee.value,
-                  ),
-                ),
+                      (employee) => ErpDashboardListFilterOption(
+                        value: 'employee:${employee.key}',
+                        label: employee.value,
+                      ),
+                    ),
               ]
             : const <ErpDashboardListFilterOption>[],
         secondaryFilterSearchable: isSuperAdmin,
@@ -2658,7 +2673,7 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
         (task) => const <String>{
           'open',
           'working',
-          'on_hold',
+          'in_review',
         }.contains((task.taskStatus ?? 'open').trim().toLowerCase()),
       )
       .toList(growable: false);
@@ -2767,8 +2782,9 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
           ErpDashboardListFilterOption(value: 'pending', label: 'Pending'),
           ErpDashboardListFilterOption(value: 'open', label: 'Open'),
           ErpDashboardListFilterOption(value: 'working', label: 'Working'),
-          ErpDashboardListFilterOption(value: 'on_hold', label: 'In Review'),
+          ErpDashboardListFilterOption(value: 'in_review', label: 'In Review'),
           ErpDashboardListFilterOption(value: 'completed', label: 'Completed'),
+          ErpDashboardListFilterOption(value: 'on_hold', label: 'On Hold'),
           ErpDashboardListFilterOption(value: 'cancelled', label: 'Cancelled'),
         ],
         initialFilterValue: 'pending',
@@ -2795,7 +2811,7 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
               final isPending = const <String>{
                 'open',
                 'working',
-                'on_hold',
+                'in_review',
               }.contains(status);
               return ErpDashboardListItem(
                 title: task.taskName ?? task.taskCode ?? 'Task',

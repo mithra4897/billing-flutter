@@ -2098,3 +2098,12 @@
   filter. Authenticated visual verification remains manual.
 - Follow-up work: Consider server-side Project register filtering if nested
   project payloads become paginated or materially larger.
+
+## 2026-09-04 — Project task Kanban roles and In Review
+
+- Added the persisted `in_review` task status and retained `on_hold` as a
+  separate lane.
+- Project Heads and Super Admins now manage all task fields and all Kanban
+  lanes; assigned users receive a status-only work-to-review flow.
+- API task mutations now enforce the role contract and preserve persisted task
+  details when a normal user updates status.

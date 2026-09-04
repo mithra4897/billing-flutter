@@ -19,6 +19,10 @@ This app works with the sibling backend project:
 
 If you change backend schema or **`install.sql` / `sample_erp.sql`**, keep **`billing-api/README.md`** and the repo-root **`todo.md`** in sync when those edits affect setup, seeds, or module coverage.
 
+Project task status deployments also require the reviewed
+[`task_status_in_review_patch.sql`](/billing-api/task_status_in_review_patch.sql)
+patch before enabling the new Kanban lane.
+
 Key shell/auth endpoints currently used:
 
 - `GET /api/v1/public/branding`

@@ -1,5 +1,17 @@
 # Testing
 
+## Project task Kanban roles and In Review — 2026-09-04
+
+- `dart format` completed for the task board, task controller/page, and role
+  test.
+- Focused `flutter analyze` passed for all changed task files and the new test.
+- Focused role/filter tests passed (4/4), covering role-specific lanes,
+  forbidden completion drags, and In Review progress. The full Flutter suite
+  passed (12/12).
+- PHP syntax checks passed for the Project task controller and service.
+- Manual authenticated verification remains required for normal-user status
+  updates, Project Head verification/completion, and the production enum patch.
+
 ## Project Head task monitoring — 2026-09-04
 
 - PHP syntax checks cover the shared task model and Project session endpoint.

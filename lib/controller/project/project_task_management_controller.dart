@@ -134,6 +134,24 @@ class ProjectTaskManagementController extends GetxController {
 
   bool get isProjectConstrained => constrainedProjectId != null;
 
+  bool get canManageTasks => isSuperAdmin;
+
+  bool canEditTaskStatus(ProjectTaskRow? row) {
+    if (canManageTasks) {
+      return true;
+    }
+    final currentStatus = (row?.task.taskStatus ?? 'open').trim().toLowerCase();
+    return row?.task.id != null && currentStatus != 'completed';
+  }
+
+  bool canSetTaskStatus(String currentStatus, String nextStatus) {
+    if (canManageTasks) {
+      return projectTaskStatusValues.contains(nextStatus);
+    }
+    return currentStatus != 'completed' &&
+        normalUserProjectTaskStatusValues.contains(nextStatus);
+  }
+
   void _applyInitialDashboardFilter() {
     final requested = initialDashboardFilter.trim().toLowerCase();
     if (const <String>{
@@ -141,13 +159,14 @@ class ProjectTaskManagementController extends GetxController {
       'all',
       'open',
       'working',
+      'in_review',
       'on_hold',
       'completed',
       'cancelled',
     }.contains(requested)) {
       listStatusFilter = requested;
       selectedStatuses = switch (requested) {
-        'pending' => const <String>{'open', 'working', 'on_hold'},
+        'pending' => const <String>{'open', 'working', 'in_review'},
         'all' => const <String>{},
         _ => <String>{requested},
       };
@@ -338,7 +357,7 @@ class ProjectTaskManagementController extends GetxController {
             return const <String>{
               'open',
               'working',
-              'on_hold',
+              'in_review',
             }.contains(status);
           }
           return status == statusFilter;
@@ -502,6 +521,22 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   Future<String?> saveTask() async {
+    final existingRow = selectedRow;
+    if (!canManageTasks && existingRow == null) {
+      formError = 'Only Project Heads can create project tasks.';
+      update();
+      return null;
+    }
+    if (!canEditTaskStatus(existingRow) ||
+        !canSetTaskStatus(
+          (existingRow?.task.taskStatus ?? 'open').trim().toLowerCase(),
+          taskStatus.trim().toLowerCase(),
+        )) {
+      formError =
+          'You can only update an active task to Open, In Progress, or In Review.';
+      update();
+      return null;
+    }
     final resolvedProjectId = projectId;
     if (resolvedProjectId == null) {
       formError = 'Project is required.';
@@ -512,7 +547,7 @@ class ProjectTaskManagementController extends GetxController {
     formError = null;
     update();
     try {
-      final model = ProjectTaskModel(
+      final draftModel = ProjectTaskModel(
         id: selectedRow?.task.id,
         projectId: resolvedProjectId,
         taskCode: nullIfEmpty(taskCodeController.text),
@@ -534,10 +569,13 @@ class ProjectTaskManagementController extends GetxController {
         isBillable: isBillable,
         remarks: nullIfEmpty(remarksController.text),
       );
+      final model = canManageTasks
+          ? draftModel
+          : projectTaskWithStatus(existingRow!.task, taskStatus);
 
-      final response = selectedRow?.task.id == null
+      final response = existingRow?.task.id == null
           ? await _projectService.createTask(resolvedProjectId, model)
-          : await _projectService.updateTask(selectedRow!.task.id!, model);
+          : await _projectService.updateTask(existingRow!.task.id!, model);
       showDraftTile = false;
       resetForm(notify: false);
       await _reloadAfterTaskMutation(selectTaskId: response.data?.id);
@@ -553,6 +591,11 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   Future<String?> deleteTask() async {
+    if (!canManageTasks) {
+      formError = 'Only Project Heads can delete project tasks.';
+      update();
+      return null;
+    }
     final row = selectedRow;
     if (row?.task.id == null) {
       return null;
@@ -569,6 +612,7 @@ class ProjectTaskManagementController extends GetxController {
     return taskId != null &&
         projectTaskStatusValues.contains(nextStatus) &&
         nextStatus != currentStatus &&
+        canSetTaskStatus(currentStatus, nextStatus) &&
         !movingTaskIds.contains(taskId);
   }
 
@@ -711,7 +755,7 @@ class ProjectTaskManagementController extends GetxController {
   void setListStatusFilter(String? value) {
     listStatusFilter = value ?? 'all';
     selectedStatuses = switch (listStatusFilter) {
-      'pending' => const <String>{'open', 'working', 'on_hold'},
+      'pending' => const <String>{'open', 'working', 'in_review'},
       'all' => const <String>{},
       _ => <String>{listStatusFilter},
     };
@@ -779,7 +823,14 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   void setTaskStatus(String value) {
-    taskStatus = value;
+    final normalized = value.trim().toLowerCase();
+    final currentStatus = (selectedRow?.task.taskStatus ?? taskStatus)
+        .trim()
+        .toLowerCase();
+    if (!canSetTaskStatus(currentStatus, normalized)) {
+      return;
+    }
+    taskStatus = normalized;
     progressPercentController.text = taskProgressForStatus(
       taskStatus,
     ).toStringAsFixed(0);
@@ -808,6 +859,11 @@ class ProjectTaskManagementController extends GetxController {
   }
 
   void startNewTask({required bool isDesktop}) {
+    if (!canManageTasks) {
+      formError = 'Only Project Heads can create project tasks.';
+      update();
+      return;
+    }
     showDraftTile = true;
     resetForm();
     if (!isDesktop) {
@@ -825,6 +881,7 @@ class ProjectTaskManagementController extends GetxController {
 double taskProgressForStatus(String status) {
   switch (status.trim().toLowerCase()) {
     case 'working':
+    case 'in_review':
     case 'on_hold':
       return 50;
     case 'completed':
@@ -844,9 +901,16 @@ class ProjectTaskRow {
 const Set<String> projectTaskStatusValues = <String>{
   'open',
   'working',
+  'in_review',
   'on_hold',
   'completed',
   'cancelled',
+};
+
+const Set<String> normalUserProjectTaskStatusValues = <String>{
+  'open',
+  'working',
+  'in_review',
 };
 
 ProjectTaskModel projectTaskWithStatus(ProjectTaskModel task, String status) {

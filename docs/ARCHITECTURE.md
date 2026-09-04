@@ -797,3 +797,14 @@ optional search slot is used only by embedded subtabs that have no shell
 actions. Task and Milestone compose the existing `AppRegisterFiltersSection`
 around that surface, reusing its app-standard card background and reveal
 animation rather than introducing Project-specific filter chrome.
+
+## 2026-09-04 — Project task status authorization
+
+Task status is derived from the persisted `task_status` value, including the
+separate `in_review` and `on_hold` states. Flutter uses the Project session's
+existing view-all signal as its Project Head/Super Admin management capability.
+The Kanban board receives that capability explicitly to select visible lanes,
+disable creation/deletion, and reject forbidden drags. The task editor uses the
+same capability to make every task-detail control read-only for normal users
+while retaining an allowed status-only update path. The API independently
+enforces this contract so crafted requests cannot modify protected fields.

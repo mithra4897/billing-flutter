@@ -8,25 +8,45 @@ import '../../../screen.dart';
 const List<String> projectTaskStatusOrder = <String>[
   'open',
   'working',
-  'on_hold',
+  'in_review',
   'completed',
+  'on_hold',
   'cancelled',
 ];
 
-List<String> projectTaskBoardStatuses(String filter) {
+const List<String> normalProjectTaskBoardStatuses = <String>[
+  'open',
+  'working',
+  'in_review',
+  'completed',
+];
+
+List<String> projectTaskBoardStatuses(
+  String filter, {
+  required bool isSuperAdmin,
+}) {
+  final visibleStatuses = isSuperAdmin
+      ? projectTaskStatusOrder
+      : normalProjectTaskBoardStatuses;
   switch (filter.trim().toLowerCase()) {
     case 'pending':
-      return const <String>['open', 'working', 'on_hold'];
+      return visibleStatuses
+          .where(<String>{'open', 'working', 'in_review'}.contains)
+          .toList(growable: false);
     case 'all':
-      return projectTaskStatusOrder;
+      return visibleStatuses;
     case 'open':
     case 'working':
+    case 'in_review':
     case 'on_hold':
     case 'completed':
     case 'cancelled':
-      return <String>[filter.trim().toLowerCase()];
+      final status = filter.trim().toLowerCase();
+      return visibleStatuses.contains(status)
+          ? <String>[status]
+          : visibleStatuses;
     default:
-      return projectTaskStatusOrder;
+      return visibleStatuses;
   }
 }
 
@@ -48,12 +68,20 @@ bool canDropProjectTask({
   required ProjectTaskRow row,
   required String destinationStatus,
   required Set<int> movingTaskIds,
+  required bool isSuperAdmin,
 }) {
   final taskId = row.task.id;
   final currentStatus = (row.task.taskStatus ?? 'open').trim().toLowerCase();
   return taskId != null &&
       projectTaskStatusOrder.contains(destinationStatus) &&
       currentStatus != destinationStatus &&
+      (isSuperAdmin ||
+          (currentStatus != 'completed' &&
+              const <String>{
+                'open',
+                'working',
+                'in_review',
+              }.contains(destinationStatus))) &&
       !movingTaskIds.contains(taskId);
 }
 
@@ -124,6 +152,8 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
     required this.onAdd,
     required this.onMove,
     required this.canDrop,
+    required this.canDrag,
+    required this.canAdd,
     required this.isBusy,
     required this.isItemMoving,
     required this.hasItemId,
@@ -144,13 +174,17 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
     required ValueChanged<ProjectTaskRow> onDelete,
     required Future<void> Function(ProjectTaskRow row, String status) onMove,
     required bool canDelete,
+    required bool isSuperAdmin,
     required bool isBusy,
     required Set<int> movingTaskIds,
     double? laneWidth,
     double minLaneWidth = 200.0,
     bool fitToScreen = true,
   }) {
-    final statuses = projectTaskBoardStatuses(statusFilter);
+    final statuses = projectTaskBoardStatuses(
+      statusFilter,
+      isSuperAdmin: isSuperAdmin,
+    );
     final grouped = groupProjectTaskRowsByStatus(rows, statuses);
 
     return ProjectKanbanBoard<ProjectTaskRow>(
@@ -171,7 +205,11 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
             row: row,
             destinationStatus: destinationStatus,
             movingTaskIds: movingTaskIds,
+            isSuperAdmin: isSuperAdmin,
           ),
+          canDrag: (row) =>
+              isSuperAdmin || (row.task.taskStatus ?? 'open') != 'completed',
+          canAdd: isSuperAdmin,
           onAdd: onAdd,
           onMove: onMove,
           cardBuilder: (context, row, accent, {required bool isFeedback}) {
@@ -182,7 +220,12 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
               accent: accent,
               employeeNames: employeeNames,
               onOpen: isFeedback ? () {} : () => onOpen(row),
-              onDelete: isFeedback || !canDelete || isBusy || isMoving
+              onDelete:
+                  isFeedback ||
+                      !isSuperAdmin ||
+                      !canDelete ||
+                      isBusy ||
+                      isMoving
                   ? null
                   : () => onDelete(row),
               isMoving: !isFeedback && isMoving,
@@ -231,6 +274,8 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
             destinationStatus: destinationStatus,
             movingMilestoneIds: movingMilestoneIds,
           ),
+          canDrag: (_) => true,
+          canAdd: true,
           onAdd: onAdd,
           onMove: onMove,
           cardBuilder: (context, row, accent, {required bool isFeedback}) {
@@ -265,6 +310,8 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
   final ValueChanged<String> onAdd;
   final Future<void> Function(T item, String destinationStatus) onMove;
   final bool Function(T item, String destinationStatus) canDrop;
+  final bool Function(T item) canDrag;
+  final bool canAdd;
   final bool isBusy;
   final bool Function(T item) isItemMoving;
   final bool Function(T item) hasItemId;
@@ -333,6 +380,8 @@ class _ProjectKanbanBoardState<T extends Object>
               return widget.onMove(item, status);
             },
             canDrop: (item) => widget.canDrop(item, status),
+            canDrag: widget.canDrag,
+            canAdd: widget.canAdd,
             isBusy: widget.isBusy,
             isItemMoving: widget.isItemMoving,
             hasItemId: widget.hasItemId,
@@ -377,19 +426,27 @@ class _ProjectKanbanBoardState<T extends Object>
           },
           onPointerUp: (_) => _stopAutoScroll(),
           onPointerCancel: (_) => _stopAutoScroll(),
-          child: SingleChildScrollView(
+          child: Scrollbar(
             controller: _scrollController,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var index = 0; index < lanes.length; index++) ...[
-                  SizedBox(width: resolvedLaneWidth, child: lanes[index]),
-                  if (index != lanes.length - 1)
-                    const SizedBox(width: AppUiConstants.spacingMd),
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            thumbVisibility: true,
+            trackVisibility: true,
+            interactive: true,
+            thickness: 6,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingLg),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var index = 0; index < lanes.length; index++) ...[
+                    SizedBox(width: resolvedLaneWidth, child: lanes[index]),
+                    if (index != lanes.length - 1)
+                      const SizedBox(width: AppUiConstants.spacingMd),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -410,6 +467,8 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
     required this.onAdd,
     required this.onMove,
     required this.canDrop,
+    required this.canDrag,
+    required this.canAdd,
     required this.isBusy,
     required this.isItemMoving,
     required this.hasItemId,
@@ -430,6 +489,8 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
   final VoidCallback onAdd;
   final Future<void> Function(T item) onMove;
   final bool Function(T item) canDrop;
+  final bool Function(T item) canDrag;
+  final bool canAdd;
   final bool isBusy;
   final bool Function(T item) isItemMoving;
   final bool Function(T item) hasItemId;
@@ -473,7 +534,7 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
                 accent: accent,
                 // New items always start in Open. Keep creation in the Open lane
                 // after a card is dragged to another status.
-                onAdd: isBusy || status != 'open' ? null : onAdd,
+                onAdd: isBusy || !canAdd || status != 'open' ? null : onAdd,
                 itemLabel: itemLabel,
               ),
               const SizedBox(height: AppUiConstants.spacingLg),
@@ -514,7 +575,7 @@ class _ProjectKanbanLane<T extends Object> extends StatelessWidget {
     final isMoving = isItemMoving(item);
     final card = cardBuilder(context, item, accent, isFeedback: false);
 
-    if (!hasId || isMoving || isBusy) {
+    if (!hasId || isMoving || isBusy || !canDrag(item)) {
       return card;
     }
 
@@ -668,7 +729,16 @@ class _ProjectTaskCard extends StatelessWidget {
                       ),
                     ),
                     if (task.isBillable == true)
-                      AppStatusBadge(label: 'Billable', color: accent),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(
+                          'Billable',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: appTheme.mutedText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     if (isMoving)
                       const Padding(
                         padding: EdgeInsets.all(10),
@@ -1002,11 +1072,13 @@ class _ProjectMilestoneCard extends StatelessWidget {
 String _taskStatusLabel(String status) {
   switch (status) {
     case 'open':
-      return 'New';
+      return 'Open';
     case 'working':
       return 'In Progress';
-    case 'on_hold':
+    case 'in_review':
       return 'In Review';
+    case 'on_hold':
+      return 'On Hold';
     case 'completed':
       return 'Completed';
     case 'cancelled':
@@ -1024,8 +1096,10 @@ Color _taskStatusAccent(BuildContext context, String status) {
       return theme.colorScheme.primary;
     case 'working':
       return appTheme.info;
-    case 'on_hold':
+    case 'in_review':
       return appTheme.warning;
+    case 'on_hold':
+      return appTheme.mutedText;
     case 'completed':
       return appTheme.success;
     case 'cancelled':

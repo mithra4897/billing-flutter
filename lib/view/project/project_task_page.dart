@@ -41,9 +41,27 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'working', label: 'Working'),
-        AppDropdownItem(value: 'on_hold', label: 'In Review'),
+        AppDropdownItem(value: 'in_review', label: 'In Review'),
         AppDropdownItem(value: 'completed', label: 'Completed'),
+        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  static const List<AppDropdownItem<String>> _taskStatusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'working', label: 'In Progress'),
+        AppDropdownItem(value: 'in_review', label: 'In Review'),
+        AppDropdownItem(value: 'completed', label: 'Completed'),
+        AppDropdownItem(value: 'on_hold', label: 'On Hold'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  static const List<AppDropdownItem<String>> _normalUserTaskStatusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'working', label: 'In Progress'),
+        AppDropdownItem(value: 'in_review', label: 'In Review'),
       ];
 
   late final String _controllerTag;
@@ -102,19 +120,20 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
               icon: Icons.filter_list_outlined,
               label: 'Filter',
             ),
-          AdaptiveShellActionButton(
-            onPressed: () {
-              if (controller.isProjectConstrained) {
-                controller.startNewTask(
-                  isDesktop: Responsive.isDesktop(context),
-                );
-                return;
-              }
-              _openTaskEditor(context, controller);
-            },
-            icon: Icons.add_task_outlined,
-            label: 'New Task',
-          ),
+          if (controller.canManageTasks)
+            AdaptiveShellActionButton(
+              onPressed: () {
+                if (controller.isProjectConstrained) {
+                  controller.startNewTask(
+                    isDesktop: Responsive.isDesktop(context),
+                  );
+                  return;
+                }
+                _openTaskEditor(context, controller);
+              },
+              icon: Icons.add_task_outlined,
+              label: 'New Task',
+            ),
         ];
 
         final content = _buildContent(context, controller);
@@ -180,7 +199,8 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
             onDelete: (row) => _deleteTask(context, controller, row),
             onMove: (row, status) =>
                 _moveTask(context, controller, row, status),
-            canDelete: controller.canDeleteTasks,
+            canDelete: controller.canDeleteTasks && controller.canManageTasks,
+            isSuperAdmin: controller.canManageTasks,
             isBusy: controller.saving,
             movingTaskIds: controller.movingTaskIds,
           ),
@@ -234,12 +254,12 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
           'Manage task breakdown, assignment, timeline, cost, and progress for the selected project.',
       addLabel: 'Add Task',
       addIcon: Icons.add_task_outlined,
-      onAdd: controller.saving
+      onAdd: controller.saving || !controller.canManageTasks
           ? null
           : () => controller.startNewTask(
               isDesktop: Responsive.isDesktop(context),
             ),
-      addEnabled: !controller.saving,
+      addEnabled: !controller.saving && controller.canManageTasks,
       emptyMessage: 'No tasks found.',
       showDraftTile: controller.showDraftTile && controller.selectedRow == null,
       draftTitle: 'New Task',
@@ -283,7 +303,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                       label: taskPriorityLabel(row.task.priority),
                       color: taskPriorityColor(context, row.task.priority),
                     ),
-                    if (controller.canDeleteTasks)
+                    if (controller.canDeleteTasks && controller.canManageTasks)
                       IconButton(
                         tooltip: 'Delete task',
                         onPressed: controller.saving
@@ -352,6 +372,13 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
     ProjectTaskManagementController controller, {
     VoidCallback? onSaved,
   }) {
+    final canManage = controller.canManageTasks;
+    final canChangeStatus = controller.canEditTaskStatus(
+      controller.selectedRow,
+    );
+    final statusItems = canManage || !canChangeStatus
+        ? _taskStatusItems
+        : _normalUserTaskStatusItems;
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -365,7 +392,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                     initialValue: controller.projectId,
                     labelText: 'Project',
                     mappedItems: controller.projectItems,
-                    onChanged: controller.setProjectId,
+                    onChanged: canManage ? controller.setProjectId : null,
                     validator: Validators.requiredSelection('Project'),
                   ),
                 AppFormTextField(
@@ -382,6 +409,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                         )
                       : null,
                   validator: Validators.optionalMaxLength(100, 'Task Code'),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.taskNameController,
@@ -390,21 +418,36 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                     Validators.required('Task Name'),
                     Validators.optionalMaxLength(255, 'Task Name'),
                   ]),
+                  readOnly: !canManage,
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Assigned Employees',
                   mappedItems: controller.employeeItems,
                   multiInitialValues: controller.assignedEmployeeIds,
                   multiHintText: 'Select employees',
-                  onMultiChanged: controller.setAssignedEmployeeIds,
+                  onMultiChanged: canManage
+                      ? controller.setAssignedEmployeeIds
+                      : null,
                 ),
                 AppDropdownField<String>.fromMapped(
                   initialValue: controller.taskPriority,
                   labelText: 'Priority',
                   mappedItems: _taskPriorityItems,
-                  onChanged: (value) => controller.setTaskPriority(
-                    value ?? controller.taskPriority,
-                  ),
+                  onChanged: canManage
+                      ? (value) => controller.setTaskPriority(
+                          value ?? controller.taskPriority,
+                        )
+                      : null,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.taskStatus,
+                  labelText: 'Status',
+                  mappedItems: statusItems,
+                  onChanged: canChangeStatus
+                      ? (value) => controller.setTaskStatus(
+                          value ?? controller.taskStatus,
+                        )
+                      : null,
                 ),
                 AppFormTextField(
                   controller: controller.plannedStartDateController,
@@ -412,6 +455,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   validator: Validators.optionalDate('Planned Start Date'),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.plannedEndDateController,
@@ -423,6 +467,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                     () => controller.plannedStartDateController.text,
                     startFieldName: 'Planned Start Date',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.actualStartDateController,
@@ -430,6 +475,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   validator: Validators.optionalDate('Actual Start Date'),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.actualEndDateController,
@@ -441,6 +487,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                     () => controller.actualStartDateController.text,
                     startFieldName: 'Actual Start Date',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.estimatedHoursController,
@@ -451,6 +498,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   validator: Validators.optionalNonNegativeNumber(
                     'Estimated Hours',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.actualHoursController,
@@ -461,6 +509,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   validator: Validators.optionalNonNegativeNumber(
                     'Actual Hours',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.estimatedCostController,
@@ -471,6 +520,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   validator: Validators.optionalNonNegativeNumber(
                     'Estimated Cost',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.actualCostController,
@@ -481,6 +531,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   validator: Validators.optionalNonNegativeNumber(
                     'Actual Cost',
                   ),
+                  readOnly: !canManage,
                 ),
                 AppFormTextField(
                   controller: controller.progressPercentController,
@@ -494,13 +545,14 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
               controller: controller.descriptionController,
               labelText: 'Description',
               maxLines: 3,
+              readOnly: !canManage,
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
               label: 'Billable',
               subtitle: 'Use this task for billable work if needed.',
               value: controller.isBillable,
-              onChanged: controller.setIsBillable,
+              onChanged: canManage ? controller.setIsBillable : null,
             ),
             const SizedBox(height: AppUiConstants.spacingXs),
             AppFormTextField(
@@ -508,6 +560,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
               labelText: 'Remarks',
               maxLines: 3,
               validator: Validators.optionalMaxLength(500, 'Remarks'),
+              readOnly: !canManage,
             ),
             if ((controller.formError ?? '').isNotEmpty) ...[
               const SizedBox(height: AppUiConstants.spacingSm),
@@ -519,7 +572,7 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 AppActionButton(
-                  onPressed: controller.saving
+                  onPressed: controller.saving || !canChangeStatus
                       ? null
                       : () async {
                           if (!Form.of(formContext).validate()) {
@@ -537,7 +590,11 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   icon: controller.selectedRow?.task.id == null
                       ? Icons.add
                       : Icons.save_outlined,
-                  label: controller.saving ? 'Saving...' : 'Save Task',
+                  label: controller.saving
+                      ? 'Saving...'
+                      : canManage
+                      ? 'Save Task'
+                      : 'Update Status',
                   busy: controller.saving,
                 ),
               ],
