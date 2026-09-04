@@ -2,7 +2,14 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectTimesheetManagementController extends GetxController {
-  ProjectTimesheetManagementController({this.constrainedProjectId});
+  ProjectTimesheetManagementController({
+    this.constrainedProjectId,
+    this.initialRecordId,
+    this.startWithNewRecord = false,
+  });
+
+  final int? initialRecordId;
+  final bool startWithNewRecord;
 
   final ProjectService _projectService = ProjectService();
   final HrService _hrService = HrService();
@@ -62,7 +69,14 @@ class ProjectTimesheetManagementController extends GetxController {
         unawaited(loadData(selectId: selectedRow?.timesheet.id));
       },
     );
-    loadData();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    await loadData(selectId: initialRecordId);
+    if (!isClosed && startWithNewRecord) {
+      resetForm();
+    }
   }
 
   @override
@@ -194,9 +208,8 @@ class ProjectTimesheetManagementController extends GetxController {
     if (selectedStatuses.isNotEmpty) {
       result = result
           .where(
-            (row) => selectedStatuses.contains(
-              row.timesheet.timesheetStatus ?? '',
-            ),
+            (row) =>
+                selectedStatuses.contains(row.timesheet.timesheetStatus ?? ''),
           )
           .toList(growable: false);
     }
@@ -204,18 +217,12 @@ class ProjectTimesheetManagementController extends GetxController {
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
       result = result
-          .where(
-            (row) =>
-                (row.timesheet.workDate ?? '').compareTo(from) >= 0,
-          )
+          .where((row) => (row.timesheet.workDate ?? '').compareTo(from) >= 0)
           .toList(growable: false);
     }
     if (to.isNotEmpty) {
       result = result
-          .where(
-            (row) =>
-                (row.timesheet.workDate ?? '').compareTo(to) <= 0,
-          )
+          .where((row) => (row.timesheet.workDate ?? '').compareTo(to) <= 0)
           .toList(growable: false);
     }
     return result;

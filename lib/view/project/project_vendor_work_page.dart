@@ -10,12 +10,16 @@ class ProjectVendorWorkManagementPage extends StatefulWidget {
     this.constrainedProjectId,
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.editorOnly = false,
+    this.initialId,
   });
 
   final bool embedded;
   final int? constrainedProjectId;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<ProjectVendorWorkManagementPage> createState() =>
@@ -49,6 +53,8 @@ class _ProjectVendorWorkManagementPageState
       Get.put(
         ProjectVendorWorkManagementController(
           constrainedProjectId: widget.constrainedProjectId,
+          initialRecordId: widget.initialId,
+          startWithNewRecord: widget.editorOnly && widget.initialId == null,
         ),
         tag: _controllerTag,
       );
@@ -93,8 +99,44 @@ class _ProjectVendorWorkManagementPageState
           ),
         ];
 
-        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
+        if (widget.editorOnly) {
+          final content = _buildEditorRouteContent(context, controller);
+          return widget.embedded
+              ? ShellPageActions(actions: const <Widget>[], child: content)
+              : AppStandaloneShell(
+                  title: 'Project Vendor Work',
+                  scrollController: controller.pageScrollController,
+                  actions: const <Widget>[],
+                  child: content,
+                );
+        }
+        return _buildContent(
+          context,
+          controller,
+          widget.useShellActions ? actions : const <Widget>[],
+        );
       },
+    );
+  }
+
+  Widget _buildEditorRouteContent(
+    BuildContext context,
+    ProjectVendorWorkManagementController controller,
+  ) {
+    if (controller.initialLoading) {
+      return const AppLoadingView(message: 'Loading vendor work...');
+    }
+    if (controller.pageError != null) {
+      return AppErrorStateView(
+        title: 'Unable to load vendor work',
+        message: controller.pageError!,
+        onRetry: controller.loadData,
+      );
+    }
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: AppSectionCard(child: _buildEditorForm(context, controller)),
     );
   }
 
@@ -158,7 +200,10 @@ class _ProjectVendorWorkManagementPageState
               : appTheme.warning;
 
           return AppProgressBar(
-            label: status.isEmpty ? '-' : status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+            label: status.isEmpty
+                ? '-'
+                : status[0].toUpperCase() +
+                      status.substring(1).replaceAll('_', ' '),
             progress: error ? 0.0 : progress,
             color: color,
           );
@@ -206,19 +251,26 @@ class _ProjectVendorWorkManagementPageState
     BuildContext context,
     ProjectVendorWorkManagementController controller,
   ) {
+    if (widget.embedded && !controller.isProjectConstrained) {
+      openShellRoute(
+        context,
+        '/projects/vendor-works/${controller.selectedRow?.work.id ?? 'new'}',
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectVendorWorkManagementController>(
           tag: _controllerTag,
           builder: (ctrl) => AppStandaloneShell(
-            title: ctrl.selectedRow == null ? 'New Vendor Work' : 'Edit Vendor Work',
+            title: ctrl.selectedRow == null
+                ? 'New Vendor Work'
+                : 'Edit Vendor Work',
             scrollController: ScrollController(),
             actions: const <Widget>[],
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-              child: AppSectionCard(
-                child: _buildEditorForm(context, ctrl),
-              ),
+              child: AppSectionCard(child: _buildEditorForm(context, ctrl)),
             ),
           ),
         ),

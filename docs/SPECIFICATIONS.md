@@ -642,6 +642,13 @@ company entitlement may be higher or lower.
   until the current pointer event completes, preventing Flutter Web
   MouseTracker re-entrancy assertions when opening settings editors such as
   Email Templates.
+- Shell Back navigation pops unnamed nested editor routes before consuming
+  module history, keeping Project child editors consistent with Sales register
+  navigation.
+- Project Billing, Expense, Resource Usage, Timesheet, and Vendor Work create
+  and edit actions use `/projects/<register>/new` or
+  `/projects/<register>/<id>` shell routes. The application drawer and header
+  remain mounted while only the center content changes, matching Sales.
 - Company Settings renders only its selected tab body. It does not retain every
   tab in an `IndexedStack`, because the embedded Financial Years editor has its
   own stateful form and must not be mounted while hidden.

@@ -1,14 +1,5 @@
 import '../../screen.dart';
 
-void openModuleShellRoute(BuildContext context, String route) {
-  final navigate = ShellRouteScope.maybeOf(context);
-  if (navigate != null) {
-    navigate(route);
-    return;
-  }
-  Navigator.of(context).pushNamed(route);
-}
-
 /// Shows linked CRM + sales documents from [salesChain] API payload.
 class CrmSalesPipelineBar extends StatelessWidget {
   const CrmSalesPipelineBar({
@@ -165,10 +156,8 @@ class CrmSalesPipelineBar extends StatelessWidget {
         _PipelineChip(
           label: _docLabel('Lead', lead, 'lead_name'),
           subtitle: _leadStatusLabel(stringValue(lead, 'lead_status')),
-          onTap: () => openModuleShellRoute(
-            context,
-            '/crm/leads/${intValue(lead, 'id')}',
-          ),
+          onTap: () =>
+              openShellRoute(context, '/crm/leads/${intValue(lead, 'id')}'),
         ),
       if (showEnquiryChip)
         _PipelineChip(

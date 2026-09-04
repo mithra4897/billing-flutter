@@ -2,7 +2,14 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectResourceUsageManagementController extends GetxController {
-  ProjectResourceUsageManagementController({this.constrainedProjectId});
+  ProjectResourceUsageManagementController({
+    this.constrainedProjectId,
+    this.initialRecordId,
+    this.startWithNewRecord = false,
+  });
+
+  final int? initialRecordId;
+  final bool startWithNewRecord;
 
   final ProjectService _projectService = ProjectService();
   final AssetsService _assetsService = AssetsService();
@@ -60,7 +67,14 @@ class ProjectResourceUsageManagementController extends GetxController {
         unawaited(loadData(selectId: selectedRow?.usage.id));
       },
     );
-    loadData();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    await loadData(selectId: initialRecordId);
+    if (!isClosed && startWithNewRecord) {
+      resetForm();
+    }
   }
 
   @override

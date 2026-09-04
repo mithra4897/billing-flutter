@@ -1483,3 +1483,12 @@ been packaged successfully.
 - `flutter test` executed and passed all 18 tests, including 14 tests in the
   consolidated `test/view/project_kanban_board_test.dart` suite covering task and
   milestone lane resolution, grouping, drop eligibility, and status transformations.
+
+## 2026-09-04 — Project fixed-shell editor navigation
+
+- Focused `flutter analyze` passed for the shell resolver, five Project
+  register pages, and their controllers.
+- `flutter test test/view/project/project_kanban_board_test.dart` passed all 14
+  existing Project Kanban tests.
+- Live browser verification was attempted at `localhost:59710`, but the local
+  development server was not running (`ERR_CONNECTION_REFUSED`).

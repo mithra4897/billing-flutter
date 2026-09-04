@@ -2,7 +2,14 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectBillingManagementController extends GetxController {
-  ProjectBillingManagementController({this.constrainedProjectId});
+  ProjectBillingManagementController({
+    this.constrainedProjectId,
+    this.initialRecordId,
+    this.startWithNewRecord = false,
+  });
+
+  final int? initialRecordId;
+  final bool startWithNewRecord;
 
   final ProjectService _projectService = ProjectService();
   final SalesService _salesService = SalesService();
@@ -54,7 +61,14 @@ class ProjectBillingManagementController extends GetxController {
         unawaited(loadData(selectId: selectedRow?.billing.id));
       },
     );
-    loadData();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    await loadData(selectId: initialRecordId);
+    if (!isClosed && startWithNewRecord) {
+      resetForm();
+    }
   }
 
   @override
@@ -176,8 +190,7 @@ class ProjectBillingManagementController extends GetxController {
     if (selectedStatuses.isNotEmpty) {
       result = result
           .where(
-            (row) =>
-                selectedStatuses.contains(row.billing.billingStatus ?? ''),
+            (row) => selectedStatuses.contains(row.billing.billingStatus ?? ''),
           )
           .toList(growable: false);
     }
@@ -185,16 +198,12 @@ class ProjectBillingManagementController extends GetxController {
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
       result = result
-          .where(
-            (row) => (row.billing.billingDate ?? '').compareTo(from) >= 0,
-          )
+          .where((row) => (row.billing.billingDate ?? '').compareTo(from) >= 0)
           .toList(growable: false);
     }
     if (to.isNotEmpty) {
       result = result
-          .where(
-            (row) => (row.billing.billingDate ?? '').compareTo(to) <= 0,
-          )
+          .where((row) => (row.billing.billingDate ?? '').compareTo(to) <= 0)
           .toList(growable: false);
     }
     return result;

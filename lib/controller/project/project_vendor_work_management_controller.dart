@@ -2,7 +2,14 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectVendorWorkManagementController extends GetxController {
-  ProjectVendorWorkManagementController({this.constrainedProjectId});
+  ProjectVendorWorkManagementController({
+    this.constrainedProjectId,
+    this.initialRecordId,
+    this.startWithNewRecord = false,
+  });
+
+  final int? initialRecordId;
+  final bool startWithNewRecord;
 
   final ProjectService _projectService = ProjectService();
   final PartiesService _partiesService = PartiesService();
@@ -58,7 +65,14 @@ class ProjectVendorWorkManagementController extends GetxController {
         unawaited(loadData(selectId: selectedRow?.work.id));
       },
     );
-    loadData();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    await loadData(selectId: initialRecordId);
+    if (!isClosed && startWithNewRecord) {
+      resetForm();
+    }
   }
 
   @override

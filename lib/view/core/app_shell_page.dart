@@ -126,6 +126,10 @@ class _AppShellPageState extends State<AppShellPage> {
     if (salesRoute != null) {
       return salesRoute;
     }
+    final projectRoute = _buildProjectContent(routeKey);
+    if (projectRoute != null) {
+      return projectRoute;
+    }
     final purchaseRoute = _buildPurchaseContent(routeKey);
     if (purchaseRoute != null) {
       return purchaseRoute;
@@ -873,6 +877,71 @@ class _AppShellPageState extends State<AppShellPage> {
           editorOnly: true,
           initialId: id,
           queryParameters: _currentQueryParameters,
+        );
+    }
+    return null;
+  }
+
+  Widget? _buildProjectContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'projects') {
+      return null;
+    }
+    final register = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+    final controllerScope = <String, Object?>{
+      'route': _currentPath,
+      'record_id': id,
+    };
+
+    switch (register) {
+      case 'billings':
+        return ProjectBillingManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          controllerScope: controllerScope,
+        );
+      case 'expenses':
+        return ProjectExpenseManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          controllerScope: controllerScope,
+        );
+      case 'resources':
+        return ProjectResourceUsageManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          controllerScope: controllerScope,
+        );
+      case 'timesheets':
+        return ProjectTimesheetManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          controllerScope: controllerScope,
+        );
+      case 'vendor-works':
+        return ProjectVendorWorkManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          controllerScope: controllerScope,
         );
     }
     return null;

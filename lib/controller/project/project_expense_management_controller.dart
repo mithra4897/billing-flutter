@@ -2,7 +2,14 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectExpenseManagementController extends GetxController {
-  ProjectExpenseManagementController({this.constrainedProjectId});
+  ProjectExpenseManagementController({
+    this.constrainedProjectId,
+    this.initialRecordId,
+    this.startWithNewRecord = false,
+  });
+
+  final int? initialRecordId;
+  final bool startWithNewRecord;
 
   final ProjectService _projectService = ProjectService();
   final PartiesService _partiesService = PartiesService();
@@ -59,7 +66,14 @@ class ProjectExpenseManagementController extends GetxController {
         unawaited(loadData(selectId: selectedRow?.expense.id));
       },
     );
-    loadData();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    await loadData(selectId: initialRecordId);
+    if (!isClosed && startWithNewRecord) {
+      resetForm();
+    }
   }
 
   @override
@@ -201,16 +215,12 @@ class ProjectExpenseManagementController extends GetxController {
     final to = dateToController.text.trim();
     if (from.isNotEmpty) {
       result = result
-          .where(
-            (row) => (row.expense.expenseDate ?? '').compareTo(from) >= 0,
-          )
+          .where((row) => (row.expense.expenseDate ?? '').compareTo(from) >= 0)
           .toList(growable: false);
     }
     if (to.isNotEmpty) {
       result = result
-          .where(
-            (row) => (row.expense.expenseDate ?? '').compareTo(to) <= 0,
-          )
+          .where((row) => (row.expense.expenseDate ?? '').compareTo(to) <= 0)
           .toList(growable: false);
     }
     return result;

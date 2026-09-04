@@ -366,6 +366,16 @@ typed data under `lib/model`, API services under `lib/service`, and shared
 infrastructure under `lib/core`. It communicates with the sibling Lumen API
 under `/api/v1` and stores normal ERP session state separately.
 
+Project Billing, Expense, Resource Usage, Timesheet, and Vendor Work editors
+follow the Sales editor-route architecture. Register actions create a stable
+`/projects/<register>/new` or `/projects/<register>/<id>` path through
+`ShellRouteScope`; `AppShellPage` resolves the path to editor-only center
+content. The application shell, drawer state, header, and route history remain
+mounted.
+All modules reuse `openModuleShellRoute` from `page_shell_actions.dart` for
+shell-aware navigation; Project pages build their explicit register paths at
+the call site.
+
 ### Payroll-run lifecycle actions
 
 The payroll-run detail dialog reuses `HrService.deletePayrollRun` for eligible

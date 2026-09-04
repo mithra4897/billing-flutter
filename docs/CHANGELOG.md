@@ -7,6 +7,26 @@
   assertions when opening Email Templates and other settings editors.
 - Coalesced repeated open requests while the route transition is scheduled.
 
+## 2026-09-03 — Correct Project editor back navigation
+
+- The shell Back action now pops unnamed nested Project editor routes before
+  moving through top-level module history, matching Sales navigation behavior.
+
+## 2026-09-04 — Keep Project editors inside the fixed app shell
+
+- Project Billing, Expense, Resource Usage, Timesheet, and Vendor Work create
+  and edit actions now use stable shell routes instead of pushing a second
+  full-page `AppStandaloneShell`.
+- The app drawer and header remain fixed while only center content changes;
+  direct editor URLs and shell Back/Forward now follow the Sales pattern.
+- No backend, database, permission, or payload changes are required.
+- Focused analysis and 16 Project tests passed. Live browser verification could
+  not run because the local web server was not active.
+- Shell-aware navigation now uses the shared `openModuleShellRoute` helper;
+  Project no longer duplicates the callback implementation or a one-line route
+  formatter helper.
+
+
 ## 2026-09-03 — Rename Project status label
 
 - Changed the displayed “On Hold” label to “In Review” across Project forms,

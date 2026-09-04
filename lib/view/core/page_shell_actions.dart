@@ -1,5 +1,21 @@
 import '../../screen.dart';
 
+/// Navigates through the persistent shell when available, with a standalone
+/// Navigator fallback for pages used outside [AppShellPage].
+void openModuleShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
+/// Preferred descriptive alias for new callers.
+void openShellRoute(BuildContext context, String route) {
+  openModuleShellRoute(context, route);
+}
+
 class ShellPageActionsController extends ValueNotifier<List<Widget>> {
   ShellPageActionsController() : super(const <Widget>[]);
 

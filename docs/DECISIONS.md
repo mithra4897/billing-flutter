@@ -884,3 +884,20 @@
   `lib/view/project/project_milestone_page.dart`,
   `lib/controller/project/project_milestone_management_controller.dart`.
 
+## ADR-0042: Keep Project editors inside the persistent application shell
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: Five Project registers opened editors by pushing a new
+  `AppStandaloneShell`, remounting the drawer and header instead of preserving
+  the route-first shell behavior already used by Sales.
+- Decision: Give those Project editors stable `new` and record-id paths, resolve
+  them in `AppShellPage`, and render their existing forms as editor-only center
+  content inside the mounted shell.
+- Reason: This follows the frontend shell/navigation contract, keeps browser and
+  application history synchronized, and reuses the Sales route architecture.
+- Alternatives considered: hiding the second drawer; retaining unnamed nested
+  routes; opening forms in dialogs. These do not preserve a single fixed shell
+  with addressable content.
+- Consequences: No API or database changes. Route parsing and lookup remain O(1),
+  and direct editor URLs load the requested record through existing controllers.

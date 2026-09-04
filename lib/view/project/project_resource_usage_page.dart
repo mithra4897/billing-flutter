@@ -9,12 +9,16 @@ class ProjectResourceUsageManagementPage extends StatefulWidget {
     this.constrainedProjectId,
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.editorOnly = false,
+    this.initialId,
   });
 
   final bool embedded;
   final int? constrainedProjectId;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<ProjectResourceUsageManagementPage> createState() =>
@@ -39,6 +43,8 @@ class _ProjectResourceUsageManagementPageState
       Get.put(
         ProjectResourceUsageManagementController(
           constrainedProjectId: widget.constrainedProjectId,
+          initialRecordId: widget.initialId,
+          startWithNewRecord: widget.editorOnly && widget.initialId == null,
         ),
         tag: _controllerTag,
       );
@@ -83,8 +89,44 @@ class _ProjectResourceUsageManagementPageState
           ),
         ];
 
-        return _buildContent(context, controller, widget.useShellActions ? actions : const <Widget>[]);
+        if (widget.editorOnly) {
+          final content = _buildEditorRouteContent(context, controller);
+          return widget.embedded
+              ? ShellPageActions(actions: const <Widget>[], child: content)
+              : AppStandaloneShell(
+                  title: 'Project Resource Usage',
+                  scrollController: controller.pageScrollController,
+                  actions: const <Widget>[],
+                  child: content,
+                );
+        }
+        return _buildContent(
+          context,
+          controller,
+          widget.useShellActions ? actions : const <Widget>[],
+        );
       },
+    );
+  }
+
+  Widget _buildEditorRouteContent(
+    BuildContext context,
+    ProjectResourceUsageManagementController controller,
+  ) {
+    if (controller.initialLoading) {
+      return const AppLoadingView(message: 'Loading resource usage...');
+    }
+    if (controller.pageError != null) {
+      return AppErrorStateView(
+        title: 'Unable to load resource usage',
+        message: controller.pageError!,
+        onRetry: controller.loadData,
+      );
+    }
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: AppSectionCard(child: _buildEditorForm(context, controller)),
     );
   }
 
@@ -158,7 +200,9 @@ class _ProjectResourceUsageManagementPageState
     );
   }
 
-  Widget _buildFilterPanel(ProjectResourceUsageManagementController controller) {
+  Widget _buildFilterPanel(
+    ProjectResourceUsageManagementController controller,
+  ) {
     return AppRegisterFilters(
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,
@@ -170,19 +214,26 @@ class _ProjectResourceUsageManagementPageState
     BuildContext context,
     ProjectResourceUsageManagementController controller,
   ) {
+    if (widget.embedded && !controller.isProjectConstrained) {
+      openShellRoute(
+        context,
+        '/projects/resources/${controller.selectedRow?.usage.id ?? 'new'}',
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GetBuilder<ProjectResourceUsageManagementController>(
           tag: _controllerTag,
           builder: (ctrl) => AppStandaloneShell(
-            title: ctrl.selectedRow == null ? 'New Resource Usage' : 'Edit Resource Usage',
+            title: ctrl.selectedRow == null
+                ? 'New Resource Usage'
+                : 'Edit Resource Usage',
             scrollController: ScrollController(),
             actions: const <Widget>[],
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-              child: AppSectionCard(
-                child: _buildEditorForm(context, ctrl),
-              ),
+              child: AppSectionCard(child: _buildEditorForm(context, ctrl)),
             ),
           ),
         ),

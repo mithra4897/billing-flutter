@@ -1160,6 +1160,17 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   void _handleBackTap({required bool showPermanentDrawer}) {
+    // Project child editors are opened as an unnamed nested MaterialPageRoute.
+    // Pop that route before consuming the shell's module history; otherwise
+    // the Back button skips the project register and navigates to the
+    // previous top-level module instead.
+    final modalRoute = ModalRoute.of(context);
+    final navigator = Navigator.of(context);
+    if (modalRoute?.settings.name == null && navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
     final previousRoute = AppRouteState.goBack();
     if (previousRoute == null || previousRoute.trim().isEmpty) {
       return;
