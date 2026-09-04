@@ -200,13 +200,15 @@ class ProjectManagementController extends GetxController {
       if (empId == null) {
         scoped = <ProjectModel>[];
       } else {
-        scoped = scoped.where((project) {
-          return project.tasks.any((task) {
-            final ids = task.assignedEmployeeIds;
-            return task.assignedEmployeeId == empId ||
-                (ids.isNotEmpty && ids.contains(empId));
-          });
-        }).toList(growable: false);
+        scoped = scoped
+            .where((project) {
+              return project.tasks.any((task) {
+                final ids = task.assignedEmployeeIds;
+                return task.assignedEmployeeId == empId ||
+                    (ids.isNotEmpty && ids.contains(empId));
+              });
+            })
+            .toList(growable: false);
       }
     }
 
@@ -344,6 +346,7 @@ class ProjectManagementController extends GetxController {
         update();
         return null;
       }
+      _refreshController.invalidateProjects();
       await loadData(selectId: saved.id);
       _refreshController.notifyChanged(source: 'project_management');
       return response.message;

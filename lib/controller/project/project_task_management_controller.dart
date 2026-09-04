@@ -356,7 +356,9 @@ class ProjectTaskManagementController extends GetxController {
     actualHoursController.text = decimalText(row.task.actualHours);
     estimatedCostController.text = decimalText(row.task.estimatedCost);
     actualCostController.text = decimalText(row.task.actualCost);
-    progressPercentController.text = decimalText(row.task.progressPercent);
+    progressPercentController.text = decimalText(
+      taskProgressForStatus(row.task.taskStatus ?? 'open'),
+    );
     remarksController.text = row.task.remarks ?? '';
     assignedEmployeeId = row.task.assignedEmployeeId;
     assignedEmployeeIds =
@@ -390,7 +392,7 @@ class ProjectTaskManagementController extends GetxController {
     actualHoursController.clear();
     estimatedCostController.clear();
     actualCostController.clear();
-    progressPercentController.clear();
+    progressPercentController.text = '0';
     remarksController.clear();
     assignedEmployeeId = null;
     assignedEmployeeIds = <int>{};
@@ -692,6 +694,9 @@ class ProjectTaskManagementController extends GetxController {
 
   void setTaskStatus(String value) {
     taskStatus = value;
+    progressPercentController.text = taskProgressForStatus(
+      taskStatus,
+    ).toStringAsFixed(0);
     update();
   }
 
@@ -731,6 +736,18 @@ class ProjectTaskManagementController extends GetxController {
   }
 }
 
+double taskProgressForStatus(String status) {
+  switch (status.trim().toLowerCase()) {
+    case 'working':
+    case 'on_hold':
+      return 50;
+    case 'completed':
+      return 100;
+    default:
+      return 0;
+  }
+}
+
 class ProjectTaskRow {
   const ProjectTaskRow({required this.project, required this.task});
 
@@ -751,5 +768,6 @@ ProjectTaskModel projectTaskWithStatus(ProjectTaskModel task, String status) {
     ...task.toJson(),
     if (task.id != null) 'id': task.id,
     'task_status': status.trim().toLowerCase(),
+    'progress_percent': taskProgressForStatus(status),
   });
 }

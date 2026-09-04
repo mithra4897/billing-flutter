@@ -29,15 +29,6 @@ class ProjectTaskManagementPage extends StatefulWidget {
 }
 
 class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
-  static const List<AppDropdownItem<String>> _taskStatusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'open', label: 'Open'),
-        AppDropdownItem(value: 'working', label: 'Working'),
-        AppDropdownItem(value: 'completed', label: 'Completed'),
-        AppDropdownItem(value: 'on_hold', label: 'In Review'),
-        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-      ];
-
   static const List<AppDropdownItem<String>> _taskPriorityItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'low', label: 'Low'),
@@ -392,13 +383,6 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   onMultiChanged: controller.setAssignedEmployeeIds,
                 ),
                 AppDropdownField<String>.fromMapped(
-                  initialValue: controller.taskStatus,
-                  labelText: 'Task Status',
-                  mappedItems: _taskStatusItems,
-                  onChanged: (value) =>
-                      controller.setTaskStatus(value ?? controller.taskStatus),
-                ),
-                AppDropdownField<String>.fromMapped(
                   initialValue: controller.taskPriority,
                   labelText: 'Priority',
                   mappedItems: _taskPriorityItems,
@@ -484,13 +468,8 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                 ),
                 AppFormTextField(
                   controller: controller.progressPercentController,
-                  labelText: 'Progress Percent',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: Validators.optionalNonNegativeNumber(
-                    'Progress Percent',
-                  ),
+                  labelText: 'Progress Percent (Based on Status)',
+                  readOnly: true,
                 ),
                 AppFormTextField(
                   controller: controller.descriptionController,
