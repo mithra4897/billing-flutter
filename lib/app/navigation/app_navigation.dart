@@ -597,6 +597,13 @@ class AppNavigation {
           requiredPermissions: ['hr.view'],
         ),
         AppNavigationItem(
+          key: 'hr-global-salary-components',
+          title: 'Salary Components',
+          icon: Icons.payments_outlined,
+          path: '/hr/global-salary-components',
+          requiredPermissions: ['hr.view'],
+        ),
+        AppNavigationItem(
           key: 'hr-employee-ledgers',
           title: 'Employee Ledger',
           icon: Icons.account_balance_wallet_outlined,
@@ -932,6 +939,13 @@ class AppNavigation {
       title: 'Projects',
       icon: Icons.folder_special_outlined,
       children: [
+        AppNavigationItem(
+          key: 'projects-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/projects/dashboard',
+          requiredPermissions: ['project.view'],
+        ),
         AppNavigationItem(
           key: 'projects-list',
           title: 'Projects',

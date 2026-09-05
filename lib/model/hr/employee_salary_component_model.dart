@@ -11,6 +11,8 @@ class EmployeeSalaryComponentModel extends JsonModel {
     this.calculationBasis,
     this.percentValue,
     this.contributionRole,
+    this.sortOrder,
+    this.isGlobal = false,
   });
   final int? salaryStructureId;
   final String? componentName;
@@ -20,6 +22,8 @@ class EmployeeSalaryComponentModel extends JsonModel {
   final String? calculationBasis;
   final double? percentValue;
   final String? contributionRole;
+  final int? sortOrder;
+  final bool isGlobal;
 
   @override
   String toString() => componentName ?? 'New Salary Component';
@@ -35,6 +39,8 @@ class EmployeeSalaryComponentModel extends JsonModel {
       calculationBasis: json['calculation_basis']?.toString(),
       percentValue: _double(json['percent_value']),
       contributionRole: json['contribution_role']?.toString(),
+      sortOrder: _nullableInt(json['sort_order']),
+      isGlobal: json['is_global'] == true || json['is_global'] == 1,
     );
   }
 
@@ -50,6 +56,7 @@ class EmployeeSalaryComponentModel extends JsonModel {
       if (calculationBasis != null) 'calculation_basis': calculationBasis,
       if (percentValue != null) 'percent_value': percentValue,
       if (contributionRole != null) 'contribution_role': contributionRole,
+      if (sortOrder != null) 'sort_order': sortOrder,
     };
   }
 

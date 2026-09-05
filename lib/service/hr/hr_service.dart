@@ -145,13 +145,33 @@ class HrService extends ErpModuleService {
     fromJson: EmployeeModel.fromJson,
   );
 
-  Future<ApiResponse<dynamic>> applySalaryComponentOrderToAll(
-    int employeeId,
-    int salaryStructureId,
-  ) => client.post<dynamic>(
-    '/hr/employees/$employeeId/apply-salary-component-order',
-    body: <String, dynamic>{'salary_structure_id': salaryStructureId},
+  Future<PaginatedResponse<GlobalSalaryComponentModel>> globalSalaryComponents({
+    Map<String, dynamic>? filters,
+  }) => paginated<GlobalSalaryComponentModel>(
+    '/hr/global-salary-components',
+    filters: filters,
+    fromJson: GlobalSalaryComponentModel.fromJson,
   );
+
+  Future<ApiResponse<GlobalSalaryComponentModel>> createGlobalSalaryComponent(
+    GlobalSalaryComponentModel body,
+  ) => createModel<GlobalSalaryComponentModel>(
+    '/hr/global-salary-components',
+    body,
+    fromJson: GlobalSalaryComponentModel.fromJson,
+  );
+
+  Future<ApiResponse<GlobalSalaryComponentModel>> updateGlobalSalaryComponent(
+    int id,
+    GlobalSalaryComponentModel body,
+  ) => updateModel<GlobalSalaryComponentModel>(
+    '/hr/global-salary-components/$id',
+    body,
+    fromJson: GlobalSalaryComponentModel.fromJson,
+  );
+
+  Future<ApiResponse<dynamic>> deleteGlobalSalaryComponent(int id) =>
+      destroy('/hr/global-salary-components/$id');
 
   Future<ApiResponse<dynamic>> deleteEmployee(int id) =>
       destroy('/hr/employees/$id');

@@ -2217,3 +2217,9 @@
   difference remains a separate correction.
 - Focused backend tests passed (22 tests, 76 assertions); focused Flutter
   analysis and 2 tests passed.
+# 2026-09-05 — Global salary components and manual ordering
+
+- Added company-scoped global salary-component CRUD, propagation, and schema
+  migration; removed employee drag ordering and bulk apply UI while retaining
+  amount overrides. See [global-salary-components.md](global-salary-components.md)
+  and [`billing-api/doc/global-salary-components.md`](../../billing-api/doc/global-salary-components.md).

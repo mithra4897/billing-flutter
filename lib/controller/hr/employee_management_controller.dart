@@ -273,6 +273,8 @@ class EmployeeSalaryComponentDraft {
     required this.calculationBasis,
     required this.percentValue,
     required this.contributionRole,
+    this.sortOrder,
+    this.isGlobal = false,
   });
 
   final int key;
@@ -284,6 +286,8 @@ class EmployeeSalaryComponentDraft {
   final String calculationBasis;
   final String percentValue;
   final String contributionRole;
+  final int? sortOrder;
+  final bool isGlobal;
 
   String get listDetailLine {
     if (calculationBasis == 'fixed') {
@@ -316,6 +320,8 @@ class EmployeeSalaryComponentDraft {
       calculationBasis: calculationBasis,
       percentValue: percentValue,
       contributionRole: contributionRole,
+      sortOrder: sortOrder,
+      isGlobal: isGlobal,
     );
   }
 
@@ -332,27 +338,10 @@ class EmployeeSalaryComponentDraft {
           ? null
           : Validators.parseFlexibleNumber(percentage),
       contributionRole: contributionRole,
+      sortOrder: sortOrder,
+      isGlobal: isGlobal,
     );
   }
-}
-
-List<EmployeeSalaryComponentDraft> reorderEmployeeSalaryComponents(
-  List<EmployeeSalaryComponentDraft> components, {
-  required int fromIndex,
-  required int toIndex,
-}) {
-  if (fromIndex < 0 ||
-      fromIndex >= components.length ||
-      toIndex < 0 ||
-      toIndex >= components.length ||
-      fromIndex == toIndex) {
-    return List<EmployeeSalaryComponentDraft>.from(components);
-  }
-
-  final reordered = List<EmployeeSalaryComponentDraft>.from(components);
-  final component = reordered.removeAt(fromIndex);
-  reordered.insert(toIndex, component);
-  return reordered;
 }
 
 class EmployeeAddressDraft {

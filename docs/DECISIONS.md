@@ -1,5 +1,24 @@
 # Architecture decisions
 
+## ADR-0051: Make salary components company-global with explicit ordering
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: Per-employee drag ordering could drift between employees and did not
+  provide a durable global definition.
+- Decision: Add a company-scoped global component table and CRUD API. Propagate
+  global metadata and order to existing/future employee structures while
+  preserving employee amount overrides. Render employee components as a
+  read-only ordered list.
+- Reason: One authoritative configuration prevents drift and makes payslip row
+  order auditable without requiring drag-and-drop state.
+- Consequences: Deployers must apply the additive schema migration. Existing
+  component names are matched case-insensitively after trimming; historical
+  payroll snapshots are unchanged.
+- Related files: `billing-api/doc/global-salary-components.md`,
+  `lib/view/hr/global_salary_components_page.dart`, and
+  `lib/view/hr/employee_page.dart`.
+
 ## ADR-0050: Render quotation Markdown tables in the shared PDF continuation path
 
 - Date: 2026-09-05

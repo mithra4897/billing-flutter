@@ -17,7 +17,6 @@ class EmployeeManagementPage extends StatefulWidget {
 
 class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     with SingleTickerProviderStateMixin {
-  final GlobalKey<FormState> _primaryEmployeeFormKey = GlobalKey<FormState>();
   static const List<AppDropdownItem<String>> _employmentTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'permanent', label: 'Permanent'),
@@ -835,8 +834,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Future<void> _savePrimary() async {
-    final FormState? primaryForm = _primaryEmployeeFormKey.currentState;
+  Future<void> _savePrimary(GlobalKey<FormState> formKey) async {
+    final FormState? primaryForm = formKey.currentState;
     if (primaryForm == null || !primaryForm.validate()) {
       return;
     }
@@ -1260,6 +1259,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               calculationBasis: item.calculationBasis ?? 'fixed',
               percentValue: employeePercentageText(item.percentValue),
               contributionRole: item.contributionRole ?? 'employee',
+              sortOrder: item.sortOrder,
+              isGlobal: item.isGlobal,
             ),
           )
           .toList(growable: true),
@@ -1426,7 +1427,6 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   void _resetComponentEditor({bool silent = false}) {
-    _showDraftComponentTile = false;
     _selectedComponentKey = null;
     _selectedComponentParentKey = null;
     _componentNameController.clear();
@@ -1442,26 +1442,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
   }
 
-  void _startNewComponent() {
-    _selectedComponentKey = null;
-    _showDraftComponentTile = true;
-    _selectedComponentParentKey = _salaryStructures.firstOrNull?.key;
-    _componentNameController.clear();
-    _componentAmountController.clear();
-    _componentPercentController.clear();
-    _componentType = 'earning';
-    _componentRole = 'standard';
-    _componentCalculationBasis = 'fixed';
-    _componentContributionRole = 'employee';
-    _componentFormError = null;
-    _updateController(() {});
-  }
-
   void _selectComponent(
     EmployeeSalaryStructureDraft parent,
     EmployeeSalaryComponentDraft component,
   ) {
-    _showDraftComponentTile = false;
     _selectedComponentParentKey = parent.key;
     _selectedComponentKey = component.key;
     _componentNameController.text = component.componentName;
@@ -1577,6 +1561,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     final nextComponents = List<EmployeeSalaryComponentDraft>.from(
       parent.components,
     );
+    final existingComponent = nextComponents
+        .where((item) => item.key == _selectedComponentKey)
+        .firstOrNull;
     final draft = EmployeeSalaryComponentDraft(
       key: _selectedComponentKey ?? _nextDraftKey(),
       id: nextComponents
@@ -1592,6 +1579,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       calculationBasis: _componentCalculationBasis,
       percentValue: _componentCalculationBasis == 'fixed' ? '' : percentText,
       contributionRole: _componentContributionRole,
+      sortOrder: existingComponent?.sortOrder,
+      isGlobal: existingComponent?.isGlobal ?? false,
     );
     final componentIndex = nextComponents.indexWhere(
       (item) => item.key == draft.key,
@@ -1617,123 +1606,33 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     final parentIndex = _salaryStructures.indexWhere(
       (item) => item.key == parent.key,
     );
-    if (parentIndex < 0) {
-      return;
-    }
-
+    if (parentIndex < 0) return;
     final nextStructures = List<EmployeeSalaryStructureDraft>.from(
       _salaryStructures,
     );
     final nextComponents = List<EmployeeSalaryComponentDraft>.from(
       nextStructures[parentIndex].components,
     )..removeWhere((item) => item.key == component.key);
-
     nextStructures[parentIndex] = nextStructures[parentIndex].copyWith(
       components: nextComponents,
     );
-    _updateController(() {
-      _salaryStructures = nextStructures;
-      if (_selectedComponentKey == component.key) {
-        _resetComponentEditor(silent: true);
-      }
-    });
+    _updateController(() => _salaryStructures = nextStructures);
     await _persistSalaryData('Employee salary component removed successfully.');
   }
 
-  Future<void> _reorderComponents(
-    EmployeeSalaryStructureDraft parent,
-    int oldIndex,
-    int newIndex,
-  ) async {
-    final parentIndex = _salaryStructures.indexWhere(
-      (item) => item.key == parent.key,
-    );
-    if (parentIndex < 0) {
-      return;
-    }
-
-    final currentComponents = _salaryStructures[parentIndex].components;
-    if (oldIndex < 0 ||
-        oldIndex >= currentComponents.length ||
-        newIndex < 0 ||
-        newIndex > currentComponents.length) {
-      return;
-    }
-    final targetIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    if (targetIndex == oldIndex) {
-      return;
-    }
-
-    final nextStructures = List<EmployeeSalaryStructureDraft>.from(
-      _salaryStructures,
-    );
-    nextStructures[parentIndex] = nextStructures[parentIndex].copyWith(
-      components: reorderEmployeeSalaryComponents(
-        currentComponents,
-        fromIndex: oldIndex,
-        toIndex: targetIndex,
-      ),
-    );
-    _updateController(() => _salaryStructures = nextStructures);
-    await _persistSalaryData('Salary component order updated successfully.');
-  }
-
-  Future<void> _applyComponentOrderToAll(
-    EmployeeSalaryStructureDraft structure,
-  ) async {
-    final employeeId = _selectedEmployee?.id;
-    final structureId = structure.id;
-    if (employeeId == null ||
-        structureId == null ||
-        structure.components.isEmpty) {
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Apply component order to all employees'),
-        content: const Text(
-          'Apply this salary-component order to matching components for every '
-          'employee in this company? Amounts and salary rules will not change. '
-          'Already generated payrolls and payslips will not be changed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Apply to all'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    _updateController(() => _saving = true);
-    try {
-      final response = await _hrService.applySalaryComponentOrderToAll(
-        employeeId,
-        structureId,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.maybeOf(
-        context,
-      )?.showSnackBar(SnackBar(content: Text(response.message)));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.maybeOf(
-        context,
-      )?.showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) {
-        _updateController(() => _saving = false);
-      }
-    }
+  void _startNewComponent() {
+    _selectedComponentKey = null;
+    _showDraftComponentTile = true;
+    _selectedComponentParentKey = _salaryStructures.firstOrNull?.key;
+    _componentNameController.clear();
+    _componentAmountController.clear();
+    _componentPercentController.clear();
+    _componentType = 'earning';
+    _componentRole = 'standard';
+    _componentCalculationBasis = 'fixed';
+    _componentContributionRole = 'employee';
+    _componentFormError = null;
+    _updateController(() {});
   }
 
   Future<void> _openCreateDepartmentDialog() async {
@@ -2122,8 +2021,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   Widget _buildPrimaryTab() {
+    final formKey = GlobalKey<FormState>();
     return Form(
-      key: _primaryEmployeeFormKey,
+      key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2292,7 +2192,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 label: _selectedEmployee == null
                     ? 'Save Employee'
                     : 'Update Employee',
-                onPressed: _saving ? null : _savePrimary,
+                onPressed: _saving ? null : () => _savePrimary(formKey),
                 busy: _saving,
               ),
               if (_selectedEmployee?.id != null)
@@ -3031,14 +2931,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            AppActionButton(
-              onPressed: _saving ? null : _startNewComponent,
-              icon: Icons.add_outlined,
-              label: 'New Salary Component',
-            ),
-          ],
+        AppActionButton(
+          onPressed: _saving ? null : _startNewComponent,
+          icon: Icons.add_outlined,
+          label: 'New Salary Component',
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
         if ((_componentFormError ?? '').isNotEmpty) ...[
@@ -3049,7 +2945,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           const SettingsEmptyState(
             icon: Icons.functions_outlined,
             title: 'No Salary Components',
-            message: 'Add earning or deduction components for this employee.',
+            message:
+                'Create salary components in the global Salary Components settings.',
             minHeight: 180,
           )
         else
@@ -3060,7 +2957,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 SettingsExpandableTile(
                   key: const ValueKey('employee-component-draft'),
                   title: 'New Salary Component',
-                  subtitle: 'Create a component under a salary structure.',
+                  subtitle: 'Create a component for this employee.',
                   expanded: true,
                   highlighted: true,
                   leadingIcon: Icons.add_outlined,
@@ -3077,7 +2974,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                       padding: const EdgeInsets.only(
                         bottom: AppUiConstants.spacingSm,
                       ),
-                      child: _buildReorderableComponentList(structure),
+                      child: _buildComponentList(structure),
                     ),
                   ),
             ],
@@ -3086,9 +2983,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Widget _buildReorderableComponentList(
-    EmployeeSalaryStructureDraft structure,
-  ) {
+  Widget _buildComponentList(EmployeeSalaryStructureDraft structure) {
     final showStructureLabel = _salaryStructures.length > 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3102,79 +2997,42 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             ),
           ),
         ],
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-          child: AppActionButton(
-            icon: Icons.group_outlined,
-            label: 'Apply order to all employees',
-            filled: false,
-            busy: _saving,
-            onPressed: structure.id == null || structure.components.isEmpty
-                ? null
-                : () => _applyComponentOrderToAll(structure),
-          ),
-        ),
-        ReorderableListView.builder(
-          key: ValueKey('employee-components-${structure.key}'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          itemCount: structure.components.length,
-          onReorder: _saving
-              ? (_, _) {}
-              : (oldIndex, newIndex) => _reorderComponents(
-                  structure,
-                  oldIndex,
-                  newIndex > oldIndex ? newIndex + 1 : newIndex,
-                ),
-          itemBuilder: (context, index) {
-            final component = structure.components[index];
-            final expanded = component.key == _selectedComponentKey;
-            return Padding(
-              key: ValueKey(
-                'employee-component-${structure.key}-${component.key}',
+        ...structure.components.asMap().entries.map((entry) {
+          final index = entry.key;
+          final component = structure.components[index];
+          final expanded = component.key == _selectedComponentKey;
+          return Padding(
+            key: ValueKey(
+              'employee-component-${structure.key}-${component.key}',
+            ),
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+            child: SettingsExpandableTile(
+              title: component.componentName,
+              subtitle: [
+                structure.effectiveFrom,
+                component.componentType,
+                component.contributionRole == 'employer'
+                    ? 'Employer'
+                    : 'Employee',
+              ].where((value) => value.isNotEmpty).join(' • '),
+              detail: component.listDetailLine,
+              trailing: Text('Order ${component.sortOrder ?? index + 1}'),
+              expanded: expanded,
+              highlighted: expanded,
+              onToggle: () {
+                if (expanded) {
+                  _resetComponentEditor();
+                } else {
+                  _selectComponent(structure, component);
+                }
+              },
+              child: _buildComponentEditor(
+                currentParent: structure,
+                current: component,
               ),
-              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              child: SettingsExpandableTile(
-                title: component.componentName,
-                subtitle: [
-                  structure.effectiveFrom,
-                  component.componentType,
-                  component.contributionRole == 'employer'
-                      ? 'Employer'
-                      : 'Employee',
-                ].where((value) => value.isNotEmpty).join(' • '),
-                detail: component.listDetailLine,
-                trailing: Tooltip(
-                  message: _saving
-                      ? 'Saving salary component order'
-                      : 'Drag to reorder payslip rows',
-                  child: ReorderableDragStartListener(
-                    index: index,
-                    enabled: !_saving,
-                    child: const Padding(
-                      padding: EdgeInsets.all(AppUiConstants.spacingXs),
-                      child: Icon(Icons.drag_indicator),
-                    ),
-                  ),
-                ),
-                expanded: expanded,
-                highlighted: expanded,
-                onToggle: () {
-                  if (expanded) {
-                    _resetComponentEditor();
-                  } else {
-                    _selectComponent(structure, component);
-                  }
-                },
-                child: _buildComponentEditor(
-                  currentParent: structure,
-                  current: component,
-                ),
-              ),
-            );
-          },
-        ),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -3289,11 +3147,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               onPressed: _saveComponent,
               busy: _saving,
             ),
-            if (current != null && currentParent != null)
+            if (current != null && !current.isGlobal && currentParent != null)
               AppActionButton(
                 icon: Icons.remove_circle_outline,
                 label: 'Remove',
-                onPressed: () => _removeComponent(currentParent, current),
+                onPressed: _saving
+                    ? null
+                    : () => _removeComponent(currentParent, current),
                 busy: _saving,
                 filled: false,
               ),

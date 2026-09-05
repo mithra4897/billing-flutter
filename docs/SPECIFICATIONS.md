@@ -1,5 +1,16 @@
 # Specifications
 
+## Global salary components — 2026-09-05
+
+Status: Implemented
+
+Salary components are configured once per company with a manual non-negative
+sort order. CRUD changes propagate to employee salary structures in one backend
+transaction; employee amounts remain overrideable. Employee pages display the
+backend order without drag-and-drop or a bulk-order action. Payslip component
+order follows the persisted employee structure order. Existing payroll and
+payslip snapshots remain immutable.
+
 ## Project card actions — 2026-09-05
 
 Status: Implemented

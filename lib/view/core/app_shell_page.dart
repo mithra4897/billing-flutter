@@ -499,6 +499,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/statutory-settings':
         return HrStatutorySettingsPage(key: routeKey, embedded: true);
+      case '/hr/global-salary-components':
+        return GlobalSalaryComponentsPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/hr/attendance':
