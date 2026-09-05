@@ -12,6 +12,8 @@
   existing dashboard rather than duplicating them on Projects.
 - Reason: Reuse keeps permissions, refresh behavior, form validation, and API
   ownership in their established locations while avoiding duplicate fetches.
+  Assignee avatars use the task employee relation already included in the
+  Project response, rather than requesting the HR employee directory.
 - Consequences: All mutation remains in the current Project/editor and
   child-register workflows; the Projects page is focused on navigation and the
   dashboard remains the aggregate reporting surface.

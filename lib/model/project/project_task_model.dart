@@ -9,6 +9,7 @@ class ProjectTaskModel extends JsonModel {
     this.description,
     this.assignedEmployeeId,
     this.assignedEmployeeIds = const <int>[],
+    this.assignedEmployeeName,
     this.plannedStartDate,
     this.plannedEndDate,
     this.actualStartDate,
@@ -29,6 +30,7 @@ class ProjectTaskModel extends JsonModel {
   final String? description;
   final int? assignedEmployeeId;
   final List<int> assignedEmployeeIds;
+  final String? assignedEmployeeName;
   final String? plannedStartDate;
   final String? plannedEndDate;
   final String? actualStartDate;
@@ -44,6 +46,9 @@ class ProjectTaskModel extends JsonModel {
   final String? remarks;
 
   factory ProjectTaskModel.fromJson(Map<String, dynamic> json) {
+    final employee = json['employee'] is Map
+        ? Map<String, dynamic>.from(json['employee'] as Map)
+        : const <String, dynamic>{};
     return ProjectTaskModel(
       id: JsonModel.nullableInt(json['id']),
       projectId: JsonModel.nullableInt(json['project_id']),
@@ -64,6 +69,9 @@ class ProjectTaskModel extends JsonModel {
         final single = JsonModel.nullableInt(json['assigned_employee_id']);
         return single == null ? const <int>[] : <int>[single];
       })(),
+      assignedEmployeeName:
+          employee['employee_name']?.toString() ??
+          employee['employee_code']?.toString(),
       plannedStartDate: json['planned_start_date']?.toString(),
       plannedEndDate: json['planned_end_date']?.toString(),
       actualStartDate: json['actual_start_date']?.toString(),
@@ -120,6 +128,7 @@ class ProjectTaskModel extends JsonModel {
     description: description,
     assignedEmployeeId: assignedEmployeeId,
     assignedEmployeeIds: assignedEmployeeIds,
+    assignedEmployeeName: assignedEmployeeName,
     plannedStartDate: plannedStartDate,
     plannedEndDate: plannedEndDate,
     actualStartDate: actualStartDate,

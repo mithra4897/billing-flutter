@@ -37,6 +37,10 @@
   top-left lane-style status header and extra container spacing.
 - Focused analysis and Project board tests passed (3 tests) after adding
   Project assignee avatars from the existing employee lookup.
+- Focused Project analysis passed with no issues. Full-project analysis reports
+  eight existing warnings/deprecations outside this feature; the full Flutter
+  test suite passed (25 tests), including two assignee-map/response parsing
+  tests.
 - Focused analysis and Project board tests passed (3 tests) after adding the
   status-colored outer card containers.
 - Focused analysis and Project board tests passed (3 tests) after restoring the
