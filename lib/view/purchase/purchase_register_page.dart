@@ -42,6 +42,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     this.filters,
     this.embedded = false,
     this.fullPageStyle = false,
+    this.contentSized = false,
     this.emphasizeRows = false,
     this.footer,
     this.footerBuilder,
@@ -64,6 +65,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final String emptyMessage;
   final bool embedded;
   final bool fullPageStyle;
+  final bool contentSized;
   final bool emphasizeRows;
   final Widget? footer;
   final Widget? Function(BuildContext context, int currentPage)? footerBuilder;
@@ -283,75 +285,82 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     final useTable = MediaQuery.of(context).size.width >= 900;
 
-    return SingleChildScrollView(
-      controller: controller.pageScrollController,
-      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppRegisterFiltersSection(
-            filters: widget.filters,
-            keyPrefix: 'full-register',
-          ),
-          if (widget.rows.isEmpty)
-            Container(
-              constraints: const BoxConstraints(minHeight: 280),
-              alignment: Alignment.center,
-              decoration: appTheme.cardDecoration(),
-              child: Text(
-                widget.emptyMessage,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: appTheme.mutedText),
-                textAlign: TextAlign.center,
-              ),
-            )
-          else
-            DecoratedBox(
-              decoration: appTheme.cardDecoration(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (useTable)
-                      _buildDesktopTable(context, visibleRows)
-                    else
-                      _buildMobileCards(context, visibleRows, appTheme),
-                    if (_footerForPage(
-                          context,
-                          widget.onRemotePageChanged != null
-                              ? widget.remoteCurrentPage!
-                              : controller.currentPage,
-                        ) !=
-                        null) ...[
-                      _footerForPage(
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppRegisterFiltersSection(
+          filters: widget.filters,
+          keyPrefix: 'full-register',
+        ),
+        if (widget.rows.isEmpty)
+          Container(
+            constraints: const BoxConstraints(minHeight: 280),
+            alignment: Alignment.center,
+            decoration: appTheme.cardDecoration(),
+            child: Text(
+              widget.emptyMessage,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: appTheme.mutedText),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          DecoratedBox(
+            decoration: appTheme.cardDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (useTable)
+                    _buildDesktopTable(context, visibleRows)
+                  else
+                    _buildMobileCards(context, visibleRows, appTheme),
+                  if (_footerForPage(
                         context,
                         widget.onRemotePageChanged != null
                             ? widget.remoteCurrentPage!
                             : controller.currentPage,
-                      )!,
-                      const SizedBox(height: AppUiConstants.spacingMd),
-                    ],
-                    LocalPageNavigation(
-                      totalItems: widget.onRemotePageChanged != null
-                          ? widget.remoteTotalItems!
-                          : widget.rows.length,
-                      pageSize: widget.onRemotePageChanged != null
-                          ? widget.remotePerPage!
-                          : kLocalListPageSize,
-                      currentPage: widget.onRemotePageChanged != null
+                      ) !=
+                      null) ...[
+                    _footerForPage(
+                      context,
+                      widget.onRemotePageChanged != null
                           ? widget.remoteCurrentPage!
                           : controller.currentPage,
-                      onPageChanged:
-                          widget.onRemotePageChanged ?? controller.setPage,
-                    ),
+                    )!,
+                    const SizedBox(height: AppUiConstants.spacingMd),
                   ],
-                ),
+                  LocalPageNavigation(
+                    totalItems: widget.onRemotePageChanged != null
+                        ? widget.remoteTotalItems!
+                        : widget.rows.length,
+                    pageSize: widget.onRemotePageChanged != null
+                        ? widget.remotePerPage!
+                        : kLocalListPageSize,
+                    currentPage: widget.onRemotePageChanged != null
+                        ? widget.remoteCurrentPage!
+                        : controller.currentPage,
+                    onPageChanged:
+                        widget.onRemotePageChanged ?? controller.setPage,
+                  ),
+                ],
               ),
             ),
-        ],
-      ),
+          ),
+      ],
+    );
+    if (widget.contentSized) {
+      return Padding(
+        padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+        child: content,
+      );
+    }
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: content,
     );
   }
 

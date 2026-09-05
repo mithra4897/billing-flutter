@@ -10,6 +10,7 @@ class ProjectBillingManagementPage extends StatefulWidget {
     this.constrainedProjectId,
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.constrainedTableView = false,
     this.editorOnly = false,
     this.initialId,
   });
@@ -18,6 +19,7 @@ class ProjectBillingManagementPage extends StatefulWidget {
   final int? constrainedProjectId;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool constrainedTableView;
   final bool editorOnly;
   final int? initialId;
 
@@ -164,7 +166,7 @@ class _ProjectBillingManagementPageState
       );
     }
 
-    if (controller.isProjectConstrained) {
+    if (controller.isProjectConstrained && !widget.constrainedTableView) {
       return _buildConstrainedContent(context, controller);
     }
 
@@ -240,6 +242,7 @@ class _ProjectBillingManagementPageState
       onRetry: controller.loadData,
       embedded: widget.embedded,
       fullPageStyle: true,
+      contentSized: widget.constrainedTableView,
       emphasizeRows: false,
       emptyMessage: 'No billings found.',
       actions: actions,
@@ -249,7 +252,11 @@ class _ProjectBillingManagementPageState
         controller.selectRow(row);
         _openEditor(context, controller);
       },
-      filters: _filtersVisible || (widget.embedded && !widget.useShellActions)
+      filters:
+          _filtersVisible ||
+              (widget.embedded &&
+                  !widget.useShellActions &&
+                  !widget.constrainedTableView)
           ? _buildFilterPanel(controller)
           : null,
     );

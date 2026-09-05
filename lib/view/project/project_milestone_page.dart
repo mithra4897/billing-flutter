@@ -11,6 +11,7 @@ class ProjectMilestoneManagementPage extends StatefulWidget {
     this.initialDashboardFilter = '',
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.constrainedTableView = false,
   });
 
   final bool embedded;
@@ -18,6 +19,7 @@ class ProjectMilestoneManagementPage extends StatefulWidget {
   final String initialDashboardFilter;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool constrainedTableView;
 
   @override
   State<ProjectMilestoneManagementPage> createState() =>
@@ -135,6 +137,9 @@ class _ProjectMilestoneManagementPageState
     }
 
     if (controller.isProjectConstrained) {
+      if (widget.constrainedTableView) {
+        return _buildConstrainedTable(context, controller);
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -269,6 +274,61 @@ class _ProjectMilestoneManagementPageState
             );
           })
           .toList(growable: false),
+    );
+  }
+
+  Widget _buildConstrainedTable(
+    BuildContext context,
+    ProjectMilestoneManagementController controller,
+  ) {
+    return PurchaseRegisterPage<ProjectMilestoneRow>(
+      title: 'Project Milestones',
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: true,
+      fullPageStyle: true,
+      contentSized: widget.constrainedTableView,
+      emphasizeRows: false,
+      emptyMessage: 'No milestones found.',
+      actions: const <Widget>[],
+      rows: controller.filteredRows,
+      columns: <PurchaseRegisterColumn<ProjectMilestoneRow>>[
+        PurchaseRegisterColumn(
+          label: 'Milestone',
+          flex: 3,
+          valueBuilder: (row) => row.milestone.milestoneName ?? '',
+        ),
+        PurchaseRegisterColumn(
+          label: 'Details',
+          flex: 4,
+          valueBuilder: (row) => row.milestone.remarks ?? '',
+        ),
+        PurchaseRegisterColumn(
+          label: 'Target date',
+          flex: 2,
+          valueBuilder: (row) => normalizeDateValue(row.milestone.targetDate),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Completed',
+          flex: 2,
+          valueBuilder: (row) =>
+              normalizeDateValue(row.milestone.completionDate),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Amount',
+          flex: 2,
+          alignRight: true,
+          valueBuilder: (row) => formatAmount(row.milestone.milestoneAmount),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Status',
+          flex: 2,
+          valueBuilder: (row) =>
+              _milestoneStatusLabel(row.milestone.milestoneStatus),
+        ),
+      ],
+      onRowTap: (row) => _openMilestoneEditor(context, controller, row: row),
     );
   }
 
@@ -476,4 +536,15 @@ class _ProjectMilestoneManagementPageState
         );
     }
   }
+}
+
+String _milestoneStatusLabel(String? status) {
+  final value = (status ?? '').trim().toLowerCase();
+  if (value.isEmpty) {
+    return '';
+  }
+  return value
+      .split('_')
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
 }

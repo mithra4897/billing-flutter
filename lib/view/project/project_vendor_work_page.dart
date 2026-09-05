@@ -10,6 +10,7 @@ class ProjectVendorWorkManagementPage extends StatefulWidget {
     this.constrainedProjectId,
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.constrainedTableView = false,
     this.editorOnly = false,
     this.initialId,
   });
@@ -18,6 +19,7 @@ class ProjectVendorWorkManagementPage extends StatefulWidget {
   final int? constrainedProjectId;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool constrainedTableView;
   final bool editorOnly;
   final int? initialId;
 
@@ -156,7 +158,7 @@ class _ProjectVendorWorkManagementPageState
       );
     }
 
-    if (controller.isProjectConstrained) {
+    if (controller.isProjectConstrained && !widget.constrainedTableView) {
       return _buildConstrainedContent(context, controller);
     }
 
@@ -224,6 +226,7 @@ class _ProjectVendorWorkManagementPageState
       onRetry: controller.loadData,
       embedded: widget.embedded,
       fullPageStyle: true,
+      contentSized: widget.constrainedTableView,
       emphasizeRows: false,
       emptyMessage: 'No vendor works found.',
       actions: actions,
@@ -233,7 +236,11 @@ class _ProjectVendorWorkManagementPageState
         controller.selectRow(row);
         _openEditor(context, controller);
       },
-      filters: _filtersVisible || (widget.embedded && !widget.useShellActions)
+      filters:
+          _filtersVisible ||
+              (widget.embedded &&
+                  !widget.useShellActions &&
+                  !widget.constrainedTableView)
           ? _buildFilterPanel(controller)
           : null,
     );

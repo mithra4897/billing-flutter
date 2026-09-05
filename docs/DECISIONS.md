@@ -7,16 +7,23 @@
 - Context: Project users need an at-a-glance Kanban overview and a detail
   workspace without creating a second project data contract or editor flow.
 - Decision: Add display-only Projects and detail routes, use the existing
-  display-only Kanban/search/filter state, and embed the existing constrained
-  child register pages in detail tabs. Keep cross-project metrics in the
-  existing dashboard rather than duplicating them on Projects.
+  display-only Kanban/search/filter state, and present Project detail as a
+  sequential header with independently expandable child-register sections
+  instead of tabs. Each expanded record section uses the existing responsive
+  register table rather than a Project-specific card list. Keep dashboard-style
+  metrics in the existing dashboard rather than duplicating them on Project
+  detail.
 - Reason: Reuse keeps permissions, refresh behavior, form validation, and API
   ownership in their established locations while avoiding duplicate fetches.
   Assignee avatars use the task employee relation already included in the
   Project response, rather than requesting the HR employee directory.
 - Consequences: All mutation remains in the current Project/editor and
-  child-register workflows; the Projects page is focused on navigation and the
-  dashboard remains the aggregate reporting surface.
+  child-register workflows; sections begin open and preserve their rendered
+  tables after collapsing. The embedded table sizes to its paginated visible
+  rows, while standalone registers retain their own scrolling. Table rows use
+  their existing desktop/mobile rendering and editor path. The Projects page is
+  focused on navigation and the dashboard remains the aggregate reporting
+  surface.
 - Related files: `project_overview_page.dart`, `project_detail_page.dart`,
   `project_management_controller.dart`, and `project_kanban_board.dart`.
 

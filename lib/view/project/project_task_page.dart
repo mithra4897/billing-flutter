@@ -13,6 +13,7 @@ class ProjectTaskManagementPage extends StatefulWidget {
     this.initialDashboardFilter = '',
     this.controllerScope = const <String, Object?>{},
     this.useShellActions = true,
+    this.constrainedTableView = false,
   });
 
   final bool embedded;
@@ -22,10 +23,36 @@ class ProjectTaskManagementPage extends StatefulWidget {
   final String initialDashboardFilter;
   final Map<String, Object?> controllerScope;
   final bool useShellActions;
+  final bool constrainedTableView;
 
   @override
   State<ProjectTaskManagementPage> createState() =>
       _ProjectTaskManagementPageState();
+}
+
+String _taskDateRange(String? start, String? end) {
+  final values = <String>[
+    normalizeDateValue(start),
+    normalizeDateValue(end),
+  ].where((value) => value.isNotEmpty).toList(growable: false);
+  return values.join(' → ');
+}
+
+String _taskStatusLabel(String? status) {
+  final value = (status ?? '').trim().toLowerCase();
+  if (value == 'working') {
+    return 'In Progress';
+  }
+  if (value == 'in_review') {
+    return 'In Review';
+  }
+  if (value.isEmpty) {
+    return '';
+  }
+  return value
+      .split('_')
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
 }
 
 class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
@@ -169,6 +196,9 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
     }
 
     if (controller.isProjectConstrained) {
+      if (widget.constrainedTableView) {
+        return _buildConstrainedTable(context, controller);
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -364,6 +394,87 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
             );
           })
           .toList(growable: false),
+    );
+  }
+
+  Widget _buildConstrainedTable(
+    BuildContext context,
+    ProjectTaskManagementController controller,
+  ) {
+    final columns = <PurchaseRegisterColumn<ProjectTaskRow>>[
+      PurchaseRegisterColumn(
+        label: 'Task',
+        flex: 3,
+        valueBuilder: (row) => row.task.taskName ?? row.task.taskCode ?? '',
+        detailBuilder: (row) => row.task.taskCode ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Details',
+        flex: 4,
+        valueBuilder: (row) => row.task.description ?? row.task.remarks ?? '',
+      ),
+      PurchaseRegisterColumn(
+        label: 'Schedule',
+        flex: 3,
+        valueBuilder: (row) =>
+            _taskDateRange(row.task.plannedStartDate, row.task.plannedEndDate),
+      ),
+      PurchaseRegisterColumn(
+        label: 'People',
+        flex: 3,
+        valueBuilder: (row) => controller
+            .employeeNames(
+              row.task.assignedEmployeeIds.isEmpty &&
+                      row.task.assignedEmployeeId != null
+                  ? <int>[row.task.assignedEmployeeId!]
+                  : row.task.assignedEmployeeIds,
+            )
+            .join(', '),
+      ),
+      PurchaseRegisterColumn<ProjectTaskRow>(
+        label: 'Priority',
+        flex: 2,
+        valueBuilder: (row) => taskPriorityLabel(row.task.priority),
+        widgetBuilder: (context, row) => AppStatusBadge(
+          label: taskPriorityLabel(row.task.priority),
+          color: taskPriorityColor(context, row.task.priority),
+        ),
+      ),
+      PurchaseRegisterColumn(
+        label: 'Status',
+        flex: 2,
+        valueBuilder: (row) => _taskStatusLabel(row.task.taskStatus),
+      ),
+      PurchaseRegisterColumn<ProjectTaskRow>(
+        label: 'Progress',
+        flex: 2,
+        alignRight: true,
+        valueBuilder: (row) => row.task.progressPercent == null
+            ? ''
+            : '${controller.decimalText(row.task.progressPercent)}%',
+        widgetBuilder: (context, row) => Text(
+          row.task.progressPercent == null
+              ? '-'
+              : '${controller.decimalText(row.task.progressPercent)}%',
+          textAlign: TextAlign.right,
+        ),
+      ),
+    ];
+
+    return PurchaseRegisterPage<ProjectTaskRow>(
+      title: 'Project Tasks',
+      loading: false,
+      errorMessage: null,
+      onRetry: controller.loadData,
+      embedded: true,
+      fullPageStyle: true,
+      contentSized: widget.constrainedTableView,
+      emphasizeRows: false,
+      emptyMessage: 'No tasks found.',
+      actions: const <Widget>[],
+      rows: controller.filteredRows,
+      columns: columns,
+      onRowTap: (row) => _openTaskEditor(context, controller, row: row),
     );
   }
 

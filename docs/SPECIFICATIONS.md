@@ -7,12 +7,12 @@ Status: Implemented
 Projects gain a display-only Kanban overview and a route-addressable detail
 workspace. The Projects page reuses the loaded `ProjectManagementController`
 data for search and project cards. Cards open a full Project detail page with
-overview, Tasks, Milestones, Timeline,
-Billing, and Vendor Works tabs. Embedded child pages retain their existing
-project constraint and permission behavior.
+its summary, Tasks, Milestones, Timeline, Billing, and Vendor Works sections.
+Embedded child pages retain their existing project constraint and permission
+behavior.
 
 The existing `/projects` navigation entry is the Kanban overview. Selecting a
-project card must open that project’s detail Overview; `/projects?new=1`
+project card must open that project’s detail workspace; `/projects?new=1`
 continues to open the existing Project editor for creation.
 
 The dashboard remains the only location for cross-project aggregate metrics;
@@ -68,6 +68,28 @@ Projects exposes the shared filter panel already used by Project management:
 customer, status, project type, billing method, and expected-start-date range.
 Filters compose with search over the already-loaded authorized Project list;
 Clear restores all Projects without changing route, permissions, or API data.
+
+Project detail is a single sequential workspace, not a tabbed page. Its Project
+header shows only the Project name and its existing status, type, schedule, and
+customer metadata. It does not duplicate dashboard-style completion, task,
+milestone, or budget metric cards. The independently expandable Tasks,
+Milestones, Timeline, Billing, and Vendor Works sections start expanded, show a
+status-style colored marker and record count, and preserve their rendered table
+state when collapsed and re-opened. Existing child management screens remain
+the section content.
+
+Expanded register sections size to their paginated displayed content rather
+than using a fixed-height inner viewport. The Project Detail page owns vertical
+scrolling; desktop tables and the standard mobile-card fallback remain intact.
+
+When a Project detail register section is expanded, its records use the
+existing responsive register-table presentation: a desktop table with the
+current columns and row actions, and the established mobile card fallback.
+Selecting a record continues to open its existing editor; no new data request,
+permission rule, or mutation flow is introduced.
+
+Project Detail does not render child-register filter panels inline. Standalone
+register pages retain their existing search and filter controls.
 
 ## Sales Proforma Invoice print bindings — 2026-09-05
 

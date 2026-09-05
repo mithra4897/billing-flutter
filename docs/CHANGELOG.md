@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-05 — Project detail is a sequential workspace
+
+- Removed Project detail tabs, including the separate Overview tab.
+- Kept the Project summary visible at the top and added one-by-one expandable
+  Tasks, Milestones, Timeline, Billing, and Vendor Works sections.
+- Reused the existing constrained child pages and creates each only when its
+  section is expanded.
+- Changed Tasks, Milestones, Billings, and Vendor Works within Project detail
+  to the existing responsive table view; Timeline remains its existing visual
+  timeline rather than a record table.
+- Removed the inline Billing and Vendor Works filter panels from Project detail
+  while leaving the standalone register filters available.
+- Made Project Detail sections open by default and independently collapse like
+  the StaffU reference, with a colored left marker and record count.
+- Removed the fixed-height detail-table viewport so each expanded section grows
+  to the height of its displayed paginated rows.
+- Removed Project Detail's task/completion cards and milestone/budget summary,
+  leaving the compact Project name and metadata header before the records.
+
 ## 2026-09-05 — Project grid cards use the Kanban card design
 
 - Restyled Project grid cards to follow the existing Task Kanban card layout:

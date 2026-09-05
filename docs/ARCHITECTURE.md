@@ -30,10 +30,27 @@ loaded task assignments; card rendering only reads its precomputed list and
 does not make an HR request.
 
 `ProjectDetailPage` is resolved by the app shell from `/projects/:id/detail`.
-It shares the Project management controller scope and embeds the existing task,
-milestone, billing, and vendor-work pages with the selected project id. The
-new overview and timeline are read-only projections of the same model data, so
-the existing editor and child-register mutation paths remain authoritative.
+It is a single scrollable workspace: a compact Project name-and-metadata header
+is followed by expandable Tasks, Milestones, Timeline, Billing, and Vendor
+Works sections. Dashboard-style task, completion, milestone, and budget
+summaries are intentionally not duplicated there.
+The sections begin expanded and preserve their child state when collapsed, so
+opening a section again does not recreate its table or controller. Each child
+register receives the selected project id and its existing scoped controller.
+The summary and timeline are read-only projections of the same model data, so
+existing editor and child-register mutation paths remain authoritative.
+
+The detail page opts into each register page's constrained table view. This
+reuses `PurchaseRegisterPage` for desktop table rows and its existing mobile
+card fallback. Task and milestone column definitions remain feature-local;
+Billing and Vendor Works reuse their existing register columns. Selecting any
+row retains the established editor dialog/navigation path.
+Inline filter panels are suppressed only for these embedded detail tables, so
+the parent workspace stays focused while standalone registers retain filtering.
+For embedded detail tables, `PurchaseRegisterPage.contentSized` removes its
+inner vertical viewport and lets the Project Detail scroll view size each
+section to its paginated visible content. Standalone pages retain their own
+scroll controller and fixed viewport behavior.
 
 The legacy `/projects` entry resolves to `ProjectOverviewPage`; the explicit
 `new=1` query keeps the existing `ProjectManagementPage` creation workflow

@@ -48,8 +48,25 @@
   status-colored outer card containers.
 - Focused analysis and Project board tests passed (3 tests) after restoring the
   public Project grid widget and its responsive-width helper.
+- Focused analysis passed for the Project detail sequential layout. Project
+  tests passed (10/10) and the full Flutter suite passed (26/26) after
+  removing the detail tabs and adding lazy expandable sections.
+- Focused analysis passed for the Project detail table views, and the Project
+  test suite passed (10/10) after moving all record sections to the existing
+  responsive register-table presentation.
+- Focused Billing/Vendor Works analysis passed and Project tests passed (10/10)
+  after suppressing inline filters in the embedded Project Detail tables.
+- Focused Project Detail analysis passed and Project tests passed (10/10) after
+  changing detail sections to start expanded, preserve state while collapsed,
+  and display colored markers with record counts.
+- Focused analysis passed for the content-sized embedded register mode, and
+  Project tests passed (10/10) after removing the fixed detail-section height.
+  The full Flutter suite also passed (26/26).
+- Focused Project Detail analysis passed and Project tests passed (10/10) after
+  removing dashboard-style summary cards from the Project Detail header.
 - Manual authenticated verification remains required for desktop/mobile layout,
-  project-card navigation, tabs, and timeline positioning with production data.
+  project-card navigation, expanding each detail section, and timeline
+  positioning with production data.
 
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
