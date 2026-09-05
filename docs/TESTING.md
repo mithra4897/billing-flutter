@@ -25,6 +25,20 @@
   removing duplicate metric cards and the separate Overview sidebar entry.
 - Focused analysis passed and Project board tests passed (2 tests) after
   removing the status filter-chip bar.
+- Focused analysis passed and Project board tests passed (3 tests) after
+  applying the Task Kanban-style Project card presentation.
+- Focused analysis passed and Project board tests passed (2 tests) after
+  returning Projects to the shared Milestones-style status-lane Kanban board.
+- Focused analysis passed and Project board tests passed (3 tests) after
+  restoring the responsive grid with Milestones-style colored containers.
+- Focused analysis and Project board tests passed (3 tests) after removing the
+  Project status pill from grid cards.
+- Focused analysis and Project board tests passed (3 tests) after adding the
+  top-left lane-style status header and extra container spacing.
+- Focused analysis and Project board tests passed (3 tests) after adding the
+  status-colored outer card containers.
+- Focused analysis and Project board tests passed (3 tests) after restoring the
+  public Project grid widget and its responsive-width helper.
 - Manual authenticated verification remains required for desktop/mobile layout,
   project-card navigation, tabs, and timeline positioning with production data.
 

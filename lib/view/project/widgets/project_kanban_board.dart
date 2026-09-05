@@ -33,6 +33,13 @@ Map<String, List<ProjectModel>> groupProjectsByStatus(
   return grouped;
 }
 
+int projectGridColumns(double availableWidth) {
+  if (availableWidth >= 1280) return 4;
+  if (availableWidth >= 900) return 3;
+  if (availableWidth >= 600) return 2;
+  return 1;
+}
+
 // --- Task board status definitions and helpers ---
 
 const List<String> projectTaskStatusOrder = <String>[
@@ -676,6 +683,7 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
     required this.accent,
     required this.onAdd,
     required this.itemLabel,
+    this.showControls = true,
   });
 
   final String label;
@@ -683,6 +691,7 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
   final Color accent;
   final VoidCallback? onAdd;
   final String itemLabel;
+  final bool showControls;
 
   @override
   Widget build(BuildContext context) {
@@ -709,28 +718,30 @@ class _ProjectKanbanLaneHeader extends StatelessWidget {
             ),
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.13),
-            borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
-          ),
-          child: Text(
-            '$count',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w700,
+        if (showControls) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
+            ),
+            child: Text(
+              '$count',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-        ),
-        IconButton(
-          onPressed: onAdd,
-          tooltip: 'Add $label $itemLabel',
-          icon: const Icon(Icons.add_circle_outline, size: 20),
-          color: accent,
-          padding: const EdgeInsets.all(4),
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
+          IconButton(
+            onPressed: onAdd,
+            tooltip: 'Add $label $itemLabel',
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            color: accent,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
       ],
     );
   }
@@ -786,9 +797,24 @@ class _ProjectCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SettingsStatusPill(
-                    label: project.isActive == false ? 'Inactive' : 'Active',
-                    active: project.isActive != false,
+                  if ((project.billingMethod ?? '').trim().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppUiConstants.spacingSm,
+                      ),
+                      child: Text(
+                        _billingMethodLabel(project.billingMethod!),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: appTheme.mutedText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  const Padding(
+                    padding: EdgeInsets.only(left: AppUiConstants.spacingSm),
+                    child: Icon(Icons.more_horiz, size: 20),
                   ),
                 ],
               ),
@@ -807,37 +833,11 @@ class _ProjectCard extends StatelessWidget {
                   project.notes!.trim(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: appTheme.mutedText,
                   ),
                 ),
               ],
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                children: [
-                  if ((project.billingMethod ?? '').trim().isNotEmpty)
-                    _ProjectChip(
-                      label: _billingMethodLabel(project.billingMethod!),
-                    ),
-                  if ((project.billingMethod ?? '').trim().isNotEmpty &&
-                      (project.projectType ?? '').trim().isNotEmpty)
-                    const SizedBox(width: AppUiConstants.spacingXs),
-                  if ((project.projectType ?? '').trim().isNotEmpty)
-                    Flexible(
-                      child: _ProjectChip(label: project.projectType!.trim()),
-                    ),
-                  const Spacer(),
-                  AppStatusBadge(
-                    label: _projectStatusLabel(
-                      (project.projectStatus ?? 'draft').trim().toLowerCase(),
-                    ),
-                    color: _projectStatusAccent(
-                      context,
-                      (project.projectStatus ?? 'draft').trim().toLowerCase(),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: AppUiConstants.spacingLg),
               AppProgressBar(
                 label: 'Progress',
@@ -866,29 +866,80 @@ class _ProjectCard extends StatelessWidget {
   }
 }
 
-class _ProjectChip extends StatelessWidget {
-  const _ProjectChip({required this.label});
+class ProjectGrid extends StatelessWidget {
+  const ProjectGrid({
+    super.key,
+    required this.projects,
+    required this.customerName,
+    required this.onOpen,
+  });
 
-  final String label;
+  final List<ProjectModel> projects;
+  final String Function(int? id) customerName;
+  final ValueChanged<ProjectModel> onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        border: Border.all(color: appTheme.tableBorder),
-        borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = AppUiConstants.spacingMd;
+        final columns = projectGridColumns(constraints.maxWidth);
+        final cardWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: projects
+              .map((project) {
+                final accent = _projectStatusAccent(
+                  context,
+                  (project.projectStatus ?? 'draft').trim().toLowerCase(),
+                );
+                return SizedBox(
+                  width: cardWidth,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.14
+                            : 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        AppUiConstants.cardRadius,
+                      ),
+                      border: Border.all(color: accent.withValues(alpha: 0.16)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ProjectKanbanLaneHeader(
+                          label: _projectStatusLabel(
+                            (project.projectStatus ?? 'draft')
+                                .trim()
+                                .toLowerCase(),
+                          ),
+                          count: 1,
+                          accent: accent,
+                          onAdd: null,
+                          itemLabel: 'Project',
+                          showControls: false,
+                        ),
+                        const SizedBox(height: AppUiConstants.spacingLg),
+                        _ProjectCard(
+                          project: project,
+                          accent: accent,
+                          customerName: customerName,
+                          onOpen: () => onOpen(project),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        );
+      },
     );
   }
 }

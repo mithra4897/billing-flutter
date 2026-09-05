@@ -53,6 +53,14 @@ Acceptance cases:
 4. A return posted after the invoice is already fully settled creates customer
    credit but no invoice allocation.
 
+Projects render as a responsive grid of separate cards. Every card reuses the
+same status-colored container styling as the Milestones Kanban lanes, with a
+compact Task Kanban-style Project card inside. Cards do not use the previous
+Project-specific chip row or a Project status pill; status is conveyed by the
+matching container, top-left lane-style header, dot, and progress colors. The
+container leaves Kanban-style space around the inner card, including its bottom
+edge.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 Status: Implemented

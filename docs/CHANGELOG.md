@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-05 — Project grid cards use the Kanban card design
+
+- Restyled Project grid cards to follow the existing Task Kanban card layout:
+  compact status/date header, title, optional notes, progress, and footer.
+- Removed the old Project-specific billing/type chip row.
+- Removed the Project status pill; the existing Kanban color treatment now
+  communicates status.
+- Added the Milestones-style status header to each Project container and
+  increased its bottom spacing around the inner card.
+- Restored the responsive Project grid, with every Project card wrapped in the
+  same status-colored container treatment used by Milestones Kanban lanes.
+
 ## 2026-09-05 — Correct Sales invoice status after returns
 
 - Sales returns no longer increase invoice Paid Amount; credit-note allocations
@@ -2186,3 +2198,18 @@
 
 - Project board cards now reuse the shared Active status pill.
 - Low task-priority badges use the app success/green token.
+## 2026-09-05 — Project Kanban and detail workspace
+
+- Added a display-only Projects Kanban with search, status filtering, and the
+  shared Kanban board.
+- Added project detail routes with Overview, Tasks, Milestones, Timeline,
+  Billing, and Vendor Works tabs.
+- Enhanced Project Kanban cards with notes, billing/type chips, status, and
+  the shared completion progress display.
+- The existing `/projects` entry now opens the Kanban overview; clicking a card
+  opens that project’s detail overview, while `/projects?new=1` retains the
+  established creation editor.
+- Removed the separate Overview sidebar entry and duplicate cross-project
+  metric cards; the existing dashboard remains the aggregate reporting surface.
+- Removed the Draft/Working/etc. status-chip filter bar from the Projects
+  Kanban; all project status lanes remain visible.

@@ -8,6 +8,15 @@ status badge/progress components. Cross-project metrics remain owned by the
 dashboard, so the Projects page avoids duplicate aggregate calculation,
 presentation, and status-filter controls.
 
+Project cards now follow the existing Task Kanban card hierarchy and reuse
+the same shared `AppStatusBadge` and `AppProgressBar` components. Only
+Project-specific data binding differs (billing method, project status, and
+customer footer); no second card design system is introduced.
+
+The responsive Project grid uses the same status-color alpha, border, radius,
+and padding values as the existing Kanban lanes. It performs one linear build
+over the already-loaded Projects collection.
+
 `ProjectDetailPage` is resolved by the app shell from `/projects/:id/detail`.
 It shares the Project management controller scope and embeds the existing task,
 milestone, billing, and vendor-work pages with the selected project id. The
