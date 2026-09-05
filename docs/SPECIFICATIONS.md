@@ -1,5 +1,23 @@
 # Specifications
 
+## Sales quotation Markdown tables — 2026-09-05
+
+Status: Implemented
+
+Sales quotation `quotation_content` accepts standard pipe-delimited Markdown
+tables. A table consists of a header row, a delimiter row containing at least
+three hyphens per column (optional alignment colons are supported), and zero or
+more data rows. Tables render as bordered tables on continuation PDF pages;
+malformed pipe text remains plain text. No backend or stored-data migration is
+required.
+
+Acceptance criteria:
+
+- The quotation editor offers an insert-table shortcut.
+- Header and data cells preserve supported bold/italic inline formatting.
+- Tables are not split into individual text lines during pagination.
+- Preview, download, and print use the same renderer.
+
 ## Sales invoice export returned invoices and first HSN — 2026-09-05
 
 Status: Implemented

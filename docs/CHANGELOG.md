@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-05 — Support Markdown tables in Sales Quotation content
+
+- Request: Render pipe-delimited Markdown tables in `quotation_content`.
+- Specification: [Sales quotation Markdown tables](SPECIFICATIONS.md#sales-quotation-markdown-tables--2026-09-05).
+- Implementation: Reused the shared quotation continuation PDF builder and
+  added a table insertion shortcut in the quotation editor.
+- Files changed: shared print designer, Sales Quotation page, and frontend
+  engineering documentation.
+- Database/API impact: None; existing string content remains compatible.
+- Tests executed: `dart format`, focused `flutter analyze`, and full
+  `flutter test --no-pub` passed (26 tests).
+- Known limitations: Standard single-line pipe tables only; no advanced table
+  syntax or multiline cells.
+
 ## 2026-09-05 — Export returned Sales invoices and first HSN
 
 - Request: Include Partially returned and Returned invoices in Sales invoice

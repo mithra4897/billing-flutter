@@ -1,5 +1,17 @@
 # Architecture
 
+## 2026-09-05 — Sales quotation Markdown table rendering
+
+The existing quotation continuation renderer recognizes standard pipe-table
+blocks before the existing line/block Markdown handling. It converts each
+valid table into one `pdf` package `pw.Table` widget, reusing the saved
+quotation template's first table shape for column weights, colors, border,
+fill, font sizing, cell gap, and alignment, plus the existing PDF font bundle,
+fallback fonts, text-style helper, and inline bold/italic parser.
+The table is represented as one continuation block for pagination. Parsing is
+a single linear pass over the bounded quotation lines; malformed tables use
+the prior text path.
+
 ## Sales invoice export document preservation
 
 The Sales invoice export endpoint returns selected, context-scoped invoice

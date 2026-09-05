@@ -1,5 +1,16 @@
 # Testing
 
+## Sales quotation Markdown tables — 2026-09-05
+
+- `dart format` and focused `flutter analyze` passed for the quotation editor
+  and shared PDF renderer. Full `flutter test --no-pub` passed (26 tests).
+- Manual verification remains required with a quotation containing a header,
+  multiple rows, inline bold/italic cell text, an alignment marker, and enough
+  surrounding content to create a continuation page; compare Preview,
+  Download PDF, and Print output.
+- Advanced Markdown tables, multiline cells, and tables wider than the page
+  remain outside this change's acceptance scope.
+
 ## Sales invoice export returned invoices and first HSN — 2026-09-05
 
 - `flutter test --no-pub test/sales/sales_invoice_export_hsn_test.dart` passed

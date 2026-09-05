@@ -820,6 +820,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               icon: const Icon(Icons.format_list_numbered),
             ),
             IconButton(
+              tooltip: 'Insert table',
+              onPressed: enabled ? () => _insertTable(controller) : null,
+              icon: const Icon(Icons.table_chart_outlined),
+            ),
+            IconButton(
               tooltip: 'Insert page break',
               onPressed: enabled ? () => _insertPageBreak(controller) : null,
               icon: const Icon(Icons.insert_page_break_outlined),
@@ -891,6 +896,24 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         ? '\n\n'
         : '';
     value.value = _replaceValue(value, caret, caret, '$before$marker$after');
+  }
+
+  void _insertTable(SalesQuotationManagementController controller) {
+    final value = controller.quotationContentController;
+    final caret = value.selection.end < 0
+        ? value.text.length
+        : value.selection.end;
+    const table =
+        '| Item | Description | Qty |\n| --- | --- | ---: |\n| Example | Details | 1 |';
+    final before = caret > 0 && !value.text.substring(0, caret).endsWith('\n')
+        ? '\n\n'
+        : '';
+    final after =
+        caret < value.text.length &&
+            !value.text.substring(caret).startsWith('\n')
+        ? '\n\n'
+        : '';
+    value.value = _replaceValue(value, caret, caret, '$before$table$after');
   }
 
   TextEditingValue _replaceValue(

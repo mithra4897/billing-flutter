@@ -115,6 +115,71 @@ class _PdfFontBundle {
   final pw.Font? boldItalic;
 }
 
+class _QuotationMarkdownTable {
+  const _QuotationMarkdownTable({required this.rows, required this.endIndex});
+
+  final List<List<String>> rows;
+  final int endIndex;
+}
+
+class _QuotationContinuationBlock {
+  const _QuotationContinuationBlock({
+    required this.source,
+    required this.widget,
+    required this.estimatedHeight,
+  });
+
+  final String source;
+  final pw.Widget widget;
+  final double estimatedHeight;
+}
+
+List<String> _splitQuotationTableRow(String line) {
+  var value = line.trim();
+  if (value.startsWith('|')) value = value.substring(1);
+  if (value.endsWith('|') && !value.endsWith(r'\|')) {
+    value = value.substring(0, value.length - 1);
+  }
+  final cells = <String>[];
+  final cell = StringBuffer();
+  var escaped = false;
+  for (final character in value.split('')) {
+    if (character == '|' && !escaped) {
+      cells.add(cell.toString().trim().replaceAll(r'\|', '|'));
+      cell.clear();
+      continue;
+    }
+    cell.write(character);
+    escaped = character == r'\' && !escaped;
+    if (character != r'\') escaped = false;
+  }
+  cells.add(cell.toString().trim().replaceAll(r'\|', '|'));
+  return cells;
+}
+
+_QuotationMarkdownTable? _parseQuotationMarkdownTable(
+  List<String> lines,
+  int start,
+) {
+  if (start + 1 >= lines.length || !lines[start].contains('|')) return null;
+  final header = _splitQuotationTableRow(lines[start]);
+  final separator = _splitQuotationTableRow(lines[start + 1]);
+  if (header.length < 2 ||
+      separator.length != header.length ||
+      separator.any((cell) => !RegExp(r'^:?-{3,}:?$').hasMatch(cell))) {
+    return null;
+  }
+  final rows = <List<String>>[header];
+  var end = start + 2;
+  while (end < lines.length && lines[end].contains('|')) {
+    final row = _splitQuotationTableRow(lines[end]);
+    if (row.length != header.length) break;
+    rows.add(row);
+    end++;
+  }
+  return _QuotationMarkdownTable(rows: rows, endIndex: end);
+}
+
 class _PrintSummaryLine {
   const _PrintSummaryLine({required this.label, required this.amount});
 
@@ -2703,10 +2768,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         final contentFont = await _pdfFontBundleForFamily(
           _shapeFontFamily(template, bodyShape),
         );
+        final tableShape = template.shapes.firstWhere(
+          (shape) => shape.type == 'table',
+          orElse: () => bodyShape,
+        );
         final chunks = _quotationContinuationChunks(
           quotationContent,
           contentFont,
           bodyShape: bodyShape,
+          tableShape: tableShape,
           fallbackFonts: <pw.Font>[unicodeFallbackFont, rupeeFallbackFont],
           availableHeight: math.max(120, template.pageHeight - 110),
         );
@@ -2715,7 +2785,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           final continuation = buildContinuationPageFromTemplate(
             template,
             pageNumber,
-            chunks[index].map((entry) => entry.$1).join('\n'),
+            chunks[index].map((entry) => entry.source).join('\n'),
           );
           final pageChildren = <pw.Widget>[];
           final continuationBackground = resolvePrintTemplateText(
@@ -2761,7 +2831,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           }
           final contentTop = _continuationContentTop(continuation);
           final contentWidgets = chunks[index]
-              .map((entry) => entry.$2)
+              .map((entry) => entry.widget)
               .toList();
           pageChildren.add(
             pw.Positioned(
@@ -2832,10 +2902,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return math.min(55, template.pageHeight - 120);
   }
 
-  List<List<(String, pw.Widget)>> _quotationContinuationChunks(
+  List<List<_QuotationContinuationBlock>> _quotationContinuationChunks(
     String markdown,
     _PdfFontBundle fontBundle, {
     required DocumentPrintShape bodyShape,
+    required DocumentPrintShape tableShape,
     required List<pw.Font> fallbackFonts,
     required double availableHeight,
   }) {
@@ -2843,34 +2914,31 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       markdown,
       fontBundle,
       bodyShape: bodyShape,
+      tableShape: tableShape,
       fallbackFonts: fallbackFonts,
     );
-    final lines = markdown.split('\n');
-    final chunks = <List<(String, pw.Widget)>>[];
-    var chunk = <(String, pw.Widget)>[];
+    final chunks = <List<_QuotationContinuationBlock>>[];
+    var chunk = <_QuotationContinuationBlock>[];
     var used = 0.0;
-    for (var i = 0; i < widgets.length; i++) {
-      final height =
-          bodyShape.fontSize *
-          (lines.isNotEmpty && i < lines.length && lines[i].trim().isNotEmpty
-              ? 1.8
-              : 0.7);
+    for (final block in widgets) {
+      final height = block.estimatedHeight;
       if (chunk.isNotEmpty && used + height > availableHeight) {
         chunks.add(chunk);
-        chunk = <(String, pw.Widget)>[];
+        chunk = <_QuotationContinuationBlock>[];
         used = 0;
       }
-      chunk.add(((i < lines.length ? lines[i] : ''), widgets[i]));
+      chunk.add(block);
       used += height;
     }
     if (chunk.isNotEmpty) chunks.add(chunk);
     return chunks;
   }
 
-  List<pw.Widget> _quotationContinuationWidgets(
+  List<_QuotationContinuationBlock> _quotationContinuationWidgets(
     String markdown,
     _PdfFontBundle fontBundle, {
     required DocumentPrintShape bodyShape,
+    required DocumentPrintShape tableShape,
     required List<pw.Font> fallbackFonts,
   }) {
     const pageBreak = '<!-- quotation-page-break -->';
@@ -2879,12 +2947,116 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         .map((segment) => segment.trim())
         .where((segment) => segment.isNotEmpty)
         .toList(growable: false);
-    final widgets = <pw.Widget>[];
+    final widgets = <_QuotationContinuationBlock>[];
     for (var segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-      for (final line in segments[segmentIndex].split('\n')) {
+      final lines = segments[segmentIndex].split('\n');
+      for (var lineIndex = 0; lineIndex < lines.length;) {
+        final table = _parseQuotationMarkdownTable(lines, lineIndex);
+        if (table != null) {
+          final tableRows = table.rows;
+          final tableStyle = _pdfTextStyleForTemplate(
+            fontBundle,
+            fontSize: math.max(6, tableShape.fontSize),
+            color: _pdfColor(tableShape.bodyTextColor),
+            fontFallback: fallbackFonts,
+            letterSpacing: tableShape.letterSpacing,
+            lineHeight: tableShape.lineHeight,
+          );
+          final tableColumnWidths = <int, pw.TableColumnWidth>{
+            for (var column = 0; column < tableRows.first.length; column++)
+              column: pw.FlexColumnWidth(
+                column < tableShape.columns.length
+                    ? math.max(0.1, tableShape.columns[column].widthFactor)
+                    : 1,
+              ),
+          };
+          final tableAlignments = [
+            for (var column = 0; column < tableRows.first.length; column++)
+              column < tableShape.columns.length
+                  ? tableShape.columns[column].align
+                  : 'left',
+          ];
+          final tableWidget = pw.Table(
+            border: pw.TableBorder.all(
+              color: _pdfColor(tableShape.strokeColor),
+              width: math.max(0, tableShape.strokeWidth),
+            ),
+            columnWidths: tableColumnWidths,
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(
+                  color: _pdfColor(tableShape.headerColor),
+                ),
+                children: tableRows.first
+                    .asMap()
+                    .entries
+                    .map(
+                      (entry) => pw.Padding(
+                        padding: pw.EdgeInsets.all(
+                          math.max(2, tableShape.cellGap),
+                        ),
+                        child: _quotationMarkdownRichText(
+                          entry.value,
+                          tableStyle.copyWith(
+                            color: _pdfColor(tableShape.headerTextColor),
+                            fontSize: math.max(7, tableShape.fontSize + 1),
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                          align: _pdfTextAlign(tableAlignments[entry.key]),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              ...tableRows.skip(1).map(
+                (row) => pw.TableRow(
+                  children: row
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => pw.Padding(
+                          padding: pw.EdgeInsets.all(
+                            math.max(2, tableShape.cellGap),
+                          ),
+                          child: _quotationMarkdownRichText(
+                            entry.value,
+                            tableStyle,
+                            align: _pdfTextAlign(tableAlignments[entry.key]),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          );
+          widgets.add(
+            _QuotationContinuationBlock(
+              source: lines.sublist(lineIndex, table.endIndex).join('\n'),
+              widget: tableShape.fillAlpha > 0
+                  ? pw.Container(
+                      color: _pdfFillColor(tableShape),
+                      child: tableWidget,
+                    )
+                  : tableWidget,
+              estimatedHeight:
+                  math.max(18, bodyShape.fontSize * 1.8) * tableRows.length + 2,
+            ),
+          );
+          lineIndex = table.endIndex;
+          continue;
+        }
+
+        final line = lines[lineIndex++];
         final trimmed = line.trimRight();
         if (trimmed.trim().isEmpty) {
-          widgets.add(pw.SizedBox(height: 7));
+          widgets.add(
+            _QuotationContinuationBlock(
+              source: '',
+              widget: pw.SizedBox(height: 7),
+              estimatedHeight: 7,
+            ),
+          );
           continue;
         }
         final heading = RegExp(r'^(#{1,6})\s+(.*)$').firstMatch(trimmed);
@@ -2915,21 +3087,26 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               : pw.TextDecoration.none,
         );
         widgets.add(
-          pw.Padding(
-            padding: pw.EdgeInsets.only(
-              top: heading != null
-                  ? bodyShape.fontSize
-                  : bodyShape.fontSize * 0.15,
-              bottom: heading != null
-                  ? bodyShape.fontSize * 0.5
-                  : bodyShape.fontSize * 0.25,
-              left: isBullet || isNumbered ? 8 : 0,
+          _QuotationContinuationBlock(
+            source: line,
+            widget: pw.Padding(
+              padding: pw.EdgeInsets.only(
+                top: heading != null
+                    ? bodyShape.fontSize
+                    : bodyShape.fontSize * 0.15,
+                bottom: heading != null
+                    ? bodyShape.fontSize * 0.5
+                    : bodyShape.fontSize * 0.25,
+                left: isBullet || isNumbered ? 8 : 0,
+              ),
+              child: _quotationMarkdownRichText(
+                display,
+                style,
+                align: _pdfTextAlign('left'),
+              ),
             ),
-            child: _quotationMarkdownRichText(
-              display,
-              style,
-              align: _pdfTextAlign('left'),
-            ),
+            estimatedHeight:
+                bodyShape.fontSize * (trimmed.trim().isNotEmpty ? 1.8 : 0.7),
           ),
         );
       }

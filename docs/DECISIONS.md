@@ -1,5 +1,25 @@
 # Architecture decisions
 
+## ADR-0050: Render quotation Markdown tables in the shared PDF continuation path
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: Sales quotation `quotation_content` advertised Markdown but pipe
+  tables were rendered as plain text on exported continuation pages.
+- Decision: Add a dependency-free pipe-table parser and render valid blocks
+  with the existing `pdf` package table widget in the shared quotation PDF
+  builder, using the saved quotation template's first table shape as the style
+  source. Add an editor insertion shortcut using the same syntax.
+- Reason: The shared vector PDF builder already serves preview, download, and
+  print, and its existing font and inline-formatting helpers can be reused.
+- Alternatives considered: Add a Markdown package or change the backend
+  content contract. Both would add unnecessary dependency/API scope.
+- Consequences: Standard tables inherit the configured quotation table design;
+  advanced Markdown table features remain out of scope. Table blocks paginate
+  as one rendered block using an estimated height.
+- Related files: `lib/view/printing/document_print_designer.dart`,
+  `lib/view/sales/sales_quotation_page.dart`.
+
 ## ADR-0049: Build the Project workspace from existing module data and pages
 
 - Date: 2026-09-05
