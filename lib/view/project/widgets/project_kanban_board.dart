@@ -801,17 +801,43 @@ class _ProjectCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              if ((project.projectType ?? '').trim().isNotEmpty) ...[
+              if ((project.notes ?? '').trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  project.projectType!.trim(),
-                  maxLines: 1,
+                  project.notes!.trim(),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: appTheme.mutedText,
                   ),
                 ),
               ],
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Row(
+                children: [
+                  if ((project.billingMethod ?? '').trim().isNotEmpty)
+                    _ProjectChip(
+                      label: _billingMethodLabel(project.billingMethod!),
+                    ),
+                  if ((project.billingMethod ?? '').trim().isNotEmpty &&
+                      (project.projectType ?? '').trim().isNotEmpty)
+                    const SizedBox(width: AppUiConstants.spacingXs),
+                  if ((project.projectType ?? '').trim().isNotEmpty)
+                    Flexible(
+                      child: _ProjectChip(label: project.projectType!.trim()),
+                    ),
+                  const Spacer(),
+                  AppStatusBadge(
+                    label: _projectStatusLabel(
+                      (project.projectStatus ?? 'draft').trim().toLowerCase(),
+                    ),
+                    color: _projectStatusAccent(
+                      context,
+                      (project.projectStatus ?? 'draft').trim().toLowerCase(),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: AppUiConstants.spacingLg),
               AppProgressBar(
                 label: 'Progress',
@@ -834,6 +860,33 @@ class _ProjectCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectChip extends StatelessWidget {
+  const _ProjectChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: appTheme.tableBorder),
+        borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -1261,6 +1314,21 @@ String _projectStatusLabel(String status) {
       return 'Cancelled';
     default:
       return status;
+  }
+}
+
+String _billingMethodLabel(String value) {
+  switch (value.trim().toLowerCase()) {
+    case 'time_and_material':
+      return 'Time & Material';
+    case 'cost_plus':
+      return 'Cost Plus';
+    case 'milestone':
+      return 'Milestone';
+    case 'fixed':
+      return 'Fixed';
+    default:
+      return value.trim();
   }
 }
 

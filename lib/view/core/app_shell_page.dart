@@ -676,6 +676,12 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/assets/reports':
         return AssetReportsHubPage(key: routeKey, embedded: true);
       case '/projects':
+        final isCreatingProject =
+            _currentQueryParameters['new'] == '1' ||
+            _currentQueryParameters['new']?.toLowerCase() == 'true';
+        if (!isCreatingProject) {
+          return ProjectOverviewPage(key: routeKey, embedded: true);
+        }
         return ProjectManagementPage(
           key: routeKey,
           embedded: true,
@@ -683,6 +689,8 @@ class _AppShellPageState extends State<AppShellPage> {
         );
       case '/projects/dashboard':
         return ProjectDashboardPage(key: routeKey, embedded: true);
+      case '/projects/overview':
+        return ProjectOverviewPage(key: routeKey, embedded: true);
       case '/projects/tasks':
         final projectId = int.tryParse(
           _currentQueryParameters['project_id'] ?? '',
@@ -889,6 +897,16 @@ class _AppShellPageState extends State<AppShellPage> {
         .toList(growable: false);
     if (segments.length != 3 || segments.first != 'projects') {
       return null;
+    }
+    if (segments.last == 'detail') {
+      final projectId = int.tryParse(segments[1]);
+      return projectId == null
+          ? null
+          : ProjectDetailPage(
+              key: routeKey,
+              embedded: true,
+              projectId: projectId,
+            );
     }
     final register = segments[1];
     final recordSegment = segments[2];

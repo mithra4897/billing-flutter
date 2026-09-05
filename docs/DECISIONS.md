@@ -1,5 +1,23 @@
 # Architecture decisions
 
+## ADR-0049: Build the Project workspace from existing module data and pages
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: Project users need an at-a-glance Kanban overview and a detail
+  workspace without creating a second project data contract or editor flow.
+- Decision: Add display-only Projects and detail routes, use the existing
+  display-only Kanban/search/filter state, and embed the existing constrained
+  child register pages in detail tabs. Keep cross-project metrics in the
+  existing dashboard rather than duplicating them on Projects.
+- Reason: Reuse keeps permissions, refresh behavior, form validation, and API
+  ownership in their established locations while avoiding duplicate fetches.
+- Consequences: All mutation remains in the current Project/editor and
+  child-register workflows; the Projects page is focused on navigation and the
+  dashboard remains the aggregate reporting surface.
+- Related files: `project_overview_page.dart`, `project_detail_page.dart`,
+  `project_management_controller.dart`, and `project_kanban_board.dart`.
+
 ## ADR-0048: Align Proforma Invoice print bindings with Sales Invoice
 
 - Date: 2026-09-05

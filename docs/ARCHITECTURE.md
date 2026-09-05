@@ -1,5 +1,23 @@
 # Architecture
 
+## 2026-09-05 — Project overview and detail workspace
+
+`ProjectOverviewPage` is the Project module landing workspace: it reuses the
+existing display-only `ProjectKanbanBoard`, controller search state, and shared
+status badge/progress components. Cross-project metrics remain owned by the
+dashboard, so the Projects page avoids duplicate aggregate calculation,
+presentation, and status-filter controls.
+
+`ProjectDetailPage` is resolved by the app shell from `/projects/:id/detail`.
+It shares the Project management controller scope and embeds the existing task,
+milestone, billing, and vendor-work pages with the selected project id. The
+new overview and timeline are read-only projections of the same model data, so
+the existing editor and child-register mutation paths remain authoritative.
+
+The legacy `/projects` entry resolves to `ProjectOverviewPage`; the explicit
+`new=1` query keeps the existing `ProjectManagementPage` creation workflow
+available without duplicating its editor logic.
+
 ## 2026-09-05 — Reusable document binding picker and uniform print data builder
 
 `DocumentBindingPicker` (`lib/components/printing/document_binding_picker.dart`)

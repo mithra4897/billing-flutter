@@ -1,5 +1,24 @@
 # Specifications
 
+## Project overview and detail workspace — 2026-09-05
+
+Status: Implemented
+
+Projects gain a display-only Kanban overview and a route-addressable detail
+workspace. The Projects page reuses the loaded `ProjectManagementController`
+data for search and project cards. Cards open a full Project detail page with
+overview, Tasks, Milestones, Timeline,
+Billing, and Vendor Works tabs. Embedded child pages retain their existing
+project constraint and permission behavior.
+
+The existing `/projects` navigation entry is the Kanban overview. Selecting a
+project card must open that project’s detail Overview; `/projects?new=1`
+continues to open the existing Project editor for creation.
+
+The dashboard remains the only location for cross-project aggregate metrics;
+the Projects Kanban has no separate status-filter bar. No model, API,
+persistence, or authorization changes are required.
+
 ## Sales invoice settlement after sales returns — 2026-09-05
 
 Status: Implemented

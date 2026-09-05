@@ -405,6 +405,8 @@ export 'view/printing/document_print_designer_support.dart';
 export 'view/printing/print_template_support.dart';
 export 'view/project/project_billing_page.dart';
 export 'view/project/project_dashboard_page.dart';
+export 'view/project/project_detail_page.dart';
+export 'view/project/project_overview_page.dart';
 export 'view/project/project_expense_page.dart';
 export 'view/project/project_milestone_page.dart';
 export 'view/project/project_page.dart';

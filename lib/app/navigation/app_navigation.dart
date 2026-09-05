@@ -940,13 +940,6 @@ class AppNavigation {
           requiredPermissions: ['project.view'],
         ),
         AppNavigationItem(
-          key: 'projects-dashboard',
-          title: 'Dashboard',
-          icon: Icons.insights_outlined,
-          path: '/projects/dashboard',
-          requiredPermissions: ['project.view'],
-        ),
-        AppNavigationItem(
           key: 'projects-tasks',
           title: 'Tasks',
           icon: Icons.task_outlined,

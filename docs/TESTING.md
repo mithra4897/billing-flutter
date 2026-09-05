@@ -15,6 +15,19 @@
   `--apply`, review its output, back up the database, apply the return-status
   enum patch if required, and only then rerun reconciliation with `--apply`.
 
+## Project overview and detail workspace — 2026-09-05
+
+- Focused Flutter analysis completed with no issues. The full Flutter test
+  suite passed (23 tests), including existing Project board tests.
+- Focused route analysis passed after changing the `/projects` entry to resolve
+  to the Kanban overview, while preserving `/projects?new=1` for creation.
+- Focused analysis passed and Project board tests passed (2 tests) after
+  removing duplicate metric cards and the separate Overview sidebar entry.
+- Focused analysis passed and Project board tests passed (2 tests) after
+  removing the status filter-chip bar.
+- Manual authenticated verification remains required for desktop/mobile layout,
+  project-card navigation, tabs, and timeline positioning with production data.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 - Focused analysis covers the Proforma controller and shared print pipeline.

@@ -22,6 +22,7 @@ class ProjectManagementPage extends StatefulWidget {
 class _ProjectManagementPageState extends State<ProjectManagementPage>
     with SingleTickerProviderStateMixin {
   bool _filtersVisible = false;
+  bool _openedRequestedNewProject = false;
   static const List<AppDropdownItem<String>> _billingMethodItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'fixed', label: 'Fixed'),
@@ -170,6 +171,21 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     return GetBuilder<ProjectManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        final requestNewProject =
+            widget.queryParameters['new'] == '1' ||
+            widget.queryParameters['new']?.toLowerCase() == 'true';
+        if (requestNewProject &&
+            !_openedRequestedNewProject &&
+            !controller.initialLoading) {
+          _openedRequestedNewProject = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              controller.startNewProject(
+                isDesktop: Responsive.isDesktop(context),
+              );
+            }
+          });
+        }
         final actions = <Widget>[
           AdaptiveShellSearchField(
             controller: controller.searchController,
