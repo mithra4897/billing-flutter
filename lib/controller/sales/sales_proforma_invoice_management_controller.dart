@@ -993,6 +993,23 @@ class SalesProformaInvoiceManagementController extends GetxController {
         .map((line) {
           final item = itemById(line.itemId);
           final breakdown = taxBreakdownForLine(line);
+          final qty =
+              Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+          final rate =
+              Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+          final grossAmount = roundToDouble(
+            qty > 0 && rate >= 0 ? qty * rate : 0,
+            2,
+          );
+          final discount = resolveErpLineDiscount(
+            mode: line.discountMode,
+            input:
+                Validators.parseFlexibleNumber(line.discountController.text) ??
+                0,
+            gross: grossAmount,
+          );
+          final discountPercent = discount.percent;
+          final lineDiscountAmount = roundToDouble(discount.amount, 2);
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
             taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
@@ -1011,14 +1028,23 @@ class SalesProformaInvoiceManagementController extends GetxController {
                 line.descriptionController.text.trim(),
             description: line.descriptionController.text.trim(),
             hsn: item?.hsnSacCode?.trim() ?? '',
-            qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
-            rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
+            qty: qty,
+            rate: rate,
+            discountLabel: discountPercent == 0
+                ? null
+                : '${discountPercent % 1 == 0 ? discountPercent.toStringAsFixed(0) : discountPercent.toStringAsFixed(2)}%',
+            discountPercent: discountPercent == 0 ? null : discountPercent,
+            discountAmount: lineDiscountAmount == 0 ? null : lineDiscountAmount,
             taxableAmount: roundToDouble(breakdown.taxable, 2),
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.total, 2),
           );
         })
         .toList(growable: false);
+    final discountAmount = printLines.fold<double>(
+      0,
+      (total, line) => total + (line.discountAmount ?? 0),
+    );
     final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
     final resolvedPartyName = stringValue(customerData, 'party_name').isNotEmpty
         ? stringValue(customerData, 'party_name')
@@ -1076,6 +1102,27 @@ class SalesProformaInvoiceManagementController extends GetxController {
       extraData: <String, dynamic>{
         if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
         'is_direct_customer': directCustomerDetails.isNotEmpty,
+        'cgst_summary_label': summary.cgst.abs() < 0.005 ? '' : 'CGST :',
+        'sgst_summary_label': summary.sgst.abs() < 0.005 ? '' : 'SGST :',
+        'igst_summary_label': summary.igst.abs() < 0.005 ? '' : 'IGST :',
+        'cgst_summary_currency': summary.cgst.abs() < 0.005 ? '' : '\u20B9',
+        'sgst_summary_currency': summary.sgst.abs() < 0.005 ? '' : '\u20B9',
+        'igst_summary_currency': summary.igst.abs() < 0.005 ? '' : '\u20B9',
+        'discount_summary_label': discountAmount.abs() < 0.005
+            ? ''
+            : 'DISCOUNT :',
+        'discount_summary_currency': discountAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
+        'round_off_summary_label': roundOffAmount.abs() < 0.005
+            ? ''
+            : 'ROUND OFF :',
+        'round_off_summary_currency': roundOffAmount.abs() < 0.005
+            ? ''
+            : '\u20B9',
+        'discount_amount': roundToDouble(discountAmount, 2),
+        'round_off_amount': roundToDouble(roundOffAmount, 2),
+        'adjustment_amount': 0.0,
         'cgst_amount': roundToDouble(summary.cgst, 2),
         'sgst_amount': roundToDouble(summary.sgst, 2),
         'igst_amount': roundToDouble(summary.igst, 2),

@@ -1,5 +1,13 @@
 # Architecture
 
+## 2026-09-05 — Proforma print binding parity
+
+Sales Proforma Invoice reuses the shared `DocumentPrintDataModel` and managed
+print preview pipeline. Its controller now supplies the same common extra-data
+binding contract as Sales Invoice and enriches each line with the shared
+discount fields. Proforma-specific business rules remain in its own tax and
+round-off calculation path.
+
 ## 2026-09-04 — Shared dynamic form labels
 
 `AppFormTextField` and `ErpLinkField` obtain their visual labels from the

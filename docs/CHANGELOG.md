@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-05 — Sales Proforma Invoice print binding parity
+
+- Added Sales Invoice-compatible Proforma bindings for line discounts, tax
+  summary labels/currencies, discount, round-off, adjustment, and tax totals.
+- Proforma templates can now reuse the common Sales Invoice binding names;
+  invoice-only adjustment remains zero.
+
 ## 2026-09-04 — Dynamic form field labels
 
 - Added centralized label rendering that removes legacy optional suffixes and

@@ -1,5 +1,21 @@
 # Architecture decisions
 
+## ADR-0048: Align Proforma Invoice print bindings with Sales Invoice
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: Proforma templates lacked several bindings already available to
+  Sales Invoice templates, especially discount and round-off fields.
+- Decision: Publish the shared Sales Invoice binding keys from
+  `proformaInvoicePrintData`, including per-line discount values and summary
+  labels. Use zero for the invoice-only adjustment binding.
+- Reason: Templates can be reused across Sales Invoice and Proforma Invoice
+  without duplicating or inventing a second binding vocabulary.
+- Consequences: Existing Proforma tax, total, document-status, and round-off
+  calculations remain authoritative; custom templates gain additional keys.
+- Related files: `lib/controller/sales/sales_proforma_invoice_management_controller.dart`
+  and the shared print-data models/pipeline.
+
 ## ADR-0047: Centralize dynamic form label presentation
 
 - Date: 2026-09-04

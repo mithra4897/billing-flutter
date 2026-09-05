@@ -1,5 +1,19 @@
 # Specifications
 
+## Sales Proforma Invoice print bindings — 2026-09-05
+
+Status: Implemented
+
+Sales Proforma Invoice print data exposes the same standard binding keys as
+Sales Invoice: line discount label/percent/amount, tax summary labels and
+currencies, discount and round-off summary values, `adjustment_amount`, tax
+totals, taxable total, direct-customer flag, amount in words, and draft
+watermark. Proforma-specific document number, date, status, and tax totals
+remain sourced from the Proforma editor.
+
+The Proforma payload does not invent invoice-only adjustments; it publishes
+`adjustment_amount` as zero for template compatibility.
+
 ## Dynamic form field labels — 2026-09-04
 
 Status: Implemented

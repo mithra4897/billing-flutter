@@ -1,5 +1,12 @@
 # Testing
 
+## Sales Proforma Invoice print bindings — 2026-09-05
+
+- Focused analysis covers the Proforma controller and shared print pipeline.
+- Full Flutter tests verify the existing print-data and sales behavior suite.
+- Manual template-designer verification remains for inserting the newly
+  exposed discount, round-off, summary-label, and line-discount bindings.
+
 ## Dynamic form field labels — 2026-09-04
 
 - Widget coverage verifies case-insensitive removal of `(optional)` and
