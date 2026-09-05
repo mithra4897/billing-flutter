@@ -679,7 +679,9 @@ class _AppShellPageState extends State<AppShellPage> {
         final isCreatingProject =
             _currentQueryParameters['new'] == '1' ||
             _currentQueryParameters['new']?.toLowerCase() == 'true';
-        if (!isCreatingProject) {
+        final isEditingProject =
+            int.tryParse(_currentQueryParameters['edit'] ?? '') != null;
+        if (!isCreatingProject && !isEditingProject) {
           return ProjectOverviewPage(key: routeKey, embedded: true);
         }
         return ProjectManagementPage(

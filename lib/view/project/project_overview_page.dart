@@ -128,9 +128,46 @@ class _ProjectOverviewPageState extends State<ProjectOverviewPage> {
                 openModuleShellRoute(context, '/projects/$projectId/detail');
               }
             },
+            onEdit: (project) {
+              final projectId = project.id;
+              if (projectId != null) {
+                openModuleShellRoute(context, '/projects?edit=$projectId');
+              }
+            },
+            onDelete: (project) => _deleteProject(context, controller, project),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteProject(
+    BuildContext context,
+    ProjectManagementController controller,
+    ProjectModel project,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: Text('Remove ${project.projectName ?? 'this project'}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final message = await controller.deleteProject(project);
+    if (!mounted || message == null) return;
+    appScaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }

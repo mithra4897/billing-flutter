@@ -755,6 +755,8 @@ class _ProjectCard extends StatelessWidget {
     required this.customerName,
     required this.employeeNames,
     required this.onOpen,
+    this.onEdit,
+    this.onDelete,
   });
 
   final ProjectModel project;
@@ -762,6 +764,8 @@ class _ProjectCard extends StatelessWidget {
   final String Function(int? id) customerName;
   final List<String> employeeNames;
   final VoidCallback onOpen;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -815,10 +819,29 @@ class _ProjectCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const Padding(
-                    padding: EdgeInsets.only(left: AppUiConstants.spacingSm),
-                    child: Icon(Icons.more_horiz, size: 20),
-                  ),
+                  if (onEdit != null || onDelete != null)
+                    PopupMenuButton<String>(
+                      tooltip: 'Project actions',
+                      padding: EdgeInsets.zero,
+                      onSelected: (value) {
+                        if (value == 'edit') onEdit?.call();
+                        if (value == 'delete') onDelete?.call();
+                      },
+                      itemBuilder: (_) => [
+                        if (onEdit != null)
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Edit'),
+                          ),
+                        if (onDelete != null)
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete'),
+                          ),
+                      ],
+                    )
+                  else
+                    const SizedBox(width: 20),
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
@@ -884,12 +907,16 @@ class ProjectGrid extends StatelessWidget {
     required this.customerName,
     required this.employeeNames,
     required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final List<ProjectModel> projects;
   final String Function(int? id) customerName;
   final List<String> Function(ProjectModel project) employeeNames;
   final ValueChanged<ProjectModel> onOpen;
+  final ValueChanged<ProjectModel> onEdit;
+  final ValueChanged<ProjectModel> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -945,6 +972,8 @@ class ProjectGrid extends StatelessWidget {
                           customerName: customerName,
                           employeeNames: employeeNames(project),
                           onOpen: () => onOpen(project),
+                          onEdit: () => onEdit(project),
+                          onDelete: () => onDelete(project),
                         ),
                       ],
                     ),

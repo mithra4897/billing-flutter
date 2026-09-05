@@ -1,5 +1,21 @@
 # Specifications
 
+## Project card actions — 2026-09-05
+
+Status: Implemented
+
+Each Project overview card's three-dot menu provides Edit and Delete actions.
+Edit opens the existing Project editor with the selected record. Delete
+requires confirmation, uses the existing Project API, and refreshes the
+overview after success. No new project data or permission contract is added.
+
+The New Project and Edit Project routes are form-only flows: project lists,
+filters, tabs, and child tables are hidden while editing the project fields.
+Both routes must resolve to the Project form page from the application shell;
+an edit request must not fall back to the overview page.
+After successful create, update, or delete, all mounted Project views must
+refresh their displayed data without a browser refresh.
+
 ## Sales quotation Markdown tables — 2026-09-05
 
 Status: Implemented

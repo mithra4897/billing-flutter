@@ -1,5 +1,27 @@
 # Architecture
 
+## 2026-09-05 — Project card actions
+
+`ProjectGrid` passes typed edit and delete callbacks into the existing
+`_ProjectCard`. The card reuses the standard `PopupMenuButton`; the overview
+page owns confirmation and navigation, while `ProjectManagementController`
+reuses `ProjectService.deleteProject`, the existing refresh controller, and
+`loadData`. Edit navigation uses the existing Project editor route with a
+query-selected project, so permissions and editor validation remain in their
+current owners.
+
+The `new=1` and `edit=<id>` Project routes bypass `SettingsWorkspace` and render
+only the existing General Project form inside a scroll view. This prevents list
+and child-register construction during creation/editing while reusing all
+existing field, validation, save, and image-upload behavior.
+The application shell routes either query to `ProjectManagementPage`, allowing
+the page to select the requested edit record before rendering the form.
+Project mutations invalidate the shared cache and publish a refresh event;
+every Project controller reloads its current selection when that event arrives,
+so overview and form routes remain synchronized.
+The form-only content reuses `AppSectionCard` for the same bordered card
+presentation used by the other Project editors.
+
 ## 2026-09-05 — Sales quotation Markdown table rendering
 
 The existing quotation continuation renderer recognizes standard pipe-table

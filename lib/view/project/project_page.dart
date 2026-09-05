@@ -24,6 +24,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     with SingleTickerProviderStateMixin {
   bool _filtersVisible = false;
   bool _openedRequestedNewProject = false;
+  bool _openedRequestedEditProject = false;
   static const List<_ProjectMasterTab> _allTabs = <_ProjectMasterTab>[
     _ProjectMasterTab(
       key: 'general',
@@ -154,9 +155,8 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     return GetBuilder<ProjectManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final requestNewProject =
-            widget.queryParameters['new'] == '1' ||
-            widget.queryParameters['new']?.toLowerCase() == 'true';
+        final formOnlyRoute = _isProjectFormRoute;
+        final requestNewProject = _isNewProjectRoute;
         if (requestNewProject &&
             !_openedRequestedNewProject &&
             !controller.initialLoading) {
@@ -169,24 +169,46 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
             }
           });
         }
-        final actions = <Widget>[
-          AdaptiveShellSearchField(
-            controller: controller.searchController,
-            hintText: 'Search projects',
-          ),
-          AdaptiveShellActionButton(
-            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
-            icon: Icons.filter_list_outlined,
-            label: 'Filter',
-          ),
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewProject(
-              isDesktop: Responsive.isDesktop(context),
-            ),
-            icon: Icons.add_circle_outline,
-            label: 'New Project',
-          ),
-        ];
+        final requestedEditId = int.tryParse(
+          widget.queryParameters['edit'] ?? '',
+        );
+        if (requestedEditId != null &&
+            !_openedRequestedEditProject &&
+            !controller.initialLoading) {
+          final project = controller.projects.cast<ProjectModel?>().firstWhere(
+            (item) => item?.id == requestedEditId,
+            orElse: () => null,
+          );
+          if (project != null) {
+            _openedRequestedEditProject = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              controller.selectProject(project);
+              controller.workspaceController.openEditor();
+            });
+          }
+        }
+        final actions = formOnlyRoute
+            ? <Widget>[]
+            : <Widget>[
+                AdaptiveShellSearchField(
+                  controller: controller.searchController,
+                  hintText: 'Search projects',
+                ),
+                AdaptiveShellActionButton(
+                  onPressed: () =>
+                      setState(() => _filtersVisible = !_filtersVisible),
+                  icon: Icons.filter_list_outlined,
+                  label: 'Filter',
+                ),
+                AdaptiveShellActionButton(
+                  onPressed: () => controller.startNewProject(
+                    isDesktop: Responsive.isDesktop(context),
+                  ),
+                  icon: Icons.add_circle_outline,
+                  label: 'New Project',
+                ),
+              ];
 
         if (widget.embedded) {
           return ShellPageActions(
@@ -217,6 +239,13 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
         title: 'Unable to load projects',
         message: controller.pageError!,
         onRetry: controller.loadData,
+      );
+    }
+
+    if (_isProjectFormRoute) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+        child: AppSectionCard(child: _buildGeneralTab(context, controller)),
       );
     }
 
@@ -278,6 +307,16 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
       ),
       editorBuilder: (_) => _buildEditor(context, controller),
     );
+  }
+
+  bool get _isNewProjectRoute {
+    final value = widget.queryParameters['new']?.toLowerCase();
+    return value == '1' || value == 'true';
+  }
+
+  bool get _isProjectFormRoute {
+    return _isNewProjectRoute ||
+        int.tryParse(widget.queryParameters['edit'] ?? '') != null;
   }
 
   Widget _buildEditor(

@@ -99,7 +99,7 @@ class ProjectManagementController extends GetxController {
     _refreshWorker = ever<ProjectModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
-        if (event == null || event.source == 'project_management') {
+        if (event == null) {
           return;
         }
         unawaited(loadData(selectId: selectedProject?.id));
@@ -418,6 +418,22 @@ class ProjectManagementController extends GetxController {
     } finally {
       saving = false;
       update();
+    }
+  }
+
+  Future<String?> deleteProject(ProjectModel project) async {
+    final projectId = project.id;
+    if (projectId == null) {
+      return null;
+    }
+    try {
+      final response = await _projectService.deleteProject(projectId);
+      _refreshController.invalidateProjects();
+      await loadData();
+      _refreshController.notifyChanged(source: 'project_management');
+      return response.message;
+    } catch (errorValue) {
+      return 'Unable to delete project: $errorValue';
     }
   }
 

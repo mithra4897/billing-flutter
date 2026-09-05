@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-05 — Add Edit and Delete actions to Project cards
+
+- Added Edit and Delete options to the Project overview three-dot menu.
+- Edit opens the existing Project editor; Delete confirms, calls the existing
+  Project API, and reloads the overview.
+- New Project and Edit Project navigation now display only the Project form,
+  without the existing list, tabs, or child tables.
+- Wrapped the form-only view in the existing `AppSectionCard` component.
+- Fixed Edit navigation so `edit=<id>` reaches the form page instead of the
+  Project overview.
+- Project create, update, and delete now refresh all mounted Project views
+  immediately without requiring a browser refresh.
+- No database/API contract changes. Focused Project analysis and tests are
+  pending for this implementation.
+
 ## 2026-09-05 — Support Markdown tables in Sales Quotation content
 
 - Request: Render pipe-delimited Markdown tables in `quotation_content`.

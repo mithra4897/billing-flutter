@@ -1,5 +1,18 @@
 # Testing
 
+## Project card actions — 2026-09-05
+
+- Verify the three-dot menu shows Edit and Delete on Project overview cards.
+- Verify Edit opens the selected Project in the existing editor.
+- Verify Delete can be cancelled, confirms before API submission, refreshes the
+  list after success, and displays API failure feedback.
+- Verify `/projects?new=1` and `/projects?edit=<id>` show only the Project form
+  and hide the Project list, filters, tabs, and child tables.
+- Verify Edit from a Project card loads that project's existing field values.
+- Verify successful New, Edit, and Delete operations update the overview and
+  other mounted Project views without a browser refresh.
+- Automated focused analysis and Project tests are pending for this change.
+
 ## Sales quotation Markdown tables — 2026-09-05
 
 - `dart format` and focused `flutter analyze` passed for the quotation editor
