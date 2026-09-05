@@ -1097,8 +1097,9 @@
 - Decision: Classify posted voucher allocations by source. Receipt and customer-
   advance sources determine `paid_amount`; all valid sources determine balance.
   Derive return status from returned versus invoiced quantity, with return state
-  precedence. Cap new return allocations at the invoice's current balance and
-  leave excess credit on account.
+  precedence in both the API query and Flutter register matching. Cap new return
+  allocations at the invoice's current balance and leave excess credit on
+  account.
 - Reason: A credit note settles receivables but is not cash collection, while a
   return remains a material document state even when other settlements reduce
   the balance to zero.
@@ -1107,3 +1108,23 @@
 - Consequences: No schema migration or GL rewrite is required. A controlled
   command repairs historical return-allocation metadata and recalculates
   derived invoice fields after a reviewed dry run.
+
+## ADR-0048: Preserve original invoices beside Sales Return export rows
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: The export endpoint removed an invoice whenever an active linked
+  return existed, which omitted selected Partially returned and Returned
+  invoices and made the frontend report them as skipped.
+- Decision: Return every selected, scoped invoice and continue returning active,
+  non-cancelled Sales Returns in their separate collection. In the shared
+  summary-row builder, export only the first non-empty HSN/SAC in line order.
+- Reason: An original invoice and its return are distinct business documents;
+  both are required for a complete export. A single deterministic HSN satisfies
+  the requested invoice-summary format.
+- Alternatives considered: Replace the invoice with its return; combine all HSN
+  values; create one export row per invoice line.
+- Consequences: The response shape and database remain unchanged. HSN selection
+  stays O(n) with the existing line aggregation and O(1) HSN storage.
+- Related files: Sales invoice export controller, Flutter Sales invoice export
+  component/support, export tests, and linked frontend/backend documentation.

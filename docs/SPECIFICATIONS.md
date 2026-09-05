@@ -1,5 +1,18 @@
 # Specifications
 
+## Sales invoice export returned invoices and first HSN — 2026-09-05
+
+Status: Implemented
+
+- Selected Partially returned and Returned invoices remain Sales Invoice rows
+  in the workbook; their active, non-cancelled returns remain separate Sales
+  Return rows.
+- A document summary exports only the first non-empty item HSN/SAC in persisted
+  line order.
+- Existing export scoping, tax totals, quantity totals, and accounting data are
+  unchanged. See
+  [sales-invoice-export-returned-invoices-first-hsn.md](sales-invoice-export-returned-invoices-first-hsn.md).
+
 ## Project overview and detail workspace — 2026-09-05
 
 Status: Implemented
@@ -52,44 +65,6 @@ Acceptance cases:
    4,000, balance 4,000, and status Partially returned.
 4. A return posted after the invoice is already fully settled creates customer
    credit but no invoice allocation.
-
-Projects render as a responsive grid of separate cards. Every card reuses the
-same status-colored container styling as the Milestones Kanban lanes, with a
-compact Task Kanban-style Project card inside. Cards do not use the previous
-Project-specific chip row or a Project status pill; status is conveyed by the
-matching container, top-left lane-style header, dot, and progress colors. The
-container leaves Kanban-style space around the inner card, including its bottom
-edge.
-
-Project card footers show the existing Task Kanban assignee-avatar stack for
-the unique primary assignees included with that project’s authorized tasks.
-
-Projects exposes the shared filter panel already used by Project management:
-customer, status, project type, billing method, and expected-start-date range.
-Filters compose with search over the already-loaded authorized Project list;
-Clear restores all Projects without changing route, permissions, or API data.
-
-Project detail is a single sequential workspace, not a tabbed page. Its Project
-header shows only the Project name and its existing status, type, schedule, and
-customer metadata. It does not duplicate dashboard-style completion, task,
-milestone, or budget metric cards. The independently expandable Tasks,
-Milestones, Timeline, Billing, and Vendor Works sections start expanded, show a
-status-style colored marker and record count, and preserve their rendered table
-state when collapsed and re-opened. Existing child management screens remain
-the section content.
-
-Expanded register sections size to their paginated displayed content rather
-than using a fixed-height inner viewport. The Project Detail page owns vertical
-scrolling; desktop tables and the standard mobile-card fallback remain intact.
-
-When a Project detail register section is expanded, its records use the
-existing responsive register-table presentation: a desktop table with the
-current columns and row actions, and the established mobile card fallback.
-Selecting a record continues to open its existing editor; no new data request,
-permission rule, or mutation flow is introduced.
-
-Project Detail does not render child-register filter panels inline. Standalone
-register pages retain their existing search and filter controls.
 
 ## Sales Proforma Invoice print bindings — 2026-09-05
 

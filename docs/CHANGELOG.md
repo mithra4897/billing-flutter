@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-05 — Export returned Sales invoices and first HSN
+
+- Request: Include Partially returned and Returned invoices in Sales invoice
+  export and show only the first HSN for multi-item documents.
+- Specification: Preserve each selected invoice beside its separate active
+  Sales Return rows; select the first non-empty HSN/SAC in line order.
+- Implementation: Removed API-side invoice suppression, reused the shared
+  document-row aggregation, and added a focused first-HSN helper.
+- Files changed: Sales invoice export component/support, tests, and frontend/
+  backend export documentation.
+- Database/API impact: No schema or response-shape change; the existing
+  `invoices` collection now retains returned invoices.
+- Security impact: Existing context and selected-ID scoping is unchanged.
+- Tests added or updated: Added HSN helper coverage and backend controller
+  coverage for both return statuses.
+- Tests executed and results: Focused Flutter analysis and the full Flutter
+  suite (14/14) passed; PHP syntax passed. Backend PHPUnit could not run because
+  dependencies are absent.
+- Documentation updated: Specification, architecture, ADR, testing, changelog,
+  documentation index, and linked API contract.
+- Known limitations: Generated workbook appearance still needs manual Excel
+  verification.
+- Follow-up work: None.
+
 ## 2026-09-05 — Project detail is a sequential workspace
 
 - Removed Project detail tabs, including the separate Overview tab.
@@ -2164,76 +2188,3 @@
   difference remains a separate correction.
 - Focused backend tests passed (22 tests, 76 assertions); focused Flutter
   analysis and 2 tests passed.
-
-## 2026-09-04 — Shared filters across the Project module
-
-- Request: Use the shared Sales-style filter experience throughout Project and
-  expose all relevant persisted filter dimensions.
-- Specification: Added the eight-register filter matrix and constrained-
-  project Clear behavior.
-- Implementation: Projects, Tasks, Milestones, Timesheets, Expenses, Resource
-  Usage, Vendor Works, and Billings now use `AppRegisterFilters` with relevant
-  date, status, relationship, type, category, and priority choices. The shared
-  component gained an optional search slot and configurable item/type/category
-  labels; embedded subtabs keep the full filter surface reachable without
-  shell actions.
-- Task and Milestone standalone Kanban pages now follow the same top-bar Filter
-  interaction as the other Project registers, while constrained embedded tabs
-  keep their filters visible.
-- Task and Milestone reuse `AppRegisterFiltersSection` for the existing app
-  filter background and animation; no Project-specific filter wrapper exists.
-- Files changed: Shared register filter, eight Project pages, eight Project
-  controllers, focused tests, and durable documentation.
-- Database/API impact: None; filtering uses already-loaded authorized records.
-- Security impact: None; company, user, and constrained-project scopes remain
-  authoritative before filters run.
-- Tests added or updated: Shared filter rendering and combined Task filtering.
-- Tests executed and results: Focused analysis passed; 2 focused tests and the
-  full 9-test Flutter suite passed.
-- Documentation updated: README, specification, architecture, ADR-0044,
-  testing notes, and changelog.
-- Known limitations: Vendor Work has no persisted date field, so it has no date
-  filter. Authenticated visual verification remains manual.
-- Follow-up work: Consider server-side Project register filtering if nested
-  project payloads become paginated or materially larger.
-
-## 2026-09-04 — Project task Kanban roles and In Review
-
-- Added the persisted `in_review` task status and retained `on_hold` as a
-  separate lane.
-- Project Heads and Super Admins now manage all task fields and all Kanban
-  lanes; assigned users receive a status-only work-to-review flow.
-- API task mutations now enforce the role contract and preserve persisted task
-  details when a normal user updates status.
-
-## 2026-09-04 — Project board presentation
-
-- Request: Align the main Projects list/editor with the newer Task Kanban UI.
-- Implementation: Projects now use shared status lanes, task-style cards,
-  persistent horizontal scrolling, top-app-bar search, and the existing shared
-  filters. Selecting a card opens the existing multi-tab editor dialog.
-- Behavior: Project cards remain non-draggable; Project Status is still saved
-  only through the established form.
-- Validation: Focused analysis and 5 focused tests passed; the full Flutter
-  suite passed 14/14.
-- Known limitation: Authenticated visual verification remains manual.
-
-## 2026-09-04 — Project card and priority badge refinements
-
-- Project board cards now reuse the shared Active status pill.
-- Low task-priority badges use the app success/green token.
-## 2026-09-05 — Project Kanban and detail workspace
-
-- Added a display-only Projects Kanban with search, status filtering, and the
-  shared Kanban board.
-- Added project detail routes with Overview, Tasks, Milestones, Timeline,
-  Billing, and Vendor Works tabs.
-- Enhanced Project Kanban cards with notes, billing/type chips, status, and
-  the shared completion progress display.
-- The existing `/projects` entry now opens the Kanban overview; clicking a card
-  opens that project’s detail overview, while `/projects?new=1` retains the
-  established creation editor.
-- Removed the separate Overview sidebar entry and duplicate cross-project
-  metric cards; the existing dashboard remains the aggregate reporting surface.
-- Removed the Draft/Working/etc. status-chip filter bar from the Projects
-  Kanban; all project status lanes remain visible.

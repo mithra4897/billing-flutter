@@ -61,6 +61,7 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - [Print designer box border radius](print-designer-box-border-radius.md) — adjust rounded corners for boxed print elements.
 - [Company creation access and logo](company-create-access-and-logo.md) — upload a company logo during creation and ensure the creator can access the result.
 - [Sales Invoice export GST normalization](sales-invoice-export-persisted-tax-components.md) — correct IGST versus CGST/SGST allocation using normalized place-of-supply data while retaining the document's tax total.
+- [Sales Invoice export returned invoices and first HSN](sales-invoice-export-returned-invoices-first-hsn.md) — retain selected returned invoices beside their return rows and export the first non-empty line HSN/SAC.
 - Sales customer advance allocation — see `SPECIFICATIONS.md`, `ARCHITECTURE.md`,
   ADR-0040 in `DECISIONS.md`, and the 2026-09-03 testing/changelog entries;
   backend deployment details are in

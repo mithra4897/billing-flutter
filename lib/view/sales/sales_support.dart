@@ -26,6 +26,58 @@ String salesInvoiceStatusLabel(String? status) {
   return salesStatusLabel(status);
 }
 
+String salesInvoiceEffectiveStatus(
+  SalesInvoiceModel invoice, {
+  DateTime? today,
+}) {
+  final stored = (invoice.invoiceStatus ?? '').trim().toLowerCase();
+  if (const <String>{
+    'draft',
+    'cancelled',
+    'partially_returned',
+    'returned',
+  }.contains(stored)) {
+    return stored;
+  }
+
+  var hasReturnedQuantity = false;
+  var hasRemainingQuantity = false;
+  for (final line in invoice.lines) {
+    final returnedQuantity = line.returnedQty ?? 0;
+    hasReturnedQuantity = hasReturnedQuantity || returnedQuantity > 0;
+    hasRemainingQuantity =
+        hasRemainingQuantity || line.invoicedQty > returnedQuantity;
+  }
+  if (hasReturnedQuantity) {
+    return hasRemainingQuantity ? 'partially_returned' : 'returned';
+  }
+
+  if (stored == 'paid' || stored == 'partially_paid') {
+    return stored;
+  }
+  final balance = invoice.balanceAmount ?? invoice.totalAmount ?? 0;
+  if (balance <= 0) {
+    return 'paid';
+  }
+
+  final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
+  final currentDate = today ?? DateTime.now();
+  final normalizedToday = DateTime(
+    currentDate.year,
+    currentDate.month,
+    currentDate.day,
+  );
+  if (dueDate != null &&
+      DateTime(
+        dueDate.year,
+        dueDate.month,
+        dueDate.day,
+      ).isBefore(normalizedToday)) {
+    return 'overdue';
+  }
+  return 'posted';
+}
+
 bool salesInvoiceCanOpenEmailPdf(SalesInvoiceModel? invoice) {
   return salesDocumentCanOpenEmailPdf(invoice?.id, invoice?.invoiceStatus);
 }

@@ -12,6 +12,20 @@ class SalesInvoiceExportTaxTotals {
   final bool usedPersistedSnapshot;
 }
 
+String firstSalesInvoiceExportHsn(List<Map<String, dynamic>> lines) {
+  for (final line in lines) {
+    final rawItem = line['item'];
+    final item = rawItem is Map ? rawItem : const <String, dynamic>{};
+    for (final key in const <String>['hsn_sac_code', 'hsn_code', 'sac_code']) {
+      final hsn = item[key]?.toString().trim() ?? '';
+      if (hsn.isNotEmpty) {
+        return hsn;
+      }
+    }
+  }
+  return '';
+}
+
 SalesInvoiceExportTaxTotals resolveSalesInvoiceExportTaxTotals({
   required Map<String, dynamic> document,
   required double calculatedCgst,

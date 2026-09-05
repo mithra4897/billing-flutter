@@ -10,6 +10,10 @@ adds one row for each return. The row uses the return date and return number,
 and exports quantity, taxable value, GST, and amount as positive values.
 Cancelled or inactive returns are not exported.
 
+The linked return does not replace the original invoice. Selected Partially
+returned and Returned invoices remain in the invoice section, with their active
+returns shown separately below.
+
 The first Excel column is **Document Type**. Invoice rows are marked `SALES
 INVOICE` and linked return rows are marked `SALES RETURN`. This label remains
 present when the user filters the Sales Invoice register before exporting.
@@ -23,6 +27,9 @@ falls outside the selected date range.
 The Qty cell continues to count only inventory-tracked items. A non-inventory
 shipping or delivery charge remains part of the negative financial values but
 does not change Qty.
+
+Each invoice or return summary row displays only the first non-empty item
+HSN/SAC in persisted line order.
 
 ## API contract
 

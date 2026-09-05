@@ -1,5 +1,15 @@
 # Architecture
 
+## Sales invoice export document preservation
+
+The Sales invoice export endpoint returns selected, context-scoped invoice
+records without removing invoices that have linked returns. Active,
+non-cancelled Sales Returns remain a separate response collection and workbook
+section. The existing Flutter document-row builder aggregates each invoice or
+return in one line pass and selects the first non-empty item HSN/SAC while it
+calculates the existing quantity and financial totals. This introduces no new
+request, response field, persistence, or accounting mutation.
+
 ## 2026-09-05 — Project overview and detail workspace
 
 `ProjectOverviewPage` is the Project module landing workspace: it reuses the

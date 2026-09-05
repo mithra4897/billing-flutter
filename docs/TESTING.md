@@ -1,7 +1,27 @@
 # Testing
 
+## Sales invoice export returned invoices and first HSN — 2026-09-05
+
+- `flutter test --no-pub test/sales/sales_invoice_export_hsn_test.dart` passed
+  (3/3), covering first-line selection, blank-line fallback, and no-HSN data.
+- Focused `flutter analyze --no-pub` passed for the export component, support
+  helper, and focused test.
+- Full `flutter test --no-pub` passed (14/14).
+- PHP syntax checks passed for the export controller and its focused backend
+  test.
+- Backend PHPUnit execution remains pending because `billing-api/vendor` is not
+  installed in this workspace. The test covers both Returned and Partially
+  returned invoices remaining beside their linked Sales Return.
+- Manual workbook verification remains for opening the generated XLSX in Excel
+  and confirming invoice/return section presentation.
+
 ## Sales invoice return settlement — 2026-09-05
 
+- Added Flutter coverage for register status precedence: stored Returned is not
+  relabelled Paid, stale Paid rows derive Returned/Partially returned from line
+  quantities, and Partially paid remains unchanged. Focused tests passed (4/4)
+  and focused Flutter analysis reported no issues.
+- Full `flutter test --no-pub` passed (18/18) after the register correction.
 - PHP syntax checks passed for the settlement, Sales return, report, filter,
   reconciliation command/service, model/controller, and focused test files.
 - Focused Flutter analysis passed for the Sales invoice filter callers and
@@ -9,6 +29,8 @@
 - Added unit coverage for return-status precedence/model labeling and database
   allocation breakdown: a receipt affects Paid Amount while a return credit
   affects balance without being counted as payment.
+- Added list-query coverage proving stale Paid rows are selected by returned
+  quantities for Returned/Partially returned and excluded from Paid results.
 - Backend PHPUnit execution is pending in this workspace because
   `billing-api/vendor/autoload.php` is not installed.
 - Before production correction, run the scoped reconciliation without

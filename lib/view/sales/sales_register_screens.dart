@@ -210,29 +210,6 @@ String _salesCustomerName(Map<String, dynamic> data) {
   return stringValue(data, 'customer_name');
 }
 
-String _salesInvoiceEffectiveStatus(SalesInvoiceModel invoice) {
-  final stored = (invoice.invoiceStatus ?? '').trim().toLowerCase();
-  if (stored == 'draft' || stored == 'cancelled') {
-    return stored;
-  }
-  final balance = invoice.balanceAmount ?? invoice.totalAmount ?? 0;
-  if (balance <= 0) {
-    return 'paid';
-  }
-  final paid = doubleValue(invoice.toJson(), 'paid_amount') ?? 0;
-  final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  if (dueDate != null &&
-      DateTime(dueDate.year, dueDate.month, dueDate.day).isBefore(today)) {
-    return 'overdue';
-  }
-  if (paid > 0) {
-    return 'partially_paid';
-  }
-  return 'posted';
-}
-
 class SalesRegisterController<T> extends GetxController {
   SalesRegisterController({
     required this.loader,
@@ -1734,7 +1711,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       ),
       matches: (row, query, statuses, customFilters) {
         final data = row.toJson();
-        final rowStatus = _salesInvoiceEffectiveStatus(row);
+        final rowStatus = salesInvoiceEffectiveStatus(row);
         final searchText = [
           row.invoiceNo ?? '',
           rowStatus,

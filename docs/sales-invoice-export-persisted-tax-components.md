@@ -21,7 +21,9 @@ continue appearing under IGST in the spreadsheet.
   SGST. For inter-state documents, export the combined GST amount as IGST.
 - If place of supply cannot be resolved, preserve the source component split.
 - Keep HSN, GST rate, inventory quantity, taxable amount, and total amount export
-  behaviour unchanged.
+  behaviour unchanged as part of this GST normalization. The later first-HSN
+  summary rule is documented in
+  [sales-invoice-export-returned-invoices-first-hsn.md](sales-invoice-export-returned-invoices-first-hsn.md).
 - Keep zero tax cells blank under the existing export presentation rule.
 
 ## Acceptance criteria

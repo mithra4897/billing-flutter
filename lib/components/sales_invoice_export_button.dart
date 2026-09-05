@@ -126,13 +126,13 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     final exportPayload = response.data ?? const <String, dynamic>{};
     final details = _asListOfMaps(exportPayload['invoices']);
     final salesReturns = _asListOfMaps(exportPayload['sales_returns']);
-    final returnedIds = details
+    final exportedInvoiceIds = details
         .map((item) => intValue(item, 'id') ?? 0)
         .where((id) => id > 0)
         .toSet();
     final failures = invoices
         .where((invoice) => (invoice.id ?? 0) > 0)
-        .where((invoice) => !returnedIds.contains(invoice.id ?? 0))
+        .where((invoice) => !exportedInvoiceIds.contains(invoice.id ?? 0))
         .map(
           (invoice) => _InvoiceExportFailure(
             label: _invoiceLabel(invoice),
@@ -349,7 +349,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       ];
     }
 
-    final hsnValues = <String>{};
+    final firstHsn = firstSalesInvoiceExportHsn(lines);
     final gstPercentValues = <String>{};
     var totalQty = 0.0;
     var totalTaxable = 0.0;
@@ -402,15 +402,6 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       final amount =
           Validators.parseFlexibleNumber(line['line_total']?.toString()) ??
           roundToDouble(taxable + igst + cgst + sgst, 2);
-      final hsn = _firstNonEmpty(<String?>[
-        nullableStringValue(item, 'hsn_sac_code'),
-        nullableStringValue(item, 'hsn_code'),
-        nullableStringValue(item, 'sac_code'),
-      ]);
-
-      if (hsn.isNotEmpty) {
-        hsnValues.add(hsn);
-      }
       if (rawTaxPercent.abs() >= 0.005) {
         gstPercentValues.add(_formatExportNumber(rawTaxPercent));
       }
@@ -442,7 +433,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       _ExcelCell.text(state),
       _ExcelCell.text(gstin),
       _ExcelCell.text(documentNo),
-      _ExcelCell.text(hsnValues.join(', ')),
+      _ExcelCell.text(firstHsn),
       _ExcelCell.text(gstPercentValues.join(', ')),
       _numberOrBlank(roundToDouble(totalQty, 2)),
       _numberOrBlank(roundToDouble(totalTaxable, 2)),
