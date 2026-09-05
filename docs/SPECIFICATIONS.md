@@ -61,6 +61,9 @@ matching container, top-left lane-style header, dot, and progress colors. The
 container leaves Kanban-style space around the inner card, including its bottom
 edge.
 
+Project card footers show the existing Task Kanban assignee-avatar stack for
+the unique active employees assigned across that project’s tasks.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 Status: Implemented

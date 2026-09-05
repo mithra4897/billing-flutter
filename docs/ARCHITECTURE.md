@@ -17,6 +17,12 @@ The responsive Project grid uses the same status-color alpha, border, radius,
 and padding values as the existing Kanban lanes. It performs one linear build
 over the already-loaded Projects collection.
 
+`ProjectManagementController` loads the same bounded active-employee lookup
+used by the Task controller and builds a project-id-to-assignee-name map once
+per Project load. Assignment IDs are deduplicated with a `Set`, making the map
+construction linear in loaded task assignments; card rendering only reads its
+precomputed list.
+
 `ProjectDetailPage` is resolved by the app shell from `/projects/:id/detail`.
 It shares the Project management controller scope and embeds the existing task,
 milestone, billing, and vendor-work pages with the selected project id. The

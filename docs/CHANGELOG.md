@@ -9,6 +9,7 @@
   communicates status.
 - Added the Milestones-style status header to each Project container and
   increased its bottom spacing around the inner card.
+- Added the existing Task Kanban assignee-avatar stack to Project card footers.
 - Restored the responsive Project grid, with every Project card wrapped in the
   same status-colored container treatment used by Milestones Kanban lanes.
 

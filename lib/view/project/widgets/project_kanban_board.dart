@@ -308,6 +308,7 @@ class ProjectKanbanBoard<T extends Object> extends StatefulWidget {
                 project: project,
                 accent: accent,
                 customerName: customerName,
+                employeeNames: const <String>[],
                 onOpen: isFeedback ? () {} : () => onOpen(project),
               ),
         )
@@ -752,12 +753,14 @@ class _ProjectCard extends StatelessWidget {
     required this.project,
     required this.accent,
     required this.customerName,
+    required this.employeeNames,
     required this.onOpen,
   });
 
   final ProjectModel project;
   final Color accent;
   final String Function(int? id) customerName;
+  final List<String> employeeNames;
   final VoidCallback onOpen;
 
   @override
@@ -847,16 +850,24 @@ class _ProjectCard extends StatelessWidget {
               const SizedBox(height: AppUiConstants.spacingMd),
               Divider(color: appTheme.tableBorder),
               const SizedBox(height: AppUiConstants.spacingXs),
-              Text(
-                [
-                  project.projectCode ?? '',
-                  customer,
-                ].where((part) => part.trim().isNotEmpty).join(' • '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: appTheme.mutedText,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      [
+                        project.projectCode ?? '',
+                        customer,
+                      ].where((part) => part.trim().isNotEmpty).join(' • '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                  ),
+                  if (employeeNames.isNotEmpty)
+                    _AssigneeStack(names: employeeNames),
+                ],
               ),
             ],
           ),
@@ -871,11 +882,13 @@ class ProjectGrid extends StatelessWidget {
     super.key,
     required this.projects,
     required this.customerName,
+    required this.employeeNames,
     required this.onOpen,
   });
 
   final List<ProjectModel> projects;
   final String Function(int? id) customerName;
+  final List<String> Function(ProjectModel project) employeeNames;
   final ValueChanged<ProjectModel> onOpen;
 
   @override
@@ -930,6 +943,7 @@ class ProjectGrid extends StatelessWidget {
                           project: project,
                           accent: accent,
                           customerName: customerName,
+                          employeeNames: employeeNames(project),
                           onOpen: () => onOpen(project),
                         ),
                       ],

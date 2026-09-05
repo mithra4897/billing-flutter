@@ -35,6 +35,8 @@
   Project status pill from grid cards.
 - Focused analysis and Project board tests passed (3 tests) after adding the
   top-left lane-style status header and extra container spacing.
+- Focused analysis and Project board tests passed (3 tests) after adding
+  Project assignee avatars from the existing employee lookup.
 - Focused analysis and Project board tests passed (3 tests) after adding the
   status-colored outer card containers.
 - Focused analysis and Project board tests passed (3 tests) after restoring the

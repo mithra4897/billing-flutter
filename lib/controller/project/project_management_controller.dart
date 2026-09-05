@@ -7,6 +7,7 @@ class ProjectManagementController extends GetxController {
   final String initialDashboardFilter;
 
   final ProjectService _projectService = ProjectService();
+  final HrService _hrService = HrService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final MediaService _mediaService = MediaService();
@@ -52,6 +53,7 @@ class ProjectManagementController extends GetxController {
   List<ProjectModel> filteredProjects = const <ProjectModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
   List<PartyModel> parties = const <PartyModel>[];
+  Map<int, List<String>> projectEmployeeNamesById = const <int, List<String>>{};
 
   ProjectModel? selectedProject;
   int? contextCompanyId;
@@ -119,6 +121,9 @@ class ProjectManagementController extends GetxController {
     try {
       final responses = await Future.wait<dynamic>([
         _refreshController.projects(loader: _projectService.projects),
+        _hrService.employees(
+          filters: const {'per_page': 300, 'sort_by': 'employee_name'},
+        ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
@@ -128,11 +133,14 @@ class ProjectManagementController extends GetxController {
       ]);
 
       final nextProjects = responses[0] as List<ProjectModel>;
+      final nextEmployees =
+          (responses[1] as PaginatedResponse<EmployeeModel>).data ??
+          const <EmployeeModel>[];
       final nextCompanies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          (responses[2] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
       final nextParties =
-          (responses[2] as PaginatedResponse<PartyModel>).data ??
+          (responses[3] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
 
       final activeCompanies = nextCompanies
@@ -164,6 +172,10 @@ class ProjectManagementController extends GetxController {
       }
 
       projects = nextProjects;
+      projectEmployeeNamesById = _projectEmployeeNames(
+        nextProjects,
+        nextEmployees.where((employee) => employee.status == 'active'),
+      );
       companies = nextCompanies;
       parties = nextParties
           .where((item) => item.isActive)
@@ -198,6 +210,34 @@ class ProjectManagementController extends GetxController {
       pageError = errorValue.toString();
       update();
     }
+  }
+
+  List<String> projectEmployeeNames(ProjectModel project) =>
+      projectEmployeeNamesById[project.id] ?? const <String>[];
+
+  Map<int, List<String>> _projectEmployeeNames(
+    Iterable<ProjectModel> sourceProjects,
+    Iterable<EmployeeModel> employees,
+  ) {
+    final namesById = <int, String>{
+      for (final employee in employees)
+        if (employee.id != null) employee.id!: employee.toString(),
+    };
+    final result = <int, List<String>>{};
+    for (final project in sourceProjects) {
+      final projectId = project.id;
+      if (projectId == null) continue;
+      final assignedIds = <int>{
+        for (final task in project.tasks) ...task.assignedEmployeeIds,
+        for (final task in project.tasks)
+          if (task.assignedEmployeeId != null) task.assignedEmployeeId!,
+      };
+      result[projectId] = assignedIds
+          .map((id) => namesById[id] ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList(growable: false);
+    }
+    return result;
   }
 
   void _applySearch() {
