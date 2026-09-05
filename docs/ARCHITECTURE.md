@@ -1,5 +1,29 @@
 # Architecture
 
+## 2026-09-05 — Reusable document binding picker and uniform print data builder
+
+`DocumentBindingPicker` (`lib/components/printing/document_binding_picker.dart`)
+is a new focused `StatefulWidget` that groups the flat list of print-template
+binding keys (produced by `availablePrintBindings`) into five labelled sections:
+Document, Party, Totals, GST, and Custom. A toggleable search field filters chips
+in real time with an O(n) linear pass over the bounded key list (~25–35 items).
+The widget replaced the inline `Wrap` + `ActionChip` block in
+`DocumentDesignerShapeInspector`, removing ~20 lines of duplicated code. Its
+`onSelected` callback carries only the raw key; insertion logic remains in the
+caller. The widget can be reused wherever a binding picker is needed (e.g.
+email template dialogs).
+
+`salesInvoicePrintData()` in `SalesInvoiceManagementController` now delegates
+to `buildManagedDocumentPrintData()`, matching the pattern of all other nine
+document controllers (Sales Order, Quotation, Proforma Invoice, Delivery,
+Receipt, Purchase Invoice, Order, Receipt, Payment). Five `extraData` keys that
+`buildManagedDocumentPrintData` derives from `gstBreakup` are no longer
+duplicated by the caller (`cgst_amount`, `sgst_amount`, `igst_amount`,
+`cess_amount`, `taxable_total_amount`). All invoice-specific keys are preserved:
+CGST/SGST/IGST summary labels and currency symbols, discount and round-off
+summary labels and currencies, `discount_amount`, `round_off_amount`,
+`adjustment_amount`, `is_direct_customer`, and `watermark_text`.
+
 ## 2026-09-05 — Proforma print binding parity
 
 Sales Proforma Invoice reuses the shared `DocumentPrintDataModel` and managed

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-05 — Reusable document binding picker; Sales Invoice uses shared print data builder
+
+- Added `DocumentBindingPicker` widget (`lib/components/printing/document_binding_picker.dart`)
+  that groups `{{binding}}` chips into five labelled sections (Document, Party, Totals, GST,
+  Custom) with a toggleable search field; used in `DocumentDesignerShapeInspector`.
+- Removed ~20 lines of inline `Wrap` + `ActionChip` code from `DocumentDesignerShapeInspector`;
+  replaced with the new widget. Insertion callback behaviour is unchanged.
+- Migrated `salesInvoicePrintData()` in `SalesInvoiceManagementController` to use
+  `buildManagedDocumentPrintData()`, matching all other nine document controllers.
+  Removed five duplicate `extraData` keys (`cgst_amount`, `sgst_amount`, `igst_amount`,
+  `cess_amount`, `taxable_total_amount`) that the shared builder already derives from
+  `gstBreakup`; all invoice-specific keys are preserved.
+- `dart format` ran clean; focused `flutter analyze` produced one pre-existing warning
+  unrelated to these changes (line 3193 in sales invoice controller).
+
 ## 2026-09-05 — Sales Proforma Invoice print binding parity
 
 - Added Sales Invoice-compatible Proforma bindings for line discounts, tax

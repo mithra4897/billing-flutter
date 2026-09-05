@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../screen.dart';
+import 'document_binding_picker.dart';
 
 const double _designerInspectorSectionGap = 8;
 const double _designerInspectorRowPadding = 5;
@@ -549,25 +550,15 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             onChanged: (value) => onChanged(shape.copyWith(underline: value)),
           ),
           const SizedBox(height: _designerInspectorSectionGap),
-          Text('Bindings', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: AppUiConstants.spacingXs),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: bindings
-                .map(
-                  (binding) => ActionChip(
-                    label: Text('{{$binding}}'),
-                    onPressed: () => onChanged(
-                      shape.copyWith(
-                        text: shape.text.isEmpty
-                            ? '{{$binding}}'
-                            : '${shape.text} {{$binding}}',
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
+          DocumentBindingPicker(
+            bindings: bindings,
+            onSelected: (key) => onChanged(
+              shape.copyWith(
+                text: shape.text.isEmpty
+                    ? '{{$key}}'
+                    : '${shape.text} {{$key}}',
+              ),
+            ),
           ),
         ],
         if (const <String>{

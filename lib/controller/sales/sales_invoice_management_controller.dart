@@ -2667,10 +2667,10 @@ class SalesInvoiceManagementController extends GetxController {
         effectivePartyName.trim().isNotEmpty ||
         directCustomerDetails.isNotEmpty;
 
-    return DocumentPrintDataModel(
-      companyName: companyNameById(companies, companyId),
-      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      companyGstin: company?.gstin ?? '',
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
       documentNumber: nullIfEmpty(invoiceNoController.text) ?? 'Draft',
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: customerRefNoController.text.trim(),
@@ -2701,10 +2701,7 @@ class SalesInvoiceManagementController extends GetxController {
       subtotal: roundToDouble(summary.gross, 2),
       taxAmount: roundToDouble(taxAmount, 2),
       totalAmount: roundToDouble(summary.total, 2),
-      amountInWords: printTemplateAmountInWords(
-        roundToDouble(summary.total, 2),
-        'INR',
-      ),
+      currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
       extraData: <String, dynamic>{
@@ -2733,11 +2730,6 @@ class SalesInvoiceManagementController extends GetxController {
           2,
         ),
         'is_direct_customer': directCustomerDetails.isNotEmpty,
-        'cgst_amount': roundToDouble(summary.cgst, 2),
-        'sgst_amount': roundToDouble(summary.sgst, 2),
-        'igst_amount': roundToDouble(summary.igst, 2),
-        'cess_amount': roundToDouble(summary.cess, 2),
-        'taxable_total_amount': roundToDouble(summary.taxable, 2),
         if (invoiceStatus == 'draft') 'watermark_text': 'DRAFT',
       },
     );
