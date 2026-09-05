@@ -1059,3 +1059,24 @@
   status mutation and child-tab workflows.
 - Consequences: Grouping is one O(n) pass over already filtered projects. No
   API, schema, permission, or additional network request is introduced.
+
+## ADR-0047: Separate Sales receipt settlement from return credit
+
+- Date: 2026-09-05
+- Status: Accepted
+- Context: Sales return voucher allocations were included in the same aggregate
+  used for `paid_amount`, allowing an unpaid invoice to appear Paid after a
+  return.
+- Decision: Classify posted voucher allocations by source. Receipt and customer-
+  advance sources determine `paid_amount`; all valid sources determine balance.
+  Derive return status from returned versus invoiced quantity, with return state
+  precedence. Cap new return allocations at the invoice's current balance and
+  leave excess credit on account.
+- Reason: A credit note settles receivables but is not cash collection, while a
+  return remains a material document state even when other settlements reduce
+  the balance to zero.
+- Alternatives considered: Treat every allocation as payment; add a second
+  invoice-status column; remove return allocations from open-item accounting.
+- Consequences: No schema migration or GL rewrite is required. A controlled
+  command repairs historical return-allocation metadata and recalculates
+  derived invoice fields after a reviewed dry run.

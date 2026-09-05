@@ -1684,6 +1684,8 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
     AppDropdownItem(value: 'overdue', label: 'Overdue'),
     AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
     AppDropdownItem(value: 'paid', label: 'Paid'),
+    AppDropdownItem(value: 'partially_returned', label: 'Partially returned'),
+    AppDropdownItem(value: 'returned', label: 'Returned'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 

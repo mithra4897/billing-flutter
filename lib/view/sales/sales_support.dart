@@ -140,6 +140,8 @@ Widget salesStatusBadge(
       (normalized != 'draft' &&
           normalized != 'paid' &&
           normalized != 'partially_paid' &&
+          normalized != 'partially_returned' &&
+          normalized != 'returned' &&
           normalized != 'cancelled')) {
     final parsed = DateTime.tryParse(dueDate);
     if (parsed != null) {

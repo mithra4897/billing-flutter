@@ -1,5 +1,39 @@
 # Specifications
 
+## Sales invoice settlement after sales returns — 2026-09-05
+
+Status: Implemented
+
+- `paid_amount` represents only posted customer receipt/advance allocations. A
+  sales-return credit note reduces the invoice balance but is not customer
+  payment.
+- A posted invoice with no receipt allocation is Payment pending unless it is
+  overdue or has a posted return.
+- A fully returned invoice is Returned. An invoice with any returned quantity
+  below the invoiced quantity is Partially returned. These return states take
+  precedence over Paid, Partially paid, Payment pending, and Overdue.
+- The invoice balance is reduced by all valid posted settlements, including
+  receipt allocations and sales-return credit-note adjustments.
+- A new sales-return adjustment is limited to the invoice's remaining balance.
+  Any excess credit remains on the return voucher as customer credit instead
+  of over-settling the invoice.
+- Sales invoice filters expose Partially returned and Returned and must not
+  include either state in Paid or other payment-state results.
+- Existing live records are changed only through an explicit, dry-run-first
+  reconciliation command. Reconciliation changes settlement metadata and
+  derived invoice fields only; it never rewrites voucher debits or credits.
+
+Acceptance cases:
+
+1. A 10,000 Payment-pending invoice with a 3,000 posted return has paid amount
+   0, balance 7,000, and status Partially returned.
+2. A fully returned 10,000 invoice has status Returned even when its balance is
+   zero.
+3. A 10,000 invoice with a 4,000 receipt and a 2,000 return has paid amount
+   4,000, balance 4,000, and status Partially returned.
+4. A return posted after the invoice is already fully settled creates customer
+   credit but no invoice allocation.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 Status: Implemented

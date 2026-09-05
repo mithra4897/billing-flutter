@@ -1,5 +1,20 @@
 # Testing
 
+## Sales invoice return settlement — 2026-09-05
+
+- PHP syntax checks passed for the settlement, Sales return, report, filter,
+  reconciliation command/service, model/controller, and focused test files.
+- Focused Flutter analysis passed for the Sales invoice filter callers and
+  shared status-badge helper.
+- Added unit coverage for return-status precedence/model labeling and database
+  allocation breakdown: a receipt affects Paid Amount while a return credit
+  affects balance without being counted as payment.
+- Backend PHPUnit execution is pending in this workspace because
+  `billing-api/vendor/autoload.php` is not installed.
+- Before production correction, run the scoped reconciliation without
+  `--apply`, review its output, back up the database, apply the return-status
+  enum patch if required, and only then rerun reconciliation with `--apply`.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 - Focused analysis covers the Proforma controller and shared print pipeline.

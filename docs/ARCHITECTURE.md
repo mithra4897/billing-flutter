@@ -144,6 +144,16 @@ data are excluded from cross-document matching. The additive audit columns and
 indexes are documented in
 `billing-api/doc/sales-customer-advance-allocation.md`.
 
+Sales invoice settlement distinguishes the economic source of each posted
+voucher allocation. Receipt and advance-setoff allocations feed the persisted
+`paid_amount`; receipt, return-credit, and other valid adjustments together
+feed `balance_amount`. Returned quantities determine Returned and Partially
+returned status before payment/overdue status is considered. Sales return
+posting locks the linked invoice and caps its voucher allocation at the current
+outstanding amount, leaving excess credit on the return voucher as on-account
+customer credit. Historical repair is an explicit console operation and does
+not modify journal totals or account balances.
+
 ## Purchase Receipt print and Email PDF
 
 `PurchaseReceiptManagementController` now follows the established Purchase
