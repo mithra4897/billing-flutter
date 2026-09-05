@@ -1,19 +1,5 @@
 import '../../screen.dart';
 
-/// Categorised, searchable picker for `{{binding}}` chips used in the
-/// document print-template inspector.
-///
-/// Groups the flat list of binding keys returned by
-/// [availablePrintBindings] into labelled sections so users can quickly
-/// find the placeholder they want without scrolling through an unsorted
-/// wall of chips.
-///
-/// The [onSelected] callback receives the raw key (without `{{ }}`), and
-/// the caller decides how to insert it into the target field.
-///
-/// Search is hidden by default; toggling the search icon reveals a text
-/// field that filters chips across all sections in real time. The filter
-/// is a simple O(n) linear scan over a bounded list (~25-35 keys).
 class DocumentBindingPicker extends StatefulWidget {
   const DocumentBindingPicker({
     super.key,
@@ -21,11 +7,7 @@ class DocumentBindingPicker extends StatefulWidget {
     required this.onSelected,
   });
 
-  /// All scalar binding keys available in the current document data.
-  /// Supplied by `availablePrintBindings(documentDataJson)`.
   final List<String> bindings;
-
-  /// Called when the user taps a chip; receives the raw key without `{{ }}`.
   final ValueChanged<String> onSelected;
 
   @override
@@ -108,14 +90,6 @@ class _DocumentBindingPickerState extends State<DocumentBindingPicker> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Internal section renderer
-// ---------------------------------------------------------------------------
-
-/// Breaks the flat binding list into labelled groups and renders chips.
-///
-/// All grouping logic is O(n) over the bounded binding list. Each key is
-/// classified once via a static [Set] membership check (O(1) per key).
 class _BindingSections extends StatelessWidget {
   const _BindingSections({
     required this.bindings,
@@ -126,10 +100,6 @@ class _BindingSections extends StatelessWidget {
   final List<String> bindings;
   final String filter;
   final ValueChanged<String> onSelected;
-
-  // -----------------------------------------------------------------------
-  // Static key-to-section maps (O(1) membership, bounded size)
-  // -----------------------------------------------------------------------
 
   static const Set<String> _documentInfoKeys = <String>{
     'company_name',
@@ -268,10 +238,6 @@ class _BindingGroup {
   final List<String> gst;
   final List<String> extra;
 }
-
-// ---------------------------------------------------------------------------
-// Single labelled section of chips
-// ---------------------------------------------------------------------------
 
 class _SectionChips extends StatelessWidget {
   const _SectionChips({
