@@ -1,5 +1,6 @@
 import '../../controller/project/project_management_controller.dart';
 import '../../screen.dart';
+import 'widgets/project_filter_options.dart';
 
 class ProjectManagementPage extends StatefulWidget {
   const ProjectManagementPage({
@@ -23,24 +24,6 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
     with SingleTickerProviderStateMixin {
   bool _filtersVisible = false;
   bool _openedRequestedNewProject = false;
-  static const List<AppDropdownItem<String>> _billingMethodItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'fixed', label: 'Fixed'),
-        AppDropdownItem(value: 'time_and_material', label: 'Time And Material'),
-        AppDropdownItem(value: 'milestone', label: 'Milestone'),
-        AppDropdownItem(value: 'cost_plus', label: 'Cost Plus'),
-      ];
-
-  static const List<AppDropdownItem<String>> _projectStatusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'open', label: 'Open'),
-        AppDropdownItem(value: 'working', label: 'Working'),
-        AppDropdownItem(value: 'on_hold', label: 'In Review'),
-        AppDropdownItem(value: 'completed', label: 'Completed'),
-        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-      ];
-
   static const List<_ProjectMasterTab> _allTabs = <_ProjectMasterTab>[
     _ProjectMasterTab(
       key: 'general',
@@ -253,7 +236,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
                 partyItems: controller.customerFilterItems,
                 selectedPartyIds: controller.filterCustomerIds,
                 onPartyChanged: controller.setFilterCustomerIds,
-                statusItems: _projectStatusItems,
+                statusItems: projectStatusItems,
                 selectedStatuses: controller.selectedStatuses,
                 onStatusesChanged: controller.setSelectedStatuses,
                 typeLabel: 'Project type',
@@ -529,7 +512,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
                 AppDropdownField<String>.fromMapped(
                   initialValue: controller.billingMethod,
                   labelText: 'Billing Method',
-                  mappedItems: _billingMethodItems,
+                  mappedItems: projectBillingMethodItems,
                   onChanged: (value) => controller.setBillingMethod(
                     value ?? controller.billingMethod,
                   ),
@@ -593,7 +576,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
                 AppDropdownField<String>.fromMapped(
                   initialValue: controller.projectStatus,
                   labelText: 'Project Status',
-                  mappedItems: _projectStatusItems,
+                  mappedItems: projectStatusItems,
                   onChanged: (value) => controller.setProjectStatus(
                     value ?? controller.projectStatus,
                   ),

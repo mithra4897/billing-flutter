@@ -64,6 +64,11 @@ edge.
 Project card footers show the existing Task Kanban assignee-avatar stack for
 the unique primary assignees included with that project’s authorized tasks.
 
+Projects exposes the shared filter panel already used by Project management:
+customer, status, project type, billing method, and expected-start-date range.
+Filters compose with search over the already-loaded authorized Project list;
+Clear restores all Projects without changing route, permissions, or API data.
+
 ## Sales Proforma Invoice print bindings — 2026-09-05
 
 Status: Implemented

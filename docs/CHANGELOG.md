@@ -12,6 +12,8 @@
 - Added the existing Task Kanban assignee-avatar stack to Project card footers.
 - Avatar names reuse task employee relations already returned by Projects; no
   additional HR directory request is made.
+- Added the shared Project filter panel to the grid page and consolidated the
+  persisted status/billing options for both Project entry points.
 - Restored the responsive Project grid, with every Project card wrapped in the
   same status-colored container treatment used by Milestones Kanban lanes.
 

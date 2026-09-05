@@ -41,6 +41,9 @@
   eight existing warnings/deprecations outside this feature; the full Flutter
   test suite passed (25 tests), including two assignee-map/response parsing
   tests.
+- Focused analysis passed for the Projects grid/editor filter wiring. Project
+  filter-option and board tests passed (4 tests), covering persisted filter
+  values and existing board behavior.
 - Focused analysis and Project board tests passed (3 tests) after adding the
   status-colored outer card containers.
 - Focused analysis and Project board tests passed (3 tests) after restoring the

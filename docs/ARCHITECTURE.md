@@ -17,6 +17,11 @@ The responsive Project grid uses the same status-color alpha, border, radius,
 and padding values as the existing Kanban lanes. It performs one linear build
 over the already-loaded Projects collection.
 
+`ProjectOverviewPage` reuses `AppRegisterFilters` and the shared Project
+filter-option constants also used by `ProjectManagementPage`. Filter state stays
+in `ProjectManagementController`, where the existing filter/search pipeline
+performs bounded linear passes over the loaded authorized Projects.
+
 The existing Project API already includes each task’s authorized primary
 employee relation. `ProjectManagementController` builds a
 project-id-to-assignee-name map from that response once per Project load.
