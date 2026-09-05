@@ -1,5 +1,15 @@
 # Testing
 
+## Dynamic form field labels — 2026-09-04
+
+- Widget coverage verifies case-insensitive removal of `(optional)` and
+  `(optional if series set)`, the red required marker, and automatic detection
+  of built-in required validators.
+- The forwarding test verifies `ValidatedFormTextField(isRequired: true)`
+  reaches the shared text-field label.
+- `dart format`, focused `flutter analyze`, focused label widget tests, and the
+  full `flutter test --no-pub` suite passed.
+
 ## Project board presentation — 2026-09-04
 
 - Focused `flutter analyze` passed for the Projects page, shared Kanban board,

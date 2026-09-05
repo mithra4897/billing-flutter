@@ -1,5 +1,13 @@
 # Architecture
 
+## 2026-09-04 — Shared dynamic form labels
+
+`AppFormTextField` and `ErpLinkField` obtain their visual labels from the
+focused `buildFormLabel` utility. The utility strips legacy optional suffixes
+and composes the cleaned label with an optional red required marker. Wrapper
+components forward `isRequired` so label presentation is centralized without
+changing validation or requiring caller-wide edits.
+
 ## 2026-09-04 — Sales Quotation and Proforma editor state
 
 Quotation and Proforma controllers use the shared `LatestRequestGuard` to
@@ -792,3 +800,44 @@ Totals are rendered for every filter state.
 Common movement groups are optional `AppRegisterFilterSuggestion` values owned
 by the shared filter surface. Selecting one replaces the Type set and triggers
 the same single debounced reload as a direct type selection.
+
+## 2026-09-04 — Project register filter composition
+
+All Project registers compose the existing `AppRegisterFilters` surface. The
+shared component now accepts labels for its item, type, and category slots so
+Project screens can present Task, Asset, Priority, Project Type, Expense
+Category, or Billing Basis without duplicating dropdown layout code.
+
+Each Project controller owns typed `Set<int>` and `Set<String>` selections and
+applies them to the nested project records it already loaded within the current
+company, user, and constrained-project boundary. Option lists are derived from
+those scoped records; task options use an ID-keyed map to avoid duplicates.
+Filtering remains local, linear in the number of visible records, and does not
+issue additional API requests. Search remains in the existing shell or list
+search control and composes with the shared filters; the shared surface's
+optional search slot is used only by embedded subtabs that have no shell
+actions. Task and Milestone compose the existing `AppRegisterFiltersSection`
+around that surface, reusing its app-standard card background and reveal
+animation rather than introducing Project-specific filter chrome.
+
+## 2026-09-04 — Project task status authorization
+
+Task status is derived from the persisted `task_status` value, including the
+separate `in_review` and `on_hold` states. Flutter uses the Project session's
+existing view-all signal as its Project Head/Super Admin management capability.
+The Kanban board receives that capability explicitly to select visible lanes,
+disable creation/deletion, and reject forbidden drags. The task editor uses the
+same capability to make every task-detail control read-only for normal users
+while retaining an allowed status-only update path. The API independently
+enforces this contract so crafted requests cannot modify protected fields.
+
+## 2026-09-04 — Project board presentation
+
+The standalone Projects route composes `ProjectKanbanBoard.project`. The
+factory groups the controller's already-filtered `List<ProjectModel>` by
+persisted status in one O(n) pass, using the shared lanes, cards, and bottom
+scrollbar. Project cards deliberately reject drag/drop so the Project editor's
+existing status field remains the only mutation path. Selecting a card renders
+the existing multi-tab editor in `AppDialog`; embedded Project views retain
+their `SettingsWorkspace` composition. The existing search controller is bound
+to the top app-bar search field rather than duplicated inside the list.

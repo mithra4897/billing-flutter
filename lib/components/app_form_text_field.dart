@@ -23,6 +23,7 @@ class AppFormTextField extends StatefulWidget {
     this.hintText,
     this.enabled,
     this.allowType = true,
+    this.isRequired = false,
     this.textAlign,
     this.numericDisplayKind,
     this.quantityAllowsFraction,
@@ -48,6 +49,7 @@ class AppFormTextField extends StatefulWidget {
   final String? hintText;
   final bool? enabled;
   final bool allowType;
+  final bool isRequired;
   final TextAlign? textAlign;
   final AppNumericDisplayKind? numericDisplayKind;
   final bool? quantityAllowsFraction;
@@ -440,6 +442,7 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final fieldTextStyle = Theme.of(context).textTheme.bodyMedium;
     final autoPickerEnabled = _isAutoDateField || _isAutoDateTimeField;
     final visuallyReadOnly = widget.enabled == false;
     final effectiveReadOnly =
@@ -480,7 +483,13 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
       inputFormatters: _effectiveInputFormatters(),
       textCapitalization: widget.textCapitalization,
       decoration: InputDecoration(
-        labelText: widget.labelText,
+        label: buildFormLabel(
+          widget.labelText,
+          isRequired:
+              widget.isRequired ||
+              Validators.isRequiredValidator(widget.validator),
+          style: fieldTextStyle,
+        ),
         hintText: _effectiveHintText,
         alignLabelWithHint: widget.maxLines > 1,
         prefixIcon: widget.prefixIcon,

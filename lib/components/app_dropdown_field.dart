@@ -34,6 +34,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.isRequired = false,
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
@@ -60,6 +61,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.isRequired = false,
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
@@ -88,6 +90,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.allowCreate = false,
     this.createNewLabelBuilder,
     this.enabled = true,
+    this.isRequired = false,
     this.multiInitialValues,
     this.onMultiChanged,
     this.multiHintText,
@@ -113,6 +116,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final ValueChanged<String>? onNavigateToCreateNew;
   final bool allowCreate;
   final bool enabled;
+  final bool isRequired;
   final Set<T>? multiInitialValues;
   final ValueChanged<Set<T>>? onMultiChanged;
   final String? multiHintText;
@@ -131,6 +135,7 @@ class AppDropdownField<T> extends StatelessWidget {
 
     return ErpLinkField<T>(
       labelText: labelText,
+      isRequired: isRequired,
       doctypeLabel: doctypeLabel,
       hintText: hintText,
       width: width,

@@ -1,5 +1,23 @@
 # Specifications
 
+## Dynamic form field labels — 2026-09-04
+
+Status: Implemented
+
+Shared text, link, and dropdown fields render cleaned labels through one
+utility. It removes case-insensitive parenthesized optional suffixes matching
+`\\s*\\(optional.*?\\)` and appends a red `*` when `isRequired` is true or a
+built-in required-validator factory is detected. `isRequired` defaults to
+`false`, so existing callers remain compatible and validation behavior is
+unchanged. Null or empty labels produce no label.
+
+Acceptance criteria:
+
+1. Required shared fields show a red `*`.
+2. Legacy optional suffixes are not displayed.
+3. Floating-label rendering continues to use the existing field style.
+4. Widget tests cover cleanup, styling, and forwarding.
+
 ## Project Head task monitoring — 2026-09-04
 
 Status: Implemented

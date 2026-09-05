@@ -138,6 +138,7 @@ class ValidatedFormTextField extends StatelessWidget {
       hintText: hintText,
       enabled: enabled,
       allowType: allowType,
+      isRequired: isRequired,
     );
   }
 }

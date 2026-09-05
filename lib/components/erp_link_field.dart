@@ -34,6 +34,7 @@ class ErpLinkField<T> extends StatefulWidget {
     this.width,
     this.fieldPadding = const EdgeInsets.symmetric(vertical: 8),
     this.enabled = true,
+    this.isRequired = false,
     this.autofocus = false,
     this.loadingMessageBuilder,
     this.emptyMessageBuilder,
@@ -63,6 +64,7 @@ class ErpLinkField<T> extends StatefulWidget {
   final double? width;
   final EdgeInsetsGeometry fieldPadding;
   final bool enabled;
+  final bool isRequired;
   final bool autofocus;
   final String Function(String query, String doctypeLabel)?
   loadingMessageBuilder;
@@ -778,7 +780,15 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                 textAlignVertical: TextAlignVertical.center,
                 style: fieldTextStyle,
                 decoration: InputDecoration(
-                  labelText: compactCellMode ? null : widget.labelText,
+                  label: compactCellMode
+                      ? null
+                      : buildFormLabel(
+                          widget.labelText,
+                          isRequired:
+                              widget.isRequired ||
+                              Validators.isRequiredValidator(widget.validator),
+                          style: fieldTextStyle,
+                        ),
                   floatingLabelBehavior: compactCellMode
                       ? FloatingLabelBehavior.never
                       : FloatingLabelBehavior.always,

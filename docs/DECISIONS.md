@@ -1,5 +1,29 @@
 # Architecture decisions
 
+## ADR-0047: Centralize dynamic form label presentation
+
+- Date: 2026-09-04
+- Status: Accepted
+- Context: More than 500 shared-form callers use legacy `(optional)` label
+  text, while required-field indication needs to be consistent.
+- Decision: Add `buildFormLabel` and use it at the `AppFormTextField` and
+  `ErpLinkField` boundaries. Expose defaulted `isRequired` flags on those
+  widgets and `AppDropdownField`, forward the existing flag from
+  `ValidatedFormTextField`, and mark the built-in required-validator factories
+  so shared fields can detect them automatically.
+- Reason: The wrappers are the common rendering boundary, so one small utility
+  provides consistent behavior and avoids a sweeping, error-prone caller edit.
+- Alternatives considered: Update every caller; add a theme-only decoration
+  rule. Caller edits create unnecessary churn, while theme decoration cannot
+  reliably transform arbitrary label strings or know required state.
+- Consequences: Labels are rendered as `RichText`; accessibility and visual
+  layout should be manually checked for floating labels. Existing callers are
+  compatible, but any direct raw `InputDecoration(labelText: ...)` remains out
+  of scope. Custom validators still require an explicit `isRequired` flag.
+- Related files: `lib/components/form_label_builder.dart`,
+  `app_form_text_field.dart`, `erp_link_field.dart`, `app_dropdown_field.dart`,
+  and `validated_form_text_field.dart`.
+
 ## ADR-0044: Make Proforma source optional and editor writes latest-only
 
 - Date: 2026-09-04

@@ -5,6 +5,16 @@ import 'date_value_helper.dart';
 class Validators {
   const Validators._();
 
+  static final Expando<bool> _requiredValidatorMarkers = Expando<bool>();
+
+  static bool isRequiredValidator(Function? validator) =>
+      validator != null && _requiredValidatorMarkers[validator] == true;
+
+  static T _markRequired<T extends Function>(T validator) {
+    _requiredValidatorMarkers[validator] = true;
+    return validator;
+  }
+
   static final RegExp _emailPattern = RegExp(
     r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$",
     caseSensitive: false,
@@ -87,11 +97,11 @@ class Validators {
   }
 
   static String? Function(String?) required(String fieldName) {
-    return (value) => requiredField(value, fieldName);
+    return _markRequired((value) => requiredField(value, fieldName));
   }
 
   static String? Function(T?) requiredSelection<T>(String fieldName) {
-    return (value) => requiredSelectionField(value, fieldName);
+    return _markRequired((value) => requiredSelectionField(value, fieldName));
   }
 
   static String? Function(String?) optionalMaxLength(
@@ -178,7 +188,7 @@ class Validators {
   static String? Function(String?) compose(
     List<String? Function(String?)> validators,
   ) {
-    return (value) {
+    String? composed(String? value) {
       for (final validator in validators) {
         final message = validator(value);
         if (message != null) {
@@ -187,12 +197,19 @@ class Validators {
       }
 
       return null;
-    };
+    }
+
+    if (validators.any(isRequiredValidator)) {
+      _markRequired(composed);
+    }
+    return composed;
   }
 
   /// Required numeric field that must parse and be strictly greater than zero.
   static String? Function(String?) requiredPositiveNumber(String fieldName) {
-    return (value) => requiredPositiveNumberField(value, fieldName);
+    return _markRequired(
+      (value) => requiredPositiveNumberField(value, fieldName),
+    );
   }
 
   static String? requiredField(String? value, String fieldName) {

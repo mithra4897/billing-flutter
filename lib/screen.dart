@@ -42,6 +42,7 @@ export 'components/date_input_formatter.dart';
 export 'components/date_time_input_formatter.dart';
 export 'components/document_series_selector.dart';
 export 'components/erp_link_field.dart';
+export 'components/form_label_builder.dart';
 export 'components/erp_module_dashboard.dart';
 export 'components/gst_summary_card.dart';
 export 'components/inline_field_action.dart';
