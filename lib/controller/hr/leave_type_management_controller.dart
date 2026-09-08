@@ -2,7 +2,13 @@ import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class LeaveTypeManagementController extends GetxController {
-  LeaveTypeManagementController();
+  LeaveTypeManagementController({
+    this.initialSelectId,
+    this.startInNewMode = false,
+  });
+
+  final int? initialSelectId;
+  final bool startInNewMode;
 
   final HrService _hrService = HrService();
   final HrModuleRefreshController _refreshController =
@@ -30,7 +36,14 @@ class LeaveTypeManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_scheduleReload);
-    loadLeaveTypes();
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    await loadLeaveTypes(selectId: initialSelectId);
+    if (startInNewMode) {
+      startNew(isDesktop: true);
+    }
   }
 
   @override

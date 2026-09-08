@@ -2,7 +2,13 @@ import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class GlobalSalaryComponentController extends GetxController {
-  GlobalSalaryComponentController();
+  GlobalSalaryComponentController({
+    this.initialSelectId,
+    this.startInNewMode = false,
+  });
+
+  final int? initialSelectId;
+  final bool startInNewMode;
 
   final HrService _hrService = HrService();
   final HrModuleRefreshController _refreshController =
@@ -62,7 +68,10 @@ class GlobalSalaryComponentController extends GetxController {
       update();
       return;
     }
-    await loadComponents();
+    await loadComponents(selectId: initialSelectId);
+    if (startInNewMode) {
+      startNew(isDesktop: true);
+    }
   }
 
   @override

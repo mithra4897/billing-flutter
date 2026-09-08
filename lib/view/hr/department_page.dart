@@ -2,9 +2,16 @@ import '../../controller/hr/department_management_controller.dart';
 import '../../screen.dart';
 
 class DepartmentManagementPage extends StatefulWidget {
-  const DepartmentManagementPage({super.key, this.embedded = false});
+  const DepartmentManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<DepartmentManagementPage> createState() =>
@@ -20,11 +27,22 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
     super.initState();
     _controllerTag = persistentControllerTag('DepartmentManagementController');
     if (Get.isRegistered<DepartmentManagementController>(tag: _controllerTag)) {
-      Get.find<DepartmentManagementController>(
+      final controller = Get.find<DepartmentManagementController>(
         tag: _controllerTag,
-      ).loadDepartments();
+      );
+      if (widget.editorOnly && widget.initialId == null) {
+        controller.startNew(isDesktop: true);
+      } else {
+        unawaited(controller.loadDepartments(selectId: widget.initialId));
+      }
     } else {
-      Get.put(DepartmentManagementController(), tag: _controllerTag);
+      Get.put(
+        DepartmentManagementController(
+          initialSelectId: widget.initialId,
+          startInNewMode: widget.editorOnly && widget.initialId == null,
+        ),
+        tag: _controllerTag,
+      );
     }
   }
 
@@ -44,16 +62,20 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
     return GetBuilder<DepartmentManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final content = _buildContent(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+                openFormScreenRoute(context, '/hr/departments/new'),
             icon: Icons.apartment_outlined,
             label: 'New Department',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
+
+        final content = _buildContent(controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -64,6 +86,43 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(
+    DepartmentManagementController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<DepartmentModel>(
+      title: 'Departments',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadDepartments,
+      actions: actions,
+      rows: controller.filteredDepartments,
+      emptyMessage: 'No department records found.',
+      columns: [
+        PurchaseRegisterColumn<DepartmentModel>(
+          label: 'Department Name',
+          flex: 2,
+          valueBuilder: (row) => row.departmentName ?? '-',
+        ),
+        PurchaseRegisterColumn<DepartmentModel>(
+          label: 'ID',
+          valueBuilder: (row) => row.id?.toString() ?? '-',
+        ),
+        PurchaseRegisterColumn<DepartmentModel>(
+          label: 'Status',
+          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/departments/$id');
+        }
       },
     );
   }
@@ -87,6 +146,7 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
       title: 'Departments',
       editorTitle: controller.selectedDepartment?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       wrapEditorInCard: false,
       list: SettingsListCard<DepartmentModel>(
         searchController: controller.searchController,
@@ -100,7 +160,12 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
           title: item.departmentName ?? '-',
           subtitle: item.id?.toString() ?? '',
           selected: selected,
-          onTap: () => controller.selectDepartment(item),
+          onTap: () {
+            final id = item.id;
+            if (id != null) {
+              openFormScreenRoute(context, '/hr/departments/$id');
+            }
+          },
           trailing: SettingsStatusPill(
             label: item.isActive ? 'Active' : 'Inactive',
             active: item.isActive,

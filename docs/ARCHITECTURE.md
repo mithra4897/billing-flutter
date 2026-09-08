@@ -1032,3 +1032,23 @@ badge component, while the underlying Outstanding amount remains a separately
 formatted numeric value and the report API response is unchanged.
 The age-day presentation maps only a numeric zero to `-`, while retaining the
 raw response and leaving monetary zero values untouched.
+## 2026-09-08 — Shared names for non-document registers
+
+Target non-document registers use `SharedRegisterList<T>` and
+`SharedFilterBar` as the public vocabulary for generic list and filter UI.
+Both names intentionally reuse the existing `PurchaseRegisterPage<T>` and
+`AppRegisterFilters` implementations, respectively. This keeps pagination,
+responsive table rendering, loading/error/empty states, filter state, and
+footer behavior in one implementation while allowing module controllers to
+retain their existing typed loaders and shell-aware route callbacks.
+
+The thin adapters add no data structures or network work: each register still makes
+the same bounded controller-managed load and each filter still updates the
+existing controller state. Sales, Purchase, Project, and CRM are unchanged.
+
+The shared list is now a thin composition over the existing register page with
+`RefreshIndicator`, so pull-to-refresh invokes the same controller retry/load
+callback and does not introduce a second data cache. HR management pages and
+Parties use shell-aware editor-only routes for new and existing records;
+Attendance and Payroll Run have dedicated form pages with mounted checks and
+typed API models.

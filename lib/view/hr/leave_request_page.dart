@@ -2,9 +2,16 @@ import '../../controller/hr/leave_request_management_controller.dart';
 import '../../screen.dart';
 
 class LeaveRequestManagementPage extends StatefulWidget {
-  const LeaveRequestManagementPage({super.key, this.embedded = false});
+  const LeaveRequestManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<LeaveRequestManagementPage> createState() =>
@@ -23,7 +30,10 @@ class _LeaveRequestManagementPageState
       'LeaveRequestManagementController',
     );
     Get.put(
-      LeaveRequestManagementController(),
+      LeaveRequestManagementController(
+        initialSelectId: widget.initialId,
+        startInNewMode: widget.editorOnly && widget.initialId == null,
+      ),
       tag: _controllerTag,
       permanent: true,
     );
@@ -107,7 +117,6 @@ class _LeaveRequestManagementPageState
     return GetBuilder<LeaveRequestManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final content = _buildContent(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             icon: Icons.filter_alt_outlined,
@@ -117,12 +126,17 @@ class _LeaveRequestManagementPageState
           ),
           AdaptiveShellActionButton(
             onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+                openFormScreenRoute(context, '/hr/leave-requests/new'),
             icon: Icons.event_available_outlined,
             label: 'New Leave Request',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
+
+        final content = _buildContent(controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -133,6 +147,72 @@ class _LeaveRequestManagementPageState
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(
+    LeaveRequestManagementController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<LeaveRequestModel>(
+      title: 'Leave Requests',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadData,
+      actions: actions,
+      filters: _filtersVisible
+          ? SharedFilterBar.custom(child: _buildInlineLeaveFilters(controller))
+          : null,
+      rows: controller.filteredLeaveRequests,
+      remoteTotalItems: controller.paginationMeta?.total,
+      remoteCurrentPage: controller.paginationMeta?.currentPage,
+      remotePerPage: controller.paginationMeta?.perPage,
+      onRemotePageChanged: controller.goToPage,
+      emptyMessage: 'No leave requests found.',
+      columns: [
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'Employee',
+          valueBuilder: (row) => row.employeeName ?? row.employeeCode ?? '-',
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'Leave Type',
+          valueBuilder: (row) => row.leaveTypeName ?? '-',
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'From Date',
+          valueBuilder: (row) => displayDate(row.fromDate),
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'To Date',
+          valueBuilder: (row) => displayDate(row.toDate),
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'Days',
+          alignRight: true,
+          valueBuilder: (row) {
+            final total = (row.paidLeaveDays ?? 0) +
+                (row.clApprovedDays ?? 0) +
+                (row.lopDays ?? 0);
+            return total > 0 ? formatAmount(total) : '-';
+          },
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'Status',
+          valueBuilder: (row) => (row.status ?? 'Pending').toUpperCase(),
+        ),
+        PurchaseRegisterColumn<LeaveRequestModel>(
+          label: 'Reason',
+          flex: 2,
+          valueBuilder: (row) => row.reason ?? '-',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/leave-requests/$id');
+        }
       },
     );
   }
@@ -155,8 +235,9 @@ class _LeaveRequestManagementPageState
       title: 'Leave Requests',
       editorTitle: controller.selectedLeaveRequest?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       fullWidthHeader: _filtersVisible
-          ? _buildInlineLeaveFilters(controller)
+          ? SharedFilterBar.custom(child: _buildInlineLeaveFilters(controller))
           : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +262,12 @@ class _LeaveRequestManagementPageState
                   ].where((String value) => value.isNotEmpty).join(' • '),
                   detail: item.reason ?? '',
                   selected: selected,
-                  onTap: () => controller.selectLeaveRequest(item),
+                  onTap: () {
+                    final id = item.id;
+                    if (id != null) {
+                      openFormScreenRoute(context, '/hr/leave-requests/$id');
+                    }
+                  },
                 ),
           ),
         ],
@@ -201,8 +287,17 @@ class _LeaveRequestManagementPageState
                     AppDropdownField<int>.fromMapped(
                       labelText: 'Employee',
                       mappedItems: controller.employees
-                          .where((e) => e.companyId == controller.sessionCompanyId && e.id != null)
-                          .map((e) => AppDropdownItem<int>(value: e.id!, label: e.toString()))
+                          .where(
+                            (e) =>
+                                e.companyId == controller.sessionCompanyId &&
+                                e.id != null,
+                          )
+                          .map(
+                            (e) => AppDropdownItem<int>(
+                              value: e.id!,
+                              label: e.toString(),
+                            ),
+                          )
                           .toList(growable: false),
                       initialValue: controller.employeeId,
                       onChanged: controller.setEmployeeId,

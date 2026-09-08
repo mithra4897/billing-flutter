@@ -1759,3 +1759,27 @@ been packaged successfully.
   separate, right-aligned Outstanding amount.
 - Verify Current invoices show `-` for Age Days and retain spacing before the
   Bucket pill.
+# Shared target-module registers — 2026-09-08
+
+- Automated: `dart format` completed on the changed Dart files;
+  `flutter analyze --no-pub` completed with six pre-existing warnings and
+  deprecations outside this change; `flutter test --no-pub` passed (17 tests).
+  Target register sources construct `SharedRegisterList` and Inventory uses
+  `SharedFilterBar`.
+- Manual: open HR, Inventory, Assets, Job Work, Maintenance, Manufacturing,
+  Quality, and Service registers; verify loading, retry, empty/error states,
+  filter clear/toggle, pagination where applicable, and existing new/row route
+  navigation. Confirm Sales, Purchase, Project, and CRM remain unchanged.
+- Known limitation: this change does not convert confirmation, Books, or
+  other secondary detail dialogs into forms; those are not create/update
+  editor dialogs and retain their existing workflows.
+
+## HR and Parties editor routes — 2026-09-08
+
+- Focused analysis covers the shared widgets, shell route resolver, HR
+  controllers/pages, Attendance and Payroll Run form pages, and Parties page.
+- Full `flutter analyze --no-pub` completed with six existing unrelated
+  warnings/deprecations. Full `flutter test --no-pub` passed (17 tests).
+- Manual: open New and an existing row for each HR management register,
+  Expense Claims, Attendance, Payroll Runs, and Parties; verify editor-only
+  content, save behavior, return/refresh behavior, and invalid-company errors.

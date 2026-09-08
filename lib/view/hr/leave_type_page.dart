@@ -2,9 +2,16 @@ import '../../controller/hr/leave_type_management_controller.dart';
 import '../../screen.dart';
 
 class LeaveTypeManagementPage extends StatefulWidget {
-  const LeaveTypeManagementPage({super.key, this.embedded = false});
+  const LeaveTypeManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<LeaveTypeManagementPage> createState() =>
@@ -20,7 +27,10 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
     super.initState();
     _controllerTag = persistentControllerTag('LeaveTypeManagementController');
     Get.put(
-      LeaveTypeManagementController(),
+      LeaveTypeManagementController(
+        initialSelectId: widget.initialId,
+        startInNewMode: widget.editorOnly && widget.initialId == null,
+      ),
       tag: _controllerTag,
       permanent: true,
     );
@@ -31,16 +41,20 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
     return GetBuilder<LeaveTypeManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final content = _buildContent(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+                openFormScreenRoute(context, '/hr/leave-types/new'),
             icon: Icons.beach_access_outlined,
             label: 'New Leave Type',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
+
+        final content = _buildContent(controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -51,6 +65,49 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(
+    LeaveTypeManagementController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<LeaveTypeModel>(
+      title: 'Leave Types',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadLeaveTypes,
+      actions: actions,
+      rows: controller.filteredLeaveTypes,
+      emptyMessage: 'No leave type records found.',
+      columns: [
+        PurchaseRegisterColumn<LeaveTypeModel>(
+          label: 'Leave Type Name',
+          flex: 2,
+          valueBuilder: (row) => row.leaveName ?? '-',
+        ),
+        PurchaseRegisterColumn<LeaveTypeModel>(
+          label: 'Code',
+          valueBuilder: (row) => row.leaveCode ?? '-',
+        ),
+        PurchaseRegisterColumn<LeaveTypeModel>(
+          label: 'Max Days/Year',
+          alignRight: true,
+          valueBuilder: (row) =>
+              row.maxDaysPerYear != null ? formatAmount(row.maxDaysPerYear) : '-',
+        ),
+        PurchaseRegisterColumn<LeaveTypeModel>(
+          label: 'Paid / Unpaid',
+          valueBuilder: (row) => row.isPaid ? 'Paid' : 'Unpaid',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/leave-types/$id');
+        }
       },
     );
   }
@@ -73,6 +130,7 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
       title: 'Leave Types',
       editorTitle: controller.selectedLeaveType?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       list: SettingsListCard<LeaveTypeModel>(
         searchController: controller.searchController,
         searchHint: 'Search leave types',
@@ -89,7 +147,12 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
             item.isPaid ? 'Paid' : 'Unpaid',
           ].join(' • '),
           selected: selected,
-          onTap: () => controller.selectLeaveType(item),
+          onTap: () {
+            final id = item.id;
+            if (id != null) {
+              openFormScreenRoute(context, '/hr/leave-types/$id');
+            }
+          },
         ),
       ),
       editorBuilder: (_) => Form(

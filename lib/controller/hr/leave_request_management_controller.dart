@@ -2,7 +2,13 @@ import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class LeaveRequestManagementController extends GetxController {
-  LeaveRequestManagementController();
+  LeaveRequestManagementController({
+    this.initialSelectId,
+    this.startInNewMode = false,
+  });
+
+  final int? initialSelectId;
+  final bool startInNewMode;
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -61,7 +67,14 @@ class LeaveRequestManagementController extends GetxController {
     searchController.addListener(_scheduleReload);
     listDateFromController.addListener(_scheduleReload);
     listDateToController.addListener(_scheduleReload);
-    loadData();
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    await loadData(selectId: initialSelectId);
+    if (startInNewMode) {
+      startNew(isDesktop: true);
+    }
   }
 
   @override

@@ -5,10 +5,14 @@ class EmployeeManagementPage extends StatefulWidget {
   const EmployeeManagementPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
+    this.startInNewMode = false,
     this.initialEmployeeId,
   });
 
   final bool embedded;
+  final bool editorOnly;
+  final bool startInNewMode;
   final int? initialEmployeeId;
 
   @override
@@ -366,8 +370,15 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       if (!mounted) {
         return;
       }
-      _loadData(selectId: widget.initialEmployeeId);
+      unawaited(_initializeRouteEditor());
     });
+  }
+
+  Future<void> _initializeRouteEditor() async {
+    await _loadData(selectId: widget.initialEmployeeId);
+    if (mounted && widget.startInNewMode) {
+      _startNew();
+    }
   }
 
   @override
@@ -1878,15 +1889,19 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     return GetBuilder<EmployeeManagementController>(
       tag: _controllerTag,
       builder: (_) {
-        final content = _buildContent();
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: _startNew,
+            onPressed: () => openFormScreenRoute(context, '/hr/employees/new'),
             icon: Icons.person_add_alt_1_outlined,
             label: 'New Employee',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(actions);
+        }
+
+        final content = _buildContent();
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -1897,6 +1912,56 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(List<Widget> actions) {
+    return SharedRegisterList<EmployeeModel>(
+      title: 'Employees',
+      embedded: widget.embedded,
+      loading: _initialLoading,
+      errorMessage: _pageError,
+      onRetry: _loadData,
+      actions: actions,
+      rows: _filteredEmployees,
+      remoteTotalItems: _employeeController.paginationMeta?.total,
+      remoteCurrentPage: _employeeController.paginationMeta?.currentPage,
+      remotePerPage: _employeeController.paginationMeta?.perPage,
+      onRemotePageChanged: _goToEmployeePage,
+      emptyMessage: 'No employees found.',
+      columns: [
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Employee Name',
+          flex: 2,
+          valueBuilder: (row) => row.employeeName ?? '-',
+        ),
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Code',
+          valueBuilder: (row) => row.employeeCode ?? '-',
+        ),
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Department',
+          valueBuilder: (row) => row.departmentName ?? '-',
+        ),
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Designation',
+          valueBuilder: (row) => row.designationName ?? '-',
+        ),
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Mobile',
+          valueBuilder: (row) => row.mobile ?? '-',
+        ),
+        PurchaseRegisterColumn<EmployeeModel>(
+          label: 'Status',
+          valueBuilder: (row) => (row.status ?? 'Active').toUpperCase(),
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/employees/$id');
+        }
       },
     );
   }
@@ -1919,6 +1984,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       title: 'Employees',
       editorTitle: _selectedEmployee?.toString(),
       scrollController: _pageScrollController,
+      editorOnly: widget.editorOnly,
       list: SettingsListCard<EmployeeModel>(
         searchController: _searchController,
         searchHint: 'Search employees',
@@ -1936,7 +2002,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           ].where((value) => value.isNotEmpty).join(' · '),
           detail: item.mobile ?? item.email ?? '',
           selected: selected,
-          onTap: () => _selectEmployee(item),
+          onTap: () {
+            final id = item.id;
+            if (id != null) {
+              openFormScreenRoute(context, '/hr/employees/$id');
+            }
+          },
         ),
       ),
       editorBuilder: (_) => _buildEmployeeWorkspaceEditor(),

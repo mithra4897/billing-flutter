@@ -750,12 +750,9 @@ Future<void> showAttendanceRecordDetailDialog(
                   FilledButton.tonal(
                     onPressed: () async {
                       Navigator.pop(ctx);
-                      await openAttendanceRecordEditor(
+                      openFormScreenRoute(
                         context,
-                        hr: hr,
-                        companyId: companyId,
-                        recordId: id,
-                        onSaved: onChanged,
+                        '/hr/attendance/$id?company_id=$companyId',
                       );
                     },
                     child: const Text('Edit'),
@@ -1556,13 +1553,7 @@ Future<void> showExpenseClaimDetailDialog(
                     FilledButton.tonal(
                       onPressed: () async {
                         Navigator.pop(ctx);
-                        await openExpenseClaimEditor(
-                          context,
-                          hr: hr,
-                          companyId: companyId,
-                          claimId: id,
-                          onSaved: onChanged,
-                        );
+                        openFormScreenRoute(context, '/hr/expense-claims/$id');
                       },
                       child: const Text('Edit'),
                     ),
@@ -2176,12 +2167,9 @@ Future<void> showPayrollRunDetailDialog(
                             FilledButton.tonal(
                               onPressed: () async {
                                 Navigator.pop(ctx);
-                                await openPayrollRunEditor(
+                                openFormScreenRoute(
                                   context,
-                                  hr: hr,
-                                  companyId: companyId,
-                                  runId: id,
-                                  onSaved: onChanged,
+                                  '/hr/payroll-runs/$id?company_id=$companyId',
                                 );
                               },
                               child: const Text('Edit'),

@@ -2870,3 +2870,47 @@ shared filter bar instead of the report-specific table renderer.
   means Current and is displayed as `-`; this presentation rule does not alter
   financial amounts or totals.
 - Focused analysis and financial report tests pass.
+# Shared register list and filter naming — 2026-09-08
+
+## Objective
+
+Give the non-document register modules a single domain-neutral naming surface
+for register rendering and filter composition while retaining the existing
+responsive behavior and module-specific controller contracts.
+
+## Scope
+
+In scope are HR, Inventory, Assets, Job Work, Maintenance, Manufacturing,
+Quality, Service, Planning, and Parties/Accounts pages. Sales, Purchase,
+Project, and CRM remain outside this migration. Existing module form pages and
+route-first create/update flows remain authoritative; confirmation and
+secondary detail dialogs are not treated as create/update form navigation.
+
+## Requirements and acceptance criteria
+
+- Target register renderers construct `SharedRegisterList<T>`.
+- Standard Inventory register filtering is exposed as `SharedFilterBar`.
+- Custom register filters can be composed through `SharedFilterBar.custom`.
+- HR management, attendance, payroll, expense claim, employee, and party
+  create/update actions navigate to editor-only routes.
+- Shared register lists expose pull-to-refresh while preserving each module's
+  existing retry and pagination behavior.
+- Shared names reuse the existing `PurchaseRegisterPage` and
+  `AppRegisterFilters` implementations, preserving loading, retry, empty,
+  pagination, filter, footer, responsive, and row-navigation behavior.
+- Existing route callbacks continue to own new/edit navigation and preserve
+  shell-aware URLs.
+- Excluded modules have no source changes.
+- No API, database, authorization, tenant, or validation contract changes are
+  introduced.
+
+## Edge cases and tests
+
+The shared adapters must remain generic for typed rows, preserve nullable filter
+options, and avoid creating a second controller or duplicate network request.
+Editor-only routes must render the form across the complete available content
+area without the register list alongside it; the persistent application shell
+navigation remains available for returning to the register.
+Run formatting, focused analysis, and the existing Flutter test suite. Manual
+verification should cover target register loading, empty/error states, filter
+toggle/clear, pagination where enabled, and row/new route navigation.

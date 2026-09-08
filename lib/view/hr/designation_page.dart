@@ -2,9 +2,16 @@ import '../../controller/hr/designation_management_controller.dart';
 import '../../screen.dart';
 
 class DesignationManagementPage extends StatefulWidget {
-  const DesignationManagementPage({super.key, this.embedded = false});
+  const DesignationManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<DesignationManagementPage> createState() =>
@@ -19,7 +26,13 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('DesignationManagementController');
-    Get.put(DesignationManagementController(), tag: _controllerTag);
+    Get.put(
+      DesignationManagementController(
+        initialSelectId: widget.initialId,
+        startInNewMode: widget.editorOnly && widget.initialId == null,
+      ),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -32,16 +45,20 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
     return GetBuilder<DesignationManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final content = _buildContent(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+                openFormScreenRoute(context, '/hr/designations/new'),
             icon: Icons.workspace_premium_outlined,
             label: 'New Designation',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
+
+        final content = _buildContent(controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -52,6 +69,43 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(
+    DesignationManagementController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<DesignationModel>(
+      title: 'Designations',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadDesignations,
+      actions: actions,
+      rows: controller.filteredDesignations,
+      emptyMessage: 'No designation records found.',
+      columns: [
+        PurchaseRegisterColumn<DesignationModel>(
+          label: 'Designation Name',
+          flex: 2,
+          valueBuilder: (row) => row.designationName ?? '-',
+        ),
+        PurchaseRegisterColumn<DesignationModel>(
+          label: 'ID',
+          valueBuilder: (row) => row.id?.toString() ?? '-',
+        ),
+        PurchaseRegisterColumn<DesignationModel>(
+          label: 'Status',
+          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/designations/$id');
+        }
       },
     );
   }
@@ -75,6 +129,7 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
       title: 'Designations',
       editorTitle: controller.selectedDesignation?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       wrapEditorInCard: false,
       list: SettingsListCard<DesignationModel>(
         searchController: controller.searchController,
@@ -88,7 +143,12 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
           title: item.designationName ?? '-',
           subtitle: item.id?.toString() ?? '',
           selected: selected,
-          onTap: () => controller.selectDesignation(item),
+          onTap: () {
+            final id = item.id;
+            if (id != null) {
+              openFormScreenRoute(context, '/hr/designations/$id');
+            }
+          },
           trailing: SettingsStatusPill(
             label: item.isActive ? 'Active' : 'Inactive',
             active: item.isActive,

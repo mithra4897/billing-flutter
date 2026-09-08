@@ -5,6 +5,7 @@ class PartyManagementPage extends StatefulWidget {
   const PartyManagementPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
     this.initialTabIndex = 0,
     this.startInNewMode = false,
     this.initialPartyId,
@@ -13,6 +14,7 @@ class PartyManagementPage extends StatefulWidget {
   });
 
   final bool embedded;
+  final bool editorOnly;
   final int initialTabIndex;
   final bool startInNewMode;
   final int? initialPartyId;
@@ -1372,29 +1374,27 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
   }
 
-  void _startNewParty() {
-    _resetPartyForm();
-    _clearDetailTabs();
-    _tabController.animateTo(0);
-
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final content = GetBuilder<PartyManagementController>(
-      tag: _controllerTag,
-      builder: (_) => _buildContent(context),
-    );
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _startNewParty,
+        onPressed: () => openFormScreenRoute(context, '/parties/new'),
         icon: Icons.person_add_alt_outlined,
         label: 'New Party',
       ),
     ];
+
+    if (!widget.editorOnly) {
+      return GetBuilder<PartyManagementController>(
+        tag: _controllerTag,
+        builder: (_) => _buildSharedRegister(actions),
+      );
+    }
+
+    final content = GetBuilder<PartyManagementController>(
+      tag: _controllerTag,
+      builder: (_) => _buildContent(context),
+    );
 
     if (widget.embedded) {
       return ShellPageActions(actions: actions, child: content);
@@ -1405,6 +1405,55 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       scrollController: _pageScrollController,
       actions: actions,
       child: content,
+    );
+  }
+
+  Widget _buildSharedRegister(List<Widget> actions) {
+    return SharedRegisterList<PartyModel>(
+      title: 'Parties',
+      embedded: widget.embedded,
+      loading: _initialLoading,
+      errorMessage: _pageError,
+      onRetry: _loadPage,
+      actions: actions,
+      rows: _parties,
+      remoteTotalItems: _controller.effectivePartiesMeta.total,
+      remoteCurrentPage: _controller.effectivePartiesMeta.currentPage,
+      remotePerPage: _controller.effectivePartiesMeta.perPage,
+      onRemotePageChanged: (page) {
+        _controller.setPartiesPage(page);
+        _loadPage(resetPage: false);
+      },
+      emptyMessage: 'No parties found.',
+      columns: [
+        PurchaseRegisterColumn<PartyModel>(
+          label: 'Party Name',
+          flex: 2,
+          valueBuilder: (row) => row.partyName ?? '-',
+        ),
+        PurchaseRegisterColumn<PartyModel>(
+          label: 'Code',
+          valueBuilder: (row) => row.partyCode ?? '-',
+        ),
+        PurchaseRegisterColumn<PartyModel>(
+          label: 'Type',
+          valueBuilder: (row) => row.partyType ?? '-',
+        ),
+        PurchaseRegisterColumn<PartyModel>(
+          label: 'Display Name',
+          valueBuilder: (row) => row.displayName ?? '-',
+        ),
+        PurchaseRegisterColumn<PartyModel>(
+          label: 'Status',
+          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/parties/$id');
+        }
+      },
     );
   }
 
@@ -1427,6 +1476,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       title: 'Parties',
       editorTitle: _selectedParty?.toString(),
       scrollController: _pageScrollController,
+      editorOnly: widget.editorOnly,
       list: AppSectionCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1479,7 +1529,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                       party.displayName ?? '',
                     ].where((value) => value.isNotEmpty).join(' • '),
                     selected: selected,
-                    onTap: () => _selectParty(party),
+                    onTap: () {
+                      final id = party.id;
+                      if (id != null) {
+                        openFormScreenRoute(context, '/parties/$id');
+                      }
+                    },
                     trailing: SettingsStatusPill(
                       label: party.isActive ? 'Active' : 'Inactive',
                       active: party.isActive,

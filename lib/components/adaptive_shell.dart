@@ -369,21 +369,29 @@ class _AdaptiveShellSearchFieldState extends State<AdaptiveShellSearchField> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_handleTextChanged);
+    try {
+      widget.controller.addListener(_handleTextChanged);
+    } catch (_) {}
   }
 
   @override
   void didUpdateWidget(covariant AdaptiveShellSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_handleTextChanged);
-      widget.controller.addListener(_handleTextChanged);
+      try {
+        oldWidget.controller.removeListener(_handleTextChanged);
+      } catch (_) {}
+      try {
+        widget.controller.addListener(_handleTextChanged);
+      } catch (_) {}
     }
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_handleTextChanged);
+    try {
+      widget.controller.removeListener(_handleTextChanged);
+    } catch (_) {}
     super.dispose();
   }
 
@@ -395,6 +403,10 @@ class _AdaptiveShellSearchFieldState extends State<AdaptiveShellSearchField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    String currentText = '';
+    try {
+      currentText = widget.controller.text.trim();
+    } catch (_) {}
     return SizedBox(
       width: widget.width,
       height: 44,
@@ -417,13 +429,17 @@ class _AdaptiveShellSearchFieldState extends State<AdaptiveShellSearchField> {
             minWidth: 40,
             minHeight: 40,
           ),
-          suffixIcon: widget.controller.text.trim().isEmpty
+          suffixIcon: currentText.isEmpty
               ? null
               : IconButton(
                   tooltip: 'Clear search',
                   iconSize: 18,
                   visualDensity: VisualDensity.compact,
-                  onPressed: widget.controller.clear,
+                  onPressed: () {
+                    try {
+                      widget.controller.clear();
+                    } catch (_) {}
+                  },
                   icon: const Icon(Icons.close),
                 ),
           border: OutlineInputBorder(

@@ -260,12 +260,9 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
                     FilledButton.tonal(
                       onPressed: _busy
                           ? null
-                          : () => openPayrollRunEditor(
+                          : () => openFormScreenRoute(
                               context,
-                              hr: _hr,
-                              companyId: widget.companyId,
-                              runId: widget.runId,
-                              onSaved: () => _load(),
+                              '/hr/payroll-runs/${widget.runId}?company_id=${widget.companyId}',
                             ),
                       child: const Text('Edit'),
                     ),

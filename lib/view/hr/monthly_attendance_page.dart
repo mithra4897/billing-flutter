@@ -853,13 +853,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     final id = record.id;
     final companyId = _companyId;
     if (id == null || companyId == null) return;
-    await openAttendanceRecordEditor(
-      context,
-      hr: _service,
-      companyId: companyId,
-      recordId: id,
-      onSaved: _load,
-    );
+    openFormScreenRoute(context, '/hr/attendance/$id?company_id=$companyId');
   }
 
   String _monthName(int month) => const <String>[

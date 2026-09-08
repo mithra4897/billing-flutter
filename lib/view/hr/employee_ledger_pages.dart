@@ -267,7 +267,7 @@ class _EmployeeLedgerRegisterPageState
 
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<_EmployeeLedgerRegisterRow>(
+    return SharedRegisterList<_EmployeeLedgerRegisterRow>(
       title: 'Employee Ledger',
       embedded: widget.embedded,
       loading: _loading,

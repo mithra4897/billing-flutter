@@ -2,7 +2,13 @@ import '../../screen.dart';
 import 'hr_module_refresh_controller.dart';
 
 class DesignationManagementController extends GetxController {
-  DesignationManagementController();
+  DesignationManagementController({
+    this.initialSelectId,
+    this.startInNewMode = false,
+  });
+
+  final int? initialSelectId;
+  final bool startInNewMode;
 
   final HrService _hrService = HrService();
   final HrModuleRefreshController _refreshController =
@@ -30,7 +36,14 @@ class DesignationManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_scheduleReload);
-    loadDesignations();
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    await loadDesignations(selectId: initialSelectId);
+    if (startInNewMode) {
+      startNew(isDesktop: true);
+    }
   }
 
   @override

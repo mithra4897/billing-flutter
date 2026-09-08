@@ -22,19 +22,12 @@ class AppRegisterFiltersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (child, animation) {
-        return SizeTransition(
-          sizeFactor: animation,
-          alignment: Alignment.topCenter,
-          child: FadeTransition(opacity: animation, child: child),
-        );
-      },
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
       child: filters == null
-          ? SizedBox.shrink(key: ValueKey<String>('$keyPrefix-filters-hidden'))
+          ? const SizedBox.shrink()
           : Padding(
               key: ValueKey<String>('$keyPrefix-filters-visible'),
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingLg),

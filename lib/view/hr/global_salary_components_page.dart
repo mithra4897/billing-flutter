@@ -41,9 +41,16 @@ const List<AppDropdownItem<String>> _contributionRoleItems =
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 class GlobalSalaryComponentsPage extends StatefulWidget {
-  const GlobalSalaryComponentsPage({super.key, this.embedded = false});
+  const GlobalSalaryComponentsPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<GlobalSalaryComponentsPage> createState() =>
@@ -62,11 +69,22 @@ class _GlobalSalaryComponentsPageState
     if (Get.isRegistered<GlobalSalaryComponentController>(
       tag: _controllerTag,
     )) {
-      Get.find<GlobalSalaryComponentController>(
+      final controller = Get.find<GlobalSalaryComponentController>(
         tag: _controllerTag,
-      ).loadComponents();
+      );
+      if (widget.editorOnly && widget.initialId == null) {
+        controller.startNew(isDesktop: true);
+      } else {
+        unawaited(controller.loadComponents(selectId: widget.initialId));
+      }
     } else {
-      Get.put(GlobalSalaryComponentController(), tag: _controllerTag);
+      Get.put(
+        GlobalSalaryComponentController(
+          initialSelectId: widget.initialId,
+          startInNewMode: widget.editorOnly && widget.initialId == null,
+        ),
+        tag: _controllerTag,
+      );
     }
   }
 
@@ -88,16 +106,22 @@ class _GlobalSalaryComponentsPageState
     return GetBuilder<GlobalSalaryComponentController>(
       tag: _controllerTag,
       builder: (controller) {
-        final content = _buildContent(controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            onPressed: () => openFormScreenRoute(
+              context,
+              '/hr/global-salary-components/new',
+            ),
             icon: Icons.payments_outlined,
             label: 'New Component',
           ),
         ];
 
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
+
+        final content = _buildContent(controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
@@ -108,6 +132,51 @@ class _GlobalSalaryComponentsPageState
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Widget _buildSharedRegister(
+    GlobalSalaryComponentController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<GlobalSalaryComponentModel>(
+      title: 'Salary Components',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadComponents,
+      actions: actions,
+      rows: controller.filteredComponents,
+      remoteTotalItems: controller.paginationMeta?.total,
+      remoteCurrentPage: controller.paginationMeta?.currentPage,
+      remotePerPage: controller.paginationMeta?.perPage,
+      onRemotePageChanged: controller.goToPage,
+      emptyMessage: 'No salary components found.',
+      columns: [
+        PurchaseRegisterColumn<GlobalSalaryComponentModel>(
+          label: 'Component Name',
+          flex: 2,
+          valueBuilder: (row) => row.componentName ?? '-',
+        ),
+        PurchaseRegisterColumn<GlobalSalaryComponentModel>(
+          label: 'Role',
+          valueBuilder: (row) => row.componentRole ?? '-',
+        ),
+        PurchaseRegisterColumn<GlobalSalaryComponentModel>(
+          label: 'Type',
+          valueBuilder: (row) => row.componentType ?? '-',
+        ),
+        PurchaseRegisterColumn<GlobalSalaryComponentModel>(
+          label: 'Status',
+          valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
+        ),
+      ],
+      onRowTap: (row) {
+        final id = row.id;
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/global-salary-components/$id');
+        }
       },
     );
   }
@@ -130,6 +199,7 @@ class _GlobalSalaryComponentsPageState
       title: 'Salary Components',
       editorTitle: controller.selectedComponent?.componentName,
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       wrapEditorInCard: false,
       list: SettingsListCard<GlobalSalaryComponentModel>(
         searchController: controller.searchController,
@@ -150,7 +220,15 @@ class _GlobalSalaryComponentsPageState
             ].join(' • '),
             detail: detail.isEmpty ? null : detail,
             selected: selected,
-            onTap: () => controller.selectComponent(item),
+            onTap: () {
+              final id = item.id;
+              if (id != null) {
+                openFormScreenRoute(
+                  context,
+                  '/hr/global-salary-components/$id',
+                );
+              }
+            },
             trailing: SettingsStatusPill(
               label: item.isActive ? 'Active' : 'Inactive',
               active: item.isActive,

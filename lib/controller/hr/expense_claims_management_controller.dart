@@ -178,7 +178,13 @@ List<ExpenseLineEditors> expenseClaimEditorsFromJson(
 }
 
 class ExpenseClaimsManagementController extends GetxController {
-  ExpenseClaimsManagementController();
+  ExpenseClaimsManagementController({
+    this.initialSelectId,
+    this.startInNewMode = false,
+  });
+
+  final int? initialSelectId;
+  final bool startInNewMode;
 
   static const List<AppDropdownItem<String?>> paymentFilterItems =
       <AppDropdownItem<String?>>[
@@ -269,7 +275,14 @@ class ExpenseClaimsManagementController extends GetxController {
       }
       unawaited(loadPage(selectClaimId: editingClaimId));
     });
-    loadPage();
+    unawaited(_initialize());
+  }
+
+  Future<void> _initialize() async {
+    await loadPage(selectClaimId: initialSelectId);
+    if (startInNewMode) {
+      startNewClaim(isDesktop: true);
+    }
   }
 
   @override

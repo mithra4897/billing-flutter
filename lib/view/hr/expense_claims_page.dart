@@ -12,9 +12,16 @@ void _expenseClaimsNeedCompanySnack(BuildContext context) {
 }
 
 class ExpenseClaimsManagementPage extends StatefulWidget {
-  const ExpenseClaimsManagementPage({super.key, this.embedded = false});
+  const ExpenseClaimsManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<ExpenseClaimsManagementPage> createState() =>
@@ -33,11 +40,28 @@ class _ExpenseClaimsManagementPageState
     _controllerTag = persistentControllerTag(
       'ExpenseClaimsManagementController',
     );
-    Get.put(
-      ExpenseClaimsManagementController(),
+    if (Get.isRegistered<ExpenseClaimsManagementController>(
       tag: _controllerTag,
-      permanent: true,
-    );
+    )) {
+      unawaited(_configureExistingController());
+    } else {
+      Get.put(
+        ExpenseClaimsManagementController(
+          initialSelectId: widget.initialId,
+          startInNewMode: widget.editorOnly && widget.initialId == null,
+        ),
+        tag: _controllerTag,
+        permanent: true,
+      );
+    }
+  }
+
+  Future<void> _configureExistingController() async {
+    final controller = _controller;
+    await controller.loadPage(selectClaimId: widget.initialId);
+    if (widget.editorOnly && widget.initialId == null) {
+      controller.startNewClaim(isDesktop: true);
+    }
   }
 
   ExpenseClaimsManagementController get _controller =>
@@ -302,25 +326,26 @@ class _ExpenseClaimsManagementPageState
             filled: _filtersVisible,
             onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
           ),
-          if (controller.isSelfServiceUser)
-            AdaptiveShellActionButton(
-              icon: Icons.add_outlined,
-              label: 'New claim',
-              onPressed: () async {
-                final companyId = await hrResolveCompanyId(context);
-                if (!context.mounted) {
-                  return;
-                }
-                if (companyId == null) {
-                  _expenseClaimsNeedCompanySnack(context);
-                  return;
-                }
-                controller.startNewClaim(
-                  isDesktop: Responsive.isDesktop(context),
-                );
-              },
-            ),
+          AdaptiveShellActionButton(
+            icon: Icons.add_outlined,
+            label: 'New claim',
+            onPressed: () async {
+              final companyId = await hrResolveCompanyId(context);
+              if (!context.mounted) {
+                return;
+              }
+              if (companyId == null) {
+                _expenseClaimsNeedCompanySnack(context);
+                return;
+              }
+              openFormScreenRoute(context, '/hr/expense-claims/new');
+            },
+          ),
         ];
+
+        if (!widget.editorOnly) {
+          return _buildSharedRegister(controller, actions);
+        }
 
         final content = _buildContent(controller);
         if (widget.embedded) {
@@ -354,7 +379,10 @@ class _ExpenseClaimsManagementPageState
       title: 'Expense claims',
       editorTitle: controller.editorTitle,
       scrollController: controller.pageScrollController,
-      fullWidthHeader: _filtersVisible ? _buildInlineExpenseFilters() : null,
+      editorOnly: widget.editorOnly,
+      fullWidthHeader: _filtersVisible
+          ? SharedFilterBar.custom(child: _buildInlineExpenseFilters())
+          : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -379,7 +407,12 @@ class _ExpenseClaimsManagementPageState
                   expensePaymentSubtitle(data),
                 ].where((value) => value.isNotEmpty).join(' · '),
                 selected: selected,
-                onTap: () => controller.selectClaim(item),
+                onTap: () {
+                  final id = intValue(item.toJson(), 'id');
+                  if (id != null) {
+                    openFormScreenRoute(context, '/hr/expense-claims/$id');
+                  }
+                },
               );
             },
           ),
@@ -388,6 +421,75 @@ class _ExpenseClaimsManagementPageState
       editorBuilder: (_) => controller.editorLoading
           ? const AppLoadingView(message: 'Loading claim…')
           : _buildEditor(controller),
+    );
+  }
+
+  Widget _buildSharedRegister(
+    ExpenseClaimsManagementController controller,
+    List<Widget> actions,
+  ) {
+    return SharedRegisterList<ExpenseClaimModel>(
+      title: 'Expense claims',
+      embedded: widget.embedded,
+      loading: controller.initialLoading,
+      errorMessage: controller.pageError,
+      onRetry: controller.loadPage,
+      actions: actions,
+      filters: _filtersVisible
+          ? SharedFilterBar.custom(child: _buildInlineExpenseFilters())
+          : null,
+      rows: controller.filteredRows,
+      remoteTotalItems: controller.paginationMeta?.total,
+      remoteCurrentPage: controller.paginationMeta?.currentPage,
+      remotePerPage: controller.paginationMeta?.perPage,
+      onRemotePageChanged: controller.goToPage,
+      emptyMessage: 'No expense claims match the filters.',
+      columns: [
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Claim no.',
+          valueBuilder: (row) {
+            final data = row.toJson();
+            final claimNo = stringValue(data, 'claim_no');
+            return claimNo.isEmpty
+                ? 'Claim #${stringValue(data, 'id')}'
+                : claimNo;
+          },
+        ),
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Claim date',
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'claim_date')),
+        ),
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Employee',
+          valueBuilder: (row) {
+            final data = row.toJson();
+            return nestedExpenseEmployeeName(data).isNotEmpty
+                ? nestedExpenseEmployeeName(data)
+                : stringValue(data, 'employee_name');
+          },
+        ),
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Status',
+          valueBuilder: (row) =>
+              expenseClaimStatusLabel(row.toJson()['claim_status']),
+        ),
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Payment',
+          valueBuilder: (row) => expensePaymentSubtitle(row.toJson()),
+        ),
+        PurchaseRegisterColumn<ExpenseClaimModel>(
+          label: 'Amount',
+          alignRight: true,
+          valueBuilder: (row) => stringValue(row.toJson(), 'total_amount'),
+        ),
+      ],
+      onRowTap: (row) {
+        final id = intValue(row.toJson(), 'id');
+        if (id != null) {
+          openFormScreenRoute(context, '/hr/expense-claims/$id');
+        }
+      },
     );
   }
 

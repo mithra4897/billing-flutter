@@ -603,7 +603,7 @@ class _InventoryRegisterShellState<T>
     return GetBuilder<InventoryRegisterController<T>>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<T>(
+        return SharedRegisterList<T>(
           title: widget.title,
           embedded: widget.embedded,
           loading: controller.loading,
@@ -633,7 +633,7 @@ class _InventoryRegisterShellState<T>
             ),
           ],
           filters: _filtersVisible
-              ? AppRegisterFilters(
+              ? SharedFilterBar(
                   dateFromController: controller.supportsDateFilter
                       ? controller.dateFromController
                       : null,

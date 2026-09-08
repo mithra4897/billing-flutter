@@ -1634,6 +1634,7 @@ class _AppShellPageState extends State<AppShellPage> {
       return PartyManagementPage(
         key: routeKey,
         embedded: true,
+        editorOnly: true,
         startInNewMode: isNew,
         initialPartyId: id,
         initialPartyName: _currentQueryParameters['party_name'],
@@ -1645,12 +1646,81 @@ class _AppShellPageState extends State<AppShellPage> {
     }
 
     final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
     final id = int.tryParse(recordSegment);
-    if (recordSegment == 'new' || id == null) {
+    if (!isNew && id == null) {
       return null;
     }
 
     switch ('${segments[0]}/${segments[1]}') {
+      case 'hr/departments':
+        return DepartmentManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/designations':
+        return DesignationManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/leave-types':
+        return LeaveTypeManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/leave-requests':
+        return LeaveRequestManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/global-salary-components':
+        return GlobalSalaryComponentsPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/expense-claims':
+        return ExpenseClaimsManagementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'hr/payroll-runs':
+        final companyId = int.tryParse(
+          _currentQueryParameters['company_id'] ?? '',
+        );
+        if (companyId == null) {
+          return null;
+        }
+        return PayrollRunFormPage(
+          key: routeKey,
+          embedded: true,
+          companyId: companyId,
+          runId: id,
+        );
+      case 'hr/attendance':
+        final companyId = int.tryParse(
+          _currentQueryParameters['company_id'] ?? '',
+        );
+        if (companyId == null) {
+          return null;
+        }
+        return AttendanceRecordFormPage(
+          key: routeKey,
+          embedded: true,
+          companyId: companyId,
+          recordId: id,
+        );
       case 'settings/users':
         return UserManagementPage(
           key: routeKey,
@@ -1667,21 +1737,32 @@ class _AppShellPageState extends State<AppShellPage> {
         return EmployeeManagementPage(
           key: routeKey,
           embedded: true,
+          editorOnly: true,
+          startInNewMode: isNew,
           initialEmployeeId: id,
         );
       case 'hr/employee-ledgers':
+        if (id == null) {
+          return null;
+        }
         return EmployeeLedgerDetailPage(
           key: routeKey,
           embedded: true,
           employeeId: id,
         );
       case 'purchase/ledgers':
+        if (id == null) {
+          return null;
+        }
         return PurchaseLedgerDetailPage(
           key: routeKey,
           embedded: true,
           ledgerId: id,
         );
       case 'sales/ledgers':
+        if (id == null) {
+          return null;
+        }
         return SalesLedgerDetailPage(
           key: routeKey,
           embedded: true,

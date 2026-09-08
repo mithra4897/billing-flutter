@@ -614,7 +614,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
     return GetBuilder<AttendanceRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<AttendanceRecordModel>(
+        return SharedRegisterList<AttendanceRecordModel>(
           title: 'Attendance',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -759,7 +759,7 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
     return GetBuilder<PayrollRunRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<PayrollRunModel>(
+        return SharedRegisterList<PayrollRunModel>(
           title: 'Payroll runs',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -786,55 +786,55 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
                   _showNeedCompanySnack(context);
                   return;
                 }
-                await openPayrollRunEditor(
+                openFormScreenRoute(
                   context,
-                  hr: controller._service,
-                  companyId: companyId,
-                  onSaved: controller.load,
+                  '/hr/payroll-runs/new?company_id=$companyId',
                 );
               },
             ),
           ],
           filters: _filtersVisible
-              ? HrInlineFilterBar(
-                  wrapInCard: false,
-                  filterFields: [
-                    hrListFilterBox(
-                      child: AppFormTextField(
-                        controller: controller.searchController,
-                        labelText: 'Search',
-                        hintText: 'Period, status, run date…',
+              ? SharedFilterBar.custom(
+                  child: HrInlineFilterBar(
+                    wrapInCard: false,
+                    filterFields: [
+                      hrListFilterBox(
+                        child: AppFormTextField(
+                          controller: controller.searchController,
+                          labelText: 'Search',
+                          hintText: 'Period, status, run date…',
+                        ),
                       ),
-                    ),
-                    hrListFilterBox(
-                      child: AppDropdownField<String>.fromMapped(
-                        labelText: 'Status',
-                        mappedItems: PayrollRunRegisterController.statusItems,
-                        initialValue: controller.statusFilter,
-                        onChanged: (value) =>
-                            controller.setStatusFilter(value ?? ''),
+                      hrListFilterBox(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: 'Status',
+                          mappedItems: PayrollRunRegisterController.statusItems,
+                          initialValue: controller.statusFilter,
+                          onChanged: (value) =>
+                              controller.setStatusFilter(value ?? ''),
+                        ),
                       ),
-                    ),
-                    hrListFilterBox(
-                      child: AppFormTextField(
-                        controller: controller.dateFromController,
-                        labelText: 'From date',
-                        keyboardType: TextInputType.datetime,
-                        inputFormatters: const [DateInputFormatter()],
+                      hrListFilterBox(
+                        child: AppFormTextField(
+                          controller: controller.dateFromController,
+                          labelText: 'From date',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
+                        ),
                       ),
-                    ),
-                    hrListFilterBox(
-                      child: AppFormTextField(
-                        controller: controller.dateToController,
-                        labelText: 'To date',
-                        keyboardType: TextInputType.datetime,
-                        inputFormatters: const [DateInputFormatter()],
+                      hrListFilterBox(
+                        child: AppFormTextField(
+                          controller: controller.dateToController,
+                          labelText: 'To date',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
+                        ),
                       ),
-                    ),
-                  ],
-                  onClear: () {
-                    controller.clearFilters();
-                  },
+                    ],
+                    onClear: () {
+                      controller.clearFilters();
+                    },
+                  ),
                 )
               : null,
           rows: controller.filteredRows,
@@ -875,7 +875,9 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
             }
             final navigate = ShellRouteScope.maybeOf(context);
             if (navigate != null) {
-              navigate('/hr/payroll-runs/detail?run_id=$id&company_id=$companyId');
+              navigate(
+                '/hr/payroll-runs/detail?run_id=$id&company_id=$companyId',
+              );
             }
           },
         );
@@ -1008,7 +1010,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
     return GetBuilder<PayslipRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<PayslipModel>(
+        return SharedRegisterList<PayslipModel>(
           title: 'Payslips',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -1038,7 +1040,9 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
             ),
           ],
           filters: _filtersVisible
-              ? _buildInlinePayslipFilters(controller)
+              ? SharedFilterBar.custom(
+                  child: _buildInlinePayslipFilters(controller),
+                )
               : null,
           rows: controller.filteredRows,
           remoteTotalItems: controller.paginationMeta?.total,
