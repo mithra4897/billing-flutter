@@ -1198,6 +1198,14 @@ class SalesDeliveryManagementController extends GetxController {
       shippingAddressId: intValue(selected, 'shipping_address_id'),
       billingAddressId: intValue(selected, 'billing_address_id'),
     );
+    final savedBillingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'billing_address_id')),
+      fallback: formatPartyAddressFromData(customerData),
+    );
+    final savedShippingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'shipping_address_id')),
+      fallback: savedBillingAddress,
+    );
     var subtotal = 0.0;
     final printLines = isReturnableDc
         ? returnableDcs
@@ -1280,6 +1288,8 @@ class SalesDeliveryManagementController extends GetxController {
                     fallback: formatPartyAddressFromData(customerData),
                   ))
           : '',
+      billingAddress: hasCustomer ? savedBillingAddress : '',
+      shippingAddress: hasCustomer ? savedShippingAddress : '',
       partyContact: directCustomerDetails.isNotEmpty
           ? ''
           : resolvePartyContact(

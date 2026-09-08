@@ -659,6 +659,16 @@ PartyAddressModel? preferredPartyAddress(
   return null;
 }
 
+PartyAddressModel? partyAddressById(PartyModel? party, int? addressId) {
+  if (party == null || addressId == null) {
+    return null;
+  }
+  return party.addresses.cast<PartyAddressModel?>().firstWhere(
+    (address) => address != null && address.id == addressId && address.isActive,
+    orElse: () => null,
+  );
+}
+
 String? normalizeGstStateCode(String? code) {
   final normalized = (code ?? '').trim().toUpperCase();
   if (normalized.isEmpty) {

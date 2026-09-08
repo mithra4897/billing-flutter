@@ -124,6 +124,10 @@ CGST/SGST/IGST summary labels and currency symbols, discount and round-off
 summary labels and currencies, `discount_amount`, `round_off_amount`,
 `adjustment_amount`, `is_direct_customer`, and `watermark_text`.
 
+The shared builder also publishes `billing_address` and `shipping_address` for
+every managed document. Existing builders can override these keys with their
+resolved document-specific values without duplicating binding registration.
+
 ## 2026-09-05 — Proforma print binding parity
 
 Sales Proforma Invoice reuses the shared `DocumentPrintDataModel` and managed

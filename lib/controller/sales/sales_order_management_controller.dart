@@ -1147,6 +1147,14 @@ class SalesOrderManagementController extends GetxController {
           )
         : customer?.toJson() ?? const <String, dynamic>{};
     final preferredAddress = preferredPartyAddress(customer);
+    final savedBillingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'billing_address_id')),
+      fallback: formatPartyAddressFromData(customerData),
+    );
+    final savedShippingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'shipping_address_id')),
+      fallback: savedBillingAddress,
+    );
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -1209,6 +1217,8 @@ class SalesOrderManagementController extends GetxController {
                     fallback: formatPartyAddressFromData(customerData),
                   ))
           : '',
+      billingAddress: hasCustomer ? savedBillingAddress : '',
+      shippingAddress: hasCustomer ? savedShippingAddress : '',
       partyContact: directCustomerDetails.isNotEmpty
           ? ''
           : resolvePartyContact(

@@ -2671,6 +2671,16 @@ class SalesInvoiceManagementController extends GetxController {
     final hasCustomer =
         effectivePartyName.trim().isNotEmpty ||
         directCustomerDetails.isNotEmpty;
+    final savedBillingAddress = formatPartyAddress(
+      partyAddressById(customer, billingAddressId),
+      fallback: directCustomerDetails.isNotEmpty
+          ? effectivePartyAddress
+          : formatPartyAddressFromData(customerData),
+    );
+    final savedShippingAddress = formatPartyAddress(
+      partyAddressById(customer, shippingAddressId),
+      fallback: savedBillingAddress,
+    );
 
     return buildManagedDocumentPrintData(
       companies: companies,
@@ -2688,6 +2698,8 @@ class SalesInvoiceManagementController extends GetxController {
                     fallback: formatPartyAddressFromData(customerData),
                   ))
           : '',
+      billingAddress: hasCustomer ? savedBillingAddress : '',
+      shippingAddress: hasCustomer ? savedShippingAddress : '',
       partyContact: hasCustomer
           ? (directCustomerDetails.isNotEmpty
                 ? ''

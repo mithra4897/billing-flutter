@@ -185,6 +185,24 @@ remain sourced from the Proforma editor.
 The Proforma payload does not invent invoice-only adjustments; it publishes
 `adjustment_amount` as zero for template compatibility.
 
+## Managed document address print bindings — 2026-09-08
+
+Status: Implemented
+
+Every managed document print payload exposes `billing_address` and
+`shipping_address` through the shared print-data builder. Existing document
+builders that provide document-specific address values continue to override
+the shared fallback; other documents use the resolved party address for both
+bindings until separate saved address data is available.
+
+## Purchase Order print binding — 2026-09-08
+
+Status: Implemented
+
+Managed print data exposes `po_no` and the compatible `purchase_order_no` alias.
+Purchase Orders use their document number, while Purchase Invoices and
+Receipts use the saved linked Purchase Order number when provided.
+
 ## Dynamic form field labels — 2026-09-04
 
 Status: Implemented
@@ -1354,7 +1372,24 @@ the ERP.
 - PHP syntax checks pass and Activity Watch routes are authenticated and
   company/user scoped.
 - Flutter formatting, analysis, and focused tests pass where the SDK is
-  available.
+available.
+
+## Print template text spacing — 2026-09-08
+
+Status: Implemented
+
+Blank lines intentionally entered between print-template bindings are preserved
+in the rendered document. Lines containing only an unresolved or empty binding
+are removed so optional fields do not leave orphan spacing.
+
+## Print designer line geometry — 2026-09-08
+
+Status: Implemented
+
+Line shapes remain straight when created or resized. Horizontal lines preserve
+zero height and vertical lines preserve zero width; diagonal drag gestures are
+normalized to the dominant direction. The generic minimum dimensions used by
+rectangles and other shapes do not apply to line orientation.
 - `install.sql` remains the fresh-install source of truth; the existing
   additive Activity Watch patch is updated for already-created test/server
   tables. No framework migration table is introduced.

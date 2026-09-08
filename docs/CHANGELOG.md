@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-09-08 — Add billing and shipping address print bindings
+
+- Added `billing_address` and `shipping_address` to the shared managed-document
+  print-data payload so they are available in every print binding picker.
+- Sales invoices, orders, quotations, proformas, and deliveries now resolve
+  these bindings from the saved customer address IDs.
+- Preserved existing document-specific address values through the builder's
+  override merge.
+
+## 2026-09-08 — Preserve print template spacing
+
+- Preserved intentional blank lines between customer, billing, shipping,
+  contact, and GST bindings in printed output.
+- Empty binding-only lines are still removed when their value is unavailable.
+
+## 2026-09-08 — Add Purchase Order print binding
+
+- Added `po_no` and `purchase_order_no` bindings to managed print data.
+- Purchase Order, Purchase Invoice, and Purchase Receipt print data now pass
+  the applicable saved PO number.
+
+## 2026-09-08 — Keep print designer lines straight
+
+- Fixed horizontal and vertical line creation/resizing so changing a line’s
+  length does not turn it into a diagonal.
+
 ## 2026-09-08 — Introduce shared target-module register names
 
 - Added `SharedRegisterList<T>` and `SharedFilterBar` as domain-neutral names

@@ -781,6 +781,7 @@ class PurchaseOrderManagementController extends GetxController {
       documentNumber: nullIfEmpty(orderNoController.text) ?? 'Draft',
       documentDate: orderDateController.text.trim(),
       referenceNumber: supplierReferenceNoController.text.trim(),
+      purchaseOrderNumber: orderNoController.text.trim(),
       partyName: supplier?.partyName ?? '',
       partyAddress: formatPartyAddress(
         preferredAddress,

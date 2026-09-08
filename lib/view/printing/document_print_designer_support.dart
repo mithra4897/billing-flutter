@@ -237,6 +237,9 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
   String referenceNumber = '',
   required String partyName,
   String partyAddress = '',
+  String purchaseOrderNumber = '',
+  String billingAddress = '',
+  String shippingAddress = '',
   String partyContact = '',
   String partyGstin = '',
   String notes = '',
@@ -303,6 +306,14 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
       'total_sgst_amount': sgstAmount,
       'total_igst_amount': igstAmount,
       'total_cess_amount': cessAmount,
+      'billing_address': billingAddress.trim().isNotEmpty
+          ? billingAddress
+          : partyAddress,
+      'shipping_address': shippingAddress.trim().isNotEmpty
+          ? shippingAddress
+          : partyAddress,
+      'po_no': purchaseOrderNumber,
+      'purchase_order_no': purchaseOrderNumber,
       ...extraData,
     },
   );
@@ -509,7 +520,7 @@ Object? _resolvePrintAliasValue(Map<String, dynamic> data, String path) {
 String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
   final hasPlaceholders = input.contains('{{');
   final placeholderPattern = RegExp(r'\{\{([^}]+)\}\}');
-  var resolved = input
+  final resolvedLines = input
       .split('\n')
       .map((line) {
         final matches = placeholderPattern.allMatches(line).toList();
@@ -539,11 +550,16 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
         });
 
         if (!hasVisiblePlaceholderValue) {
-          return '';
+          // Remove only a line that was created by an empty binding. An
+          // intentionally blank line in the template remains a real print
+          // line and therefore preserves the user's spacing.
+          return null;
         }
         return replaced;
       })
-      .join('\n');
+      .whereType<String>()
+      .toList(growable: false);
+  var resolved = resolvedLines.join('\n');
 
   // Dynamically replace hardcoded legacy company names with the selected company's name
   final companyName = data['company_name']?.toString() ?? '';
@@ -574,11 +590,7 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
     }
   }
   if (hasPlaceholders && resolved.contains('\n')) {
-    resolved = resolved
-        .split('\n')
-        .map((line) => line.trimRight())
-        .where((line) => line.trim().isNotEmpty)
-        .join('\n');
+    resolved = resolved.split('\n').map((line) => line.trimRight()).join('\n');
   }
   return resolved;
 }

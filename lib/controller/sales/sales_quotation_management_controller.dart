@@ -932,6 +932,14 @@ class SalesQuotationManagementController extends GetxController {
       shippingAddressId: intValue(selected, 'shipping_address_id'),
       billingAddressId: intValue(selected, 'billing_address_id'),
     );
+    final savedBillingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'billing_address_id')),
+      fallback: formatPartyAddressFromData(customerData),
+    );
+    final savedShippingAddress = formatPartyAddress(
+      partyAddressById(customer, intValue(selected, 'shipping_address_id')),
+      fallback: savedBillingAddress,
+    );
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -996,6 +1004,8 @@ class SalesQuotationManagementController extends GetxController {
                     fallback: formatPartyAddressFromData(customerData),
                   ))
           : '',
+      billingAddress: hasCustomer ? savedBillingAddress : '',
+      shippingAddress: hasCustomer ? savedShippingAddress : '',
       partyContact: directCustomerDetails.isNotEmpty
           ? ''
           : resolvePartyContact(

@@ -2220,11 +2220,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
     final rect = Rect.fromPoints(start, current);
     final shape = DocumentPrintShape.defaults(type, template.shapes.length);
+    final horizontal = rect.width >= rect.height;
     return shape.copyWith(
       x: rect.left,
       y: rect.top,
-      width: math.max(type == 'line' ? 8 : 24, rect.width),
-      height: type == 'line' ? rect.height : math.max(16, rect.height),
+      width: type == 'line'
+          ? (horizontal ? math.max(8, rect.width) : 0)
+          : math.max(24, rect.width),
+      height: type == 'line'
+          ? (horizontal ? 0 : math.max(8, rect.height))
+          : math.max(16, rect.height),
     );
   }
 
@@ -2456,6 +2461,13 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           if (template.showGrid) {
             nextW = (nextW / template.gridSize).round() * template.gridSize;
             nextH = (nextH / template.gridSize).round() * template.gridSize;
+          }
+          if (shape.type == 'line') {
+            final horizontal = shape.width >= shape.height;
+            return shape.copyWith(
+              width: horizontal ? math.max(8, nextW) : 0,
+              height: horizontal ? 0 : math.max(8, nextH),
+            );
           }
           return shape.copyWith(
             width: math.max(16, nextW),
@@ -3008,26 +3020,30 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     )
                     .toList(),
               ),
-              ...tableRows.skip(1).map(
-                (row) => pw.TableRow(
-                  children: row
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => pw.Padding(
-                          padding: pw.EdgeInsets.all(
-                            math.max(2, tableShape.cellGap),
-                          ),
-                          child: _quotationMarkdownRichText(
-                            entry.value,
-                            tableStyle,
-                            align: _pdfTextAlign(tableAlignments[entry.key]),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
+              ...tableRows
+                  .skip(1)
+                  .map(
+                    (row) => pw.TableRow(
+                      children: row
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => pw.Padding(
+                              padding: pw.EdgeInsets.all(
+                                math.max(2, tableShape.cellGap),
+                              ),
+                              child: _quotationMarkdownRichText(
+                                entry.value,
+                                tableStyle,
+                                align: _pdfTextAlign(
+                                  tableAlignments[entry.key],
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
             ],
           );
           widgets.add(

@@ -987,6 +987,14 @@ class SalesProformaInvoiceManagementController extends GetxController {
       shippingAddressId: intValue(selected, 'shipping_address_id'),
       billingAddressId: intValue(selected, 'billing_address_id'),
     );
+    final savedBillingAddress = formatPartyAddress(
+      partyAddressById(customer, billingAddressId),
+      fallback: formatPartyAddressFromData(customerData),
+    );
+    final savedShippingAddress = formatPartyAddress(
+      partyAddressById(customer, shippingAddressId),
+      fallback: savedBillingAddress,
+    );
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -1075,6 +1083,8 @@ class SalesProformaInvoiceManagementController extends GetxController {
                     fallback: formatPartyAddressFromData(customerData),
                   ))
           : '',
+      billingAddress: hasCustomer ? savedBillingAddress : '',
+      shippingAddress: hasCustomer ? savedShippingAddress : '',
       partyContact: directCustomerDetails.isNotEmpty
           ? ''
           : resolvePartyContact(

@@ -606,6 +606,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       documentNumber: nullIfEmpty(invoiceNoController.text) ?? 'Draft',
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: supplierReferenceNoController.text.trim(),
+      purchaseOrderNumber: stringValue(selected, 'purchase_order_no'),
       partyName: supplier?.partyName ?? '',
       partyAddress: formatPartyAddress(
         preferredAddress,
