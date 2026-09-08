@@ -2728,3 +2728,59 @@ calculating overall quantities from only the visible page.
 6. Page and overall quantity totals remain visible and correct across filters
    and pages.
 7. Loading, empty, error, retry, and remote pagination behavior remain intact.
+
+## 2026-09-08 — Direct financial report navigation
+
+### Objective
+
+Reduce the number of clicks needed to open every supported financial report
+from the Accounting sidebar.
+
+### Scope and requirements
+
+- Make `Financial Reports` an Accounting submenu containing an entry for every
+  report in the existing financial report option list.
+- Link each entry to `/accounting/reports` with its corresponding
+  `report_type` query parameter.
+- Preserve the existing `accounts.view` permission on all three report links.
+- Read the query parameter in the fixed application shell and pass it to the
+  existing financial reports page/controller.
+- The controller preselects a supplied supported report type before its normal
+  lookup and report loading flow. Missing or unsupported values retain the
+  existing Day Book default.
+
+### Acceptance criteria and tests
+
+- Expanding Accounting → Financial Reports shows Day Book, General Ledger,
+  Accounts Receivable Aging, Accounts Payable Aging, Trial Balance, Profit &
+  Loss, Balance Sheet, Cash Flow, and Financial Statement Pack.
+- Selecting any link opens the existing Financial Reports page with the
+  corresponding report type selected.
+- The existing Financial Reports route without a query parameter remains
+  compatible and defaults to Day Book.
+- Formatting, focused analysis, and relevant Flutter tests pass.
+
+## 2026-09-08 — Financial report default periods
+
+### Objective
+
+Make the Daybook landing view show today’s entries directly and make other
+financial reports useful immediately by defaulting them to the current month.
+
+### Scope and requirements
+
+- Remove the Daybook-only `From`, `To`, `Total Debit`, and `Total Credit`
+  summary cards from its report body; keep the Daybook table and mobile list.
+- Initialize Daybook date filters to today through today.
+- Initialize all other date-range reports to the first day of the current
+  month through today.
+- Initialize as-of reports to today while retaining their existing report
+  semantics.
+- Preserve explicit user-entered filters and existing report APIs.
+
+### Acceptance criteria and tests
+
+- Opening Daybook displays its rows without the four summary cards.
+- Opening any other report uses the current calendar month by default where it
+  accepts a date range.
+- Focused controller/view tests, formatting, and analysis pass.

@@ -1705,3 +1705,21 @@ been packaged successfully.
   is not installed in this checkout.
 - Authenticated browser/API verification of party-source matching, suggestion
   chips, responsive totals, and multi-page aggregates remains manual.
+
+## 2026-09-08 — Financial report quick links
+
+- Verify Financial Reports expands under Accounting and lists every supported
+  financial report as a submenu item while preserving the `accounts.view`
+  visibility rule.
+- Verify each quick link opens `/accounting/reports` with the matching report
+  selection, and that the plain Financial Reports route still defaults to Day
+  Book.
+- Run `dart format`, focused `flutter analyze`, and the focused navigation test.
+
+## 2026-09-08 — Financial report default periods
+
+- Verify Daybook opens with today’s date and no From/To/Total Debit/Total
+  Credit cards, while its rows remain visible.
+- Verify date-range reports default from the first day of the current month
+  through today and as-of reports default to today.
+- Run the focused financial report tests, formatting, and analysis.

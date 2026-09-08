@@ -1,5 +1,8 @@
 # Frontend Change Documentation
 
+- Financial report quick links — direct Accounting sidebar access to Daybook
+  and General Ledger through the existing Financial Reports route.
+
 Maintain this folder whenever `billing-flutter` is changed.
 
 For every meaningful frontend change, add or update a Markdown record that states:

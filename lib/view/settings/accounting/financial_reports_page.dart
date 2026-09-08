@@ -2,9 +2,14 @@ import '../../../controller/settings/accounting/financial_reports_controller.dar
 import '../../../screen.dart';
 
 class FinancialReportsPage extends StatefulWidget {
-  const FinancialReportsPage({super.key, this.embedded = false});
+  const FinancialReportsPage({
+    super.key,
+    this.embedded = false,
+    this.initialReportType,
+  });
 
   final bool embedded;
+  final String? initialReportType;
 
   @override
   State<FinancialReportsPage> createState() => _FinancialReportsPageState();
@@ -38,7 +43,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     if (Get.isRegistered<FinancialReportsController>(tag: _controllerTag)) {
       return;
     }
-    Get.put(FinancialReportsController(), tag: _controllerTag);
+    Get.put(
+      FinancialReportsController(initialReportType: widget.initialReportType),
+      tag: _controllerTag,
+    );
   }
 
   Future<void> _openFilterPanel(

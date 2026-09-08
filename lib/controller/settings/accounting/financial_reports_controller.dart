@@ -1,7 +1,9 @@
 import '../../../screen.dart';
 
 class FinancialReportsController extends GetxController {
-  FinancialReportsController();
+  FinancialReportsController({this.initialReportType});
+
+  final String? initialReportType;
 
   final GlobalKey<FormState> reportFilterFormKey = GlobalKey<FormState>();
 
@@ -50,10 +52,12 @@ class FinancialReportsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final today = displayTodayDate();
-    asOfDateController.text = today;
-    dateFromController.text = today;
-    dateToController.text = today;
+    final requestedReportType = initialReportType;
+    if (requestedReportType != null &&
+        reportItems.any((item) => item.value == requestedReportType)) {
+      reportType = requestedReportType;
+    }
+    _setDefaultDates();
     loadLookups();
   }
 
@@ -344,6 +348,7 @@ class FinancialReportsController extends GetxController {
 
   void setReportType(String? value) {
     reportType = value ?? 'day_book';
+    _setDefaultDates();
     if (!needsAccount) {
       accountId = null;
     }
@@ -381,12 +386,25 @@ class FinancialReportsController extends GetxController {
     accountId = null;
     partyId = null;
     dayBookBranchId = null;
-    final today = displayTodayDate();
-    dateFromController.text = today;
-    dateToController.text = today;
-    asOfDateController.text = today;
+    _setDefaultDates();
     report = null;
     update();
+  }
+
+  void _setDefaultDates() {
+    final today = displayTodayDate();
+    final now = DateTime.now();
+    final monthStart = displayDate(
+      DateTime(now.year, now.month, 1).toIso8601String(),
+    );
+    asOfDateController.text = today;
+    if (reportType == 'day_book') {
+      dateFromController.text = today;
+      dateToController.text = today;
+      return;
+    }
+    dateFromController.text = monthStart;
+    dateToController.text = today;
   }
 
   void _sanitizeSelections() {

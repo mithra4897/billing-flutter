@@ -207,8 +207,6 @@ class FinancialReportViews {
     Map<String, dynamic> data,
     ThemeData theme,
   ) {
-    final period = _mapDynamic(data['period']);
-    final summary = _mapDynamic(data['summary']);
     final rows = _asList(data['lines'])
         .map((raw) {
           final r = _mapDynamic(raw);
@@ -224,35 +222,6 @@ class FinancialReportViews {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            _reportMetaCard(
-              theme: theme,
-              label: 'From',
-              value: _displayDate(period['date_from']),
-            ),
-            _reportMetaCard(
-              theme: theme,
-              label: 'To',
-              value: _displayDate(period['date_to']),
-            ),
-            _reportMetaCard(
-              theme: theme,
-              label: 'Total Debit',
-              value: _money(summary['total_debit']),
-              emphasized: true,
-            ),
-            _reportMetaCard(
-              theme: theme,
-              label: 'Total Credit',
-              value: _money(summary['total_credit']),
-              emphasized: true,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingMd),
         Responsive.isMobile(context)
             ? _dayBookMobileList(theme, rows)
             : _table(theme, const [

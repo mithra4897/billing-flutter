@@ -2238,3 +2238,18 @@
 
 - Added an Employee → Salary Structures toggle to ignore attendance-based
   proration for the selected structure while retaining approved leave LOP.
+
+## 2026-09-08 — Add all financial report quick links
+
+- Added Accounting sidebar links for every supported financial report using the
+  existing Financial Reports route and query-parameter selection.
+- Grouped those links under the expandable Financial Reports submenu.
+- The shell and controller now pass through and validate an initial report
+  type without changing the API, database, or authorization contract.
+- Focused formatting, analysis, and navigation tests are recorded with this
+  change.
+
+## 2026-09-08 — Improve financial report defaults
+
+- Removed Daybook’s four report summary cards so its entries display directly.
+- Defaulted Daybook to today and other reports to the current month/as-of date.

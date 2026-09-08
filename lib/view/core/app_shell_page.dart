@@ -461,7 +461,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/accounting/bank-reconciliation':
         return BankReconciliationManagementPage(key: routeKey, embedded: true);
       case '/accounting/reports':
-        return FinancialReportsPage(key: routeKey, embedded: true);
+        return FinancialReportsPage(
+          key: routeKey,
+          embedded: true,
+          initialReportType: _currentQueryParameters['report_type'],
+        );
       case '/accounting/voucher-types':
         return VoucherTypeManagementPage(key: routeKey, embedded: true);
       case '/accounting/posting-rule-groups':
