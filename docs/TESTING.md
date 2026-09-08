@@ -1708,12 +1708,11 @@ been packaged successfully.
 
 ## 2026-09-08 — Financial report quick links
 
-- Verify Financial Reports expands under Accounting and lists every supported
-  financial report as a submenu item while preserving the `accounts.view`
-  visibility rule.
-- Verify each quick link opens `/accounting/reports` with the matching report
-  selection, and that the plain Financial Reports route still defaults to Day
-  Book.
+- Verify Accounting shows one Financial Reports item with no submenu while
+  preserving the `accounts.view` visibility rule.
+- Verify it opens `/accounting/reports` with Day Book selected, and the Report
+  filter selects each supported report. Existing bookmarked query URLs remain
+  compatible.
 - Run `dart format`, focused `flutter analyze`, and the focused navigation test.
 
 ## 2026-09-08 — Financial report default periods

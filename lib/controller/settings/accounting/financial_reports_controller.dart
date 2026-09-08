@@ -39,7 +39,7 @@ class FinancialReportsController extends GetxController {
   String reportType = 'day_book';
   int? companyId;
   int? accountId;
-  int? partyId;
+  Set<int> partyIds = <int>{};
   int? dayBookBranchId;
   List<AccountModel> accounts = const <AccountModel>[];
   List<PartyAccountModel> partyAccounts = const <PartyAccountModel>[];
@@ -153,13 +153,13 @@ class FinancialReportsController extends GetxController {
         break;
       case 'general_ledger':
         filters['account_id'] = accountId;
-        if (partyId != null) filters['party_id'] = partyId;
+        _putPartyIds(filters);
         _putNonEmptyFilter(filters, 'date_from', dateFromController.text);
         _putNonEmptyFilter(filters, 'date_to', dateToController.text);
         break;
       case 'accounts_receivable_aging':
       case 'accounts_payable_aging':
-        if (partyId != null) filters['party_id'] = partyId;
+        _putPartyIds(filters);
         _putNonEmptyFilter(filters, 'as_of_date', asOfDateController.text);
         break;
       case 'trial_balance':
@@ -351,7 +351,7 @@ class FinancialReportsController extends GetxController {
       accountId = null;
     }
     if (!needsParty || reportType == 'general_ledger') {
-      partyId = null;
+      partyIds = <int>{};
     }
     if (!needsDayBookBranch) {
       dayBookBranchId = null;
@@ -359,11 +359,13 @@ class FinancialReportsController extends GetxController {
     report = null;
     _sanitizeSelections();
     update();
+    unawaited(runReport());
   }
 
   void setDayBookBranchId(int? value) {
     dayBookBranchId = value;
     update();
+    unawaited(runReport());
   }
 
   void setAccountId(int? value) {
@@ -371,18 +373,20 @@ class FinancialReportsController extends GetxController {
     report = null;
     _sanitizeSelections();
     update();
+    unawaited(runReport());
   }
 
-  void setPartyId(int? value) {
-    partyId = value;
+  void setPartyIds(Set<int> values) {
+    partyIds = Set<int>.from(values);
     report = null;
     update();
+    unawaited(runReport());
   }
 
   void clearFilters() {
     reportType = 'day_book';
     accountId = null;
-    partyId = null;
+    partyIds = <int>{};
     dayBookBranchId = null;
     _setDefaultDates();
     report = null;
@@ -391,7 +395,7 @@ class FinancialReportsController extends GetxController {
 
   void clearCurrentReportFilters() {
     accountId = null;
-    partyId = null;
+    partyIds = <int>{};
     dayBookBranchId = null;
     _setDefaultDates();
     report = null;
@@ -431,13 +435,11 @@ class FinancialReportsController extends GetxController {
       accountId = null;
     }
 
-    final partyIds = partyOptions
+    final availablePartyIds = partyOptions
         .map((party) => party.id)
         .whereType<int>()
         .toSet();
-    if (partyId != null && !partyIds.contains(partyId)) {
-      partyId = null;
-    }
+    partyIds = partyIds.where(availablePartyIds.contains).toSet();
   }
 
   void _putNonEmptyFilter(
@@ -448,6 +450,12 @@ class FinancialReportsController extends GetxController {
     final value = rawValue.trim();
     if (value.isNotEmpty) {
       filters[key] = value;
+    }
+  }
+
+  void _putPartyIds(Map<String, dynamic> filters) {
+    if (partyIds.isNotEmpty) {
+      filters['party_ids'] = partyIds.toList()..sort();
     }
   }
 }

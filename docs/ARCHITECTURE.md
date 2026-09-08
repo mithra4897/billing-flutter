@@ -987,13 +987,12 @@ to the top app-bar search field rather than duplicated inside the list.
 ## 2026-09-08 — Financial report quick links
 
 The existing route-first `AppShellPage` remains the single navigation boundary.
-`Financial Reports` is an Accounting navigation group whose child menu items
-reuse `/accounting/reports` and encode the selected report as `report_type`.
-The shell forwards that value to
-`FinancialReportsPage`, which passes it into the existing
-`FinancialReportsController`; the controller validates it against its static
-report option list before the existing lookup and report loading flow runs.
-No new page, widget, service, API, database, or permission boundary is added.
+`Financial Reports` is one direct Accounting navigation item that opens the
+existing `/accounting/reports` route with its Day Book default. The existing
+inline Report field selects any other report. The shell still forwards an
+optional `report_type` query parameter to `FinancialReportsPage` for backward
+compatibility with bookmarked links. No new page, widget, service, API,
+database, or permission boundary is added.
 
 ## 2026-09-08 — Financial report default periods
 

@@ -2249,6 +2249,13 @@
 - Focused formatting, analysis, and navigation tests are recorded with this
   change.
 
+## 2026-09-08 — Simplify Financial Reports navigation
+
+- Removed individual report sidebar links and restored one direct Financial
+  Reports entry that opens Day Book by default.
+- Other report types remain available through the existing Report filter;
+  bookmarked query-parameter URLs remain supported.
+
 ## 2026-09-08 — Improve financial report defaults
 
 - Removed Daybook’s four report summary cards so its entries display directly.

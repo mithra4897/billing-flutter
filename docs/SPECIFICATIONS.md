@@ -2733,31 +2733,23 @@ calculating overall quantities from only the visible page.
 
 ### Objective
 
-Reduce the number of clicks needed to open every supported financial report
-from the Accounting sidebar.
+Keep Financial Reports easy to find without duplicating every report in the
+Accounting sidebar.
 
 ### Scope and requirements
 
-- Make `Financial Reports` an Accounting submenu containing an entry for every
-  report in the existing financial report option list.
-- Link each entry to `/accounting/reports` with its corresponding
-  `report_type` query parameter.
-- Preserve the existing `accounts.view` permission on all three report links.
-- Read the query parameter in the fixed application shell and pass it to the
-  existing financial reports page/controller.
-- The controller preselects a supplied supported report type before its normal
-  lookup and report loading flow. Missing or unsupported values retain the
-  existing Day Book default.
+- Make `Financial Reports` one direct Accounting navigation item at
+  `/accounting/reports`, protected by `accounts.view`.
+- Open Day Book by default. Users select every other report from the existing
+  Report field in the inline filter.
+- Retain query-parameter handling for backward-compatible bookmarked links.
 
 ### Acceptance criteria and tests
 
-- Expanding Accounting → Financial Reports shows Day Book, General Ledger,
-  Accounts Receivable Aging, Accounts Payable Aging, Trial Balance, Profit &
-  Loss, Balance Sheet, Cash Flow, and Financial Statement Pack.
-- Selecting any link opens the existing Financial Reports page with the
-  corresponding report type selected.
-- The existing Financial Reports route without a query parameter remains
-  compatible and defaults to Day Book.
+- Accounting shows a single Financial Reports item with no submenu children.
+- Selecting it opens Day Book by default; every supported report remains
+  selectable through the Report filter.
+- Existing report URLs with a query parameter remain compatible.
 - Formatting, focused analysis, and relevant Flutter tests pass.
 
 ## 2026-09-08 — Financial report default periods

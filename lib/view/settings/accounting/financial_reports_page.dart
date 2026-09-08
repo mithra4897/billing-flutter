@@ -64,6 +64,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     FinancialReportsController controller,
   ) {
     return [
+      AdaptiveShellSearchField(
+        controller: _searchController,
+        hintText: 'Search report rows',
+      ),
       AdaptiveShellActionButton(
         onPressed: controller.loading
             ? null
@@ -79,11 +83,6 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         icon: Icons.copy_outlined,
         label: 'Copy TSV',
         filled: false,
-      ),
-      AdaptiveShellActionButton(
-        onPressed: controller.loading ? null : controller.runReport,
-        icon: Icons.assessment_outlined,
-        label: 'Run Report',
       ),
     ];
   }
@@ -228,8 +227,6 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     FinancialReportsController controller,
   ) {
     return AppRegisterFilters(
-      searchController: _searchController,
-      searchHint: 'Search report rows',
       additionalFields: _buildReportFilterFields(controller),
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,
@@ -692,11 +689,23 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           onChanged: controller.setAccountId,
         ),
       if (controller.needsParty)
-        AppDropdownField<int?>.fromMapped(
+        AppDropdownField<int>.fromMapped(
           labelText: 'Party',
-          mappedItems: controller.partyFilterItems,
-          initialValue: controller.partyId,
-          onChanged: controller.setPartyId,
+          mappedItems: controller.partyOptions
+              .where((party) => party.id != null)
+              .map(
+                (party) => AppDropdownItem<int>(
+                  value: party.id!,
+                  label: party.toString(),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.partyIds,
+          multiHintText: 'Select parties',
+          onMultiChanged: controller.setPartyIds,
+          onClear: controller.partyIds.isEmpty
+              ? null
+              : () => controller.setPartyIds(<int>{}),
         ),
     ];
   }
