@@ -122,6 +122,7 @@ class EmployeeManagementController extends GetxController {
   int? selectedRelationKey;
   int? selectedStructureKey;
   bool structureIsActive = true;
+  bool structureAttendanceExempt = false;
   int? selectedComponentParentKey;
   int? selectedComponentKey;
   String componentType = 'earning';
@@ -207,6 +208,7 @@ class EmployeeSalaryStructureDraft {
     required this.netSalary,
     required this.ctcMonthly,
     required this.isActive,
+    this.attendanceExempt = false,
     required this.components,
   });
 
@@ -218,6 +220,7 @@ class EmployeeSalaryStructureDraft {
   final String netSalary;
   final String ctcMonthly;
   final bool isActive;
+  final bool attendanceExempt;
   final List<EmployeeSalaryComponentDraft> components;
 
   EmployeeSalaryStructureDraft copyWith({
@@ -229,6 +232,7 @@ class EmployeeSalaryStructureDraft {
     String? netSalary,
     String? ctcMonthly,
     bool? isActive,
+    bool? attendanceExempt,
     List<EmployeeSalaryComponentDraft>? components,
   }) {
     return EmployeeSalaryStructureDraft(
@@ -240,6 +244,7 @@ class EmployeeSalaryStructureDraft {
       netSalary: netSalary ?? this.netSalary,
       ctcMonthly: ctcMonthly ?? this.ctcMonthly,
       isActive: isActive ?? this.isActive,
+      attendanceExempt: attendanceExempt ?? this.attendanceExempt,
       components: components ?? this.components,
     );
   }
@@ -255,6 +260,7 @@ class EmployeeSalaryStructureDraft {
       netSalary: Validators.parseFlexibleNumber(netSalary),
       ctcMonthly: ctc.isEmpty ? null : Validators.parseFlexibleNumber(ctc),
       isActive: isActive,
+      attendanceExempt: attendanceExempt,
       components: components
           .map((item) => item.toModel())
           .toList(growable: false),

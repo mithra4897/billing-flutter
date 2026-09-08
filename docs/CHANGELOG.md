@@ -2223,3 +2223,7 @@
   migration; removed employee drag ordering and bulk apply UI while retaining
   amount overrides. See [global-salary-components.md](global-salary-components.md)
   and [`billing-api/doc/global-salary-components.md`](../../billing-api/doc/global-salary-components.md).
+# 2026-09-05 — Add salary-structure attendance exemption
+
+- Added an Employee → Salary Structures toggle to ignore attendance-based
+  proration for the selected structure while retaining approved leave LOP.

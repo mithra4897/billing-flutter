@@ -308,6 +308,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   bool get _structureIsActive => _employeeController.structureIsActive;
   set _structureIsActive(bool value) =>
       _employeeController.structureIsActive = value;
+  bool get _structureAttendanceExempt =>
+      _employeeController.structureAttendanceExempt;
+  set _structureAttendanceExempt(bool value) =>
+      _employeeController.structureAttendanceExempt = value;
   int? get _selectedComponentParentKey =>
       _employeeController.selectedComponentParentKey;
   set _selectedComponentParentKey(int? value) =>
@@ -1247,6 +1251,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       netSalary: employeeDecimalText(model.netSalary),
       ctcMonthly: employeeDecimalText(model.ctcMonthly),
       isActive: model.isActive,
+      attendanceExempt: model.attendanceExempt,
       components: model.components
           .map(
             (item) => EmployeeSalaryComponentDraft(
@@ -1325,6 +1330,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureNetSalaryController.clear();
     _structureCtcMonthlyController.clear();
     _structureIsActive = true;
+    _structureAttendanceExempt = false;
     _structureFormError = null;
     if (!silent && mounted) {
       _updateController(() {});
@@ -1354,6 +1360,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureNetSalaryController.text = draft.netSalary;
     _structureCtcMonthlyController.text = draft.ctcMonthly;
     _structureIsActive = draft.isActive;
+    _structureAttendanceExempt = draft.attendanceExempt;
     _structureFormError = null;
     _resetComponentEditor(silent: true);
     _updateController(() {});
@@ -1386,6 +1393,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       netSalary: _structureNetSalaryController.text.trim(),
       ctcMonthly: _structureCtcMonthlyController.text.trim(),
       isActive: _structureIsActive,
+      attendanceExempt: _structureAttendanceExempt,
       components: _selectedStructureKey == null
           ? <EmployeeSalaryComponentDraft>[]
           : _salaryStructures
@@ -2808,6 +2816,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                     ].join(' • '),
                     detail: [
                       '${item.components.length} Components',
+                      if (item.attendanceExempt) 'Attendance exempt',
                       if (item.isActive) 'Active',
                     ].join(' • '),
                     expanded: expanded,
@@ -2878,6 +2887,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               value: _structureIsActive,
               onChanged: (value) =>
                   _updateController(() => _structureIsActive = value),
+            ),
+            AppSwitchTile(
+              label: 'Ignore attendance',
+              value: _structureAttendanceExempt,
+              onChanged: (value) =>
+                  _updateController(() => _structureAttendanceExempt = value),
             ),
           ],
         ),

@@ -4,6 +4,15 @@
 
 Status: Implemented
 
+## Salary-structure attendance exemption — 2026-09-05
+
+Status: Implemented
+
+Each employee salary structure has an `attendance_exempt` toggle. When enabled,
+attendance-based proration is ignored and the structure's full salary is used;
+approved leave-request LOP remains applicable. Payroll snapshots record the
+toggle and attendance metrics for audit.
+
 Salary components are configured once per company with a manual non-negative
 sort order. CRUD changes propagate to employee salary structures in one backend
 transaction; employee amounts remain overrideable. Employee pages display the
