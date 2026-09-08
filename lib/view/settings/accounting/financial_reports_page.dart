@@ -270,7 +270,14 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     String reportType,
   ) {
     final headers = switch (reportType) {
-      'day_book' => const ['Date', 'Ledger', 'Description', 'Debit', 'Credit'],
+      'day_book' => const [
+        'Date',
+        'Branch',
+        'Ledger',
+        'Description',
+        'Debit',
+        'Credit',
+      ],
       'general_ledger' => const [
         'Date',
         'Voucher',
@@ -392,6 +399,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           data['lines'],
           (line) => {
             'Date': displayDate(line['voucher_date']?.toString()),
+            'Branch': line['branch_name']?.toString() ?? '-',
             'Ledger': _joinedValues(line, ['account_code', 'account_name']),
             'Description': line['narration']?.toString() ?? '',
             'Debit': formatAmount(_reportAmount(line['debit'])),
@@ -649,15 +657,17 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         onChanged: controller.setReportType,
       ),
       if (controller.needsDayBookBranch)
-        AppDropdownField<int?>.fromMapped(
-          labelText: 'Branch (optional)',
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Branch',
           mappedItems: controller.branchFilterItems,
-          initialValue: controller.dayBookBranchId,
-          onChanged: controller.setDayBookBranchId,
+          multiInitialValues: controller.dayBookBranchIds,
+          multiHintText: 'Select branches',
+          onMultiChanged: controller.setDayBookBranchIds,
         ),
       if (controller.needsAccount)
         AppDropdownField<int>.fromMapped(
           labelText: 'Account',
+          isRequired: true,
           mappedItems: controller.accountOptions
               .where((item) => item.id != null)
               .map((item) {

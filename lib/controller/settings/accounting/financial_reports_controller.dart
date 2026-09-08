@@ -32,6 +32,7 @@ class FinancialReportsController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   final TextEditingController asOfDateController = TextEditingController();
+  Timer? _dateReloadDebounce;
 
   bool initialLoading = true;
   bool loading = false;
@@ -40,7 +41,7 @@ class FinancialReportsController extends GetxController {
   int? companyId;
   int? accountId;
   Set<int> partyIds = <int>{};
-  int? dayBookBranchId;
+  Set<int> dayBookBranchIds = <int>{};
   List<AccountModel> accounts = const <AccountModel>[];
   List<PartyAccountModel> partyAccounts = const <PartyAccountModel>[];
   List<BranchModel> branches = const <BranchModel>[];
@@ -56,11 +57,16 @@ class FinancialReportsController extends GetxController {
       reportType = requestedReportType;
     }
     _setDefaultDates();
+    dateFromController.addListener(_scheduleDateReload);
+    dateToController.addListener(_scheduleDateReload);
     loadLookups();
   }
 
   @override
   void onClose() {
+    _dateReloadDebounce?.cancel();
+    dateFromController.removeListener(_scheduleDateReload);
+    dateToController.removeListener(_scheduleDateReload);
     pageScrollController.dispose();
     dateFromController.dispose();
     dateToController.dispose();
@@ -116,6 +122,9 @@ class FinancialReportsController extends GetxController {
       _sanitizeSelections();
       initialLoading = false;
       update();
+      if (!canRunCurrentReport) {
+        return;
+      }
       await runReport();
       return;
     } catch (errorValue) {
@@ -132,8 +141,8 @@ class FinancialReportsController extends GetxController {
       update();
       return;
     }
-    if (reportType == 'general_ledger' && accountId == null) {
-      error = 'Account is required for general ledger.';
+    if (!canRunCurrentReport) {
+      error = null;
       update();
       return;
     }
@@ -147,8 +156,8 @@ class FinancialReportsController extends GetxController {
       case 'day_book':
         _putNonEmptyFilter(filters, 'date_from', dateFromController.text);
         _putNonEmptyFilter(filters, 'date_to', dateToController.text);
-        if (dayBookBranchId != null) {
-          filters['branch_id'] = dayBookBranchId;
+        if (dayBookBranchIds.isNotEmpty) {
+          filters['branch_ids'] = dayBookBranchIds.toList()..sort();
         }
         break;
       case 'general_ledger':
@@ -160,11 +169,11 @@ class FinancialReportsController extends GetxController {
       case 'accounts_receivable_aging':
       case 'accounts_payable_aging':
         _putPartyIds(filters);
-        _putNonEmptyFilter(filters, 'as_of_date', asOfDateController.text);
+        _putNonEmptyFilter(filters, 'as_of_date', dateToController.text);
         break;
       case 'trial_balance':
       case 'balance_sheet':
-        _putNonEmptyFilter(filters, 'as_of_date', asOfDateController.text);
+        _putNonEmptyFilter(filters, 'as_of_date', dateToController.text);
         break;
       case 'profit_and_loss':
       case 'cash_flow':
@@ -234,11 +243,10 @@ class FinancialReportsController extends GetxController {
 
   bool get needsDayBookBranch => reportType == 'day_book';
 
-  List<AppDropdownItem<int?>> get branchFilterItems => <AppDropdownItem<int?>>[
-    const AppDropdownItem<int?>(value: null, label: 'All branches'),
+  List<AppDropdownItem<int>> get branchFilterItems => <AppDropdownItem<int>>[
     ...branchOptions
         .where((b) => b.id != null)
-        .map((b) => AppDropdownItem<int?>(value: b.id, label: b.toString())),
+        .map((b) => AppDropdownItem<int>(value: b.id!, label: b.toString())),
   ];
 
   List<BranchModel> get branchOptions => branches
@@ -327,22 +335,16 @@ class FinancialReportsController extends GetxController {
         ),
   ];
 
-  bool get usesDateRange =>
-      reportType == 'day_book' ||
-      reportType == 'general_ledger' ||
-      reportType == 'profit_and_loss' ||
-      reportType == 'cash_flow' ||
-      reportType == 'financial_statement_pack';
+  bool get usesDateRange => true;
 
-  bool get usesAsOfDate =>
-      reportType == 'accounts_receivable_aging' ||
-      reportType == 'accounts_payable_aging' ||
-      reportType == 'trial_balance' ||
-      reportType == 'balance_sheet' ||
-      reportType == 'financial_statement_pack';
+  bool get usesAsOfDate => false;
 
   bool get usesStrictReportDateRange =>
       reportType == 'day_book' || reportType == 'general_ledger';
+
+  bool get canRunCurrentReport =>
+      companyId != null &&
+      (reportType != 'general_ledger' || accountId != null);
 
   void setReportType(String? value) {
     reportType = value ?? 'day_book';
@@ -354,16 +356,19 @@ class FinancialReportsController extends GetxController {
       partyIds = <int>{};
     }
     if (!needsDayBookBranch) {
-      dayBookBranchId = null;
+      dayBookBranchIds = <int>{};
     }
     report = null;
     _sanitizeSelections();
     update();
+    if (reportType == 'general_ledger' && accountId == null) {
+      return;
+    }
     unawaited(runReport());
   }
 
-  void setDayBookBranchId(int? value) {
-    dayBookBranchId = value;
+  void setDayBookBranchIds(Set<int> values) {
+    dayBookBranchIds = Set<int>.from(values);
     update();
     unawaited(runReport());
   }
@@ -387,7 +392,7 @@ class FinancialReportsController extends GetxController {
     reportType = 'day_book';
     accountId = null;
     partyIds = <int>{};
-    dayBookBranchId = null;
+    dayBookBranchIds = <int>{};
     _setDefaultDates();
     report = null;
     update();
@@ -396,7 +401,7 @@ class FinancialReportsController extends GetxController {
   void clearCurrentReportFilters() {
     accountId = null;
     partyIds = <int>{};
-    dayBookBranchId = null;
+    dayBookBranchIds = <int>{};
     _setDefaultDates();
     report = null;
     update();
@@ -410,6 +415,10 @@ class FinancialReportsController extends GetxController {
     );
     asOfDateController.text = today;
     if (reportType == 'day_book') {
+      dayBookBranchIds = branchOptions
+          .map((branch) => branch.id)
+          .whereType<int>()
+          .toSet();
       dateFromController.text = today;
       dateToController.text = today;
       return;
@@ -418,13 +427,30 @@ class FinancialReportsController extends GetxController {
     dateToController.text = today;
   }
 
+  void _scheduleDateReload() {
+    _dateReloadDebounce?.cancel();
+    if (initialLoading || loading || !usesDateRange || !canRunCurrentReport) {
+      return;
+    }
+    if (dateFromController.text.trim().length < 10 ||
+        dateToController.text.trim().length < 10) {
+      return;
+    }
+    _dateReloadDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!initialLoading && !loading && canRunCurrentReport) {
+        unawaited(runReport());
+      }
+    });
+  }
+
   void _sanitizeSelections() {
     final branchIds = branchOptions
         .map((branch) => branch.id)
         .whereType<int>()
         .toSet();
-    if (dayBookBranchId != null && !branchIds.contains(dayBookBranchId)) {
-      dayBookBranchId = null;
+    dayBookBranchIds = dayBookBranchIds.where(branchIds.contains).toSet();
+    if (reportType == 'day_book' && dayBookBranchIds.isEmpty) {
+      dayBookBranchIds = branchIds;
     }
 
     final accountIds = accountOptions

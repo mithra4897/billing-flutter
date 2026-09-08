@@ -372,6 +372,13 @@ class AppNavigation {
           requiredPermissions: ['accounts.view'],
         ),
         AppNavigationItem(
+          key: 'financial-reports',
+          title: 'Financial Reports',
+          icon: Icons.assessment_outlined,
+          path: '/accounting/reports',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
           key: 'vouchers',
           title: 'Vouchers',
           icon: Icons.receipt_long_outlined,
@@ -397,13 +404,6 @@ class AppNavigation {
           title: 'Bank Reconciliation',
           icon: Icons.account_balance_outlined,
           path: '/accounting/bank-reconciliation',
-          requiredPermissions: ['accounts.view'],
-        ),
-        AppNavigationItem(
-          key: 'financial-reports',
-          title: 'Financial Reports',
-          icon: Icons.assessment_outlined,
-          path: '/accounting/reports',
           requiredPermissions: ['accounts.view'],
         ),
         AppNavigationItem(
