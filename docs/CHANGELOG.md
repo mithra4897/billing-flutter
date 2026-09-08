@@ -2253,3 +2253,32 @@
 
 - Removed Daybook’s four report summary cards so its entries display directly.
 - Defaulted Daybook to today and other reports to the current month/as-of date.
+
+## 2026-09-08 — Use shared register layout for financial reports
+
+- Reused the Sales register foundation and shared filter bar for Daybook.
+- Preserved report-specific data columns while standardizing their list layout.
+
+## 2026-09-08 — Use inline financial report filters
+
+- Replaced the modal Financial Reports filter dialog with the Sales-style
+  expandable shared filter bar.
+- Added a real Search filter so Daybook has five filters excluding Clear.
+- Added Sales-style Page total and Overall total footers to financial report
+  lists.
+
+## 2026-09-08 — Reuse register report totals footer
+
+- Extracted the Sales Page total / Overall total footer into the shared
+  register list for use by Sales and all financial reports.
+- Restored the separator between the two total rows and normalize formatted
+  debit, credit, and balance values before computing totals.
+- No API, database, permission, or report filter contract changed.
+
+## 2026-09-08 — Separate financial report balance side
+
+- Displayed Debit/Credit balance sides as existing status pills for balance-side
+  financial reports, with Amount remaining the final right-aligned column.
+- Separated aging Bucket from Outstanding using the same status-pill pattern.
+- Added visual spacing between aging days and the bucket pill, and render zero
+  aging days as `-` for Current invoices.

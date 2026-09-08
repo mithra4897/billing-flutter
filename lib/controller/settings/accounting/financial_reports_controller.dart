@@ -5,8 +5,6 @@ class FinancialReportsController extends GetxController {
 
   final String? initialReportType;
 
-  final GlobalKey<FormState> reportFilterFormKey = GlobalKey<FormState>();
-
   static const List<AppDropdownItem<String>> reportItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'day_book', label: 'Day Book'),
@@ -383,6 +381,15 @@ class FinancialReportsController extends GetxController {
 
   void clearFilters() {
     reportType = 'day_book';
+    accountId = null;
+    partyId = null;
+    dayBookBranchId = null;
+    _setDefaultDates();
+    report = null;
+    update();
+  }
+
+  void clearCurrentReportFilters() {
     accountId = null;
     partyId = null;
     dayBookBranchId = null;

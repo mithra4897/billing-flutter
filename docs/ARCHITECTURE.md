@@ -1003,3 +1003,33 @@ use the current month through today, while as-of reports use today. The
 existing typed `FinancialReportViews` renderer remains responsible for report
 content, with Daybook retaining its table/list presentation and omitting only
 its report-meta cards.
+
+## 2026-09-08 — Daybook register presentation
+
+Daybook composes the existing `PurchaseRegisterPage` generic register shell,
+which is the list/table foundation reused by Sales, together with the shared
+`AppRegisterFilters` bar. API line maps are converted once into typed local
+report row values for rendering; no new API request or per-row lookup is
+introduced. All report types use the same register shell, while
+`FinancialReportViews` remains available for TSV/export formatting.
+
+The page’s Filter action toggles that shared bar inline through the same
+`PurchaseRegisterPage` filter slot used by Sales; the former modal form is no
+longer part of the report flow.
+Search is applied locally to the already-loaded typed rows in one linear pass,
+without adding per-row API requests.
+The register footer computes numeric totals in linear time over the filtered
+rows and the current page slice, with no additional API calls. Sales and
+financial reports compose the same `PurchaseRegisterSummaryFooter`, which
+renders a divider between its Page total and Overall total rows. Financial
+report amounts are normalized from their display strings (including comma
+grouping, parentheses, and debit/credit suffixes) before aggregation so the
+existing report response contract remains unchanged.
+Balance-side report rows use the existing `AppStatusBadge` through the generic
+register column widget builder; the side is kept separate from the final,
+right-aligned Amount value.
+Aging bucket keys are transformed locally for presentation into the same status
+badge component, while the underlying Outstanding amount remains a separately
+formatted numeric value and the report API response is unchanged.
+The age-day presentation maps only a numeric zero to `-`, while retaining the
+raw response and leaving monetary zero values untouched.

@@ -2784,3 +2784,55 @@ financial reports useful immediately by defaulting them to the current month.
 - Opening any other report uses the current calendar month by default where it
   accepts a date range.
 - Focused controller/view tests, formatting, and analysis pass.
+
+## 2026-09-08 — Daybook register presentation
+
+### Objective
+
+Present Daybook entries using the established Sales register experience and
+shared filter bar instead of the report-specific table renderer.
+
+### Scope and requirements
+
+- Compose the existing reusable register list/table shell for Daybook rows.
+- Compose the existing `AppRegisterFilters` bar with the Daybook date fields
+  and shared Clear behavior.
+- Use the same shared filter bar for every report, showing date-range or
+  as-of-date fields according to the report’s existing semantics.
+- The Filter action reveals the bar inline in the register shell, matching the
+  Sales register interaction; no modal filter dialog is used.
+- Report-specific and shared date fields are composed into the same
+  six-columns-per-row `SettingsFormWrap` used by the shared register filter.
+- The shared bar includes a Search field; Clear is an action and is not counted
+  as a filter. Daybook therefore exposes five actual filters: Report, Branch,
+  Search, Date From, and Date To.
+- Register results show Sales-style Page total and Overall total footer values
+  for the report’s numeric columns, using the shared register summary footer.
+- The footer presents Page total and Overall total as two separate rows with a
+  divider between them. Totals must also accept formatted report values such as
+  `28,642.64 credit`, without changing the report API payload.
+- For balance-side reports, display Debit or Credit as a status pill in its own
+  Status column. Keep Amount as the final, right-aligned numeric column.
+- Keep Daybook’s existing desktop/mobile columns and API data semantics.
+- Keep all non-Daybook report renderers and their existing filters unchanged.
+
+### Acceptance criteria and tests
+
+- Daybook uses the shared register layout with responsive desktop rows and
+  mobile cards.
+- Daybook shows the shared date filter bar and Clear action.
+- Existing report loading, empty, error, retry, Run Report, and Copy TSV
+  behavior remains available.
+- Every numeric report footer displays non-empty page and overall totals when
+  the report rows contain formatted debit, credit, or balance amounts.
+- The Page total and Overall total rows are separated consistently with Sales
+  register footers.
+- Balance Sheet, Profit & Loss, and Financial Statement Pack display their
+  Debit/Credit side as a status pill and their Amount in the rightmost column.
+- Receivable and payable aging reports display the aging Bucket as a readable
+  status pill before the final, right-aligned Outstanding amount, preventing
+  the two fields from visually merging.
+- Add shared-column spacing between Age Days and Bucket. A zero Age Days value
+  means Current and is displayed as `-`; this presentation rule does not alter
+  financial amounts or totals.
+- Focused analysis and financial report tests pass.

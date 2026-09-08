@@ -27,6 +27,93 @@ class PurchaseRegisterColumn<T> {
   final EdgeInsetsGeometry? padding;
 }
 
+/// Shared two-line register summary cell used by Sales and financial reports.
+class PurchaseRegisterSummaryFooterCell {
+  const PurchaseRegisterSummaryFooterCell({
+    required this.flex,
+    this.text = '',
+    this.alignRight = false,
+  });
+
+  final int flex;
+  final String text;
+  final bool alignRight;
+}
+
+/// Matches the Sales register Page total / Overall total footer presentation.
+class PurchaseRegisterSummaryFooter extends StatelessWidget {
+  const PurchaseRegisterSummaryFooter({required this.cells, super.key});
+
+  final List<PurchaseRegisterSummaryFooterCell> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.spacingSm,
+        vertical: AppUiConstants.spacingMd,
+      ),
+      decoration: BoxDecoration(
+        color: appTheme.subtleFill.withValues(alpha: 0.55),
+        border: const Border(
+          top: BorderSide(color: Color(0x11000000)),
+          bottom: BorderSide(color: Color(0x11000000)),
+        ),
+      ),
+      child: Row(
+        children: cells
+            .map((cell) {
+              final textStyle = theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              );
+              final displayText = cell.text == 'Total'
+                  ? 'Page total:\nOverall total:'
+                  : cell.text;
+              final lines = displayText.split('\n');
+              return Expanded(
+                flex: cell.flex,
+                child: lines.length > 1
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          for (
+                            var index = 0;
+                            index < lines.length;
+                            index++
+                          ) ...<Widget>[
+                            if (index > 0)
+                              Divider(
+                                height: 8,
+                                thickness: 1,
+                                color: theme.dividerColor,
+                              ),
+                            Text(
+                              lines[index],
+                              textAlign: cell.text.contains('\n')
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              style: textStyle,
+                            ),
+                          ],
+                        ],
+                      )
+                    : Text(
+                        displayText,
+                        textAlign: cell.alignRight
+                            ? TextAlign.right
+                            : TextAlign.left,
+                        style: textStyle,
+                      ),
+              );
+            })
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
 class PurchaseRegisterPage<T> extends StatefulWidget {
   const PurchaseRegisterPage({
     super.key,

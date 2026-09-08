@@ -1723,3 +1723,31 @@ been packaged successfully.
 - Verify date-range reports default from the first day of the current month
   through today and as-of reports default to today.
 - Run the focused financial report tests, formatting, and analysis.
+
+## 2026-09-08 — Daybook register presentation
+
+- Verify Daybook uses the shared register layout on desktop and mobile and
+  exposes the shared date filter bar.
+- Verify Clear restores Daybook’s today-to-today period and Run Report reloads
+  the filtered data.
+- Verify non-Daybook report layouts remain unchanged.
+
+## 2026-09-08 — Inline financial report filters
+
+- Verify Filter expands/collapses the shared inline bar like Sales registers;
+  no modal dialog opens.
+- Verify report, account, party, branch, date-range, and as-of controls remain
+  usable from the inline panel.
+- Verify Search filters visible report rows and Clear resets Search plus the
+  current report filters.
+- Verify Page total and Overall total footer values differ correctly when the
+  filtered result spans multiple register pages.
+- Verify formatted balances with debit/credit suffixes produce numeric totals,
+  and that the footer separator appears between the Page total and Overall
+  total rows.
+- Verify Balance Sheet, Profit & Loss, and Financial Statement Pack show a
+  Debit/Credit status pill and a right-aligned Amount as the final column.
+- Verify Receivable and Payable Aging show a readable bucket pill before a
+  separate, right-aligned Outstanding amount.
+- Verify Current invoices show `-` for Age Days and retain spacing before the
+  Bucket pill.

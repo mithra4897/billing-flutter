@@ -29,7 +29,7 @@ class AppRegisterFiltersSection extends StatelessWidget {
       transitionBuilder: (child, animation) {
         return SizeTransition(
           sizeFactor: animation,
-          axisAlignment: -1,
+          alignment: Alignment.topCenter,
           child: FadeTransition(opacity: animation, child: child),
         );
       },
@@ -57,6 +57,7 @@ class AppRegisterFilters extends StatelessWidget {
     this.searchHint,
     this.dateFromController,
     this.dateToController,
+    this.asOfDateController,
     this.statusItems,
     this.selectedStatuses,
     this.onStatusesChanged,
@@ -83,6 +84,7 @@ class AppRegisterFilters extends StatelessWidget {
     this.categoryLabel = 'Category',
     this.selectedCategories,
     this.onCategoriesChanged,
+    this.additionalFields = const <Widget>[],
     this.showDateFilters = true,
     required this.onClear,
     this.maxWidth,
@@ -94,6 +96,7 @@ class AppRegisterFilters extends StatelessWidget {
   final String? searchHint;
   final TextEditingController? dateFromController;
   final TextEditingController? dateToController;
+  final TextEditingController? asOfDateController;
   final List<AppDropdownItem<String>>? statusItems;
   final Set<String>? selectedStatuses;
   final ValueChanged<Set<String>>? onStatusesChanged;
@@ -120,6 +123,7 @@ class AppRegisterFilters extends StatelessWidget {
   final String categoryLabel;
   final Set<String>? selectedCategories;
   final ValueChanged<Set<String>>? onCategoriesChanged;
+  final List<Widget> additionalFields;
   final bool showDateFilters;
   final VoidCallback onClear;
   final double? maxWidth;
@@ -215,6 +219,7 @@ class AppRegisterFilters extends StatelessWidget {
           maxColumns: 6,
           expandChildren: true,
           children: [
+            ...additionalFields,
             if (searchController != null)
               AppFormTextField(
                 controller: searchController!,
@@ -306,6 +311,11 @@ class AppRegisterFilters extends StatelessWidget {
               ),
             if (showDateFilters && dateToController != null)
               _dateField(label: 'Date To', textController: dateToController!),
+            if (asOfDateController != null)
+              _dateField(
+                label: 'As Of Date',
+                textController: asOfDateController!,
+              ),
             _actionField(context),
           ],
         ),

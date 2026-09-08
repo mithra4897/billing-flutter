@@ -11,8 +11,6 @@ class FinancialReportViews {
   ) {
     final theme = Theme.of(context);
     switch (reportType) {
-      case 'day_book':
-        return _dayBook(context, data, theme);
       case 'general_ledger':
         return _generalLedger(data, theme);
       case 'trial_balance':
@@ -198,39 +196,6 @@ class FinancialReportViews {
         section('Profit & loss', pl, 'profit_and_loss'),
         section('Balance sheet', bs, 'balance_sheet'),
         section('Cash flow', cf, 'cash_flow'),
-      ],
-    );
-  }
-
-  static Widget _dayBook(
-    BuildContext context,
-    Map<String, dynamic> data,
-    ThemeData theme,
-  ) {
-    final rows = _asList(data['lines'])
-        .map((raw) {
-          final r = _mapDynamic(raw);
-          return <String>[
-            _displayDate(r['voucher_date']),
-            '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'.trim(),
-            r['narration']?.toString() ?? '',
-            _money(r['debit']),
-            _money(r['credit']),
-          ];
-        })
-        .toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Responsive.isMobile(context)
-            ? _dayBookMobileList(theme, rows)
-            : _table(theme, const [
-                'Date',
-                'Ledger',
-                'Description',
-                'Debit',
-                'Credit',
-              ], rows),
       ],
     );
   }
@@ -722,127 +687,6 @@ class FinancialReportViews {
           ),
         ],
       ),
-    );
-  }
-
-  static Widget _reportMetaCard({
-    required ThemeData theme,
-    required String label,
-    required String value,
-    bool emphasized = false,
-  }) {
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    return Container(
-      constraints: const BoxConstraints(minWidth: 140),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppUiConstants.spacingMd,
-        vertical: AppUiConstants.spacingSm,
-      ),
-      decoration: BoxDecoration(
-        color: emphasized
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
-            : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        border: Border.all(
-          color: emphasized
-              ? theme.colorScheme.primary.withValues(alpha: 0.18)
-              : appTheme.tableBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: appTheme.mutedText,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingXxs),
-          Text(
-            value.isEmpty ? '-' : value,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _dayBookMobileList(ThemeData theme, List<List<String>> rows) {
-    if (rows.isEmpty) {
-      return _table(theme, const ['Date'], rows);
-    }
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    return Column(
-      children: rows
-          .map((cells) {
-            final date = cells[0];
-            final ledger = cells[1];
-            final description = cells[2];
-            final debit = cells[3];
-            final credit = cells[4];
-            return Container(
-              margin: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-                border: Border.all(color: appTheme.tableBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    date,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: appTheme.mutedText,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  Text(
-                    ledger.isEmpty ? '-' : ledger,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (description.trim().isNotEmpty) ...[
-                    const SizedBox(height: AppUiConstants.spacingXs),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: appTheme.tableCellText,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _reportMetaCard(
-                          theme: theme,
-                          label: 'Debit',
-                          value: debit,
-                        ),
-                      ),
-                      const SizedBox(width: AppUiConstants.spacingSm),
-                      Expanded(
-                        child: _reportMetaCard(
-                          theme: theme,
-                          label: 'Credit',
-                          value: credit,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          })
-          .toList(growable: false),
     );
   }
 
