@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-08 — Allow a party to be both customer and supplier
+
+- Changed Party Types to a searchable multi-select so Customer and Supplier can
+  be selected together directly.
+- Reused the backend `party_roles` table and typed `PartyRoleModel` response
+  data; no duplicate party record is required.
+- Sales customer and Purchase supplier dropdowns now match active party roles,
+  while keeping primary-type compatibility for existing records.
+- Backend validation and role synchronization update both create and update
+  flows; focused Flutter analysis and PHP syntax checks passed.
+
 ## 2026-09-05 — Add Edit and Delete actions to Project cards
 
 - Added Edit and Delete options to the Project overview three-dot menu.

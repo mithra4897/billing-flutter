@@ -238,6 +238,7 @@ export 'model/masters/party_credit_limit_model.dart';
 export 'model/masters/party_gst_detail_model.dart';
 export 'model/masters/party_model.dart';
 export 'model/masters/party_payment_term_model.dart';
+export 'model/masters/party_role_model.dart';
 export 'model/masters/party_type_model.dart';
 export 'model/masters/state_model.dart';
 export 'model/masters/tax_code_model.dart';

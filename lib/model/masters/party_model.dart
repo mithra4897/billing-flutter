@@ -9,6 +9,7 @@ class PartyModel extends JsonModel {
     this.displayName,
     this.partyTypeId,
     this.partyType,
+    this.roles = const [],
     this.isCompany = false,
     this.website,
     this.pan,
@@ -28,6 +29,7 @@ class PartyModel extends JsonModel {
   final String? displayName;
   final int? partyTypeId;
   final String? partyType;
+  final List<PartyRoleModel> roles;
   final bool isCompany;
   final String? website;
   final String? pan;
@@ -41,6 +43,13 @@ class PartyModel extends JsonModel {
   final List<PartyContactModel> contacts;
   final List<PartyGstDetailModel> gstDetails;
 
+  Set<int> get roleTypeIds => <int>{
+    ?partyTypeId,
+    ...roles
+        .where((role) => role.isActive != false && role.partyTypeId != null)
+        .map((role) => role.partyTypeId!),
+  };
+
   @override
   String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
 
@@ -51,6 +60,7 @@ class PartyModel extends JsonModel {
     String? displayName,
     int? partyTypeId,
     String? partyType,
+    List<PartyRoleModel>? roles,
     bool? isCompany,
     String? website,
     String? pan,
@@ -72,6 +82,7 @@ class PartyModel extends JsonModel {
       displayName: displayName ?? this.displayName,
       partyTypeId: partyTypeId ?? this.partyTypeId,
       partyType: partyType ?? this.partyType,
+      roles: roles ?? this.roles,
       isCompany: isCompany ?? this.isCompany,
       website: website ?? this.website,
       pan: pan ?? this.pan,
@@ -89,8 +100,9 @@ class PartyModel extends JsonModel {
 
   factory PartyModel.fromJson(Map<String, dynamic> json) {
     final partyTypeData = json['party_type'];
-    final partyTypeRelation =
-        partyTypeData is Map<String, dynamic> ? partyTypeData : null;
+    final partyTypeRelation = partyTypeData is Map<String, dynamic>
+        ? partyTypeData
+        : null;
     final partyTypeName =
         json['party_type_name']?.toString() ??
         partyTypeRelation?['name']?.toString() ??
@@ -104,6 +116,7 @@ class PartyModel extends JsonModel {
       displayName: json['display_name']?.toString(),
       partyTypeId: _parseInt(json['party_type_id']),
       partyType: partyTypeName,
+      roles: _mapList(json['roles'], PartyRoleModel.fromJson),
       isCompany: json['is_company'] == true || json['is_company'] == 1,
       website: json['website']?.toString(),
       pan: json['pan']?.toString(),
@@ -137,6 +150,7 @@ class PartyModel extends JsonModel {
       if (partyName != null) 'party_name': partyName,
       if (displayName != null) 'display_name': displayName,
       if (partyTypeId != null) 'party_type_id': partyTypeId,
+      if (roleTypeIds.isNotEmpty) 'party_type_ids': roleTypeIds.toList(),
       'is_company': isCompany,
       if (website != null) 'website': website,
       if (pan != null) 'pan': pan,

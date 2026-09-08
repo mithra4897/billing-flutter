@@ -207,7 +207,7 @@ List<PartyModel> purchaseSuppliers({
   return parties
       .where(
         (party) =>
-            party.isActive && supplierTypeIds.contains(party.partyTypeId),
+            party.isActive && party.roleTypeIds.any(supplierTypeIds.contains),
       )
       .toList(growable: false);
 }

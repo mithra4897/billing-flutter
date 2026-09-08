@@ -1,5 +1,20 @@
 # Architecture decisions
 
+## ADR-0052: Reuse party roles for customer and supplier dropdown eligibility
+
+- Date: 2026-09-08
+- Status: Accepted
+- Context: A single business may be both a customer and a supplier, while the
+  party record currently has one primary type and an existing `party_roles`
+  table.
+- Decision: Make the Party Types field a searchable multi-select, persist all
+  selected type IDs through the existing role table, and make Sales/Purchase
+  lookup helpers match active roles as well as the primary type.
+- Reason: Reusing `party_roles` avoids duplicate party records and keeps the
+  dropdown filtering bounded to one role-ID set per party.
+- Consequences: The backend list response includes roles, and existing clients
+  that omit `party_type_ids` preserve their current active roles on update.
+
 ## ADR-0051: Make salary components company-global with explicit ordering
 
 - Date: 2026-09-05

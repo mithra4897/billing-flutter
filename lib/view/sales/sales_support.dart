@@ -343,7 +343,7 @@ List<PartyModel> salesCustomers({
   return parties
       .where(
         (party) =>
-            party.isActive && customerTypeIds.contains(party.partyTypeId),
+            party.isActive && party.roleTypeIds.any(customerTypeIds.contains),
       )
       .toList(growable: false);
 }

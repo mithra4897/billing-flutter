@@ -1,5 +1,14 @@
 # Specifications
 
+## Multi-role parties — 2026-09-08
+
+Status: Implemented
+
+A party can select multiple types from the searchable Party Types field in the
+Party primary form. The existing `party_roles` records are used as the source
+for role-aware Sales customer and Purchase supplier dropdowns; the primary
+`party_type_id` remains unchanged for compatibility.
+
 ## Global salary components — 2026-09-05
 
 Status: Implemented

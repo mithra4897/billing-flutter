@@ -42,6 +42,7 @@ class PartyManagementController extends GetxController {
   List<PartyModel> parties = const <PartyModel>[];
   PartyModel? selectedParty;
   int? partyTypeId;
+  Set<int> partyRoleTypeIds = <int>{};
   List<PartyAddressModel> addresses = const <PartyAddressModel>[];
   PartyAddressModel? selectedAddress;
   List<PartyContactModel> contacts = const <PartyContactModel>[];
@@ -112,6 +113,11 @@ class PartyManagementController extends GetxController {
 
   void setIsCompany(bool value) {
     isCompany = value;
+    update();
+  }
+
+  void setPartyRoleTypeIds(Set<int> value) {
+    partyRoleTypeIds = Set<int>.from(value);
     update();
   }
 
@@ -237,6 +243,7 @@ class PartyManagementController extends GetxController {
     required bool supportsGst,
   }) {
     partyTypeId = value;
+    partyRoleTypeIds = <int>{...partyRoleTypeIds, ?value};
     if (!supportsCompanyFlag) {
       isCompany = false;
     }
@@ -257,6 +264,7 @@ class PartyManagementController extends GetxController {
       clearPartyFormError: true,
     );
     isCompany = party.isCompany;
+    partyRoleTypeIds = party.roleTypeIds;
     openingBalanceType = party.openingBalanceType ?? 'debit';
     partyActive = party.isActive;
     update();
@@ -269,6 +277,7 @@ class PartyManagementController extends GetxController {
       clearPartyFormError: true,
     );
     isCompany = false;
+    partyRoleTypeIds = <int>{};
     openingBalanceType = 'debit';
     partyActive = true;
     update();
