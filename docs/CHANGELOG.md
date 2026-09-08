@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-08 — Introduce shared target-module register names
+
+- Added `SharedRegisterList<T>` and `SharedFilterBar` as domain-neutral names
+  backed by the existing generic register and filter implementations.
+- Migrated HR, Inventory, Assets, Job Work, Maintenance, Manufacturing,
+  Quality, and Service register renderers without changing controller, API,
+  filter, pagination, or route behavior.
+- Sales, Purchase, Project, and CRM were not changed.
+- Added editor-only routes for HR departments, designations, employees, leave
+  types, leave requests, salary components, expense claims, attendance, and
+  payroll runs, plus Parties. New/Edit routes render the editor across the
+  available workspace without the register list beside it.
+- Added dedicated Attendance and Payroll Run form screens and shell-aware form
+  navigation.
+- Added pull-to-refresh and custom-filter composition to the shared register
+  components.
+- Converted the Expense Claims register from the split management list to the
+  shared full-width register table.
+- No database/API/security impact.
+- `dart format` completed; full `flutter analyze --no-pub` completed with six
+  pre-existing unrelated warnings/deprecations; full `flutter test --no-pub`
+  passed (17 tests).
+
+
 ## 2026-09-08 — Make Accounting Dashboard operational
 
 - Reworked the existing shared Accounting Dashboard into a Sales-style

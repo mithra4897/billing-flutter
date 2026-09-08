@@ -86,11 +86,85 @@ class _MaintenanceRequestPageState extends State<MaintenanceRequestPage> {
     _openRoute('/maintenance/requests');
   }
 
+  bool _filtersVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<MaintenanceRequestViewModel>(
       tag: _controllerTag,
       builder: (_) {
+        if (!widget.editorOnly) {
+          return SharedRegisterList<MaintenanceRequestModel>(
+            title: 'Maintenance requests',
+            embedded: widget.embedded,
+            loading: _viewModel.loading,
+            errorMessage: _viewModel.pageError,
+            onRetry: () => _viewModel.load(selectId: widget.initialId),
+            emptyMessage: 'No maintenance requests found.',
+            actions: [
+              AdaptiveShellSearchField(
+                controller: _viewModel.searchController,
+                hintText: 'Search no., title, status, type',
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+                icon: Icons.filter_list_outlined,
+                label: 'Filter',
+                filled: _filtersVisible,
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/maintenance/requests/new');
+                },
+                icon: Icons.add_outlined,
+                label: 'New request',
+              ),
+            ],
+            filters: _filtersVisible
+                ? SharedFilterBar(
+                    showDateFilters: false,
+                    suggestions: const <AppRegisterFilterSuggestion>[],
+                    onClear: () {
+                      _viewModel.searchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            rows: _viewModel.filteredRows,
+            columns: [
+              PurchaseRegisterColumn<MaintenanceRequestModel>(
+                label: 'Request No.',
+                valueBuilder: (row) => stringValue(row.toJson(), 'request_no'),
+              ),
+              PurchaseRegisterColumn<MaintenanceRequestModel>(
+                label: 'Title',
+                flex: 2,
+                valueBuilder: (row) => stringValue(row.toJson(), 'title'),
+              ),
+              PurchaseRegisterColumn<MaintenanceRequestModel>(
+                label: 'Type',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'request_type'),
+              ),
+              PurchaseRegisterColumn<MaintenanceRequestModel>(
+                label: 'Priority',
+                valueBuilder: (row) => stringValue(row.toJson(), 'priority'),
+              ),
+              PurchaseRegisterColumn<MaintenanceRequestModel>(
+                label: 'Status',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'request_status'),
+              ),
+            ],
+            onRowTap: (row) {
+              final id = row.id ?? intValue(row.toJson(), 'id');
+              if (id != null) {
+                _openRoute('/maintenance/requests/$id');
+              }
+            },
+          );
+        }
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

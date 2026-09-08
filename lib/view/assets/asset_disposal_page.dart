@@ -44,6 +44,9 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return AssetDisposalRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<AssetDisposalManagementController>(
       tag: _controllerTag,
       builder: (controller) {

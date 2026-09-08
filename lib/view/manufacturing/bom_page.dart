@@ -60,6 +60,9 @@ class _BomPageState extends State<BomPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return BomRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<BomViewModel>(
       tag: _controllerTag,
       builder: (_) {

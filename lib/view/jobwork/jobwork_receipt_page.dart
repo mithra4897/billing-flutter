@@ -76,6 +76,9 @@ class _JobworkReceiptPageState extends State<JobworkReceiptPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return JobworkReceiptRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<JobworkReceiptViewModel>(
       tag: _controllerTag,
       builder: (_) {

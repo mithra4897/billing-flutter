@@ -1182,3 +1182,28 @@
   stays O(n) with the existing line aggregation and O(1) HSN storage.
 - Related files: Sales invoice export controller, Flutter Sales invoice export
   component/support, export tests, and linked frontend/backend documentation.
+## ADR-0053: Adapt the existing register primitives for target modules
+
+- Date: 2026-09-08
+- Status: Accepted
+- Context: The target-module migration requested domain-neutral
+  `SharedRegisterList` and `SharedFilterBar` components, but the application
+  already has mature generic register and filter implementations.
+- Decision: Expose the requested names as thin typed adapters around
+  `PurchaseRegisterPage<T>` and `AppRegisterFilters`, and migrate target
+  register renderers to those names. The list adapter also owns the shared
+  pull-to-refresh boundary.
+- Reason: This provides one source of truth for loading, pagination, filters,
+  responsive rendering, and row actions without duplicating controller or
+  widget state. The existing implementation is already used across the app
+  and has module-specific extension points needed by the target registers.
+- Alternatives considered: Rebuilding a second generic list/filter framework
+  would duplicate behavior and create divergent loading, pagination, and
+  accessibility fixes. Removing module controllers would break existing
+  company-context and refresh contracts.
+- Consequences: The new names preserve the existing register/filter contracts
+  while providing one place for shared refresh behavior. A future visual
+  redesign can replace the adapters centrally. The remaining
+  module-specific shells still own controller wiring and custom filter content.
+- Related files: `lib/widgets/shared_register_list.dart`,
+  `lib/widgets/shared_filter_bar.dart`, and target `*_registers.dart` files.

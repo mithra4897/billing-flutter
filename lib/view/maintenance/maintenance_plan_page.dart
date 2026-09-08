@@ -86,11 +86,86 @@ class _MaintenancePlanPageState extends State<MaintenancePlanPage> {
     _openRoute('/maintenance/plans');
   }
 
+  bool _filtersVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<MaintenancePlanViewModel>(
       tag: _controllerTag,
       builder: (_) {
+        if (!widget.editorOnly) {
+          return SharedRegisterList<MaintenancePlanModel>(
+            title: 'Maintenance plans',
+            embedded: widget.embedded,
+            loading: _viewModel.loading,
+            errorMessage: _viewModel.pageError,
+            onRetry: () => _viewModel.load(selectId: widget.initialId),
+            emptyMessage: 'No maintenance plans found.',
+            actions: [
+              AdaptiveShellSearchField(
+                controller: _viewModel.searchController,
+                hintText: 'Search code, name, type, schedule',
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+                icon: Icons.filter_list_outlined,
+                label: 'Filter',
+                filled: _filtersVisible,
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/maintenance/plans/new');
+                },
+                icon: Icons.add_outlined,
+                label: 'New maintenance plan',
+              ),
+            ],
+            filters: _filtersVisible
+                ? SharedFilterBar(
+                    showDateFilters: false,
+                    suggestions: const <AppRegisterFilterSuggestion>[],
+                    onClear: () {
+                      _viewModel.searchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            rows: _viewModel.filteredRows,
+            columns: [
+              PurchaseRegisterColumn<MaintenancePlanModel>(
+                label: 'Code',
+                valueBuilder: (row) => stringValue(row.toJson(), 'plan_code'),
+              ),
+              PurchaseRegisterColumn<MaintenancePlanModel>(
+                label: 'Name',
+                flex: 2,
+                valueBuilder: (row) => stringValue(row.toJson(), 'plan_name'),
+              ),
+              PurchaseRegisterColumn<MaintenancePlanModel>(
+                label: 'Type',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'maintenance_type'),
+              ),
+              PurchaseRegisterColumn<MaintenancePlanModel>(
+                label: 'Schedule',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'schedule_basis'),
+              ),
+              PurchaseRegisterColumn<MaintenancePlanModel>(
+                label: 'Status',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'status', 'Active'),
+              ),
+            ],
+            onRowTap: (row) {
+              final id = row.id ?? intValue(row.toJson(), 'id');
+              if (id != null) {
+                _openRoute('/maintenance/plans/$id');
+              }
+            },
+          );
+        }
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

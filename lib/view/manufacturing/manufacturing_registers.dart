@@ -238,6 +238,7 @@ class _ManufacturingRegisterShell<T> extends StatefulWidget {
 class _ManufacturingRegisterShellState<T>
     extends State<_ManufacturingRegisterShell<T>> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -261,7 +262,7 @@ class _ManufacturingRegisterShellState<T>
     return GetBuilder<ManufacturingRegisterController<T>>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<T>(
+        return SharedRegisterList<T>(
           title: widget.title,
           embedded: widget.embedded,
           loading: controller.loading,
@@ -269,6 +270,16 @@ class _ManufacturingRegisterShellState<T>
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: widget.searchHint,
+            ),
+            AdaptiveShellActionButton(
+              onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
             AdaptiveShellActionButton(
               onPressed: () =>
                   _openManufacturingShellRoute(context, widget.newRoute),
@@ -276,11 +287,15 @@ class _ManufacturingRegisterShellState<T>
               label: widget.newLabel,
             ),
           ],
-          filters: _MfgFilters(
-            searchController: controller.searchController,
-            searchHint: widget.searchHint,
-            companyBanner: controller.companyBanner,
-          ),
+          filters: _filtersVisible
+              ? SharedFilterBar.custom(
+                  child: _MfgFilters(
+                    searchController: controller.searchController,
+                    searchHint: widget.searchHint,
+                    companyBanner: controller.companyBanner,
+                  ),
+                )
+              : null,
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) =>

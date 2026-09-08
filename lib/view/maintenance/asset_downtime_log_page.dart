@@ -84,11 +84,91 @@ class _AssetDowntimeLogPageState extends State<AssetDowntimeLogPage> {
     _openRoute('/maintenance/downtime-logs');
   }
 
+  bool _filtersVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<AssetDowntimeLogViewModel>(
       tag: _controllerTag,
       builder: (_) {
+        if (!widget.editorOnly) {
+          return SharedRegisterList<AssetDowntimeLogModel>(
+            title: 'Asset downtime logs',
+            embedded: widget.embedded,
+            loading: _viewModel.loading,
+            errorMessage: _viewModel.pageError,
+            onRetry: () => _viewModel.load(selectId: widget.initialId),
+            emptyMessage: 'No downtime logs found.',
+            actions: [
+              AdaptiveShellSearchField(
+                controller: _viewModel.searchController,
+                hintText: 'Search reason, asset',
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+                icon: Icons.filter_list_outlined,
+                label: 'Filter',
+                filled: _filtersVisible,
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/maintenance/downtime-logs/new');
+                },
+                icon: Icons.add_outlined,
+                label: 'New downtime log',
+              ),
+            ],
+            filters: _filtersVisible
+                ? SharedFilterBar(
+                    showDateFilters: false,
+                    suggestions: const <AppRegisterFilterSuggestion>[],
+                    onClear: () {
+                      _viewModel.searchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            rows: _viewModel.filteredRows,
+            columns: [
+              PurchaseRegisterColumn<AssetDowntimeLogModel>(
+                label: 'Log / Asset',
+                flex: 2,
+                valueBuilder: (row) => _viewModel.listTitle(row),
+              ),
+              PurchaseRegisterColumn<AssetDowntimeLogModel>(
+                label: 'Reason',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'downtime_reason'),
+              ),
+              PurchaseRegisterColumn<AssetDowntimeLogModel>(
+                label: 'Start',
+                valueBuilder: (row) => displayDate(
+                  nullableStringValue(row.toJson(), 'downtime_start'),
+                ),
+              ),
+              PurchaseRegisterColumn<AssetDowntimeLogModel>(
+                label: 'End',
+                valueBuilder: (row) => displayDate(
+                  nullableStringValue(row.toJson(), 'downtime_end'),
+                ),
+              ),
+              PurchaseRegisterColumn<AssetDowntimeLogModel>(
+                label: 'Duration',
+                valueBuilder: (row) =>
+                    row.downtimeMinutes != null
+                        ? '${row.downtimeMinutes!.toStringAsFixed(0)} min'
+                        : stringValue(row.toJson(), 'downtime_minutes', '-'),
+              ),
+            ],
+            onRowTap: (row) {
+              final id = row.id ?? intValue(row.toJson(), 'id');
+              if (id != null) {
+                _openRoute('/maintenance/downtime-logs/$id');
+              }
+            },
+          );
+        }
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

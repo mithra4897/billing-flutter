@@ -58,6 +58,9 @@ class _ProductionReceiptPageState extends State<ProductionReceiptPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ProductionReceiptRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ProductionReceiptViewModel>(
       tag: _controllerTag,
       builder: (_) {

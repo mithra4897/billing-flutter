@@ -70,6 +70,9 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ServiceContractRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ServiceContractViewModel>(
       tag: _controllerTag,
       builder: (_) {

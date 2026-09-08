@@ -198,6 +198,9 @@ class _ProductionMaterialIssuePageState
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ProductionMaterialIssueRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ProductionMaterialIssueViewModel>(
       tag: _controllerTag,
       builder: (_) {

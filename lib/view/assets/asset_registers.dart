@@ -655,6 +655,7 @@ class _AssetRegisterShell<T> extends StatefulWidget {
 
 class _AssetRegisterShellState<T> extends State<_AssetRegisterShell<T>> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -678,20 +679,36 @@ class _AssetRegisterShellState<T> extends State<_AssetRegisterShell<T>> {
     return GetBuilder<AssetRegisterController<T>>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<T>(
+        return SharedRegisterList<T>(
           title: widget.title,
           embedded: widget.embedded,
           loading: controller.loading,
           errorMessage: controller.error,
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
-          actions: widget.actionsBuilder(context, controller),
-          filters: _AssetFilters(
-            searchController: controller.searchController,
-            searchHint: widget.searchHint,
-            companyBanner: controller.companyBanner,
-            scopeHint: controller.scopeHint,
-          ),
+          actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: widget.searchHint,
+            ),
+            AdaptiveShellActionButton(
+              onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
+            ...widget.actionsBuilder(context, controller),
+          ],
+          filters: _filtersVisible
+              ? SharedFilterBar.custom(
+                  child: _AssetFilters(
+                    searchController: controller.searchController,
+                    searchHint: widget.searchHint,
+                    companyBanner: controller.companyBanner,
+                    scopeHint: controller.scopeHint,
+                  ),
+                )
+              : null,
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) => widget.onRowTap(context, controller, row),
@@ -1197,7 +1214,6 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
         );
       },
     );
-
   }
 }
 
@@ -1303,7 +1319,14 @@ class AssetCostCenterRegisterPage extends StatelessWidget {
           'Lists use company_id when a session company is set.',
       emptyMessage: 'No cost centers found.',
       searchHint: 'Search code, name, type, parent',
-      actionsBuilder: (context, controller) => const <Widget>[],
+      actionsBuilder: (context, controller) => [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/cost-centers/new'),
+          icon: Icons.add_outlined,
+          label: 'New cost center',
+        ),
+      ],
       columns: [
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Code',
@@ -1323,16 +1346,12 @@ class AssetCostCenterRegisterPage extends StatelessWidget {
           valueBuilder: (row) => _costCenterParentName(row.toJson()),
         ),
       ],
-      onRowTap: (context, controller, row) async {
+      onRowTap: (context, controller, row) {
         final id = row.id;
         if (id == null) {
           return;
         }
-        await showDialog<void>(
-          context: context,
-          builder: (ctx) => _CostCenterDetailDialog(costCenterId: id),
-        );
-        await controller.load();
+        openAssetShellRoute(context, '/assets/cost-centers/$id');
       },
     );
   }
@@ -1370,7 +1389,14 @@ class FixedAssetRegisterPage extends StatelessWidget {
           'Lists use company_id when a session company is set.',
       emptyMessage: 'No assets found.',
       searchHint: 'Search code, name, category, status',
-      actionsBuilder: (context, controller) => const <Widget>[],
+      actionsBuilder: (context, controller) => [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/register/new'),
+          icon: Icons.add_outlined,
+          label: 'New asset',
+        ),
+      ],
       columns: [
         PurchaseRegisterColumn<AssetModel>(
           label: 'Code',
@@ -1395,16 +1421,12 @@ class FixedAssetRegisterPage extends StatelessWidget {
               intValue(row.toJson(), 'books_count')?.toString() ?? '-',
         ),
       ],
-      onRowTap: (context, controller, row) async {
+      onRowTap: (context, controller, row) {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;
         }
-        await showDialog<void>(
-          context: context,
-          builder: (ctx) => _FixedAssetDetailDialog(assetId: id),
-        );
-        await controller.load();
+        openAssetShellRoute(context, '/assets/register/$id');
       },
     );
   }

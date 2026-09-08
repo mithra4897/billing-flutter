@@ -49,6 +49,9 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return AssetCostCenterRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<AssetCostCenterManagementController>(
       tag: _controllerTag,
       builder: (controller) {

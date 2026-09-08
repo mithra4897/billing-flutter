@@ -90,6 +90,9 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return FixedAssetRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<FixedAssetManagementController>(
       tag: _controllerTag,
       builder: (controller) {

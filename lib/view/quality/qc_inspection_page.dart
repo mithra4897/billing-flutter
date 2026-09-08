@@ -72,6 +72,9 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return QcInspectionRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<QcInspectionViewModel>(
       tag: _controllerTag,
       builder: (_) {

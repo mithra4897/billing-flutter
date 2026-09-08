@@ -86,11 +86,86 @@ class _AmcContractPageState extends State<AmcContractPage> {
     _openRoute('/maintenance/amc-contracts');
   }
 
+  bool _filtersVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<AmcContractViewModel>(
       tag: _controllerTag,
       builder: (_) {
+        if (!widget.editorOnly) {
+          return SharedRegisterList<AmcContractModel>(
+            title: 'AMC contracts',
+            embedded: widget.embedded,
+            loading: _viewModel.loading,
+            errorMessage: _viewModel.pageError,
+            onRetry: () => _viewModel.load(selectId: widget.initialId),
+            emptyMessage: 'No AMC contracts found.',
+            actions: [
+              AdaptiveShellSearchField(
+                controller: _viewModel.searchController,
+                hintText: 'Search contract no., vendor, status, type',
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+                icon: Icons.filter_list_outlined,
+                label: 'Filter',
+                filled: _filtersVisible,
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/maintenance/amc-contracts/new');
+                },
+                icon: Icons.add_outlined,
+                label: 'New AMC contract',
+              ),
+            ],
+            filters: _filtersVisible
+                ? SharedFilterBar(
+                    showDateFilters: false,
+                    suggestions: const <AppRegisterFilterSuggestion>[],
+                    onClear: () {
+                      _viewModel.searchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            rows: _viewModel.filteredRows,
+            columns: [
+              PurchaseRegisterColumn<AmcContractModel>(
+                label: 'Contract No.',
+                valueBuilder: (row) => stringValue(row.toJson(), 'contract_no'),
+              ),
+              PurchaseRegisterColumn<AmcContractModel>(
+                label: 'Title',
+                flex: 2,
+                valueBuilder: (row) => stringValue(row.toJson(), 'title'),
+              ),
+              PurchaseRegisterColumn<AmcContractModel>(
+                label: 'Vendor',
+                valueBuilder: (row) => _viewModel.vendorLabelFor(row.toJson()),
+              ),
+              PurchaseRegisterColumn<AmcContractModel>(
+                label: 'Date',
+                valueBuilder: (row) => displayDate(
+                  nullableStringValue(row.toJson(), 'contract_date'),
+                ),
+              ),
+              PurchaseRegisterColumn<AmcContractModel>(
+                label: 'Status',
+                valueBuilder: (row) =>
+                    stringValue(row.toJson(), 'contract_status'),
+              ),
+            ],
+            onRowTap: (row) {
+              final id = row.id ?? intValue(row.toJson(), 'id');
+              if (id != null) {
+                _openRoute('/maintenance/amc-contracts/$id');
+              }
+            },
+          );
+        }
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

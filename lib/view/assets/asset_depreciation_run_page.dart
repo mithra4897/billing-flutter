@@ -83,6 +83,9 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return AssetDepreciationRunRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<AssetDepreciationRunViewModel>(
       tag: _controllerTag,
       builder: (_) {

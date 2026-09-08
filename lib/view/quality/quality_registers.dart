@@ -224,6 +224,7 @@ class QcPlanRegisterPage extends StatefulWidget {
 
 class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -239,7 +240,7 @@ class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
     return GetBuilder<QcPlanRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<QcPlanModel>(
+        return SharedRegisterList<QcPlanModel>(
           title: 'QC plans',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -247,6 +248,16 @@ class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No QC plans found.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search code, name, scope, item, status',
+            ),
+            AdaptiveShellActionButton(
+              onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
             AdaptiveShellActionButton(
               onPressed: () =>
                   _openQualityShellRoute(context, '/quality/qc-plans/new'),
@@ -254,11 +265,15 @@ class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
               label: 'New QC plan',
             ),
           ],
-          filters: _QualityFilters(
-            searchController: controller.searchController,
-            searchHint: 'Search code, name, scope, item, status',
-            companyBanner: controller.companyBanner,
-          ),
+          filters: _filtersVisible
+              ? SharedFilterBar.custom(
+                  child: _QualityFilters(
+                    searchController: controller.searchController,
+                    searchHint: 'Search code, name, scope, item, status',
+                    companyBanner: controller.companyBanner,
+                  ),
+                )
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<QcPlanModel>(
@@ -388,6 +403,7 @@ class QcInspectionRegisterPage extends StatefulWidget {
 
 class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -405,7 +421,7 @@ class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
     return GetBuilder<QcInspectionRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<QcInspectionModel>(
+        return SharedRegisterList<QcInspectionModel>(
           title: 'QC inspections',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -413,6 +429,16 @@ class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No QC inspections found.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search inspection no., plan, item, status',
+            ),
+            AdaptiveShellActionButton(
+              onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
             AdaptiveShellActionButton(
               onPressed: () => _openQualityShellRoute(
                 context,
@@ -422,11 +448,15 @@ class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
               label: 'New QC inspection',
             ),
           ],
-          filters: _QualityFilters(
-            searchController: controller.searchController,
-            searchHint: 'Search inspection no., plan, item, status',
-            companyBanner: controller.companyBanner,
-          ),
+          filters: _filtersVisible
+              ? SharedFilterBar.custom(
+                  child: _QualityFilters(
+                    searchController: controller.searchController,
+                    searchHint: 'Search inspection no., plan, item, status',
+                    companyBanner: controller.companyBanner,
+                  ),
+                )
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<QcInspectionModel>(

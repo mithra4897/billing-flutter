@@ -49,6 +49,9 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ProductionOrderRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ProductionOrderViewModel>(
       tag: _controllerTag,
       builder: (_) {

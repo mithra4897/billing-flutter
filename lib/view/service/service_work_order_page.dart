@@ -77,6 +77,9 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ServiceWorkOrderRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ServiceWorkOrderViewModel>(
       tag: _controllerTag,
       builder: (_) {

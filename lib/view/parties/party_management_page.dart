@@ -81,6 +81,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   Timer? _searchDebounce;
   int _listLoadRequestToken = 0;
   int _partyCodeRefreshToken = 0;
+  bool _filtersVisible = false;
 
   final GlobalKey<FormState> _partyFormKey = GlobalKey<FormState>();
   final TextEditingController _partyCodeController = TextEditingController();
@@ -1387,7 +1388,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     if (!widget.editorOnly) {
       return GetBuilder<PartyManagementController>(
         tag: _controllerTag,
-        builder: (_) => _buildSharedRegister(actions),
+        builder: (_) => _buildSharedRegister(),
       );
     }
 
@@ -1408,14 +1409,70 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     );
   }
 
-  Widget _buildSharedRegister(List<Widget> actions) {
+  Widget _buildSharedRegister() {
+    final partyTypeFilterOptions = [
+      const AppDropdownItem<int>(value: 0, label: 'All types'),
+      ..._partyTypes
+          .where((type) => type.id != null)
+          .map(
+            (type) => AppDropdownItem<int>(
+              value: type.id!,
+              label: type.toString(),
+            ),
+          ),
+    ];
+
     return SharedRegisterList<PartyModel>(
       title: 'Parties',
       embedded: widget.embedded,
       loading: _initialLoading,
       errorMessage: _pageError,
       onRetry: _loadPage,
-      actions: actions,
+      actions: [
+        AdaptiveShellSearchField(
+          controller: _searchController,
+          hintText: 'Search name, code, mobile, GSTIN...',
+        ),
+        AdaptiveShellActionButton(
+          onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+          icon: Icons.filter_list_outlined,
+          label: 'Filter',
+          filled: _filtersVisible,
+        ),
+        AdaptiveShellActionButton(
+          onPressed: () => openFormScreenRoute(context, '/parties/new'),
+          icon: Icons.person_add_alt_outlined,
+          label: 'New Party',
+        ),
+      ],
+      filters: _filtersVisible
+          ? SharedFilterBar(
+              showDateFilters: false,
+              categoryLabel: 'Party Type',
+              categoryItems: partyTypeFilterOptions
+                  .map((e) => AppDropdownItem<String>(
+                        value: e.value.toString(),
+                        label: e.label,
+                      ))
+                  .toList(growable: false),
+              selectedCategories: _controller.partyTypeFilterId == 0
+                  ? const <String>{}
+                  : <String>{_controller.partyTypeFilterId.toString()},
+              onCategoriesChanged: (selected) {
+                final id = selected.isNotEmpty
+                    ? int.tryParse(selected.first) ?? 0
+                    : 0;
+                _controller.setPartyTypeFilterId(id);
+                _loadPage();
+              },
+              suggestions: const <AppRegisterFilterSuggestion>[],
+              onClear: () {
+                _searchController.clear();
+                _controller.setPartyTypeFilterId(0);
+                _loadPage();
+              },
+            )
+          : null,
       rows: _parties,
       remoteTotalItems: _controller.effectivePartiesMeta.total,
       remoteCurrentPage: _controller.effectivePartiesMeta.currentPage,

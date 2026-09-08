@@ -66,6 +66,9 @@ class _ServiceFeedbackPageState extends State<ServiceFeedbackPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ServiceFeedbackRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ServiceFeedbackViewModel>(
       tag: _controllerTag,
       builder: (_) {

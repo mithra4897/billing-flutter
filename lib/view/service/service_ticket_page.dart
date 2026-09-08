@@ -86,6 +86,9 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return ServiceTicketRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<ServiceTicketViewModel>(
       tag: _controllerTag,
       builder: (_) {

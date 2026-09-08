@@ -20,17 +20,19 @@ class NumericFieldFocusBinding {
     if (controller == null) {
       return;
     }
-    final formatted =
-        formatter?.call(controller.text) ??
-        Validators.formatFlexibleNumberString(controller.text);
-    if (formatted == controller.text) {
-      return;
-    }
-    controller.value = controller.value.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-      composing: TextRange.empty,
-    );
+    try {
+      final formatted =
+          formatter?.call(controller.text) ??
+          Validators.formatFlexibleNumberString(controller.text);
+      if (formatted == controller.text) {
+        return;
+      }
+      controller.value = controller.value.copyWith(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+        composing: TextRange.empty,
+      );
+    } catch (_) {}
   }
 
   bool sync({
@@ -74,37 +76,41 @@ class NumericFieldFocusBinding {
     if (controller == null) {
       return;
     }
-    final text = controller.text.trim();
-    if (text.isEmpty) {
-      return;
-    }
-    final parsed = Validators.parseFlexibleNumber(text);
-    if (parsed == null || parsed != 0) {
-      return;
-    }
-    controller.value = const TextEditingValue(
-      text: '',
-      selection: TextSelection.collapsed(offset: 0),
-      composing: TextRange.empty,
-    );
+    try {
+      final text = controller.text.trim();
+      if (text.isEmpty) {
+        return;
+      }
+      final parsed = Validators.parseFlexibleNumber(text);
+      if (parsed == null || parsed != 0) {
+        return;
+      }
+      controller.value = const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+        composing: TextRange.empty,
+      );
+    } catch (_) {}
   }
 
   static void _selectAllIfZero(TextEditingController? controller) {
     if (controller == null) {
       return;
     }
-    final text = controller.text.trim();
-    if (text.isEmpty) {
-      return;
-    }
-    final parsed = Validators.parseFlexibleNumber(text);
-    if (parsed == null || parsed != 0) {
-      return;
-    }
-    controller.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: text.length,
-    );
+    try {
+      final text = controller.text.trim();
+      if (text.isEmpty) {
+        return;
+      }
+      final parsed = Validators.parseFlexibleNumber(text);
+      if (parsed == null || parsed != 0) {
+        return;
+      }
+      controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: text.length,
+      );
+    } catch (_) {}
   }
 
   void dispose() {

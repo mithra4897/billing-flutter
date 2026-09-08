@@ -94,6 +94,9 @@ class _AssetTransferPageState extends State<AssetTransferPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return AssetTransferRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<AssetTransferViewModel>(
       tag: _controllerTag,
       builder: (_) {

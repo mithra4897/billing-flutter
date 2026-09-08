@@ -239,6 +239,9 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return WarrantyClaimRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<WarrantyClaimViewModel>(
       tag: _controllerTag,
       builder: (_) {

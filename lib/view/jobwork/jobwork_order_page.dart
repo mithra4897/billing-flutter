@@ -100,6 +100,9 @@ class _JobworkOrderPageState extends State<JobworkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return JobworkOrderRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<JobworkOrderViewModel>(
       tag: _controllerTag,
       builder: (_) {

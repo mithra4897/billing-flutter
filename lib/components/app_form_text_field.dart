@@ -310,29 +310,35 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
     if (_numericBinding.focusNode?.hasFocus ?? false) {
       return;
     }
-    final text = controller.text.trim();
-    if (text.isEmpty) {
-      return;
-    }
-    final parsed = Validators.parseFlexibleNumber(text);
-    if (parsed == null || parsed != 0) {
-      return;
-    }
-    _isNormalizingAmountZero = true;
-    controller.value = const TextEditingValue(
-      text: '',
-      selection: TextSelection.collapsed(offset: 0),
-      composing: TextRange.empty,
-    );
-    _isNormalizingAmountZero = false;
+    try {
+      final text = controller.text.trim();
+      if (text.isEmpty) {
+        return;
+      }
+      final parsed = Validators.parseFlexibleNumber(text);
+      if (parsed == null || parsed != 0) {
+        return;
+      }
+      _isNormalizingAmountZero = true;
+      controller.value = const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+        composing: TextRange.empty,
+      );
+      _isNormalizingAmountZero = false;
+    } catch (_) {}
   }
 
   void _attachControllerListener(TextEditingController? controller) {
-    controller?.addListener(_handleControllerChanged);
+    try {
+      controller?.addListener(_handleControllerChanged);
+    } catch (_) {}
   }
 
   void _detachControllerListener(TextEditingController? controller) {
-    controller?.removeListener(_handleControllerChanged);
+    try {
+      controller?.removeListener(_handleControllerChanged);
+    } catch (_) {}
   }
 
   @override

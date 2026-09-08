@@ -51,6 +51,9 @@ class _AssetCategoryPageState extends State<AssetCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return AssetCategoryRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<AssetCategoryViewModel>(
       tag: _controllerTag,
       builder: (_) {

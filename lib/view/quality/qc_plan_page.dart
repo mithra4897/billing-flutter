@@ -71,6 +71,9 @@ class _QcPlanPageState extends State<QcPlanPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return QcPlanRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<QcPlanViewModel>(
       tag: _controllerTag,
       builder: (_) {

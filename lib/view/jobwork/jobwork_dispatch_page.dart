@@ -60,6 +60,9 @@ class _JobworkDispatchPageState extends State<JobworkDispatchPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return JobworkDispatchRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<JobworkDispatchViewModel>(
       tag: _controllerTag,
       builder: (_) {

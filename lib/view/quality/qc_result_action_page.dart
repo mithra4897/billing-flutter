@@ -71,11 +71,90 @@ class _QcResultActionPageState extends State<QcResultActionPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  void _openRoute(String route) {
+    final navigate = ShellRouteScope.maybeOf(context);
+    if (navigate != null) {
+      navigate(route);
+      return;
+    }
+    Navigator.of(context).pushNamed(route);
+  }
+
+  bool _filtersVisible = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<QcResultActionViewModel>(
       tag: _controllerTag,
       builder: (_) {
+        if (!widget.editorOnly) {
+          return SharedRegisterList<QcResultActionModel>(
+            title: 'QC result actions',
+            embedded: widget.embedded,
+            loading: _viewModel.loading,
+            errorMessage: _viewModel.pageError,
+            onRetry: () => _viewModel.load(selectId: widget.initialId),
+            emptyMessage: 'No QC result actions found.',
+            actions: [
+              AdaptiveShellSearchField(
+                controller: _viewModel.searchController,
+                hintText: 'Search inspection, type, status',
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+                icon: Icons.filter_list_outlined,
+                label: 'Filter',
+                filled: _filtersVisible,
+              ),
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/quality/qc-result-actions/new');
+                },
+                icon: Icons.add_outlined,
+                label: 'New result action',
+              ),
+            ],
+            filters: _filtersVisible
+                ? SharedFilterBar(
+                    showDateFilters: false,
+                    suggestions: const <AppRegisterFilterSuggestion>[],
+                    onClear: () {
+                      _viewModel.searchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            rows: _viewModel.filteredRows,
+            columns: [
+              PurchaseRegisterColumn<QcResultActionModel>(
+                label: 'Action Type',
+                flex: 2,
+                valueBuilder: (row) =>
+                    row.actionType.isNotEmpty ? row.actionType : 'Action',
+              ),
+              PurchaseRegisterColumn<QcResultActionModel>(
+                label: 'Inspection',
+                valueBuilder: (row) => row.inspectionNoLabel,
+              ),
+              PurchaseRegisterColumn<QcResultActionModel>(
+                label: 'Status',
+                valueBuilder: (row) => row.actionStatus,
+              ),
+              PurchaseRegisterColumn<QcResultActionModel>(
+                label: 'Date',
+                valueBuilder: (row) =>
+                    displayDate(row.actionAt ?? row.createdAt),
+              ),
+            ],
+            onRowTap: (row) {
+              final id = row.id;
+              if (id != null) {
+                _openRoute('/quality/qc-result-actions/$id');
+              }
+            },
+          );
+        }
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

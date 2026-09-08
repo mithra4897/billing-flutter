@@ -87,6 +87,9 @@ class _MaintenanceWorkOrderPageState extends State<MaintenanceWorkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return MaintenanceWorkOrderRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<MaintenanceWorkOrderViewModel>(
       tag: _controllerTag,
       builder: (_) {

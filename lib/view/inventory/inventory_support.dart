@@ -52,7 +52,7 @@ Future<void> openInventorySearchStatusCategoryFilterPanel({
                 textInputAction: TextInputAction.search,
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
-              AppRegisterFilters(
+              SharedFilterBar(
                 dateFromController: panelDateFromController,
                 dateToController: panelDateToController,
                 statusItems: statusItems,
@@ -128,7 +128,7 @@ Widget buildInventoryRegisterFilters({
   required VoidCallback onClear,
 }) {
   return AppSectionCard(
-    child: AppRegisterFilters(
+    child: SharedFilterBar(
       dateFromController: dateFromController,
       dateToController: dateToController,
       statusItems: statusItems,

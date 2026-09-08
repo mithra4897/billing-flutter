@@ -60,6 +60,9 @@ class _JobworkChargePageState extends State<JobworkChargePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.editorOnly) {
+      return JobworkChargeRegisterPage(embedded: widget.embedded);
+    }
     return GetBuilder<JobworkChargeViewModel>(
       tag: _controllerTag,
       builder: (_) {

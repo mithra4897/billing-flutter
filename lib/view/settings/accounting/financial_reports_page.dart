@@ -136,7 +136,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     final rows = _filterRegisterRows(
       _registerRows(controller.reportType, controller.report?.data),
     );
-    return PurchaseRegisterPage<_FinancialReportRegisterRow>(
+    return SharedRegisterList<_FinancialReportRegisterRow>(
       title: _reportTitle(controller.reportType),
       embedded: true,
       fullPageStyle: true,
@@ -226,7 +226,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     BuildContext context,
     FinancialReportsController controller,
   ) {
-    return AppRegisterFilters(
+    return SharedFilterBar(
       additionalFields: _buildReportFilterFields(controller),
       dateFromController: controller.dateFromController,
       dateToController: controller.dateToController,

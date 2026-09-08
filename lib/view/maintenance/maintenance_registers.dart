@@ -204,6 +204,7 @@ class MaintenanceWorkOrderRegisterPage extends StatefulWidget {
 class _MaintenanceWorkOrderRegisterPageState
     extends State<MaintenanceWorkOrderRegisterPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
 
   @override
   void initState() {
@@ -223,7 +224,7 @@ class _MaintenanceWorkOrderRegisterPageState
     return GetBuilder<MaintenanceWorkOrderRegisterController>(
       tag: _controllerTag,
       builder: (controller) {
-        return PurchaseRegisterPage<MaintenanceWorkOrderModel>(
+        return SharedRegisterList<MaintenanceWorkOrderModel>(
           title: 'Work orders',
           embedded: widget.embedded,
           loading: controller.loading,
@@ -231,6 +232,16 @@ class _MaintenanceWorkOrderRegisterPageState
           onRetry: controller.load,
           emptyMessage: 'No work orders found.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search WO no., asset, type, status',
+            ),
+            AdaptiveShellActionButton(
+              onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+              icon: Icons.filter_list_outlined,
+              label: 'Filter',
+              filled: _filtersVisible,
+            ),
             AdaptiveShellActionButton(
               onPressed: () => _openMaintenanceShellRoute(
                 context,
@@ -240,11 +251,15 @@ class _MaintenanceWorkOrderRegisterPageState
               label: 'New work order',
             ),
           ],
-          filters: _MaintFilters(
-            searchController: controller.searchController,
-            searchHint: 'Search WO no., asset, type, status',
-            companyBanner: controller.companyBanner,
-          ),
+          filters: _filtersVisible
+              ? SharedFilterBar.custom(
+                  child: _MaintFilters(
+                    searchController: controller.searchController,
+                    searchHint: 'Search WO no., asset, type, status',
+                    companyBanner: controller.companyBanner,
+                  ),
+                )
+              : null,
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
