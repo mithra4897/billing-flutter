@@ -1,5 +1,47 @@
 # Specifications
 
+## Accounting dashboard operational workspace — 2026-09-08
+
+Status: Implemented
+
+All generic module dashboards hide the shared dashboard-header card by default.
+The application shell already supplies the page title, so the duplicate header
+and its action buttons are omitted while KPI cards, task lists, trends, and
+other dashboard content remain available.
+
+The Accounting Dashboard uses the same shared dashboard workspace as Sales,
+but is populated only from the existing Accounting APIs. It shows live posted
+and draft voucher counts, the current month's posted voucher value, and open
+cash-session/reconciliation controls. Important Tasks contains draft vouchers;
+Pending Tasks contains open cash sessions and unreconciled bank entries. Each
+task section is locally filterable by its applicable task categories. Dashboard
+actions take users to existing Accounting workspaces and reports. Each of the
+four KPI cards is navigable through the shared dashboard-card behavior: the
+voucher and monthly-value cards open Vouchers, and open controls opens Bank
+Reconciliation. The Reports page is not used for this card because its default
+Day Book range is today only and can be empty despite a non-zero monthly KPI.
+
+The dashboard must read paginated cash-session and bank-reconciliation data
+as paginated responses. It must not cast either response as an unpaginated
+collection. Voucher totals use the existing all-vouchers endpoint so the
+displayed operational totals are not limited to one visual page of records.
+Because voucher serialization does not include debit totals, chart records must
+explicitly retain each voucher's `totalDebit`; otherwise every chart point is
+zero and the shared dashboard graph renders its empty state.
+No new API, permissions, persistence, or accounting calculation rules are
+introduced.
+
+Acceptance criteria:
+
+- The dashboard loads without a response-type error when cash sessions or bank
+  reconciliations are present.
+- Four cards communicate posted vouchers, draft vouchers, posted value this
+  month, and open controls.
+- Important and Pending Tasks expose the correct task categories without a
+  recent-voucher section.
+- The value trend has non-zero points when posted vouchers exist in the chosen
+  period, and the status distribution uses live Accounting records.
+
 ## Multi-role parties — 2026-09-08
 
 Status: Implemented

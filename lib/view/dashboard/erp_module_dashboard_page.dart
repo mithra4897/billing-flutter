@@ -8,7 +8,7 @@ class ErpModuleDashboardPage extends StatefulWidget {
     this.embedded = false,
     this.loader,
     this.shellTitle,
-    this.showDashboardHeader = true,
+    this.showDashboardHeader = false,
   });
 
   final String moduleKey;

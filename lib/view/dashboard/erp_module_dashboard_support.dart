@@ -737,42 +737,80 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard({
   final service = AccountsService();
   final responses = await Future.wait<dynamic>([
     service.accounts(filters: const {'per_page': 1}),
-    service.vouchers(
-      filters: const {'per_page': 100, 'sort_by': 'voucher_date'},
-    ),
+    service.vouchersAll(filters: const {'sort_by': 'voucher_date'}),
     service.cashSessions(filters: const {'per_page': 20}),
     service.bankReconciliation(filters: const {'per_page': 20}),
     service.budgets(filters: const {'per_page': 6}),
   ]);
 
   final accounts = responses[0] as PaginatedResponse<AccountModel>;
-  final vouchers = responses[1] as PaginatedResponse<VoucherModel>;
+  final vouchers = responses[1] as ApiResponse<List<VoucherModel>>;
   final cashSessions =
-      (responses[2] as ApiResponse<List<CashSessionModel>>).data ??
+      (responses[2] as PaginatedResponse<CashSessionModel>).data ??
       const <CashSessionModel>[];
   final reconciliation =
-      (responses[3] as ApiResponse<List<BankReconciliationModel>>).data ??
+      (responses[3] as PaginatedResponse<BankReconciliationModel>).data ??
       const <BankReconciliationModel>[];
   final budgets = responses[4] as PaginatedResponse<BudgetModel>;
 
-  final voucherRows = vouchers.data ?? const <VoucherModel>[];
-  final openCashSessions = cashSessions
+  return buildAccountingDashboardSnapshot(
+    accountCount: _totalFromPaginated(accounts),
+    voucherRows: vouchers.data ?? const <VoucherModel>[],
+    cashSessions: cashSessions,
+    reconciliation: reconciliation,
+    budgetCount: _totalFromPaginated(budgets),
+    trendFilter: trendFilter,
+  );
+}
+
+ErpDashboardSnapshot buildAccountingDashboardSnapshot({
+  required int accountCount,
+  required List<VoucherModel> voucherRows,
+  required List<CashSessionModel> cashSessions,
+  required List<BankReconciliationModel> reconciliation,
+  required int budgetCount,
+  ErpDashboardTrendFilter? trendFilter,
+  DateTime? now,
+}) {
+  final currentDate = now ?? DateTime.now();
+  final postedVouchers = voucherRows
+      .where((voucher) => _accountingVoucherStatus(voucher) == 'posted')
+      .toList(growable: false);
+  final draftVouchers = voucherRows
+      .where((voucher) => _accountingVoucherStatus(voucher) == 'draft')
+      .toList(growable: false);
+  final thisMonthPostedValue = postedVouchers
+      .where((voucher) => _isSameMonth(voucher.voucherDate, currentDate))
+      .fold<double>(0, (sum, voucher) => sum + voucher.totalDebit);
+  final openCashSessionRows = cashSessions
       .where(
         (item) =>
             !_isClosedStatus(item.toJson(), const ['status', 'session_status']),
       )
-      .length;
-  final pendingReconciliation = reconciliation
+      .toList(growable: false);
+  final pendingReconciliationRows = reconciliation
       .where(
         (item) => !_isClosedStatus(item.toJson(), const [
           'status',
           'reconciliation_status',
         ]),
       )
-      .length;
+      .toList(growable: false);
+  final openCashSessions = openCashSessionRows.length;
+  final pendingReconciliation = pendingReconciliationRows.length;
+  final openControls = openCashSessions + pendingReconciliation;
+  final voucherTrendRows = postedVouchers
+      .map(
+        (voucher) => <String, dynamic>{
+          ...voucher.toJson(),
+          'total_debit': voucher.totalDebit,
+        },
+      )
+      .toList(growable: false);
+
   return ErpDashboardSnapshot(
     title: 'Accounting Dashboard',
-    subtitle: 'Live accounting records in the shared ERP dashboard layout.',
+    subtitle: 'Live accounting controls and voucher activity in one workspace.',
     actions: const <ErpDashboardAction>[
       ErpDashboardAction(
         label: 'Open vouchers',
@@ -787,138 +825,138 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard({
     ],
     stats: <ErpDashboardStat>[
       ErpDashboardStat(
-        label: 'Total Invoices',
-        value: _formatInt(_totalFromPaginated(vouchers)),
-        helper: 'Based on live voucher records',
-        icon: Icons.description_outlined,
-      ),
-      ErpDashboardStat(
-        label: 'Pending Payments',
-        value: _formatInt(pendingReconciliation),
-        helper: 'Live bank reconciliation queue',
-        icon: Icons.payments_outlined,
-        color: const Color(0xFFE67E22),
-      ),
-      ErpDashboardStat(
-        label: 'Open Cash Sessions',
-        value: _formatInt(openCashSessions),
-        helper: 'Live cashier sessions awaiting closure',
-        icon: Icons.point_of_sale_outlined,
-        color: const Color(0xFFDA4D78),
-      ),
-      ErpDashboardStat(
-        label: 'Active Budgets',
-        value: _formatInt(_totalFromPaginated(budgets)),
-        helper: 'Budget definitions from live accounting data',
-        icon: Icons.account_tree_outlined,
+        label: 'Posted Vouchers',
+        value: _formatInt(postedVouchers.length),
+        helper: 'Posted voucher records',
+        icon: Icons.check_circle_outline,
         color: const Color(0xFF1FA971),
+        route: '/accounting/vouchers',
+      ),
+      ErpDashboardStat(
+        label: 'Draft Vouchers',
+        value: _formatInt(draftVouchers.length),
+        helper: 'Entries still awaiting posting',
+        icon: Icons.edit_note_outlined,
+        color: const Color(0xFFE67E22),
+        route: '/accounting/vouchers',
+      ),
+      ErpDashboardStat(
+        label: 'Posted This Month',
+        value: _accountingCurrency(thisMonthPostedValue),
+        helper: 'Posted voucher value this month',
+        icon: Icons.trending_up_outlined,
+        color: const Color(0xFFDA4D78),
+        route: '/accounting/vouchers',
+      ),
+      ErpDashboardStat(
+        label: 'Open Controls',
+        value: _formatInt(openControls),
+        helper: 'Cash sessions and reconciliation items',
+        icon: Icons.rule_outlined,
+        color: const Color(0xFFDA4D78),
+        route: '/accounting/bank-reconciliation',
       ),
     ],
     primarySections: <ErpDashboardListSection>[
       ErpDashboardListSection(
-        title: 'Recent Transactions',
-        subtitle: 'Latest voucher activity from the live accounting service.',
-        icon: Icons.swap_horiz_outlined,
-        items: voucherRows
-            .take(6)
-            .map(
-              (voucher) => ErpDashboardListItem(
-                title: stringValue(voucher.toJson(), 'voucher_no', 'Voucher'),
-                subtitle: [
-                  displayDate(
-                    nullableStringValue(voucher.toJson(), 'voucher_date'),
-                  ),
-                  stringValue(voucher.toJson(), 'voucher_type_name'),
-                ].where((part) => part.trim().isNotEmpty).join(' • '),
-                detail: nullableStringValue(voucher.toJson(), 'remarks'),
-                statusLabel: _statusLabel(voucher.toJson(), const [
-                  'status',
-                  'voucher_status',
-                ]),
-                route: '/accounting/vouchers',
-              ),
-            )
-            .toList(growable: false),
-        emptyTitle: 'No accounting entries yet',
-        emptyMessage:
-            'Recent accounting transactions will appear here once vouchers are posted.',
+        title: 'Important Accounting Tasks',
+        subtitle: 'Follow-up work that needs accounting attention.',
+        icon: Icons.fact_check_outlined,
+        filterOptions: const <ErpDashboardListFilterOption>[
+          ErpDashboardListFilterOption(value: '', label: 'All tasks'),
+          ErpDashboardListFilterOption(value: 'draft', label: 'Draft'),
+        ],
+        items: <ErpDashboardListItem>[
+          ...draftVouchers.map(
+            (voucher) => ErpDashboardListItem(
+              title: voucher.voucherNo?.trim().isNotEmpty == true
+                  ? 'Voucher ${voucher.voucherNo}'
+                  : 'Draft voucher',
+              subtitle: [
+                displayDate(voucher.voucherDate),
+                voucher.voucherTypeName ?? '',
+              ].where((part) => part.trim().isNotEmpty).join(' • '),
+              detail: 'Value ${_accountingCurrency(voucher.totalDebit)}',
+              statusLabel: 'DRAFT',
+              statusColor: const Color(0xFFE67E22),
+              route: '/accounting/vouchers',
+              filterTags: const <String>['draft'],
+            ),
+          ),
+        ],
+        emptyTitle: 'No accounting tasks need attention',
+        emptyMessage: 'Draft vouchers will appear here when they need posting.',
       ),
       ErpDashboardListSection(
-        title: 'Control Queue',
-        subtitle:
-            'Live operational items pulled from cash sessions and reconciliation.',
-        icon: Icons.rule_outlined,
-        items: <ErpDashboardListItem>[
-          ...cashSessions
-              .take(3)
-              .map(
-                (session) => ErpDashboardListItem(
-                  title: stringValue(
-                    session.toJson(),
-                    'session_name',
-                    'Cash session',
-                  ),
-                  subtitle: stringValue(
-                    session.toJson(),
-                    'session_status',
-                    stringValue(session.toJson(), 'status', 'open'),
-                  ),
-                  detail: nullableStringValue(session.toJson(), 'opened_at'),
-                  statusLabel: _statusLabel(session.toJson(), const [
-                    'session_status',
-                    'status',
-                  ]),
-                  route: '/accounting/cash-sessions',
-                ),
-              ),
-          ...reconciliation
-              .take(3)
-              .map(
-                (entry) => ErpDashboardListItem(
-                  title: stringValue(
-                    entry.toJson(),
-                    'statement_ref',
-                    'Bank reconciliation',
-                  ),
-                  subtitle: stringValue(
-                    entry.toJson(),
-                    'bank_name',
-                    stringValue(entry.toJson(), 'status'),
-                  ),
-                  detail: nullableStringValue(entry.toJson(), 'statement_date'),
-                  statusLabel: _statusLabel(entry.toJson(), const [
-                    'reconciliation_status',
-                    'status',
-                  ]),
-                  route: '/accounting/bank-reconciliation',
-                ),
-              ),
+        title: 'Pending Accounting Tasks',
+        subtitle: 'Cash and reconciliation work still awaiting closure.',
+        icon: Icons.pending_actions_outlined,
+        filterOptions: const <ErpDashboardListFilterOption>[
+          ErpDashboardListFilterOption(value: '', label: 'All pending'),
+          ErpDashboardListFilterOption(
+            value: 'cash_session',
+            label: 'Cash sessions',
+          ),
+          ErpDashboardListFilterOption(
+            value: 'reconciliation',
+            label: 'Reconciliation',
+          ),
         ],
-        emptyTitle: 'No live control queue items',
+        items: <ErpDashboardListItem>[
+          ...openCashSessionRows.map(
+            (session) => ErpDashboardListItem(
+              title: session.cashAccountName?.trim().isNotEmpty == true
+                  ? session.cashAccountName!
+                  : 'Cash session',
+              subtitle: session.branchName ?? 'Cash session is open',
+              detail: 'Opened ${displayDate(session.openingDatetime)}',
+              statusLabel: _statusLabel(session.toJson(), const ['status']),
+              route: '/accounting/cash-sessions',
+              filterTags: const <String>['cash_session'],
+            ),
+          ),
+          ...pendingReconciliationRows.map(
+            (entry) => ErpDashboardListItem(
+              title: entry.bankReferenceNo?.trim().isNotEmpty == true
+                  ? entry.bankReferenceNo!
+                  : entry.voucherNo ?? 'Bank reconciliation',
+              subtitle: entry.accountName ?? entry.voucherAccountName ?? '',
+              detail:
+                  'Date ${displayDate(entry.bankDate ?? entry.voucherDate)} • ${_accountingCurrency(entry.voucherAmount ?? 0)}',
+              statusLabel: _statusLabel(entry.toJson(), const [
+                'reconciliation_status',
+                'status',
+              ]),
+              route: '/accounting/bank-reconciliation',
+              filterTags: const <String>['reconciliation'],
+            ),
+          ),
+        ],
+        emptyTitle: 'No pending accounting tasks',
         emptyMessage:
-            'Cash sessions and reconciliation records will surface here.',
+            'Open cash sessions and unreconciled bank entries will appear here.',
       ),
     ],
     trend: _buildMonthlyTrendCard(
-      title: 'Monthly Billing Trend',
-      subtitle: 'Total transaction value (₹) per period from live vouchers.',
+      title: 'Posted Voucher Value',
+      subtitle: 'Posted debit value (₹) per selected period.',
       trendFilter: trendFilter,
       isCurrency: true,
       sources: <_TrendSource>[
         _TrendSource(
-          records: voucherRows.map((item) => item.toJson()),
+          records: voucherTrendRows,
           dateKeys: const ['voucher_date', 'posting_date', 'created_at'],
           amountKey: 'total_debit',
         ),
       ],
     ),
     distribution: ErpDashboardDistributionCardData(
-      title: 'Payment Distribution',
-      subtitle: 'Split between open operational accounting queues.',
+      title: 'Accounting Work Distribution',
+      subtitle: 'Open tasks split by the work that needs attention.',
       segments: _segmentsFromCounts(<String, int>{
+        'Draft vouchers': draftVouchers.length,
         'Open cash sessions': openCashSessions,
         'Pending reconciliation': pendingReconciliation,
-        'Active budgets': _totalFromPaginated(budgets),
       }),
     ),
     highlights: ErpDashboardHighlightsCardData(
@@ -927,24 +965,39 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard({
       entries: <ErpDashboardHighlightEntry>[
         ErpDashboardHighlightEntry(
           label: 'Chart of accounts',
-          value: _formatInt(_totalFromPaginated(accounts)),
+          value: _formatInt(accountCount),
           helper: 'Live ledger masters',
         ),
         ErpDashboardHighlightEntry(
-          label: 'Open sessions',
-          value: _formatInt(openCashSessions),
-          helper: 'Needs cashier closure',
+          label: 'Reconciliation queue',
+          value: _formatInt(pendingReconciliation),
+          helper: 'Entries awaiting reconciliation',
           color: const Color(0xFFE67E22),
         ),
         ErpDashboardHighlightEntry(
-          label: 'Budgets',
-          value: _formatInt(_totalFromPaginated(budgets)),
+          label: 'Active budgets',
+          value: _formatInt(budgetCount),
           helper: 'Budget definitions available',
           color: const Color(0xFF1FA971),
         ),
       ],
     ),
   );
+}
+
+String _accountingVoucherStatus(VoucherModel voucher) =>
+    (voucher.postingStatus ?? '').trim().toLowerCase();
+
+bool _isSameMonth(String? dateValue, DateTime currentDate) {
+  final date = DateTime.tryParse(dateValue ?? '');
+  return date != null &&
+      date.year == currentDate.year &&
+      date.month == currentDate.month;
+}
+
+String _accountingCurrency(double value) {
+  final formatted = _formatCurrency(value);
+  return formatted.isEmpty ? '₹0.00' : formatted;
 }
 
 Future<ErpDashboardSnapshot> _loadAssetsDashboard({

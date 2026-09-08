@@ -1,5 +1,14 @@
 # Testing
 
+## Accounting dashboard operational workspace — 2026-09-08
+
+- Automated: focused dashboard snapshot test covers the four operational
+  cards, Important/Pending task filters, non-zero voucher graph points, and
+  the default removal of the duplicate dashboard-header card.
+- Manual: verify the Accounting Dashboard with live draft/posted vouchers,
+  open cash sessions, and unreconciled bank entries; exercise each queue
+  filter and the existing workspace actions.
+
 ## Project card actions — 2026-09-05
 
 - Verify the three-dot menu shows Edit and Delete on Project overview cards.

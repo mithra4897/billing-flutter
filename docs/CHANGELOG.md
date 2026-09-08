@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-08 — Make Accounting Dashboard operational
+
+- Reworked the existing shared Accounting Dashboard into a Sales-style
+  operational workspace with live voucher metrics, an actionable follow-up
+  queue, recent postings, a voucher-value trend, and status distribution.
+- Corrected paginated cash-session and bank-reconciliation response handling,
+  which could previously cause the dashboard to fail at runtime.
+- Reused the shared ERP dashboard cards, task filters, trend controls, and
+  list presentation; no new API or accounting rules were added.
+- Added snapshot coverage for the accounting metrics and queue filters.
+- Fixed the voucher-value chart by retaining debit amounts in chart records,
+  and separated draft Important Tasks from pending cash/reconciliation work.
+- Made all four Accounting KPI cards navigable to their relevant existing
+  Accounting workspace.
+- Routed Posted This Month to Vouchers instead of the today-only default Day
+  Book so selecting a non-zero KPI does not open an empty report.
+- Removed the duplicate shared header card from all generic module dashboards;
+  the application shell title remains visible.
+
 ## 2026-09-08 — Allow a party to be both customer and supplier
 
 - Changed Party Types to a searchable multi-select so Customer and Supplier can
