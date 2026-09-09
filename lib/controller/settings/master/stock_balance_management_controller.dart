@@ -2,7 +2,11 @@ import '../../../view_model/inventory/inventory_module_refresh_controller.dart';
 import '../../../screen.dart';
 
 class StockBalanceManagementController extends GetxController {
-  StockBalanceManagementController({this.lowStockFilter = false});
+  StockBalanceManagementController({
+    this.lowStockFilter = false,
+    this.itemIdFilter,
+    this.warehouseIdFilter,
+  });
 
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
@@ -24,6 +28,8 @@ class StockBalanceManagementController extends GetxController {
   String dateFromFilter = '';
   String dateToFilter = '';
   bool lowStockFilter;
+  int? itemIdFilter;
+  int? warehouseIdFilter;
 
   @override
   void onInit() {
@@ -66,6 +72,8 @@ class StockBalanceManagementController extends GetxController {
           if (dateFromFilter.isNotEmpty) 'last_movement_from': dateFromFilter,
           if (dateToFilter.isNotEmpty) 'last_movement_to': dateToFilter,
           if (lowStockFilter) 'low_stock': 1,
+          if (itemIdFilter != null) 'item_id': itemIdFilter,
+          if (warehouseIdFilter != null) 'warehouse_id': warehouseIdFilter,
         },
       );
       final nextItems = response.data ?? const <StockBalanceModel>[];
@@ -145,6 +153,23 @@ class StockBalanceManagementController extends GetxController {
     }
     lowStockFilter = enabled;
     unawaited(loadData(page: 1));
+  }
+
+  void setDashboardFilter({
+    required bool lowStock,
+    int? itemId,
+    int? warehouseId,
+  }) {
+    final changed =
+        lowStockFilter != lowStock ||
+        itemIdFilter != itemId ||
+        warehouseIdFilter != warehouseId;
+    lowStockFilter = lowStock;
+    itemIdFilter = itemId;
+    warehouseIdFilter = warehouseId;
+    if (changed) {
+      unawaited(loadData(page: 1));
+    }
   }
 
   void goToPage(int page) {

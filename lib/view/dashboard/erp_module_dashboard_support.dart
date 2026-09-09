@@ -1990,7 +1990,6 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         items: <ErpDashboardListItem>[
           ...balanceRows
               .where(_isLowStockBalance)
-              .take(4)
               .map(
                 (balance) => ErpDashboardListItem(
                   title: stringValue(
@@ -2006,7 +2005,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
                       'Qty ${stringValue(balance.toJson(), 'qty_available', stringValue(balance.toJson(), 'qty_on_hand'))}',
                   statusLabel: 'LOW',
                   statusColor: const Color(0xFFE67E22),
-                  route: '/inventory/stock-balances?dashboard_filter=low_stock',
+                  route: _lowStockBalanceRoute(balance),
                 ),
               ),
         ],
@@ -3991,6 +3990,17 @@ bool _isLowStockBalance(StockBalanceModel item) {
     return qty <= reorder;
   }
   return qty <= 0;
+}
+
+String _lowStockBalanceRoute(StockBalanceModel balance) {
+  return Uri(
+    path: '/inventory/stock-balances',
+    queryParameters: <String, String>{
+      'dashboard_filter': 'low_stock',
+      if (balance.itemId != null) 'item_id': '${balance.itemId}',
+      if (balance.warehouseId != null) 'warehouse_id': '${balance.warehouseId}',
+    },
+  ).toString();
 }
 
 String _formatInt(int value) => value.toString();

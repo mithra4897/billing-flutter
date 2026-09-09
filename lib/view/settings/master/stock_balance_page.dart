@@ -92,12 +92,19 @@ class _StockBalancePageState extends State<StockBalancePage> {
   }
 
   void _applyDashboardFilter() {
-    if (!mounted || !Get.isRegistered<StockBalanceManagementController>(tag: _controllerTag)) {
+    if (!mounted ||
+        !Get.isRegistered<StockBalanceManagementController>(
+          tag: _controllerTag,
+        )) {
       return;
     }
-    final controller = Get.find<StockBalanceManagementController>(tag: _controllerTag);
-    controller.setLowStockFilter(
-      widget.queryParameters['dashboard_filter'] == 'low_stock',
+    final controller = Get.find<StockBalanceManagementController>(
+      tag: _controllerTag,
+    );
+    controller.setDashboardFilter(
+      lowStock: widget.queryParameters['dashboard_filter'] == 'low_stock',
+      itemId: int.tryParse(widget.queryParameters['item_id'] ?? ''),
+      warehouseId: int.tryParse(widget.queryParameters['warehouse_id'] ?? ''),
     );
   }
 
@@ -111,6 +118,10 @@ class _StockBalancePageState extends State<StockBalancePage> {
         StockBalanceManagementController(
           lowStockFilter:
               widget.queryParameters['dashboard_filter'] == 'low_stock',
+          itemIdFilter: int.tryParse(widget.queryParameters['item_id'] ?? ''),
+          warehouseIdFilter: int.tryParse(
+            widget.queryParameters['warehouse_id'] ?? '',
+          ),
         ),
         tag: _controllerTag,
       );
@@ -124,8 +135,7 @@ class _StockBalancePageState extends State<StockBalancePage> {
   @override
   void didUpdateWidget(covariant StockBalancePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.queryParameters['dashboard_filter'] !=
-        widget.queryParameters['dashboard_filter']) {
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
       _applyDashboardFilter();
     }
   }
