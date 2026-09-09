@@ -6,6 +6,9 @@ class StockIssueLineModel extends JsonModel {
     this.stockIssueId,
     this.lineNo,
     this.itemId,
+    this.itemCode,
+    this.itemName,
+    this.categoryName,
     this.uomId,
     this.batchId,
     this.serialId,
@@ -19,6 +22,9 @@ class StockIssueLineModel extends JsonModel {
   final int? stockIssueId;
   final int? lineNo;
   final int? itemId;
+  final String? itemCode;
+  final String? itemName;
+  final String? categoryName;
   final int? uomId;
   final int? batchId;
   final int? serialId;
@@ -35,6 +41,16 @@ class StockIssueLineModel extends JsonModel {
       stockIssueId: JsonModel.nullableInt(json['stock_issue_id']),
       lineNo: JsonModel.nullableInt(json['line_no']),
       itemId: JsonModel.nullableInt(json['item_id']),
+      itemCode:
+          (json['item'] as Map?)?['item_code']?.toString() ??
+          json['item_code']?.toString(),
+      itemName:
+          (json['item'] as Map?)?['item_name']?.toString() ??
+          json['item_name']?.toString(),
+      categoryName:
+          ((json['item'] as Map?)?['category'] as Map?)?['category_name']
+              ?.toString() ??
+          json['category_name']?.toString(),
       uomId: JsonModel.nullableInt(json['uom_id']),
       batchId: JsonModel.nullableInt(json['batch_id']),
       serialId: JsonModel.nullableInt(json['serial_id']),
@@ -47,10 +63,8 @@ class StockIssueLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => JsonModel.combineValues([
-    lineNo,
-  ], defaultValue: 'Stock Issue Line');
-
+  String toString() =>
+      JsonModel.combineValues([lineNo], defaultValue: 'Stock Issue Line');
 
   @override
   Map<String, dynamic> toJson() => {
@@ -58,6 +72,9 @@ class StockIssueLineModel extends JsonModel {
     if (stockIssueId != null) 'stock_issue_id': stockIssueId,
     if (lineNo != null) 'line_no': lineNo,
     if (itemId != null) 'item_id': itemId,
+    if (itemCode != null) 'item_code': itemCode,
+    if (itemName != null) 'item_name': itemName,
+    if (categoryName != null) 'category_name': categoryName,
     if (uomId != null) 'uom_id': uomId,
     if (batchId != null) 'batch_id': batchId,
     if (serialId != null) 'serial_id': serialId,

@@ -208,6 +208,83 @@ List<String> _genericCategoryValues<T extends JsonModel>(T row) {
   return values;
 }
 
+String _inventoryProductSummary<T extends JsonModel>(T row) {
+  final rawItems = row.toJson()['items'];
+  if (rawItems is! List) {
+    return '';
+  }
+  final labels = <String>[];
+  for (final rawItem in rawItems) {
+    if (rawItem is! Map) {
+      continue;
+    }
+    final item = rawItem.cast<String, dynamic>();
+    final name = stringValue(item, 'item_name').trim();
+    final code = stringValue(item, 'item_code').trim();
+    final label = [
+      if (name.isNotEmpty) name,
+      if (code.isNotEmpty && code != name) '($code)',
+    ].join(' ');
+    if (label.isNotEmpty && !labels.contains(label)) {
+      labels.add(label);
+    }
+  }
+  if (labels.length <= 2) {
+    return labels.join(', ');
+  }
+  return '${labels.take(2).join(', ')} +${labels.length - 2} more';
+}
+
+String _inventoryWarehouseLabel<T extends JsonModel>(T row) {
+  final data = row.toJson();
+  return stringValue(
+    data,
+    'warehouse_name',
+    stringValue(data, 'warehouse_code', stringValue(data, 'warehouse_id')),
+  );
+}
+
+String _inventoryTransferWarehouseLabel<T extends JsonModel>(
+  T row,
+  String nameKey,
+  String codeKey,
+  String idKey,
+) {
+  final data = row.toJson();
+  return stringValue(
+    data,
+    nameKey,
+    stringValue(data, codeKey, stringValue(data, idKey)),
+  );
+}
+
+String _inventoryQuantitySummary<T extends JsonModel>(T row, String key) {
+  final rawItems = row.toJson()['items'];
+  if (rawItems is! List) {
+    return '';
+  }
+  var total = 0.0;
+  var hasQuantity = false;
+  for (final rawItem in rawItems) {
+    if (rawItem is! Map) {
+      continue;
+    }
+    final value = JsonModel.nullableDouble(
+      rawItem.cast<String, dynamic>()[key],
+    );
+    if (value != null) {
+      total += value;
+      hasQuantity = true;
+    }
+  }
+  if (!hasQuantity) {
+    return '';
+  }
+  return total == total.roundToDouble()
+      ? total.toInt().toString()
+      : total.toStringAsFixed(2);
+}
+
 Future<List<AppDropdownItem<String>>> _loadOpeningStockCategoryItems(
   InventoryService service,
 ) async {
@@ -252,7 +329,8 @@ class InventoryRegisterController<T> extends GetxController {
   });
 
   final String? initialDashboardFilter;
-  final void Function(InventoryRegisterController<T> controller, String filter)? onDashboardFilter;
+  final void Function(InventoryRegisterController<T> controller, String filter)?
+  onDashboardFilter;
 
   final InventoryRegisterLoader<T> loader;
   final InventoryRegisterMatcher<T> matches;
@@ -367,7 +445,9 @@ class InventoryRegisterController<T> extends GetxController {
     );
     unawaited(_loadCategoryItemsOnce());
     unawaited(_loadFilterOptionsOnce());
-    if (initialDashboardFilter != null && initialDashboardFilter!.isNotEmpty && onDashboardFilter != null) {
+    if (initialDashboardFilter != null &&
+        initialDashboardFilter!.isNotEmpty &&
+        onDashboardFilter != null) {
       onDashboardFilter!(this, initialDashboardFilter!);
       _filterDebounce?.cancel();
     }
@@ -584,7 +664,11 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
   final InventoryRegisterFilterOptionsLoader? filterOptionsLoader;
   final InventoryRegisterFooterBuilder<T>? footerBuilder;
   final Map<String, String> queryParameters;
-  final void Function(InventoryRegisterController<T> controller, String dashboardFilter)? onDashboardFilter;
+  final void Function(
+    InventoryRegisterController<T> controller,
+    String dashboardFilter,
+  )?
+  onDashboardFilter;
 
   @override
   State<_InventoryRegisterShell<T>> createState() =>
@@ -600,49 +684,55 @@ class _InventoryRegisterShellState<T>
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag(widget.controllerName);
-      bool isNew = false;
-      if (!Get.isRegistered<InventoryRegisterController<T>>(
+    bool isNew = false;
+    if (!Get.isRegistered<InventoryRegisterController<T>>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        InventoryRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+          statusValue: widget.statusValue,
+          statusFilterItems: widget.statusFilterItems,
+          dateValue: widget.dateValue,
+          categoryValues: widget.categoryValues,
+          categoryItemsLoader: widget.categoryItemsLoader,
+          filterOptionsLoader: widget.filterOptionsLoader,
+          initialDashboardFilter:
+              (widget.queryParameters['dashboard_filter'] ?? '').trim(),
+          onDashboardFilter: widget.onDashboardFilter,
+        ),
         tag: _controllerTag,
-      )) {
-        Get.put(
-          InventoryRegisterController<T>(
-            loader: widget.loader,
-            matches: widget.matches,
-            statusValue: widget.statusValue,
-            statusFilterItems: widget.statusFilterItems,
-            dateValue: widget.dateValue,
-            categoryValues: widget.categoryValues,
-            categoryItemsLoader: widget.categoryItemsLoader,
-            filterOptionsLoader: widget.filterOptionsLoader,
-            initialDashboardFilter: (widget.queryParameters['dashboard_filter'] ?? '').trim(),
-            onDashboardFilter: widget.onDashboardFilter,
-          ),
+      );
+      isNew = true;
+    }
+    if (!isNew) {
+      _applyDashboardFilter();
+    }
+  }
+
+  void _applyDashboardFilter() {
+    if (!mounted ||
+        !Get.isRegistered<InventoryRegisterController<T>>(
           tag: _controllerTag,
-        );
-        isNew = true;
-      }
-      if (!isNew) {
-        _applyDashboardFilter();
-      }
+        )) {
+      return;
     }
-  
-    void _applyDashboardFilter() {
-      if (!mounted ||
-          !Get.isRegistered<InventoryRegisterController<T>>(tag: _controllerTag)) {
-        return;
-      }
-      final dashboardFilter = (widget.queryParameters['dashboard_filter'] ?? '').trim();
-      final controller = Get.find<InventoryRegisterController<T>>(tag: _controllerTag);
-      controller.applyDashboardFilter(dashboardFilter);
+    final dashboardFilter = (widget.queryParameters['dashboard_filter'] ?? '')
+        .trim();
+    final controller = Get.find<InventoryRegisterController<T>>(
+      tag: _controllerTag,
+    );
+    controller.applyDashboardFilter(dashboardFilter);
+  }
+
+  @override
+  void didUpdateWidget(covariant _InventoryRegisterShell<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      _applyDashboardFilter();
     }
-  
-    @override
-    void didUpdateWidget(covariant _InventoryRegisterShell<T> oldWidget) {
-      super.didUpdateWidget(oldWidget);
-      if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
-        _applyDashboardFilter();
-      }
-    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -867,6 +957,18 @@ class StockIssueRegisterPage extends StatelessWidget {
               displayDate(nullableStringValue(row.toJson(), 'issue_date')),
         ),
         PurchaseRegisterColumn<StockIssueModel>(
+          label: 'Product',
+          valueBuilder: _inventoryProductSummary,
+        ),
+        PurchaseRegisterColumn<StockIssueModel>(
+          label: 'Warehouse',
+          valueBuilder: _inventoryWarehouseLabel,
+        ),
+        PurchaseRegisterColumn<StockIssueModel>(
+          label: 'Qty',
+          valueBuilder: (row) => _inventoryQuantitySummary(row, 'issue_qty'),
+        ),
+        PurchaseRegisterColumn<StockIssueModel>(
           label: 'Purpose',
           valueBuilder: (row) => stringValue(row.toJson(), 'issue_purpose'),
         ),
@@ -940,6 +1042,22 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
               displayDate(nullableStringValue(row.toJson(), 'receipt_date')),
         ),
         PurchaseRegisterColumn<InternalStockReceiptModel>(
+          label: 'Product',
+          valueBuilder: _inventoryProductSummary,
+        ),
+        PurchaseRegisterColumn<InternalStockReceiptModel>(
+          label: 'Warehouse',
+          valueBuilder: _inventoryWarehouseLabel,
+        ),
+        PurchaseRegisterColumn<InternalStockReceiptModel>(
+          label: 'Qty',
+          valueBuilder: (row) => _inventoryQuantitySummary(row, 'receipt_qty'),
+        ),
+        PurchaseRegisterColumn<InternalStockReceiptModel>(
+          label: 'Source',
+          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_source'),
+        ),
+        PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
         ),
@@ -1008,6 +1126,32 @@ class StockTransferRegisterPage extends StatelessWidget {
           label: 'Date',
           valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'transfer_date')),
+        ),
+        PurchaseRegisterColumn<StockTransferModel>(
+          label: 'Product',
+          valueBuilder: _inventoryProductSummary,
+        ),
+        PurchaseRegisterColumn<StockTransferModel>(
+          label: 'From Warehouse',
+          valueBuilder: (row) => _inventoryTransferWarehouseLabel(
+            row,
+            'from_warehouse_name',
+            'from_warehouse_code',
+            'from_warehouse_id',
+          ),
+        ),
+        PurchaseRegisterColumn<StockTransferModel>(
+          label: 'To Warehouse',
+          valueBuilder: (row) => _inventoryTransferWarehouseLabel(
+            row,
+            'to_warehouse_name',
+            'to_warehouse_code',
+            'to_warehouse_id',
+          ),
+        ),
+        PurchaseRegisterColumn<StockTransferModel>(
+          label: 'Qty',
+          valueBuilder: (row) => _inventoryQuantitySummary(row, 'transfer_qty'),
         ),
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'Status',
@@ -1258,7 +1402,11 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
 }
 
 class StockMovementRegisterPage extends StatelessWidget {
-  const StockMovementRegisterPage({super.key, this.embedded = false, this.queryParameters = const {}});
+  const StockMovementRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const {},
+  });
 
   final bool embedded;
   final Map<String, String> queryParameters;
@@ -1272,9 +1420,29 @@ class StockMovementRegisterPage extends StatelessWidget {
       queryParameters: queryParameters,
       onDashboardFilter: (controller, filter) {
         if (filter == 'stock_in') {
-          controller.setMovementTypes({'purchase_receipt', 'sales_return', 'stock_transfer_in', 'stock_adjustment_in', 'production_receipt', 'jobwork_receipt', 'sample_receipt', 'internal_receipt'});
+          controller.setMovementTypes({
+            'purchase_receipt',
+            'sales_return',
+            'stock_transfer_in',
+            'stock_adjustment_in',
+            'production_receipt',
+            'jobwork_receipt',
+            'sample_receipt',
+            'internal_receipt',
+          });
         } else if (filter == 'stock_out') {
-          controller.setMovementTypes({'purchase_return', 'sales_delivery', 'stock_transfer_out', 'stock_adjustment_out', 'production_issue', 'jobwork_issue', 'damage', 'expiry', 'sample_issue', 'internal_issue'});
+          controller.setMovementTypes({
+            'purchase_return',
+            'sales_delivery',
+            'stock_transfer_out',
+            'stock_adjustment_out',
+            'production_issue',
+            'jobwork_issue',
+            'damage',
+            'expiry',
+            'sample_issue',
+            'internal_issue',
+          });
         } else {
           controller.setMovementTypes({});
         }

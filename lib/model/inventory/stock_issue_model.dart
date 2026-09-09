@@ -12,6 +12,8 @@ class StockIssueModel extends JsonModel {
     this.issueNo,
     this.issueDate,
     this.warehouseId,
+    this.warehouseCode,
+    this.warehouseName,
     this.issuePurpose,
     this.departmentName,
     this.issuedTo,
@@ -35,6 +37,8 @@ class StockIssueModel extends JsonModel {
   final String? issueNo;
   final String? issueDate;
   final int? warehouseId;
+  final String? warehouseCode;
+  final String? warehouseName;
   final String? issuePurpose;
   final String? departmentName;
   final String? issuedTo;
@@ -61,6 +65,12 @@ class StockIssueModel extends JsonModel {
       issueNo: json['issue_no']?.toString(),
       issueDate: json['issue_date']?.toString(),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      warehouseCode:
+          (json['warehouse'] as Map?)?['code']?.toString() ??
+          json['warehouse_code']?.toString(),
+      warehouseName:
+          (json['warehouse'] as Map?)?['name']?.toString() ??
+          json['warehouse_name']?.toString(),
       issuePurpose: json['issue_purpose']?.toString(),
       departmentName: json['department_name']?.toString(),
       issuedTo: json['issued_to']?.toString(),
@@ -79,8 +89,11 @@ class StockIssueModel extends JsonModel {
       items: json['items'] == null
           ? null
           : (json['items'] as List<dynamic>)
-              .map((e) => StockIssueLineModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
+                .map(
+                  (e) =>
+                      StockIssueLineModel.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
     );
   }
   @override
@@ -89,7 +102,6 @@ class StockIssueModel extends JsonModel {
     issueNo,
     issueDate,
   ], defaultValue: 'Stock Issue');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -102,6 +114,8 @@ class StockIssueModel extends JsonModel {
     if (issueNo != null) 'issue_no': issueNo,
     if (issueDate != null) 'issue_date': issueDate,
     if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (warehouseCode != null) 'warehouse_code': warehouseCode,
+    if (warehouseName != null) 'warehouse_name': warehouseName,
     if (issuePurpose != null) 'issue_purpose': issuePurpose,
     if (departmentName != null) 'department_name': departmentName,
     if (issuedTo != null) 'issued_to': issuedTo,

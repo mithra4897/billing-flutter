@@ -6,6 +6,9 @@ class StockTransferItemModel extends JsonModel {
     this.stockTransferId,
     this.lineNo,
     this.itemId,
+    this.itemCode,
+    this.itemName,
+    this.categoryName,
     this.fromBatchId,
     this.toBatchId,
     this.fromSerialId,
@@ -21,6 +24,9 @@ class StockTransferItemModel extends JsonModel {
   final int? stockTransferId;
   final int? lineNo;
   final int? itemId;
+  final String? itemCode;
+  final String? itemName;
+  final String? categoryName;
   final int? fromBatchId;
   final int? toBatchId;
   final int? fromSerialId;
@@ -39,6 +45,16 @@ class StockTransferItemModel extends JsonModel {
       stockTransferId: JsonModel.nullableInt(json['stock_transfer_id']),
       lineNo: JsonModel.nullableInt(json['line_no']),
       itemId: JsonModel.nullableInt(json['item_id']),
+      itemCode:
+          (json['item'] as Map?)?['item_code']?.toString() ??
+          json['item_code']?.toString(),
+      itemName:
+          (json['item'] as Map?)?['item_name']?.toString() ??
+          json['item_name']?.toString(),
+      categoryName:
+          ((json['item'] as Map?)?['category'] as Map?)?['category_name']
+              ?.toString() ??
+          json['category_name']?.toString(),
       fromBatchId: JsonModel.nullableInt(json['from_batch_id']),
       toBatchId: JsonModel.nullableInt(json['to_batch_id']),
       fromSerialId: JsonModel.nullableInt(json['from_serial_id']),
@@ -53,10 +69,8 @@ class StockTransferItemModel extends JsonModel {
     );
   }
   @override
-  String toString() => JsonModel.combineValues([
-    lineNo,
-  ], defaultValue: 'Stock Transfer Item');
-
+  String toString() =>
+      JsonModel.combineValues([lineNo], defaultValue: 'Stock Transfer Item');
 
   @override
   Map<String, dynamic> toJson() => {
@@ -64,6 +78,9 @@ class StockTransferItemModel extends JsonModel {
     if (stockTransferId != null) 'stock_transfer_id': stockTransferId,
     if (lineNo != null) 'line_no': lineNo,
     if (itemId != null) 'item_id': itemId,
+    if (itemCode != null) 'item_code': itemCode,
+    if (itemName != null) 'item_name': itemName,
+    if (categoryName != null) 'category_name': categoryName,
     if (fromBatchId != null) 'from_batch_id': fromBatchId,
     if (toBatchId != null) 'to_batch_id': toBatchId,
     if (fromSerialId != null) 'from_serial_id': fromSerialId,

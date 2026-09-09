@@ -12,7 +12,11 @@ class StockTransferModel extends JsonModel {
     this.transferNo,
     this.transferDate,
     this.fromWarehouseId,
+    this.fromWarehouseCode,
+    this.fromWarehouseName,
     this.toWarehouseId,
+    this.toWarehouseCode,
+    this.toWarehouseName,
     this.transferStatus,
     this.remarks,
     this.receivedBy,
@@ -35,7 +39,11 @@ class StockTransferModel extends JsonModel {
   final String? transferNo;
   final String? transferDate;
   final int? fromWarehouseId;
+  final String? fromWarehouseCode;
+  final String? fromWarehouseName;
   final int? toWarehouseId;
+  final String? toWarehouseCode;
+  final String? toWarehouseName;
   final String? transferStatus;
   final String? remarks;
   final int? receivedBy;
@@ -61,7 +69,19 @@ class StockTransferModel extends JsonModel {
       transferNo: json['transfer_no']?.toString(),
       transferDate: json['transfer_date']?.toString(),
       fromWarehouseId: JsonModel.nullableInt(json['from_warehouse_id']),
+      fromWarehouseCode:
+          (json['from_warehouse'] as Map?)?['code']?.toString() ??
+          json['from_warehouse_code']?.toString(),
+      fromWarehouseName:
+          (json['from_warehouse'] as Map?)?['name']?.toString() ??
+          json['from_warehouse_name']?.toString(),
       toWarehouseId: JsonModel.nullableInt(json['to_warehouse_id']),
+      toWarehouseCode:
+          (json['to_warehouse'] as Map?)?['code']?.toString() ??
+          json['to_warehouse_code']?.toString(),
+      toWarehouseName:
+          (json['to_warehouse'] as Map?)?['name']?.toString() ??
+          json['to_warehouse_name']?.toString(),
       transferStatus: json['transfer_status']?.toString(),
       remarks: json['remarks']?.toString(),
       receivedBy: JsonModel.nullableInt(json['received_by']),
@@ -79,8 +99,12 @@ class StockTransferModel extends JsonModel {
       items: json['items'] == null
           ? null
           : (json['items'] as List<dynamic>)
-              .map((e) => StockTransferItemModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
+                .map(
+                  (e) => StockTransferItemModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList(),
     );
   }
   @override
@@ -89,7 +113,6 @@ class StockTransferModel extends JsonModel {
     transferDate,
     transferStatus,
   ], defaultValue: 'Stock Transfer');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -102,7 +125,11 @@ class StockTransferModel extends JsonModel {
     if (transferNo != null) 'transfer_no': transferNo,
     if (transferDate != null) 'transfer_date': transferDate,
     if (fromWarehouseId != null) 'from_warehouse_id': fromWarehouseId,
+    if (fromWarehouseCode != null) 'from_warehouse_code': fromWarehouseCode,
+    if (fromWarehouseName != null) 'from_warehouse_name': fromWarehouseName,
     if (toWarehouseId != null) 'to_warehouse_id': toWarehouseId,
+    if (toWarehouseCode != null) 'to_warehouse_code': toWarehouseCode,
+    if (toWarehouseName != null) 'to_warehouse_name': toWarehouseName,
     if (transferStatus != null) 'transfer_status': transferStatus,
     if (remarks != null) 'remarks': remarks,
     if (receivedBy != null) 'received_by': receivedBy,

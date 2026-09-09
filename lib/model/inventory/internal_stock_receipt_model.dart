@@ -12,6 +12,8 @@ class InternalStockReceiptModel extends JsonModel {
     this.receiptNo,
     this.receiptDate,
     this.warehouseId,
+    this.warehouseCode,
+    this.warehouseName,
     this.receiptSource,
     this.receivedFrom,
     this.receiptStatus,
@@ -34,6 +36,8 @@ class InternalStockReceiptModel extends JsonModel {
   final String? receiptNo;
   final String? receiptDate;
   final int? warehouseId;
+  final String? warehouseCode;
+  final String? warehouseName;
   final String? receiptSource;
   final String? receivedFrom;
   final String? receiptStatus;
@@ -59,6 +63,12 @@ class InternalStockReceiptModel extends JsonModel {
       receiptNo: json['receipt_no']?.toString(),
       receiptDate: json['receipt_date']?.toString(),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      warehouseCode:
+          (json['warehouse'] as Map?)?['code']?.toString() ??
+          json['warehouse_code']?.toString(),
+      warehouseName:
+          (json['warehouse'] as Map?)?['name']?.toString() ??
+          json['warehouse_name']?.toString(),
       receiptSource: json['receipt_source']?.toString(),
       receivedFrom: json['received_from']?.toString(),
       receiptStatus: json['receipt_status']?.toString(),
@@ -76,12 +86,12 @@ class InternalStockReceiptModel extends JsonModel {
       items: json['items'] == null
           ? null
           : (json['items'] as List<dynamic>)
-              .map(
-                (e) => InternalStockReceiptLineModel.fromJson(
-                  e as Map<String, dynamic>,
-                ),
-              )
-              .toList(),
+                .map(
+                  (e) => InternalStockReceiptLineModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList(),
     );
   }
   @override
@@ -90,7 +100,6 @@ class InternalStockReceiptModel extends JsonModel {
     receiptDate,
     receiptStatus,
   ], defaultValue: 'Internal Stock Receipt');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -103,6 +112,8 @@ class InternalStockReceiptModel extends JsonModel {
     if (receiptNo != null) 'receipt_no': receiptNo,
     if (receiptDate != null) 'receipt_date': receiptDate,
     if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (warehouseCode != null) 'warehouse_code': warehouseCode,
+    if (warehouseName != null) 'warehouse_name': warehouseName,
     if (receiptSource != null) 'receipt_source': receiptSource,
     if (receivedFrom != null) 'received_from': receivedFrom,
     if (receiptStatus != null) 'receipt_status': receiptStatus,
