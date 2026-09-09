@@ -16,6 +16,8 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
   final TextEditingController _dateToController = TextEditingController();
   String _statusFilter = '';
   String _categoryFilter = '';
+  bool _filtersVisible = false;
+  Set<int> _selectedItemIds = <int>{};
 
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
@@ -26,51 +28,61 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
-  Future<void> _openFilterPanel(
-    BuildContext context,
+  Widget _buildSharedFilters(
     PhysicalStockCountManagementController controller,
   ) {
-    return openInventorySearchStatusCategoryFilterPanel(
-      context: context,
-      title: 'Filter Physical Counts',
-      searchController: controller.searchController,
+    return SharedFilterBar(
       dateFromController: _dateFromController,
       dateToController: _dateToController,
-      searchHint: 'Count no, status, scope, or warehouse',
-      status: _statusFilter,
       statusItems: _statusItems,
-      category: _categoryFilter,
+      selectedStatuses: {if (_statusFilter.isNotEmpty) _statusFilter},
+      onStatusesChanged: (values) {
+        final value = values.isEmpty ? '' : values.first;
+        setState(() => _statusFilter = value);
+        _applyListFilters(controller);
+      },
       categoryItems: _buildCategoryItems(controller),
-      onApply: (search, status, dateFrom, dateTo, category) {
-        setState(() {
-          controller.searchController.text = search;
-          _dateFromController.text = dateFrom;
-          _dateToController.text = dateTo;
-          _statusFilter = status;
-          _categoryFilter = category;
-        });
-        controller.setListFilters(
-          status: status,
-          category: category,
-          dateFrom: dateFrom,
-          dateTo: dateTo,
-        );
+      selectedCategories: {if (_categoryFilter.isNotEmpty) _categoryFilter},
+      onCategoriesChanged: (values) {
+        final value = values.isEmpty ? '' : values.first;
+        setState(() => _categoryFilter = value);
+        _applyListFilters(controller);
+      },
+      itemLabel: 'Product',
+      itemItems: controller.allItems
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: '${item.itemName} (${item.itemCode})',
+            ),
+          )
+          .toList(growable: false),
+      selectedItemIds: _selectedItemIds,
+      onItemsChanged: (values) {
+        setState(() => _selectedItemIds = values);
+        controller.setItemIdsFilter(values);
       },
       onClear: () {
         setState(() {
-          controller.searchController.clear();
           _dateFromController.clear();
           _dateToController.clear();
           _statusFilter = '';
           _categoryFilter = '';
+          _selectedItemIds = <int>{};
         });
-        controller.setListFilters(
-          status: '',
-          category: '',
-          dateFrom: '',
-          dateTo: '',
-        );
+        controller.setItemIdsFilter(<int>{});
+        _applyListFilters(controller);
       },
+    );
+  }
+
+  void _applyListFilters(PhysicalStockCountManagementController controller) {
+    controller.setListFilters(
+      status: _statusFilter,
+      category: _categoryFilter,
+      dateFrom: _dateFromController.text,
+      dateTo: _dateToController.text,
     );
   }
 
@@ -103,10 +115,25 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       'PhysicalStockCountManagementController',
     );
     Get.put(PhysicalStockCountManagementController(), tag: _controllerTag);
+    _dateFromController.addListener(_applyDateFilters);
+    _dateToController.addListener(_applyDateFilters);
+  }
+
+  void _applyDateFilters() {
+    if (!Get.isRegistered<PhysicalStockCountManagementController>(
+      tag: _controllerTag,
+    )) {
+      return;
+    }
+    _applyListFilters(
+      Get.find<PhysicalStockCountManagementController>(tag: _controllerTag),
+    );
   }
 
   @override
   void dispose() {
+    _dateFromController.removeListener(_applyDateFilters);
+    _dateToController.removeListener(_applyDateFilters);
     _dateFromController.dispose();
     _dateToController.dispose();
     super.dispose();
@@ -119,10 +146,10 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () =>
@@ -184,11 +211,19 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
             hintText: 'Search physical counts',
           ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
+            filled: _filtersVisible,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.checklist_rtl_outlined,
+            label: 'New Count',
           ),
         ],
+        filters: _filtersVisible ? _buildSharedFilters(controller) : null,
         rows: _visibleItems(controller),
         columns: [
           PurchaseRegisterColumn<PhysicalStockCountModel>(

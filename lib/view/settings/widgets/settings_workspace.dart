@@ -109,6 +109,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   late final bool _ownsController;
   late final String _routeControllerTag;
   bool _editorRoutePushScheduled = false;
+  LocalHistoryEntry? _editorHistoryEntry;
 
   _SettingsWorkspaceRouteController get _routeController =>
       Get.find<_SettingsWorkspaceRouteController>(tag: _routeControllerTag);
@@ -129,6 +130,9 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   @override
   void dispose() {
     _controller.unbindEditorRoute();
+    final editorHistoryEntry = _editorHistoryEntry;
+    _editorHistoryEntry = null;
+    editorHistoryEntry?.remove();
     Get.delete<_SettingsWorkspaceRouteController>(
       tag: _routeControllerTag,
       force: true,
@@ -275,7 +279,6 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
         _editorRoutePushScheduled = false;
-        _routeController.setEditorRouteOpen(false);
         return;
       }
 
@@ -290,6 +293,20 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       }
 
       if (widget.listOnly) {
+        final parentRoute = ModalRoute.of(context);
+        if (parentRoute != null) {
+          final entry = LocalHistoryEntry(
+            onRemove: () {
+              if (_editorHistoryEntry == null) return;
+              _editorHistoryEntry = null;
+              if (mounted) {
+                _routeController.setEditorRouteOpen(false);
+              }
+            },
+          );
+          _editorHistoryEntry = entry;
+          parentRoute.addLocalHistoryEntry(entry);
+        }
         _editorRoutePushScheduled = false;
         return;
       }
@@ -327,6 +344,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       }
       _editorRoutePushScheduled = false;
     });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 }
 

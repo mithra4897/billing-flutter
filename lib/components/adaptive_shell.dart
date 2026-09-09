@@ -1168,7 +1168,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   bool get _canNavigateBack {
-    return AppRouteState.canGoBack;
+    return (ModalRoute.of(context)?.willHandlePopInternally ?? false) ||
+        Navigator.of(context).canPop() ||
+        AppRouteState.canGoBack;
   }
 
   bool get _canNavigateForward {
@@ -1182,6 +1184,15 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     // previous top-level module instead.
     final modalRoute = ModalRoute.of(context);
     final navigator = Navigator.of(context);
+    if (modalRoute?.willHandlePopInternally ?? false) {
+      navigator.pop();
+      if (showPermanentDrawer) return;
+      if (!showPermanentDrawer &&
+          (modalRoute?.willHandlePopInternally ?? false)) {
+        navigator.pop();
+        return;
+      }
+    }
     if (modalRoute?.settings.name == null && navigator.canPop()) {
       navigator.pop();
       return;
@@ -1191,7 +1202,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     if (previousRoute == null || previousRoute.trim().isEmpty) {
       return;
     }
-    _handleRouteTap(previousRoute, showPermanentDrawer: showPermanentDrawer);
+    _handleRouteTap(previousRoute, showPermanentDrawer: true);
   }
 
   void _handleForwardTap({required bool showPermanentDrawer}) {

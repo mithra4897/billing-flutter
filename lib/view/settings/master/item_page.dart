@@ -19,6 +19,8 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   final TextEditingController _dateToController = TextEditingController();
   String _statusFilter = '';
   String _categoryFilter = '';
+  Set<int> _selectedItemIds = <int>{};
+  bool _filtersVisible = false;
 
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
@@ -26,54 +28,6 @@ class _ItemManagementPageState extends State<ItemManagementPage>
         AppDropdownItem(value: 'active', label: 'Active'),
         AppDropdownItem(value: 'inactive', label: 'Inactive'),
       ];
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    ItemManagementController controller,
-  ) {
-    return openInventorySearchStatusCategoryFilterPanel(
-      context: context,
-      title: 'Filter Items',
-      searchController: controller.searchController,
-      dateFromController: _dateFromController,
-      dateToController: _dateToController,
-      searchHint: 'Item code, name, type, category, or SKU',
-      status: _statusFilter,
-      statusItems: _statusItems,
-      category: _categoryFilter,
-      categoryItems: _buildCategoryItems(controller),
-      onApply: (search, status, dateFrom, dateTo, category) {
-        setState(() {
-          controller.searchController.text = search;
-          _dateFromController.text = dateFrom;
-          _dateToController.text = dateTo;
-          _statusFilter = status;
-          _categoryFilter = category;
-        });
-        controller.setListFilters(
-          status: status,
-          category: category,
-          dateFrom: dateFrom,
-          dateTo: dateTo,
-        );
-      },
-      onClear: () {
-        setState(() {
-          controller.searchController.clear();
-          _dateFromController.clear();
-          _dateToController.clear();
-          _statusFilter = '';
-          _categoryFilter = '';
-        });
-        controller.setListFilters(
-          status: '',
-          category: '',
-          dateFrom: '',
-          dateTo: '',
-        );
-      },
-    );
-  }
 
   List<AppDropdownItem<String>> _buildCategoryItems(
     ItemManagementController controller,
@@ -90,7 +44,67 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   }
 
   List<ItemModel> _visibleItems(ItemManagementController controller) {
-    return controller.filteredItems;
+    return controller.filteredItems
+        .where(
+          (item) =>
+              _selectedItemIds.isEmpty || _selectedItemIds.contains(item.id),
+        )
+        .toList(growable: false);
+  }
+
+  Widget _buildSharedFilters(ItemManagementController controller) {
+    return SharedFilterBar(
+      statusItems: _statusItems,
+      selectedStatuses: {if (_statusFilter.isNotEmpty) _statusFilter},
+      onStatusesChanged: (values) {
+        final value = values.isEmpty ? '' : values.first;
+        setState(() => _statusFilter = value);
+        controller.setListFilters(
+          status: value,
+          category: _categoryFilter,
+          dateFrom: _dateFromController.text,
+          dateTo: _dateToController.text,
+        );
+      },
+      categoryItems: _buildCategoryItems(controller),
+      selectedCategories: {if (_categoryFilter.isNotEmpty) _categoryFilter},
+      onCategoriesChanged: (values) {
+        final value = values.isEmpty ? '' : values.first;
+        setState(() => _categoryFilter = value);
+        controller.setListFilters(
+          status: _statusFilter,
+          category: value,
+          dateFrom: _dateFromController.text,
+          dateTo: _dateToController.text,
+        );
+      },
+      itemLabel: 'Product',
+      itemItems: controller.items
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: '${item.itemName} (${item.itemCode})',
+            ),
+          )
+          .toList(growable: false),
+      selectedItemIds: _selectedItemIds,
+      onItemsChanged: (values) => setState(() => _selectedItemIds = values),
+      showDateFilters: false,
+      onClear: () {
+        setState(() {
+          _statusFilter = '';
+          _categoryFilter = '';
+          _selectedItemIds = <int>{};
+        });
+        controller.setListFilters(
+          status: '',
+          category: '',
+          dateFrom: '',
+          dateTo: '',
+        );
+      },
+    );
   }
 
   @override
@@ -131,10 +145,10 @@ class _ItemManagementPageState extends State<ItemManagementPage>
         final content = _buildContent(context, controller);
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
             onPressed: () =>
@@ -196,12 +210,19 @@ class _ItemManagementPageState extends State<ItemManagementPage>
             hintText: 'Search items',
           ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
+            filled: _filtersVisible,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.inventory_2_outlined,
+            label: 'New Item',
           ),
         ],
-        filters: null,
+        filters: _filtersVisible ? _buildSharedFilters(controller) : null,
         rows: _visibleItems(controller),
         columns: [
           PurchaseRegisterColumn<ItemModel>(

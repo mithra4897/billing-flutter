@@ -12,12 +12,31 @@ class BrandManagementPage extends StatefulWidget {
 
 class _BrandManagementPageState extends State<BrandManagementPage> {
   late final String _controllerTag;
+  bool _filtersVisible = false;
+  Set<int> _selectedItemIds = <int>{};
+
+  List<AppDropdownItem<int>> get _itemFilterItems => MasterDataCache
+      .to
+      .activeItems
+      .where((item) => item.id != null)
+      .map(
+        (item) => AppDropdownItem<int>(
+          value: item.id!,
+          label: '${item.itemName} (${item.itemCode})',
+        ),
+      )
+      .toList(growable: false);
 
   @override
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('BrandManagementController');
     Get.put(BrandManagementController(), tag: _controllerTag);
+    unawaited(
+      MasterDataCache.to.ensureLoaded().then((_) {
+        if (mounted) setState(() {});
+      }),
+    );
   }
 
   @override
@@ -32,6 +51,12 @@ class _BrandManagementPageState extends State<BrandManagementPage> {
       builder: (controller) {
         final content = _buildContent(controller);
         final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 controller.startNew(isDesktop: Responsive.isDesktop(context)),
@@ -84,8 +109,41 @@ class _BrandManagementPageState extends State<BrandManagementPage> {
             controller: controller.searchController,
             hintText: 'Search brands',
           ),
+          AdaptiveShellActionButton(
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.sell_outlined,
+            label: 'New Brand',
+          ),
         ],
-        rows: controller.filteredBrands,
+        filters: _filtersVisible
+            ? SharedFilterBar(
+                itemLabel: 'Product',
+                itemItems: _itemFilterItems,
+                selectedItemIds: _selectedItemIds,
+                onItemsChanged: (values) =>
+                    setState(() => _selectedItemIds = values),
+                showDateFilters: false,
+                onClear: () => setState(() => _selectedItemIds = <int>{}),
+              )
+            : null,
+        rows: controller.filteredBrands
+            .where((brand) {
+              if (_selectedItemIds.isEmpty) return true;
+              final brandIds = MasterDataCache.to.activeItems
+                  .where((item) => _selectedItemIds.contains(item.id))
+                  .map((item) => item.brandId)
+                  .whereType<int>()
+                  .toSet();
+              return brandIds.contains(brand.id);
+            })
+            .toList(growable: false),
         columns: [
           PurchaseRegisterColumn<BrandModel>(
             label: 'Code',

@@ -27,81 +27,109 @@ class ItemSupplierMapManagementPage extends StatefulWidget {
 class _ItemSupplierMapManagementPageState
     extends State<ItemSupplierMapManagementPage> {
   late final String _controllerTag;
-  final TextEditingController _dateFromController = TextEditingController();
-  final TextEditingController _dateToController = TextEditingController();
-  String _statusFilter = '';
-  String _categoryFilter = '';
+  Set<int> _selectedItemIds = <int>{};
+  Set<int> _matchingSupplierIds = <int>{};
+  bool _loadingProductFilter = false;
+  bool _filtersVisible = false;
 
-  static const List<AppDropdownItem<String>> _statusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All status'),
-      ];
-
-  Future<void> _openFilterPanel(
-    BuildContext context,
-    ItemSupplierMapManagementController controller,
-  ) {
-    return openInventorySearchStatusCategoryFilterPanel(
-      context: context,
-      title: 'Filter ${controller.pageTitle}',
+  Widget _buildSharedFilters(ItemSupplierMapManagementController controller) {
+    return SharedFilterBar(
       searchController: controller.masterSearchController,
-      dateFromController: _dateFromController,
-      dateToController: _dateToController,
       searchHint: controller.isItemWise
           ? 'Item code or item name'
           : 'Supplier code or supplier name',
-      status: _statusFilter,
-      statusItems: _statusItems,
-      category: _categoryFilter,
-      categoryItems: _buildCategoryItems(controller),
-      onApply: (search, status, dateFrom, dateTo, category) {
+      itemLabel: 'Product',
+      itemItems: controller.allItems
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: '${item.itemName} (${item.itemCode})',
+            ),
+          )
+          .toList(growable: false),
+      selectedItemIds: _selectedItemIds,
+      onItemsChanged: (values) {
         setState(() {
-          controller.masterSearchController.text = search;
-          _dateFromController.text = dateFrom;
-          _dateToController.text = dateTo;
-          _statusFilter = status;
-          _categoryFilter = category;
+          _selectedItemIds = values;
+          _loadingProductFilter = values.isNotEmpty;
         });
+        unawaited(_loadMatchingSuppliers(values));
       },
+      showDateFilters: false,
+      additionalFields: [
+        if (_loadingProductFilter)
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+      ],
       onClear: () {
+        controller.masterSearchController.clear();
         setState(() {
-          controller.masterSearchController.clear();
-          _dateFromController.clear();
-          _dateToController.clear();
-          _statusFilter = '';
-          _categoryFilter = '';
+          _selectedItemIds = <int>{};
+          _matchingSupplierIds = <int>{};
+          _loadingProductFilter = false;
         });
       },
     );
   }
 
-  List<AppDropdownItem<String>> _buildCategoryItems(
-    ItemSupplierMapManagementController controller,
-  ) {
-    final seen = <String>{};
-    final values = controller.allItems
-        .map((item) => (item.categoryName ?? item.categoryCode ?? '').trim())
-        .where((value) => value.isNotEmpty && seen.add(value))
-        .toList(growable: false);
-    return <AppDropdownItem<String>>[
-      const AppDropdownItem<String>(value: '', label: 'All categories'),
-      ...values.map(
-        (value) => AppDropdownItem<String>(value: value, label: value),
-      ),
-    ];
+  void _startNew(ItemSupplierMapManagementController controller) {
+    if (controller.selectedMasterId == null &&
+        controller.allSuppliers.isNotEmpty) {
+      controller.selectMaster(controller.allSuppliers.first.id);
+    }
+    controller.startNew(isDesktop: Responsive.isDesktop(context));
+  }
+
+  Future<void> _loadMatchingSuppliers(Set<int> itemIds) async {
+    if (itemIds.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _matchingSupplierIds = <int>{};
+          _loadingProductFilter = false;
+        });
+      }
+      return;
+    }
+    try {
+      final response = await InventoryService().itemSupplierMaps(
+        filters: <String, dynamic>{
+          'per_page': 500,
+          'item_ids': itemIds.join(','),
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _matchingSupplierIds = (response.data ?? const <ItemSupplierMapModel>[])
+            .map((row) => row.supplierId)
+            .whereType<int>()
+            .toSet();
+        _loadingProductFilter = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loadingProductFilter = false);
+      }
+    }
   }
 
   List<dynamic> _visibleMasters(
     ItemSupplierMapManagementController controller,
   ) {
     if (!controller.isItemWise) {
-      return controller.filteredMasterSuppliers;
+      return controller.filteredMasterSuppliers
+          .where((supplier) {
+            return _selectedItemIds.isEmpty ||
+                _matchingSupplierIds.contains(supplier.id);
+          })
+          .toList(growable: false);
     }
     return controller.filteredMastersItems
         .where((item) {
-          return _categoryFilter.isEmpty ||
-              (item.categoryName ?? item.categoryCode ?? '').trim() ==
-                  _categoryFilter;
+          return _selectedItemIds.isEmpty || _selectedItemIds.contains(item.id);
         })
         .toList(growable: false);
   }
@@ -126,8 +154,6 @@ class _ItemSupplierMapManagementPageState
 
   @override
   void dispose() {
-    _dateFromController.dispose();
-    _dateToController.dispose();
     super.dispose();
   }
 
@@ -178,21 +204,21 @@ class _ItemSupplierMapManagementPageState
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() {
+              _filtersVisible = !_filtersVisible;
+            }),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
-            filled: false,
+            filled: _filtersVisible,
           ),
           AdaptiveShellActionButton(
-            onPressed: controller.selectedMasterId == null
-                ? null
-                : () => controller.startNew(
-                    isDesktop: Responsive.isDesktop(context),
-                  ),
+            onPressed: () => _startNew(controller),
             icon: controller.isItemWise
                 ? Icons.local_shipping_outlined
                 : Icons.inventory_2_outlined,
-            label: controller.isItemWise ? 'Add Supplier' : 'Add Item',
+            label: controller.isItemWise
+                ? 'New Item Supplier'
+                : 'New Supplier Item',
           ),
         ];
 
@@ -262,11 +288,24 @@ class _ItemSupplierMapManagementPageState
             hintText: 'Search ${controller.masterLabel}',
           ),
           AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
+            onPressed: () => setState(() {
+              _filtersVisible = !_filtersVisible;
+            }),
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
+            filled: _filtersVisible,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () => _startNew(controller),
+            icon: controller.isItemWise
+                ? Icons.local_shipping_outlined
+                : Icons.inventory_2_outlined,
+            label: controller.isItemWise
+                ? 'New Item Supplier'
+                : 'New Supplier Item',
           ),
         ],
+        filters: _filtersVisible ? _buildSharedFilters(controller) : null,
         rows: _visibleMasters(controller),
         columns: controller.isItemWise
             ? [

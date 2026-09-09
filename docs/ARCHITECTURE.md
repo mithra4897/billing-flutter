@@ -1,5 +1,13 @@
 # Architecture
 
+## Inventory inline workspace history — 2026-09-09
+
+SettingsWorkspace list-only editors register one Flutter LocalHistoryEntry on
+their parent route. Removing it restores the list through the existing route
+controller; disposal detaches it without notifying a disposed controller.
+AdaptiveShell consumes local history before module history. This reuses the
+existing workspace, with constant-size state and no data fetching changes.
+
 ## 2026-09-09 — Company-context document terms
 
 The authenticated master API resolves the company from the standard working

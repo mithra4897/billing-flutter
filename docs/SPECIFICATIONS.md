@@ -1,5 +1,14 @@
 # Specifications
 
+## Inventory inline editor Back navigation — 2026-09-09
+
+Opening a list-only SettingsWorkspace editor must add one local navigation
+entry. The shell Back button returns to that workspace's parent list before
+consuming module history, preserving the existing controller and list filters.
+Repeated open requests must not add duplicate entries. Disposing the workspace
+must remove its entry safely. Cover opening, Back, reopening, and disposal in
+a widget test. No API, authorization, or record validation changes are needed.
+
 ## Company-context document terms — 2026-09-09
 
 Status: Implemented

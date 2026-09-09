@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-09 — Inventory form Back returns to parent list
+
+- Fixed shared inline workspace history for Physical Counts, Items, Categories,
+  Brands, and Supplier Items; shell Back restores the parent register.
+- Reused SettingsWorkspace and AdaptiveShell with one local history entry;
+  repeated opening and disposal are covered by a widget regression test.
+- No API, database, permission, or stock-balance editing changes.
+- Specification, architecture, and testing notes updated for this behavior.
+
 ## 2026-09-09 — Add Document Terms creation and Active workflow
 
 - Request: Match the Document Series list/editor workflow, allow company terms

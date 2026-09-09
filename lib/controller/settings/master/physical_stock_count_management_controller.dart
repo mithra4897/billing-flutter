@@ -35,6 +35,7 @@ class PhysicalStockCountManagementController extends GetxController {
   String categoryFilter = '';
   String dateFromFilter = '';
   String dateToFilter = '';
+  Set<int> itemIdsFilter = <int>{};
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> allItems = const <ItemModel>[];
@@ -98,6 +99,7 @@ class PhysicalStockCountManagementController extends GetxController {
             if (categoryFilter.isNotEmpty) 'categories': categoryFilter,
             if (dateFromFilter.isNotEmpty) 'date_from': dateFromFilter,
             if (dateToFilter.isNotEmpty) 'date_to': dateToFilter,
+            if (itemIdsFilter.isNotEmpty) 'item_ids': itemIdsFilter.join(','),
           },
         ),
         _inventoryService.stockBatchesDropdown(filters: const {}),
@@ -202,6 +204,11 @@ class PhysicalStockCountManagementController extends GetxController {
     categoryFilter = category;
     dateFromFilter = dateFrom;
     dateToFilter = dateTo;
+    unawaited(loadData(page: 1));
+  }
+
+  void setItemIdsFilter(Set<int> values) {
+    itemIdsFilter = Set<int>.from(values);
     unawaited(loadData(page: 1));
   }
 

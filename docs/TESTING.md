@@ -23,6 +23,16 @@
   switches, each supported Sales/Purchase document form, and unchanged terms
   on an existing document.
 
+## Inventory inline form Back — 2026-09-09
+
+- `flutter test --no-pub test/view/settings_workspace_navigation_test.dart`
+  passed: duplicate open requests create one history entry, Back restores the
+  parent list, reopening works, and disposal with an open editor is safe.
+- Focused analysis of SettingsWorkspace, AdaptiveShell, and the test passed.
+- Live drawer interaction on desktop/mobile remains manually unverified.
+  Check one-tap Back from an editor, then Back from its list to the previous
+  module. Stock Balances remains a read-only register without a create form.
+
 ## Accounting dashboard operational workspace — 2026-09-08
 
 - Automated: focused dashboard snapshot test covers the four operational
