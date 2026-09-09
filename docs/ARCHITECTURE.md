@@ -1,5 +1,19 @@
 # Architecture
 
+## Item form lookup normalization — 2026-09-09
+
+`ItemManagementController` deduplicates active Category, Brand, UOM, and Tax
+Code lookup lists by ID immediately after loading. A `Set<int>` preserves the
+first valid row in one O(n) pass, keeping native Item-form dropdowns valid
+without changing API data or the dropdown widget contract.
+
+## Inventory register status presentation — 2026-09-09
+
+Inventory registers reuse the existing `purchaseStatusBadge` function, which
+already renders `AppStatusBadge`. Each typed register column retains its original
+`valueBuilder` for exports and search behavior, adding only a display
+`widgetBuilder` for the table cell. The lookup is constant time per row.
+
 ## Inventory inline workspace history — 2026-09-09
 
 SettingsWorkspace list-only editors register one Flutter LocalHistoryEntry on

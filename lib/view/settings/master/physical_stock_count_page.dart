@@ -242,6 +242,8 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
           PurchaseRegisterColumn<PhysicalStockCountModel>(
             label: 'Status',
             valueBuilder: (item) => item.countStatus ?? '',
+            widgetBuilder: (context, item) =>
+                purchaseStatusBadge(context, item.countStatus),
           ),
         ],
         onRowTap: (item) {

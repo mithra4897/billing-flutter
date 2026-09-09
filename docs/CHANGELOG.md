@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-09 — Fix duplicate Item form dropdown values
+
+- Item lookup lists now remove duplicate and null IDs before Category, Brand,
+  UOM, and Tax Code dropdowns are rendered.
+- Prevents Flutter's duplicate `DropdownButton` value assertion; no API or
+  database changes.
+
+## 2026-09-09 — Inventory register status pills
+
+- Inventory transaction registers, Physical Counts, Items, and Brands now show
+  their existing statuses as standard pills.
+- Reused the existing shared `purchaseStatusBadge`; API data and filters remain
+  unchanged.
+
 ## 2026-09-09 — Inventory form Back returns to parent list
 
 - Fixed shared inline workspace history for Physical Counts, Items, Categories,

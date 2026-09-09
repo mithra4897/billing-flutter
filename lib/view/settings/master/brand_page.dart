@@ -157,6 +157,10 @@ class _BrandManagementPageState extends State<BrandManagementPage> {
           PurchaseRegisterColumn<BrandModel>(
             label: 'Status',
             valueBuilder: (brand) => brand.isActive ? 'Active' : 'Inactive',
+            widgetBuilder: (context, brand) => purchaseStatusBadge(
+              context,
+              brand.isActive ? 'active' : 'inactive',
+            ),
           ),
         ],
         onRowTap: (brand) {

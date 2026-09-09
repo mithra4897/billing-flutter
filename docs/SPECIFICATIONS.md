@@ -1,5 +1,16 @@
 # Specifications
 
+## Item lookup dropdown uniqueness — 2026-09-09
+
+The Item form must show at most one selectable Category, Brand, UOM, or Tax
+Code for each persisted ID. Repeated or null lookup IDs are excluded before
+building dropdown options, preventing Flutter's duplicate-dropdown assertion.
+
+## Inventory register status pills — 2026-09-09
+
+Inventory transaction register Status columns display the existing shared
+status pill with its established labels and colors.
+
 ## Inventory inline editor Back navigation — 2026-09-09
 
 Opening a list-only SettingsWorkspace editor must add one local navigation

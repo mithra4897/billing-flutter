@@ -175,14 +175,16 @@ class ItemManagementController extends GetxController {
       items = nextItems;
       paginationMeta = itemResponse.meta;
       contextCompanyId = contextSelection.companyId;
-      categories = nextCategories
-          .where((category) => category.isActive)
-          .toList(growable: false);
-      brands = nextBrands
-          .where((brand) => brand.isActive)
-          .toList(growable: false);
-      uoms = cache.activeUoms;
-      taxCodes = cache.activeTaxCodes;
+      categories = _uniqueById(
+        nextCategories.where((category) => category.isActive),
+        (category) => category.id,
+      );
+      brands = _uniqueById(
+        nextBrands.where((brand) => brand.isActive),
+        (brand) => brand.id,
+      );
+      uoms = _uniqueById(cache.activeUoms, (uom) => uom.id);
+      taxCodes = _uniqueById(cache.activeTaxCodes, (taxCode) => taxCode.id);
       filteredItems = nextItems;
       initialLoading = false;
 
@@ -209,6 +211,16 @@ class ItemManagementController extends GetxController {
     }
 
     update();
+  }
+
+  List<T> _uniqueById<T>(Iterable<T> source, int? Function(T value) idOf) {
+    final seenIds = <int>{};
+    return source
+        .where((value) {
+          final id = idOf(value);
+          return id != null && seenIds.add(id);
+        })
+        .toList(growable: false);
   }
 
   void _scheduleListReload() {

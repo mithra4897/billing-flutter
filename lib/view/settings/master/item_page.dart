@@ -241,6 +241,10 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           PurchaseRegisterColumn<ItemModel>(
             label: 'Status',
             valueBuilder: (item) => item.isActive ? 'Active' : 'Inactive',
+            widgetBuilder: (context, item) => purchaseStatusBadge(
+              context,
+              item.isActive ? 'active' : 'inactive',
+            ),
           ),
         ],
         onRowTap: (item) {

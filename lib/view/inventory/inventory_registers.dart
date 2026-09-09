@@ -964,6 +964,10 @@ class OpeningStockRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<OpeningStockModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'opening_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'opening_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1162,6 +1166,10 @@ class StockIssueRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<StockIssueModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'issue_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'issue_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1247,6 +1255,10 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'receipt_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1343,6 +1355,10 @@ class StockTransferRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'transfer_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'transfer_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1435,6 +1451,10 @@ class ProduceTrackingRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<ProduceTrackingModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'tracking_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'tracking_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '$routePrefix/${intValue(row.toJson(), 'id')}',
@@ -1519,6 +1539,10 @@ class StockDamageRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'damage_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'damage_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1605,6 +1629,10 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'adjustment_status'),
+          widgetBuilder: (context, row) => purchaseStatusBadge(
+            context,
+            stringValue(row.toJson(), 'adjustment_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1909,6 +1937,8 @@ class StockSerialRegisterPage extends StatelessWidget {
         PurchaseRegisterColumn<StockSerialModel>(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'status'),
+          widgetBuilder: (context, row) =>
+              purchaseStatusBadge(context, stringValue(row.toJson(), 'status')),
         ),
         PurchaseRegisterColumn<StockSerialModel>(
           label: 'Warehouse',
