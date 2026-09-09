@@ -12,6 +12,8 @@ class StockDamageEntryModel extends JsonModel {
     this.damageNo,
     this.damageDate,
     this.warehouseId,
+    this.warehouseCode,
+    this.warehouseName,
     this.damageType,
     this.voucherId,
     this.damageStatus,
@@ -33,6 +35,8 @@ class StockDamageEntryModel extends JsonModel {
   final String? damageNo;
   final String? damageDate;
   final int? warehouseId;
+  final String? warehouseCode;
+  final String? warehouseName;
   final String? damageType;
   final int? voucherId;
   final String? damageStatus;
@@ -57,6 +61,12 @@ class StockDamageEntryModel extends JsonModel {
       damageNo: json['damage_no']?.toString(),
       damageDate: json['damage_date']?.toString(),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      warehouseCode:
+          (json['warehouse'] as Map?)?['code']?.toString() ??
+          json['warehouse_code']?.toString(),
+      warehouseName:
+          (json['warehouse'] as Map?)?['name']?.toString() ??
+          json['warehouse_name']?.toString(),
       damageType: json['damage_type']?.toString(),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       damageStatus: json['damage_status']?.toString(),
@@ -73,8 +83,11 @@ class StockDamageEntryModel extends JsonModel {
       items: json['items'] == null
           ? null
           : (json['items'] as List<dynamic>)
-              .map((e) => StockDamageLineModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
+                .map(
+                  (e) =>
+                      StockDamageLineModel.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
     );
   }
   @override
@@ -83,7 +96,6 @@ class StockDamageEntryModel extends JsonModel {
     damageDate,
     damageStatus,
   ], defaultValue: 'Stock Damage Entry');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -96,6 +108,8 @@ class StockDamageEntryModel extends JsonModel {
     if (damageNo != null) 'damage_no': damageNo,
     if (damageDate != null) 'damage_date': damageDate,
     if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (warehouseCode != null) 'warehouse_code': warehouseCode,
+    if (warehouseName != null) 'warehouse_name': warehouseName,
     if (damageType != null) 'damage_type': damageType,
     if (voucherId != null) 'voucher_id': voucherId,
     if (damageStatus != null) 'damage_status': damageStatus,

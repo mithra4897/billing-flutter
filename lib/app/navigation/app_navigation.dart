@@ -1651,6 +1651,9 @@ class AppNavigation {
     if (parts.length == 3 && parts.first == 'assets') {
       return '/assets/${parts[1]}';
     }
+    if (parts.length == 3 && parts.first == 'inventory') {
+      return '/inventory/${parts[1]}';
+    }
     return cleaned;
   }
 }

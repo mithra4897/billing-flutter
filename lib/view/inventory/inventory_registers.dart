@@ -235,6 +235,15 @@ String _inventoryProductSummary<T extends JsonModel>(T row) {
   return '${labels.take(2).join(', ')} +${labels.length - 2} more';
 }
 
+String _inventoryMovementProductLabel(StockMovementModel row) {
+  final name = (row.itemName ?? '').trim();
+  final code = (row.itemCode ?? '').trim();
+  return [
+    if (name.isNotEmpty) name,
+    if (code.isNotEmpty && code != name) '($code)',
+  ].join(' ');
+}
+
 String _inventoryWarehouseLabel<T extends JsonModel>(T row) {
   final data = row.toJson();
   return stringValue(
@@ -283,6 +292,29 @@ String _inventoryQuantitySummary<T extends JsonModel>(T row, String key) {
   return total == total.roundToDouble()
       ? total.toInt().toString()
       : total.toStringAsFixed(2);
+}
+
+String _inventoryLineWarehouseSummary<T extends JsonModel>(T row) {
+  final rawItems = row.toJson()['items'];
+  if (rawItems is! List) {
+    return '';
+  }
+  final labels = <String>[];
+  for (final rawItem in rawItems) {
+    if (rawItem is! Map) {
+      continue;
+    }
+    final item = rawItem.cast<String, dynamic>();
+    final label = stringValue(
+      item,
+      'warehouse_name',
+      stringValue(item, 'warehouse_code', stringValue(item, 'warehouse_id')),
+    );
+    if (label.isNotEmpty && !labels.contains(label)) {
+      labels.add(label);
+    }
+  }
+  return labels.join(', ');
 }
 
 Future<List<AppDropdownItem<String>>> _loadOpeningStockCategoryItems(
@@ -1314,6 +1346,18 @@ class StockDamageRegisterPage extends StatelessWidget {
               displayDate(nullableStringValue(row.toJson(), 'damage_date')),
         ),
         PurchaseRegisterColumn<StockDamageEntryModel>(
+          label: 'Product',
+          valueBuilder: _inventoryProductSummary,
+        ),
+        PurchaseRegisterColumn<StockDamageEntryModel>(
+          label: 'Warehouse',
+          valueBuilder: _inventoryWarehouseLabel,
+        ),
+        PurchaseRegisterColumn<StockDamageEntryModel>(
+          label: 'Qty',
+          valueBuilder: (row) => _inventoryQuantitySummary(row, 'damage_qty'),
+        ),
+        PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'Type',
           valueBuilder: (row) => stringValue(row.toJson(), 'damage_type'),
         ),
@@ -1385,6 +1429,19 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
           label: 'Date',
           valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'adjustment_date')),
+        ),
+        PurchaseRegisterColumn<InventoryAdjustmentModel>(
+          label: 'Product',
+          valueBuilder: _inventoryProductSummary,
+        ),
+        PurchaseRegisterColumn<InventoryAdjustmentModel>(
+          label: 'Warehouse',
+          valueBuilder: _inventoryLineWarehouseSummary,
+        ),
+        PurchaseRegisterColumn<InventoryAdjustmentModel>(
+          label: 'Qty',
+          valueBuilder: (row) =>
+              _inventoryQuantitySummary(row, 'adjustment_qty'),
         ),
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'Type',
@@ -1496,6 +1553,11 @@ class StockMovementRegisterPage extends StatelessWidget {
           flex: 2,
           valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'movement_date')),
+        ),
+        PurchaseRegisterColumn<StockMovementModel>(
+          label: 'Product',
+          flex: 3,
+          valueBuilder: _inventoryMovementProductLabel,
         ),
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Type',

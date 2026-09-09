@@ -10,6 +10,8 @@ class StockMovementModel extends JsonModel {
     this.movementDate,
     this.voucherDate,
     this.itemId,
+    this.itemCode,
+    this.itemName,
     this.warehouseId,
     this.batchId,
     this.serialId,
@@ -54,6 +56,8 @@ class StockMovementModel extends JsonModel {
   final String? movementDate;
   final String? voucherDate;
   final int? itemId;
+  final String? itemCode;
+  final String? itemName;
   final int? warehouseId;
   final int? batchId;
   final int? serialId;
@@ -102,6 +106,12 @@ class StockMovementModel extends JsonModel {
       voucherDate:
           json['voucher_date']?.toString() ?? json['movement_date']?.toString(),
       itemId: JsonModel.nullableInt(json['item_id']),
+      itemCode:
+          json['item_code']?.toString() ??
+          (json['item'] is Map ? json['item']['item_code']?.toString() : null),
+      itemName:
+          json['item_name']?.toString() ??
+          (json['item'] is Map ? json['item']['item_name']?.toString() : null),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
       batchId: JsonModel.nullableInt(json['batch_id']),
       serialId: JsonModel.nullableInt(json['serial_id']),
@@ -164,6 +174,8 @@ class StockMovementModel extends JsonModel {
     if (movementDate != null) 'movement_date': movementDate,
     if (voucherDate != null) 'voucher_date': voucherDate,
     if (itemId != null) 'item_id': itemId,
+    if (itemCode != null) 'item_code': itemCode,
+    if (itemName != null) 'item_name': itemName,
     if (warehouseId != null) 'warehouse_id': warehouseId,
     if (batchId != null) 'batch_id': batchId,
     if (serialId != null) 'serial_id': serialId,
