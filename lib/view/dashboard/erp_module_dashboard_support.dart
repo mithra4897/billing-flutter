@@ -2064,7 +2064,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         'Low stock': lowStock,
         'Stock in': stockIn,
         'Stock out': stockOut,
-        'Balance rows': _totalFromPaginated(balances),
+        'Stock balance records': _totalFromPaginated(balances),
       }),
     ),
   );
