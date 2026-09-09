@@ -250,7 +250,7 @@ class PurchaseListRegisterController<T> extends GetxController {
     required this.documentValueOf,
     this.balanceValueOf,
     this.isPending,
-    this.initialSort = 'date_asc',
+    this.initialSort = 'date_desc',
     this.initialStatuses = const <String>{},
     required this.statusFilterKey,
   });
@@ -568,7 +568,7 @@ class _PurchaseRegisterShell<T> extends StatefulWidget {
     this.filtersMaxWidth,
     this.footerBuilder,
     this.isPending,
-    this.initialSort = 'date_asc',
+    this.initialSort = 'date_desc',
     this.initialStatuses = const <String>{},
     required this.statusFilterKey,
   });
