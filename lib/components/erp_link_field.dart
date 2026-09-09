@@ -336,11 +336,12 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       final results = widget.search != null
           ? await widget.search!(query)
           : _filterLocalOptions(query);
+      final normalizedResults = _prependMultiSelectAllOption(results);
       if (!mounted || token != _requestToken) {
         return;
       }
       setState(() {
-        _results = results;
+        _results = normalizedResults;
         _loading = false;
         _highlightedIndex = _firstSelectableIndex();
       });
@@ -356,6 +357,23 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       });
       _markOverlayNeedsBuild();
     }
+  }
+
+  List<ErpLinkFieldOption<T>> _prependMultiSelectAllOption(
+    List<ErpLinkFieldOption<T>> results,
+  ) {
+    final allValue = widget.multiSelectAllValue;
+    if (allValue == null) {
+      return results;
+    }
+    final allOption = (widget.options ?? <ErpLinkFieldOption<T>>[])
+        .cast<ErpLinkFieldOption<T>?>()
+        .firstWhere((option) => option?.value == allValue, orElse: () => null);
+    if (allOption == null ||
+        results.any((option) => option.value == allValue)) {
+      return results;
+    }
+    return <ErpLinkFieldOption<T>>[allOption, ...results];
   }
 
   List<ErpLinkFieldOption<T>> _filterLocalOptions(String query) {

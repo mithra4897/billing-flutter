@@ -1916,6 +1916,20 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
 
   final balanceRows = balances.data ?? const <StockBalanceModel>[];
   final movementRows = movements.data ?? const <StockMovementModel>[];
+  final productFilterOptions = <ErpDashboardListFilterOption>[
+    const ErpDashboardListFilterOption(value: '', label: 'All products'),
+    ...items.data
+            ?.where((item) => item.id != null)
+            .map(
+              (item) => ErpDashboardListFilterOption(
+                value: 'item:${item.id}',
+                label: item.itemName.trim().isEmpty
+                    ? item.itemCode
+                    : '${item.itemName} (${item.itemCode})',
+              ),
+            ) ??
+        const <ErpDashboardListFilterOption>[],
+  ];
 
   final lowStock = balanceRows.where(_isLowStockBalance).length;
   final stockIn = movementRows.where((row) {
@@ -2016,10 +2030,29 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
       subtitle: 'Live monthly inventory movement activity.',
       color: const Color(0xFF19A7B8),
       trendFilter: trendFilter,
+      secondaryFilterOptions: productFilterOptions,
+      secondaryFilterValue: trendFilter?.secondaryFilterValue ?? '',
+      secondaryFilterSearch: (query) async {
+        final response = await service.items(
+          filters: <String, dynamic>{'search': query, 'per_page': 20},
+        );
+        return (response.data ?? const <ItemModel>[])
+            .where((item) => item.id != null)
+            .map(
+              (item) => ErpLinkFieldOption<String>(
+                value: '${item.id}',
+                label: item.itemName.trim().isEmpty
+                    ? item.itemCode
+                    : '${item.itemName} (${item.itemCode})',
+              ),
+            )
+            .toList(growable: false);
+      },
       sources: <_TrendSource>[
         _TrendSource(
           records: movementRows.map((item) => item.toJson()),
           dateKeys: const ['movement_date', 'posting_date', 'created_at'],
+          secondaryFilterKey: 'item_id',
         ),
       ],
     ),
@@ -3374,6 +3407,7 @@ class _TrendSource {
     required this.records,
     required this.dateKeys,
     this.amountKey,
+    this.secondaryFilterKey,
   });
 
   final Iterable<Map<String, dynamic>> records;
@@ -3381,6 +3415,7 @@ class _TrendSource {
 
   /// If set, the trend will sum this field's numeric value instead of counting records.
   final String? amountKey;
+  final String? secondaryFilterKey;
 }
 
 ErpDashboardListItem _genericListItem({
@@ -3434,6 +3469,11 @@ ErpDashboardTrendCardData _buildMonthlyTrendCard({
   String emptyMessage = 'No real trend data is available yet for this module.',
   Color color = const Color(0xFF2F6FED),
   bool isCurrency = false,
+  List<ErpDashboardListFilterOption> secondaryFilterOptions =
+      const <ErpDashboardListFilterOption>[],
+  String secondaryFilterValue = '',
+  Future<List<ErpLinkFieldOption<String>>> Function(String query)?
+  secondaryFilterSearch,
 }) {
   return ErpDashboardTrendCardData(
     title: title,
@@ -3442,6 +3482,9 @@ ErpDashboardTrendCardData _buildMonthlyTrendCard({
     emptyMessage: emptyMessage,
     color: color,
     isCurrency: isCurrency,
+    secondaryFilterOptions: secondaryFilterOptions,
+    secondaryFilterValue: secondaryFilterValue,
+    secondaryFilterSearch: secondaryFilterSearch,
   );
 }
 
@@ -3462,6 +3505,13 @@ List<ErpDashboardTrendPoint> _trendPointsFromSources(
 
   for (final source in sources) {
     for (final record in source.records) {
+      if (!_trendRecordMatchesSecondaryFilter(
+        record,
+        source.secondaryFilterKey,
+        activeFilter.secondaryFilterValue,
+      )) {
+        continue;
+      }
       final parsed = _firstMatchingDate(record, source.dateKeys);
       if (parsed == null) {
         continue;
@@ -3495,6 +3545,28 @@ List<ErpDashboardTrendPoint> _trendPointsFromSources(
       value: totals[index],
     );
   }, growable: false);
+}
+
+bool _trendRecordMatchesSecondaryFilter(
+  Map<String, dynamic> record,
+  String? filterKey,
+  String selectedFilter,
+) {
+  if (filterKey == null || selectedFilter.trim().isEmpty) {
+    return true;
+  }
+  final separator = selectedFilter.indexOf(':');
+  if (separator < 0) {
+    return true;
+  }
+  final selectedValues = selectedFilter
+      .substring(separator + 1)
+      .split(',')
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toSet();
+  return selectedValues.isEmpty ||
+      selectedValues.contains(record[filterKey]?.toString());
 }
 
 Map<String, dynamic> _withTrendAmount(

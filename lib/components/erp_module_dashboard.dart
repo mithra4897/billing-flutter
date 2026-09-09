@@ -167,6 +167,9 @@ class ErpDashboardTrendCardData {
     this.chartStyle = ErpDashboardTrendChartStyle.line,
     this.isCurrency = false,
     this.hoverValueFormatter,
+    this.secondaryFilterOptions = const <ErpDashboardListFilterOption>[],
+    this.secondaryFilterValue = '',
+    this.secondaryFilterSearch,
   });
 
   final String title;
@@ -177,6 +180,10 @@ class ErpDashboardTrendCardData {
   final ErpDashboardTrendChartStyle chartStyle;
   final bool isCurrency;
   final String Function(double value)? hoverValueFormatter;
+  final List<ErpDashboardListFilterOption> secondaryFilterOptions;
+  final String secondaryFilterValue;
+  final Future<List<ErpLinkFieldOption<String>>> Function(String query)?
+  secondaryFilterSearch;
 }
 
 class ErpDashboardTrendPoint {
@@ -304,6 +311,7 @@ class ErpModuleDashboard extends StatelessWidget {
             onTrendControlChanged: onTrendControlChanged,
             showTrendControls: showTrendControls,
             trendLoading: trendLoading,
+            onSecondaryFilterChanged: onSecondaryFilterChanged,
           )
         else if (showTwoColumn && hasInsights)
           Row(
@@ -326,6 +334,7 @@ class ErpModuleDashboard extends StatelessWidget {
                   onTrendControlChanged: onTrendControlChanged,
                   showTrendControls: showTrendControls,
                   trendLoading: trendLoading,
+                  onSecondaryFilterChanged: onSecondaryFilterChanged,
                 ),
               ),
             ],
@@ -345,6 +354,7 @@ class ErpModuleDashboard extends StatelessWidget {
                 onTrendControlChanged: onTrendControlChanged,
                 showTrendControls: showTrendControls,
                 trendLoading: trendLoading,
+                onSecondaryFilterChanged: onSecondaryFilterChanged,
               ),
             ],
           )
@@ -662,6 +672,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
     required this.onTrendControlChanged,
     required this.showTrendControls,
     required this.trendLoading,
+    this.onSecondaryFilterChanged,
   });
 
   final ErpDashboardSnapshot snapshot;
@@ -669,6 +680,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
   final bool trendLoading;
+  final ValueChanged<String>? onSecondaryFilterChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -680,6 +692,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
           onTrendControlChanged: onTrendControlChanged,
           showTrendControls: showTrendControls,
           isLoading: trendLoading,
+          onSecondaryFilterChanged: onSecondaryFilterChanged,
         ),
       if (snapshot.distribution != null &&
           snapshot.distribution!.segments.any((segment) => segment.value > 0))
@@ -1122,14 +1135,25 @@ class _DashboardSearchFilterField extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChanged,
+    this.label = 'Employee',
+    this.doctypeLabel = 'Employee',
+    this.hintText = 'Search employees',
+    this.allValue = '__all_employees__',
+    this.noSelectionValue = 'employee:none',
+    this.filterPrefix = 'employee:',
+    this.search,
   });
 
   final List<ErpDashboardListFilterOption> options;
   final String value;
   final ValueChanged<String> onChanged;
-
-  static const String _allEmployeesValue = '__all_employees__';
-  static const String _noEmployeesValue = 'employee:none';
+  final String label;
+  final String doctypeLabel;
+  final String hintText;
+  final String allValue;
+  final String noSelectionValue;
+  final String filterPrefix;
+  final Future<List<ErpLinkFieldOption<String>>> Function(String query)? search;
 
   @override
   Widget build(BuildContext context) {
@@ -1137,9 +1161,9 @@ class _DashboardSearchFilterField extends StatelessWidget {
         .map(
           (option) => ErpLinkFieldOption<String>(
             value: option.value.isEmpty
-                ? _allEmployeesValue
-                : option.value.startsWith('employee:')
-                ? option.value.substring(9)
+                ? allValue
+                : option.value.startsWith(filterPrefix)
+                ? option.value.substring(filterPrefix.length)
                 : option.value,
             label: option.label,
           ),
@@ -1147,11 +1171,11 @@ class _DashboardSearchFilterField extends StatelessWidget {
         .toList(growable: false);
     final selectedValues = value.isEmpty
         ? linkOptions.map((option) => option.value).toSet()
-        : value == _noEmployeesValue
+        : value == noSelectionValue
         ? <String>{}
-        : value.startsWith('employee:')
+        : value.startsWith(filterPrefix)
         ? value
-              .substring('employee:'.length)
+              .substring(filterPrefix.length)
               .split(',')
               .where((item) => item.trim().isNotEmpty)
               .toSet()
@@ -1159,15 +1183,16 @@ class _DashboardSearchFilterField extends StatelessWidget {
     return SizedBox(
       width: 220,
       child: ErpLinkField<String>(
-        labelText: 'Employee',
-        doctypeLabel: 'Employee',
-        hintText: 'Search employees',
+        labelText: label,
+        doctypeLabel: doctypeLabel,
+        hintText: hintText,
         options: linkOptions,
+        search: search,
         multiInitialSelections: selectedValues,
-        multiSelectAllValue: _allEmployeesValue,
+        multiSelectAllValue: allValue,
         onChanged: (_) {},
         onMultiChanged: (nextValues) {
-          if (nextValues.contains(_allEmployeesValue)) {
+          if (nextValues.contains(allValue)) {
             onChanged('');
             return;
           }
@@ -1175,7 +1200,7 @@ class _DashboardSearchFilterField extends StatelessWidget {
               .where((item) => item.isNotEmpty)
               .toList(growable: false);
           onChanged(
-            ids.isEmpty ? _noEmployeesValue : 'employee:${ids.join(',')}',
+            ids.isEmpty ? noSelectionValue : '$filterPrefix${ids.join(',')}',
           );
         },
       ),
@@ -1190,6 +1215,7 @@ class _DashboardTrendCard extends StatefulWidget {
     required this.onTrendControlChanged,
     required this.showTrendControls,
     required this.isLoading,
+    this.onSecondaryFilterChanged,
   });
 
   final ErpDashboardTrendCardData data;
@@ -1197,6 +1223,7 @@ class _DashboardTrendCard extends StatefulWidget {
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
   final bool isLoading;
+  final ValueChanged<String>? onSecondaryFilterChanged;
 
   @override
   State<_DashboardTrendCard> createState() => _DashboardTrendCardState();
@@ -1276,16 +1303,45 @@ class _DashboardTrendCardState extends State<_DashboardTrendCard> {
             subtitle: data.subtitle,
             icon: Icons.show_chart_outlined,
           ),
-          if (widget.showTrendControls &&
-              widget.trendControlValue != null &&
-              widget.onTrendControlChanged != null) ...[
+          if ((widget.showTrendControls &&
+                  widget.trendControlValue != null &&
+                  widget.onTrendControlChanged != null) ||
+              data.secondaryFilterOptions.isNotEmpty) ...[
             const SizedBox(height: AppUiConstants.spacingMd),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _TrendControlDropdown(
-                value: widget.trendControlValue!,
-                onChanged: widget.onTrendControlChanged!,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (widget.showTrendControls &&
+                    widget.trendControlValue != null &&
+                    widget.onTrendControlChanged != null)
+                  SizedBox(
+                    width: 150,
+                    child: _TrendControlDropdown(
+                      value: widget.trendControlValue!,
+                      onChanged: widget.onTrendControlChanged!,
+                    ),
+                  ),
+                if (widget.showTrendControls &&
+                    widget.trendControlValue != null &&
+                    widget.onTrendControlChanged != null &&
+                    data.secondaryFilterOptions.isNotEmpty)
+                  const SizedBox(width: AppUiConstants.spacingSm),
+                if (data.secondaryFilterOptions.isNotEmpty)
+                  Expanded(
+                    child: _DashboardSearchFilterField(
+                      options: data.secondaryFilterOptions,
+                      value: data.secondaryFilterValue,
+                      onChanged: widget.onSecondaryFilterChanged ?? (_) {},
+                      label: 'Product',
+                      doctypeLabel: 'Product',
+                      hintText: 'Search products',
+                      allValue: '__all_products__',
+                      noSelectionValue: 'item:none',
+                      filterPrefix: 'item:',
+                      search: data.secondaryFilterSearch,
+                    ),
+                  ),
+              ],
             ),
           ],
           const SizedBox(height: AppUiConstants.spacingMd),
