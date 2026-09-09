@@ -40,6 +40,10 @@ class MasterDataCache extends GetxController {
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
   List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
+  List<DocumentTermSettingModel> documentTerms =
+      const <DocumentTermSettingModel>[];
+  Map<String, DocumentTermSettingModel> _documentTermsByType =
+      const <String, DocumentTermSettingModel>{};
 
   List<CompanyModel> get activeCompanies => _active(companies);
   List<BranchModel> get activeBranches => _active(branches);
@@ -71,7 +75,8 @@ class MasterDataCache extends GetxController {
       uomConversions.length +
       taxCodes.length +
       accounts.length +
-      gstRegistrations.length;
+      gstRegistrations.length +
+      documentTerms.length;
 
   Map<String, int> get datasetCounts => <String, int>{
     'Companies': companies.length,
@@ -88,6 +93,7 @@ class MasterDataCache extends GetxController {
     'Tax Codes': taxCodes.length,
     'Accounts': accounts.length,
     'GST Registrations': gstRegistrations.length,
+    'Document Terms': documentTerms.length,
   };
 
   Future<void> ensureLoaded({bool forceRefresh = false}) async {
@@ -193,6 +199,7 @@ class MasterDataCache extends GetxController {
         _loadTaxCodes(),
         _loadAccounts(),
         _loadGstRegistrations(),
+        _loadDocumentTerms(),
       ]);
 
       if (generation != _generation) {
@@ -215,6 +222,10 @@ class MasterDataCache extends GetxController {
       taxCodes = responses[11] as List<TaxCodeModel>;
       accounts = responses[12] as List<AccountModel>;
       gstRegistrations = responses[13] as List<GstRegistrationModel>;
+      replaceDocumentTerms(
+        responses[14] as List<DocumentTermSettingModel>,
+        notify: false,
+      );
       isLoaded = true;
       lastLoadedAt = DateTime.now();
       update();
@@ -266,6 +277,14 @@ class MasterDataCache extends GetxController {
     _markRefreshed();
   }
 
+  Future<void> refreshDocumentTerms() async {
+    replaceDocumentTerms(
+      await _loadDocumentTerms(tolerateFailure: false),
+      notify: false,
+    );
+    _markRefreshed();
+  }
+
   Future<void> refreshWarehouses() async {
     warehouses = await _loadWarehouses();
     _markRefreshed();
@@ -310,6 +329,8 @@ class MasterDataCache extends GetxController {
         accounts = _upsertModel(accounts, model);
       case GstRegistrationModel():
         gstRegistrations = _upsertModel(gstRegistrations, model);
+      case DocumentTermSettingModel():
+        replaceDocumentTerm(model, notify: false);
       default:
         return;
     }
@@ -395,6 +416,10 @@ class MasterDataCache extends GetxController {
       await refreshDocumentSeries();
       return;
     }
+    if (path.startsWith(ApiEndpoints.documentTerms)) {
+      await refreshDocumentTerms();
+      return;
+    }
     if (path.startsWith('/masters/party-types')) {
       await refreshPartyTypes();
       return;
@@ -449,6 +474,8 @@ class MasterDataCache extends GetxController {
     taxCodes = const <TaxCodeModel>[];
     accounts = const <AccountModel>[];
     gstRegistrations = const <GstRegistrationModel>[];
+    documentTerms = const <DocumentTermSettingModel>[];
+    _documentTermsByType = const <String, DocumentTermSettingModel>{};
     if (notify) {
       update();
     }
@@ -579,6 +606,62 @@ class MasterDataCache extends GetxController {
     return List<GstRegistrationModel>.unmodifiable(
       response.data ?? const <GstRegistrationModel>[],
     );
+  }
+
+  Future<List<DocumentTermSettingModel>> _loadDocumentTerms({
+    bool tolerateFailure = true,
+  }) async {
+    try {
+      final response = await _masterService.documentTerms();
+      return List<DocumentTermSettingModel>.unmodifiable(
+        response.data ?? const <DocumentTermSettingModel>[],
+      );
+    } catch (_) {
+      if (!tolerateFailure) {
+        rethrow;
+      }
+      return const <DocumentTermSettingModel>[];
+    }
+  }
+
+  String documentTermsFor(String documentType) {
+    final setting = _documentTermsByType[documentType];
+    if (setting == null || !setting.isActive) {
+      return '';
+    }
+    return setting.termsConditions;
+  }
+
+  void replaceDocumentTerm(
+    DocumentTermSettingModel setting, {
+    bool notify = true,
+  }) {
+    final nextTerms = <String, DocumentTermSettingModel>{
+      ..._documentTermsByType,
+      setting.documentType: setting,
+    };
+    _documentTermsByType = Map<String, DocumentTermSettingModel>.unmodifiable(
+      nextTerms,
+    );
+    documentTerms = List<DocumentTermSettingModel>.unmodifiable(
+      nextTerms.values,
+    );
+    if (notify) {
+      update();
+    }
+  }
+
+  void replaceDocumentTerms(
+    List<DocumentTermSettingModel> settings, {
+    bool notify = true,
+  }) {
+    _documentTermsByType = Map<String, DocumentTermSettingModel>.unmodifiable({
+      for (final setting in settings) setting.documentType: setting,
+    });
+    documentTerms = List<DocumentTermSettingModel>.unmodifiable(settings);
+    if (notify) {
+      update();
+    }
   }
 
   Future<List<T>> _loadAllPages<T>({

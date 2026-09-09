@@ -294,6 +294,8 @@ class _AppShellPageState extends State<AppShellPage> {
         );
       case '/settings/companies':
         return CompanyManagementPage(key: routeKey, embedded: true);
+      case '/settings/document-terms':
+        return DocumentTermSettingsPage(key: routeKey, embedded: true);
       case '/settings/branches':
         return BranchManagementPage(key: routeKey, embedded: true);
       case '/settings/business-locations':

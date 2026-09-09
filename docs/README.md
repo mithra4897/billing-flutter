@@ -17,6 +17,12 @@ For a backend and frontend change that belongs to one feature, use the same deci
 
 ## Feature specifications
 
+- Company-context document terms — create and edit active/default per-document
+  terms from the active company while keeping financial-year Document Series
+  independent; see `SPECIFICATIONS.md`, `ARCHITECTURE.md`, ADR-0053/0054 in
+  `DECISIONS.md`, and the 2026-09-09 testing/changelog entries. Backend
+  deployment is documented in `billing-api/doc/company-context-document-terms.md`.
+
 - [Specifications](SPECIFICATIONS.md) — approved feature requirements and acceptance criteria.
 - [Architecture](ARCHITECTURE.md) — implemented and explicitly approved components and data flow.
 - [Architecture decisions](DECISIONS.md) — append-only records of durable technical decisions.

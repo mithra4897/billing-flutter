@@ -3,6 +3,28 @@ import '../../screen.dart';
 class MasterService extends ErpModuleService {
   MasterService({super.apiClient});
 
+  Future<ApiResponse<List<DocumentTermSettingModel>>> documentTerms() =>
+      collection<DocumentTermSettingModel>(
+        ApiEndpoints.documentTerms,
+        fromJson: DocumentTermSettingModel.fromJson,
+      );
+
+  Future<ApiResponse<DocumentTermSettingModel>> updateDocumentTerms(
+    String documentType,
+    String termsConditions, {
+    required int companyId,
+    required bool isActive,
+  }) => client.put<DocumentTermSettingModel>(
+    '${ApiEndpoints.documentTerms}/$documentType',
+    body: <String, dynamic>{
+      'company_id': companyId,
+      'terms_conditions': termsConditions,
+      'is_active': isActive,
+    },
+    fromData: (json) =>
+        DocumentTermSettingModel.fromJson(json as Map<String, dynamic>),
+  );
+
   Future<PaginatedResponse<CompanyModel>> companies({
     Map<String, dynamic>? filters,
   }) {

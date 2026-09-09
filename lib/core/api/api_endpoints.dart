@@ -22,6 +22,7 @@ class ApiEndpoints {
   static const String financialYears = '/masters/financial-years';
   static const String documentSeries = '/masters/document-series';
   static const String printTemplates = '/masters/print-templates';
+  static const String documentTerms = '/masters/document-terms';
 
   static const String parties = '/masters/parties';
   static const String partyAddresses = '/masters/parties/addresses';

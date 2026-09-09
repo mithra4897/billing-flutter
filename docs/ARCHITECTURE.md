@@ -1,5 +1,33 @@
 # Architecture
 
+## 2026-09-09 — Company-context document terms
+
+The authenticated master API resolves the company from the standard working
+context and returns a fixed registry of seven document-term settings. A
+company-specific row takes precedence over the database global seed row,
+including when the override is intentionally blank. Financial year and
+Document Series remain outside this lookup.
+
+`MasterDataCache` loads the bounded settings collection with the other stable
+master data and builds a document-type map for constant-time default lookup.
+The Settings page reuses `SettingsWorkspace`, shared list/form controls, and
+the existing Master service. Saving replaces the matching cached record so a
+new document opened afterward uses the new text without another broad master
+reload.
+
+The same workspace exposes the Document Series-style New action. Its
+document-type dropdown comes from the bounded effective settings list and
+excludes every stored record, while the database uniqueness constraint remains
+the final duplicate guard. Each record carries `is_active`; cached and backend
+default resolution return text only when it is active. An explicit company row
+always wins over the global row, so disabling a company setting yields blank
+terms instead of reactivating global text.
+
+Transaction create services also resolve the same default when the request
+omits `terms_conditions`; explicit client text, including an empty string, is
+preserved. The chosen text is saved on the transaction, so print, email, edits,
+and historical documents continue to use the document snapshot.
+
 ## 2026-09-05 — Project card actions
 
 `ProjectGrid` passes typed edit and delete callbacks into the existing

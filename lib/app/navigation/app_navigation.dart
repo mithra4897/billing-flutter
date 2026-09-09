@@ -322,6 +322,13 @@ class AppNavigation {
           requiredPermissions: ['company.view'],
         ),
         AppNavigationItem(
+          key: 'settings-document-terms',
+          title: 'Document Terms',
+          icon: Icons.notes_outlined,
+          path: '/settings/document-terms',
+          requiredPermissions: ['company.view'],
+        ),
+        AppNavigationItem(
           key: 'settings-branches',
           title: 'Branches',
           icon: Icons.account_tree_outlined,

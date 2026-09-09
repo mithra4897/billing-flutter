@@ -380,7 +380,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     adjustmentRemarksController.clear();
     applyRoundOff = true;
     notesController.clear();
-    termsController.clear();
+    termsController.text = documentTermsDefault('purchase_invoice');
     lines = <PurchaseInvoiceLineModel>[
       PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
     ];
@@ -1271,7 +1271,10 @@ class PurchaseInvoiceManagementController extends GetxController {
     notesController.text = receipt.notes?.trim().isNotEmpty == true
         ? receipt.notes!
         : stringValue(receiptOrderData, 'notes');
-    termsController.clear();
+    termsController.text = documentTermsOrDefault(
+      receiptOrderData['terms_conditions']?.toString(),
+      'purchase_invoice',
+    );
     lines = nextLines;
     if (nextLines.length == 1 && nextLines.first.itemId == 0) {
       formError = 'Selected purchase receipt has no pending invoice quantity.';
@@ -1331,7 +1334,10 @@ class PurchaseInvoiceManagementController extends GetxController {
         : roundOffAmount.toString();
     applyRoundOff = roundOffAmount != 0;
     notesController.text = stringValue(data, 'notes');
-    termsController.clear();
+    termsController.text = documentTermsOrDefault(
+      data['terms_conditions']?.toString(),
+      'purchase_invoice',
+    );
     lines = nextLines;
     formError = nextLines.length == 1 && nextLines.first.itemId == 0
         ? 'Selected purchase order has no pending invoice quantity.'

@@ -1,5 +1,62 @@
 # Changelog
 
+## 2026-09-09 — Add Document Terms creation and Active workflow
+
+- Request: Match the Document Series list/editor workflow, allow company terms
+  creation, and add the Active control using shared UI.
+- Specification: One company setting per supported document type; Active
+  controls automatic application.
+- Implementation: Added New Terms only for document types without any stored
+  row, a shared switch tile, status-aware API/model/cache behavior, and
+  duplicate prevention.
+- Files changed: Document Terms Flutter page/controller/model/service/cache and
+  tests, backend schema/migration/model/controller/service/tests, and docs.
+- Database/API impact: Adds `is_active`; the existing PUT endpoint accepts it
+  and continues to upsert by company/type while preserving an omitted status
+  for older clients.
+- Security impact: Existing authenticated company context and
+  `company.update` authorization are unchanged.
+- Tests added or updated: Added controller filtering/switch tests, cached
+  resolution tests, and backend status-resolution coverage.
+- Tests executed and results: Focused Flutter tests passed 6/6 and the full
+  suite passed 17/17; focused analysis and PHP syntax checks passed. Full
+  analysis reported three unrelated existing issues. Backend PHPUnit is
+  unavailable.
+- Documentation updated: Specifications, architecture, ADR-0054/0055, testing,
+  changelog, README, and the backend deployment note.
+- Known limitations: Only the seven document types currently consumed by Sales
+  and Purchase document services are offered.
+- Follow-up work: Manually verify the responsive editor against a migrated API.
+
+## 2026-09-09 — Configure document terms from company context
+
+- Request: Replace hardcoded Terms & Conditions with UI-editable defaults that
+  use the active company and remain independent of financial-year Document
+  Series.
+- Specification: Seven terms-bearing Sales and Purchase document types receive
+  company-context defaults; saved documents remain historical snapshots.
+- Implementation: Added the Document Terms Settings workspace, typed master
+  API flow, bounded master-data cache/index, cache invalidation, and default
+  application for new and source-prefilled documents. Removed runtime text
+  literals from the Flutter helper.
+- Files changed: Settings navigation/page/controller, master model/service/cache,
+  document reset/prefill controllers, tests, and durable documentation.
+- Database/API impact: Requires the matching backend migration and authenticated
+  `/masters/document-terms` endpoints.
+- Security impact: Reads use authenticated company context; writes require
+  `company.update` and assert the loaded company against the request context.
+- Tests added or updated: Added typed parsing, cached lookup, and blank-override
+  tests.
+- Tests executed and results: Focused Flutter analysis passed; focused tests
+  passed 3/3; full Flutter tests passed 14/14. Full analysis completed with
+  three unrelated pre-existing warnings/deprecations.
+- Documentation updated: Specifications, architecture, ADR-0053, testing,
+  changelog, and documentation index.
+- Known limitations: Backend PHPUnit could not run because `vendor/bin/phpunit`
+  is not installed in the backend workspace.
+- Follow-up work: Manually verify authenticated context switching and all seven
+  new-document forms after applying the migration.
+
 ## 2026-09-09 — Make Inventory Dashboard navigable
 
 - Made all four Inventory Dashboard KPI cards open their existing Inventory

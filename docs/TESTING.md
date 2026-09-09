@@ -1,5 +1,28 @@
 # Testing
 
+## Company-context document terms — 2026-09-09
+
+- Added controller coverage for filtering every stored document type from the
+  New Terms dropdown and toggling Active.
+- Added cache/model coverage proving inactive terms are not applied. Focused
+  Flutter tests passed 6/6 and focused analysis reported no
+  issues. The full Flutter suite passed 17/17; full analysis reported only
+  three unrelated pre-existing warnings/deprecations.
+- Added backend service coverage for company override precedence, global
+  fallback, intentional blank overrides, inactive suppression, the
+  bounded registry, and unsupported types. PHPUnit execution is pending because
+  `vendor/bin/phpunit` is not installed in this workspace.
+- Flutter coverage verifies typed parsing, constant-time cached lookup, cached
+  replacement, and blank values. Focused tests passed 3/3; the full Flutter
+  suite passed 14/14.
+- PHP syntax checks passed for the migration, model, controller, shared terms
+  service, seven transaction services, route file, and focused test.
+- `dart format` completed and focused Flutter analysis passed with no issues.
+  Full analysis reached only three unrelated pre-existing warnings/deprecations.
+- Manually verify New Terms on desktop/mobile, context switching, status
+  switches, each supported Sales/Purchase document form, and unchanged terms
+  on an existing document.
+
 ## Accounting dashboard operational workspace — 2026-09-08
 
 - Automated: focused dashboard snapshot test covers the four operational

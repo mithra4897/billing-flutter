@@ -43,6 +43,7 @@ class ApiClient {
         '/masters/warehouses': <String>{'/masters/warehouses'},
         '/masters/financial-years': <String>{'/masters/financial-years'},
         '/masters/document-series': <String>{'/masters/document-series'},
+        ApiEndpoints.documentTerms: <String>{ApiEndpoints.documentTerms},
         '/masters/party-types': <String>{'/masters/party-types'},
         '/masters/parties': <String>{'/masters/parties'},
         ApiEndpoints.uoms: <String>{ApiEndpoints.uoms},

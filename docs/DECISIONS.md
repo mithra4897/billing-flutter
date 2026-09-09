@@ -1,5 +1,64 @@
 # Architecture decisions
 
+## ADR-0055: Use Active as the only document-terms application control
+
+- Date: 2026-09-09
+- Status: Accepted
+- Context: One company terms record exists per document type. A Default switch
+  has no useful choice without multiple selectable terms templates.
+- Decision: Remove `is_default` and use `is_active` as the sole control:
+  active terms apply automatically to new documents and inactive terms do not.
+- Reason: A single explicit rule is understandable and avoids retaining a
+  non-functional setting.
+- Consequences: The API, cache, and resolver only evaluate `is_active`.
+  ADR-0054 is superseded for Default-switch behavior.
+- Related files: Document Terms migrations, backend service/controller/model,
+  Flutter settings controller/page/model/cache, and focused tests.
+
+## ADR-0054: Keep one status-controlled document term per company and type
+
+- Date: 2026-09-09
+- Status: Superseded by ADR-0055
+- Context: Document Terms needs the same create/edit affordance and Default and
+  Active controls as Document Series, while the existing domain stores one
+  effective terms value for each company and canonical document type.
+- Decision: Retain the unique company/document-type key. Treat Default as
+  automatic application and Active as availability; Default implies Active,
+  and inactive implies non-default. A company row suppresses global fallback
+  regardless of its status.
+- Reason: This makes both switches meaningful without introducing multiple
+  unnamed templates or changing every document editor to select a template.
+- Alternatives considered: Allow multiple terms rows per document type. That
+  would require template names, selection UI across seven document editors,
+  and a different persistence contract outside the approved scope.
+- Consequences: Active and Default must both be true for terms to be copied to
+  a new document. Existing document snapshots remain unchanged.
+- Related files: Document Terms migration, backend service/controller/model,
+  Flutter settings controller/page/model/cache, and focused tests.
+
+## ADR-0053: Keep company document terms independent of financial-year series
+
+- Date: 2026-09-09
+- Status: Accepted
+- Context: Document numbering varies by financial year through Document
+  Series, while legal and commercial default text belongs to the active
+  company and document kind.
+- Decision: Persist database-backed Terms & Conditions by company and canonical
+  document type, derive company scope from working context, and copy the
+  effective value into each new document as a historical snapshot. Retain
+  database global seed rows only as the initial fallback for companies without
+  an override.
+- Reason: Separating numbering from content avoids duplicating identical terms
+  for every yearly series and keeps historical documents stable.
+- Alternatives considered: Store terms on every Document Series or directly
+  on Company columns. Series storage duplicates content each financial year;
+  company columns create one schema column per document type.
+- Consequences: Settings changes affect new documents only. Explicit company
+  overrides, including blank text, win over the global seed; financial-year
+  changes do not alter terms.
+- Related files: `lib/helper/document_terms_defaults.dart`, document terms
+  Settings model/service/controller/page, and the backend document-terms API.
+
 ## ADR-0052: Reuse party roles for customer and supplier dropdown eligibility
 
 - Date: 2026-09-08

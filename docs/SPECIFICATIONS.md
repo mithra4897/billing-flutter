@@ -1,5 +1,42 @@
 # Specifications
 
+## Company-context document terms — 2026-09-09
+
+Status: Implemented
+
+Terms & Conditions are configured for the active working-context
+company and each supported document type. Financial year and document series
+continue to control numbering only and do not change the terms lookup.
+
+Requirements and acceptance criteria:
+
+- Settings exposes one editable terms record for Sales Quotation, Sales
+  Proforma Invoice, Sales Order, Sales Delivery, Sales Invoice, Purchase Order,
+  and Purchase Invoice without another company selector.
+- Settings follows the shared Document Series list/editor workflow: a New
+  Terms action opens a blank editor, the document type is selected from the
+  supported types with no stored database row, and existing rows remain
+  selectable for editing. The action is hidden when all supported types are
+  already stored.
+- Each company can store at most one terms record per document type. `Active`
+  controls whether that record is copied into new documents.
+- A company override takes precedence over the global seed even when it is
+  inactive or intentionally blank. In either case, new documents receive blank
+  terms rather than unexpectedly restoring the global text.
+- The authenticated API derives `company_id` from the active request context;
+  users cannot read or update another company's values through this API.
+- A new document receives the active company's configured text for its
+  document type. Omitting `terms_conditions` in a create API request applies
+  that default; an explicitly supplied empty string remains empty.
+- Existing documents and document conversions retain their saved/source terms
+  and are not rewritten when Settings changes.
+- Existing hardcoded Flutter defaults are migrated to database-backed global
+  seed rows. A company override, including an empty value, takes precedence.
+- Loading and saving errors are visible, duplicate saves are disabled, and a
+  successful save refreshes the in-memory terms used by subsequent new forms.
+- The bounded seven-record list is indexed by document type for O(1) form
+  lookup after an O(n) load, where n is seven.
+
 ## Navigable Inventory Dashboard — 2026-09-09
 
 Status: Implemented
