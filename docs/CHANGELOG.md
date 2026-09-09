@@ -6,6 +6,8 @@
   workspaces, matching the Sales Dashboard interaction pattern.
 - Low Stock navigation now carries an active filter and opens only matching
   stock-balance rows.
+- Stock Alerts now contains only actionable low-stock balances; recent movement
+  rows were removed from that section.
 - Reused the existing dashboard card navigation and Inventory routes; no API or
   database schema changes were required.
 

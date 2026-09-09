@@ -1985,7 +1985,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
     primarySections: <ErpDashboardListSection>[
       ErpDashboardListSection(
         title: 'Stock Alerts',
-        subtitle: 'Live low-stock balances plus recent movement queue.',
+        subtitle: 'Low-stock balances that need action.',
         icon: Icons.notification_important_outlined,
         items: <ErpDashboardListItem>[
           ...balanceRows
@@ -2007,29 +2007,6 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
                   statusLabel: 'LOW',
                   statusColor: const Color(0xFFE67E22),
                   route: '/inventory/stock-balances?dashboard_filter=low_stock',
-                ),
-              ),
-          ...movementRows
-              .take(2)
-              .map(
-                (movement) => ErpDashboardListItem(
-                  title: stringValue(
-                    movement.toJson(),
-                    'reference_no',
-                    'Stock movement',
-                  ),
-                  subtitle: [
-                    displayDate(
-                      nullableStringValue(movement.toJson(), 'movement_date'),
-                    ),
-                    stringValue(movement.toJson(), 'movement_type'),
-                  ].where((part) => part.trim().isNotEmpty).join(' • '),
-                  detail: stringValue(movement.toJson(), 'stock_effect'),
-                  statusLabel: _statusLabel(movement.toJson(), const [
-                    'stock_effect',
-                    'movement_type',
-                  ]),
-                  route: '/inventory/stock-movements',
                 ),
               ),
         ],

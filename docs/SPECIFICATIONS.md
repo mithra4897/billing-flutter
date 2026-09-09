@@ -14,6 +14,9 @@ the matching `low_stock=1` API filter and displays the active Low stock action,
 so the destination list contains only balances at or below their item reorder
 level (or zero when no reorder level is configured).
 
+The Stock Alerts section contains only low-stock balances requiring user
+action. Recent movement rows are not included in this actionable section.
+
 No API, permission, persistence, or data-calculation changes are introduced.
 
 ## Accounting dashboard operational workspace — 2026-09-08
