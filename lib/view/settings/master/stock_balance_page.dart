@@ -2,16 +2,21 @@ import '../../../controller/settings/master/stock_balance_management_controller.
 import '../../../screen.dart';
 
 class StockBalancePage extends StatefulWidget {
-  const StockBalancePage({super.key, this.embedded = false});
+  const StockBalancePage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   @override
   State<StockBalancePage> createState() => _StockBalancePageState();
 }
 
 class _StockBalancePageState extends State<StockBalancePage> {
-  late final String _controllerTag;
+  late String _controllerTag;
   final TextEditingController _dateFromController = TextEditingController();
   final TextEditingController _dateToController = TextEditingController();
   String _statusFilter = '';
@@ -86,13 +91,43 @@ class _StockBalancePageState extends State<StockBalancePage> {
     return controller.filteredItems;
   }
 
+  void _applyDashboardFilter() {
+    if (!mounted || !Get.isRegistered<StockBalanceManagementController>(tag: _controllerTag)) {
+      return;
+    }
+    final controller = Get.find<StockBalanceManagementController>(tag: _controllerTag);
+    controller.setLowStockFilter(
+      widget.queryParameters['dashboard_filter'] == 'low_stock',
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag(
-      'StockBalanceManagementController',
-    );
-    Get.put(StockBalanceManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag('StockBalanceManagementController');
+    bool isNew = false;
+    if (!Get.isRegistered<StockBalanceManagementController>(tag: _controllerTag)) {
+      Get.put(
+        StockBalanceManagementController(
+          lowStockFilter:
+              widget.queryParameters['dashboard_filter'] == 'low_stock',
+        ),
+        tag: _controllerTag,
+      );
+      isNew = true;
+    }
+    if (!isNew) {
+      _applyDashboardFilter();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant StockBalancePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.queryParameters['dashboard_filter'] !=
+        widget.queryParameters['dashboard_filter']) {
+      _applyDashboardFilter();
+    }
   }
 
   @override
@@ -109,6 +144,13 @@ class _StockBalancePageState extends State<StockBalancePage> {
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
+          if (controller.lowStockFilter)
+            AdaptiveShellActionButton(
+              onPressed: () => controller.setLowStockFilter(false),
+              icon: Icons.filter_alt_outlined,
+              label: 'Low stock',
+              filled: true,
+            ),
           AdaptiveShellActionButton(
             onPressed: () => _openFilterPanel(context, controller),
             icon: Icons.filter_alt_outlined,

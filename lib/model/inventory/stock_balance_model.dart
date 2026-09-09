@@ -23,6 +23,7 @@ class StockBalanceModel extends JsonModel {
     this.categoryId,
     this.categoryCode,
     this.categoryName,
+    this.reorderLevel,
     this.warehouseCode,
     this.warehouseName,
     this.batchNo,
@@ -48,6 +49,7 @@ class StockBalanceModel extends JsonModel {
   final int? categoryId;
   final String? categoryCode;
   final String? categoryName;
+  final double? reorderLevel;
   final String? warehouseCode;
   final String? warehouseName;
   final String? batchNo;
@@ -89,6 +91,7 @@ class StockBalanceModel extends JsonModel {
       categoryName:
           item['category_name']?.toString() ??
           category['category_name']?.toString(),
+      reorderLevel: _parseDouble(item['reorder_level']),
       warehouseCode: warehouse['code']?.toString(),
       warehouseName: warehouse['name']?.toString(),
       batchNo: batch['batch_no']?.toString(),
@@ -119,6 +122,7 @@ class StockBalanceModel extends JsonModel {
     if (categoryId != null) 'category_id': categoryId,
     if (categoryCode != null) 'category_code': categoryCode,
     if (categoryName != null) 'category_name': categoryName,
+    if (reorderLevel != null) 'reorder_level': reorderLevel,
     if (warehouseCode != null) 'warehouse_code': warehouseCode,
     if (warehouseName != null) 'warehouse_name': warehouseName,
     if (batchNo != null) 'batch_no': batchNo,

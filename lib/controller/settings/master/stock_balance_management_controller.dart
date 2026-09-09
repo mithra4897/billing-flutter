@@ -2,7 +2,7 @@ import '../../../view_model/inventory/inventory_module_refresh_controller.dart';
 import '../../../screen.dart';
 
 class StockBalanceManagementController extends GetxController {
-  StockBalanceManagementController();
+  StockBalanceManagementController({this.lowStockFilter = false});
 
   final InventoryService _inventoryService = InventoryService();
   final InventoryModuleRefreshController _refreshController =
@@ -23,6 +23,7 @@ class StockBalanceManagementController extends GetxController {
   String categoryFilter = '';
   String dateFromFilter = '';
   String dateToFilter = '';
+  bool lowStockFilter;
 
   @override
   void onInit() {
@@ -64,6 +65,7 @@ class StockBalanceManagementController extends GetxController {
           if (categoryFilter.isNotEmpty) 'categories': categoryFilter,
           if (dateFromFilter.isNotEmpty) 'last_movement_from': dateFromFilter,
           if (dateToFilter.isNotEmpty) 'last_movement_to': dateToFilter,
+          if (lowStockFilter) 'low_stock': 1,
         },
       );
       final nextItems = response.data ?? const <StockBalanceModel>[];
@@ -134,6 +136,14 @@ class StockBalanceManagementController extends GetxController {
     categoryFilter = category;
     dateFromFilter = dateFrom;
     dateToFilter = dateTo;
+    unawaited(loadData(page: 1));
+  }
+
+  void setLowStockFilter(bool enabled) {
+    if (lowStockFilter == enabled) {
+      return;
+    }
+    lowStockFilter = enabled;
     unawaited(loadData(page: 1));
   }
 

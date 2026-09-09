@@ -335,7 +335,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/item-prices':
         return ItemPriceManagementPage(key: routeKey, embedded: true);
       case '/inventory/stock-balances':
-        return StockBalancePage(key: routeKey, embedded: true);
+        return StockBalancePage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/inventory/physical-stock-counts':
         return PhysicalStockCountPage(key: routeKey, embedded: true);
       case '/inventory/brands':
@@ -374,7 +378,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/adjustments':
         return InventoryAdjustmentRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-movements':
-        return StockMovementRegisterPage(key: routeKey, embedded: true);
+        return StockMovementRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/inventory/stock-batches':
         return StockBatchRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-serials':

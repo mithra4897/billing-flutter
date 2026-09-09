@@ -1955,6 +1955,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         value: _formatInt(_totalFromPaginated(items)),
         helper: 'Live item master count',
         icon: Icons.inventory_outlined,
+        route: '/inventory/items',
       ),
       ErpDashboardStat(
         label: 'Low Stock',
@@ -1962,6 +1963,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         helper: 'Detected from current balance snapshot',
         icon: Icons.warning_amber_outlined,
         color: const Color(0xFFE67E22),
+        route: '/inventory/stock-balances?dashboard_filter=low_stock',
       ),
       ErpDashboardStat(
         label: 'Stock In',
@@ -1969,6 +1971,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         helper: 'Recent inbound movement records',
         icon: Icons.south_west_outlined,
         color: const Color(0xFF1FA971),
+        route: '/inventory/stock-movements?dashboard_filter=stock_in',
       ),
       ErpDashboardStat(
         label: 'Stock Out',
@@ -1976,6 +1979,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
         helper: 'Recent outbound movement records',
         icon: Icons.north_east_outlined,
         color: const Color(0xFFDA4D78),
+        route: '/inventory/stock-movements?dashboard_filter=stock_out',
       ),
     ],
     primarySections: <ErpDashboardListSection>[
@@ -1999,10 +2003,10 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard({
                     stringValue(balance.toJson(), 'item_code'),
                   ].where((part) => part.trim().isNotEmpty).join(' • '),
                   detail:
-                      'Qty ${stringValue(balance.toJson(), 'available_qty', stringValue(balance.toJson(), 'qty_on_hand'))}',
+                      'Qty ${stringValue(balance.toJson(), 'qty_available', stringValue(balance.toJson(), 'qty_on_hand'))}',
                   statusLabel: 'LOW',
                   statusColor: const Color(0xFFE67E22),
-                  route: '/inventory/stock-balances',
+                  route: '/inventory/stock-balances?dashboard_filter=low_stock',
                 ),
               ),
           ...movementRows
@@ -4001,15 +4005,12 @@ bool _isToday(Map<String, dynamic> data, List<String> keys) {
 }
 
 bool _isLowStockBalance(StockBalanceModel item) {
-  final data = item.toJson();
-  final qty = double.tryParse(
-    stringValue(data, 'available_qty', stringValue(data, 'qty_on_hand', '0')),
-  );
-  final reorder = double.tryParse(stringValue(data, 'reorder_level', '0'));
+  final qty = item.qtyAvailable ?? item.qtyOnHand;
+  final reorder = item.reorderLevel ?? 0;
   if (qty == null) {
     return false;
   }
-  if (reorder != null && reorder > 0) {
+  if (reorder > 0) {
     return qty <= reorder;
   }
   return qty <= 0;

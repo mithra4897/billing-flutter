@@ -247,7 +247,12 @@ class InventoryRegisterController<T> extends GetxController {
     this.categoryValues,
     this.categoryItemsLoader,
     this.filterOptionsLoader,
+    this.initialDashboardFilter,
+    this.onDashboardFilter,
   });
+
+  final String? initialDashboardFilter;
+  final void Function(InventoryRegisterController<T> controller, String filter)? onDashboardFilter;
 
   final InventoryRegisterLoader<T> loader;
   final InventoryRegisterMatcher<T> matches;
@@ -362,7 +367,19 @@ class InventoryRegisterController<T> extends GetxController {
     );
     unawaited(_loadCategoryItemsOnce());
     unawaited(_loadFilterOptionsOnce());
+    if (initialDashboardFilter != null && initialDashboardFilter!.isNotEmpty && onDashboardFilter != null) {
+      onDashboardFilter!(this, initialDashboardFilter!);
+      _filterDebounce?.cancel();
+    }
     unawaited(load());
+  }
+
+  void applyDashboardFilter(String filter) {
+    if (onDashboardFilter != null) {
+      onDashboardFilter!(this, filter);
+      _filterDebounce?.cancel();
+      unawaited(load(page: 1));
+    }
   }
 
   @override
@@ -544,6 +561,8 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
     this.categoryItemsLoader,
     this.filterOptionsLoader,
     this.footerBuilder,
+    this.queryParameters = const <String, String>{},
+    this.onDashboardFilter,
   });
 
   final String controllerName;
@@ -564,6 +583,8 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
   final InventoryRegisterDropdownLoader? categoryItemsLoader;
   final InventoryRegisterFilterOptionsLoader? filterOptionsLoader;
   final InventoryRegisterFooterBuilder<T>? footerBuilder;
+  final Map<String, String> queryParameters;
+  final void Function(InventoryRegisterController<T> controller, String dashboardFilter)? onDashboardFilter;
 
   @override
   State<_InventoryRegisterShell<T>> createState() =>
@@ -579,24 +600,49 @@ class _InventoryRegisterShellState<T>
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag(widget.controllerName);
-    if (!Get.isRegistered<InventoryRegisterController<T>>(
-      tag: _controllerTag,
-    )) {
-      Get.put(
-        InventoryRegisterController<T>(
-          loader: widget.loader,
-          matches: widget.matches,
-          statusValue: widget.statusValue,
-          statusFilterItems: widget.statusFilterItems,
-          dateValue: widget.dateValue,
-          categoryValues: widget.categoryValues,
-          categoryItemsLoader: widget.categoryItemsLoader,
-          filterOptionsLoader: widget.filterOptionsLoader,
-        ),
+      bool isNew = false;
+      if (!Get.isRegistered<InventoryRegisterController<T>>(
         tag: _controllerTag,
-      );
+      )) {
+        Get.put(
+          InventoryRegisterController<T>(
+            loader: widget.loader,
+            matches: widget.matches,
+            statusValue: widget.statusValue,
+            statusFilterItems: widget.statusFilterItems,
+            dateValue: widget.dateValue,
+            categoryValues: widget.categoryValues,
+            categoryItemsLoader: widget.categoryItemsLoader,
+            filterOptionsLoader: widget.filterOptionsLoader,
+            initialDashboardFilter: (widget.queryParameters['dashboard_filter'] ?? '').trim(),
+            onDashboardFilter: widget.onDashboardFilter,
+          ),
+          tag: _controllerTag,
+        );
+        isNew = true;
+      }
+      if (!isNew) {
+        _applyDashboardFilter();
+      }
     }
-  }
+  
+    void _applyDashboardFilter() {
+      if (!mounted ||
+          !Get.isRegistered<InventoryRegisterController<T>>(tag: _controllerTag)) {
+        return;
+      }
+      final dashboardFilter = (widget.queryParameters['dashboard_filter'] ?? '').trim();
+      final controller = Get.find<InventoryRegisterController<T>>(tag: _controllerTag);
+      controller.applyDashboardFilter(dashboardFilter);
+    }
+  
+    @override
+    void didUpdateWidget(covariant _InventoryRegisterShell<T> oldWidget) {
+      super.didUpdateWidget(oldWidget);
+      if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+        _applyDashboardFilter();
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -1212,9 +1258,10 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
 }
 
 class StockMovementRegisterPage extends StatelessWidget {
-  const StockMovementRegisterPage({super.key, this.embedded = false});
+  const StockMovementRegisterPage({super.key, this.embedded = false, this.queryParameters = const {}});
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   @override
   Widget build(BuildContext context) {
@@ -1222,6 +1269,16 @@ class StockMovementRegisterPage extends StatelessWidget {
       controllerName: 'StockMovementRegisterController',
       title: 'Stock movements',
       embedded: embedded,
+      queryParameters: queryParameters,
+      onDashboardFilter: (controller, filter) {
+        if (filter == 'stock_in') {
+          controller.setMovementTypes({'purchase_receipt', 'sales_return', 'stock_transfer_in', 'stock_adjustment_in', 'production_receipt', 'jobwork_receipt', 'sample_receipt', 'internal_receipt'});
+        } else if (filter == 'stock_out') {
+          controller.setMovementTypes({'purchase_return', 'sales_delivery', 'stock_transfer_out', 'stock_adjustment_out', 'production_issue', 'jobwork_issue', 'damage', 'expiry', 'sample_issue', 'internal_issue'});
+        } else {
+          controller.setMovementTypes({});
+        }
+      },
       loader: (service, filters) => service.stockMovements(
         filters:
             <String, dynamic>{

@@ -1,5 +1,21 @@
 # Specifications
 
+## Navigable Inventory Dashboard — 2026-09-09
+
+Status: Implemented
+
+Inventory Dashboard KPI cards now open the corresponding existing Inventory
+workspace: Total Items opens Items, Low Stock opens Stock Balances, and Stock In
+or Stock Out opens Stock Movements. Existing dashboard action buttons and stock
+alert rows remain navigable through the same route-first shell.
+
+Selecting Low Stock passes `dashboard_filter=low_stock`; Stock Balances sends
+the matching `low_stock=1` API filter and displays the active Low stock action,
+so the destination list contains only balances at or below their item reorder
+level (or zero when no reorder level is configured).
+
+No API, permission, persistence, or data-calculation changes are introduced.
+
 ## Accounting dashboard operational workspace — 2026-09-08
 
 Status: Implemented

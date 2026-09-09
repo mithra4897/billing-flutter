@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-09 — Make Inventory Dashboard navigable
+
+- Made all four Inventory Dashboard KPI cards open their existing Inventory
+  workspaces, matching the Sales Dashboard interaction pattern.
+- Low Stock navigation now carries an active filter and opens only matching
+  stock-balance rows.
+- Reused the existing dashboard card navigation and Inventory routes; no API or
+  database schema changes were required.
+
 ## 2026-09-08 — Add billing and shipping address print bindings
 
 - Added `billing_address` and `shipping_address` to the shared managed-document
