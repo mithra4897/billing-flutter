@@ -337,7 +337,7 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/item-prices':
         return ItemPriceManagementPage(key: routeKey, embedded: true);
       case '/inventory/stock-balances':
-        return StockBalancePage(
+        return StockBalanceRegisterPage(
           key: routeKey,
           embedded: true,
           queryParameters: _currentQueryParameters,

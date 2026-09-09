@@ -129,9 +129,7 @@ class BrandManagementController extends GetxController {
 
   void startNew({required bool isDesktop}) {
     resetForm();
-    if (!isDesktop) {
-      workspaceController.openEditor();
-    }
+    workspaceController.openEditor();
   }
 
   Future<void> save() async {

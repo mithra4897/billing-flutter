@@ -101,6 +101,39 @@ Future<InventoryRegisterFilterOptions> _loadStockMovementFilterOptions() async {
   );
 }
 
+Future<InventoryRegisterFilterOptions> _loadStockBalanceFilterOptions() async {
+  await MasterDataCache.to.ensureLoaded();
+  return InventoryRegisterFilterOptions(
+    itemItems: _inventoryItemFilterItems(MasterDataCache.to.activeItems),
+  );
+}
+
+List<AppDropdownItem<int>> _inventoryItemFilterItems(List<ItemModel> source) =>
+    source
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: JsonModel.combineValues(
+              <dynamic>[
+                item.itemName,
+                if (item.itemCode.trim().isNotEmpty) '(${item.itemCode})',
+              ],
+              separator: ' ',
+              defaultValue: 'Item',
+            ),
+          ),
+        )
+        .toList(growable: false);
+
+Future<InventoryRegisterFilterOptions>
+_loadDefaultInventoryFilterOptions() async {
+  await MasterDataCache.to.ensureLoaded();
+  return InventoryRegisterFilterOptions(
+    itemItems: _inventoryItemFilterItems(MasterDataCache.to.activeItems),
+  );
+}
+
 List<AppDropdownItem<String>> _inventoryStatusItems(List<String> values) =>
     values
         .map(
@@ -398,6 +431,7 @@ class InventoryRegisterController<T> extends GetxController {
   int _loadSequence = 0;
   bool _categoryItemsRequested = false;
   bool _filterOptionsRequested = false;
+  String dashboardFilter = '';
 
   List<T> get filteredRows => rows;
 
@@ -480,6 +514,7 @@ class InventoryRegisterController<T> extends GetxController {
     if (initialDashboardFilter != null &&
         initialDashboardFilter!.isNotEmpty &&
         onDashboardFilter != null) {
+      dashboardFilter = initialDashboardFilter!;
       onDashboardFilter!(this, initialDashboardFilter!);
       _filterDebounce?.cancel();
     }
@@ -488,6 +523,7 @@ class InventoryRegisterController<T> extends GetxController {
 
   void applyDashboardFilter(String filter) {
     if (onDashboardFilter != null) {
+      dashboardFilter = filter.trim();
       onDashboardFilter!(this, filter);
       _filterDebounce?.cancel();
       unawaited(load(page: 1));
@@ -607,6 +643,7 @@ class InventoryRegisterController<T> extends GetxController {
         if (supplierIds.isNotEmpty) 'supplier_ids': supplierIds.join(','),
         if (itemIds.isNotEmpty) 'item_ids': itemIds.join(','),
         if (movementTypes.isNotEmpty) 'movement_types': movementTypes.join(','),
+        if (dashboardFilter.isNotEmpty) 'dashboard_filter': dashboardFilter,
       };
       final response = await loader(_service, filters);
       if (loadSequence != _loadSequence) {
@@ -640,12 +677,14 @@ class InventoryRegisterController<T> extends GetxController {
   }
 
   Future<void> _loadFilterOptionsOnce() async {
-    if (filterOptionsLoader == null || _filterOptionsRequested) {
+    if (_filterOptionsRequested) {
       return;
     }
     _filterOptionsRequested = true;
     try {
-      filterOptions = await filterOptionsLoader!();
+      filterOptions = filterOptionsLoader == null
+          ? await _loadDefaultInventoryFilterOptions()
+          : await filterOptionsLoader!();
       update();
     } catch (_) {
       // Optional filter lookups must not prevent the register from loading.
@@ -666,6 +705,7 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
     required this.searchHint,
     required this.columns,
     required this.rowRoute,
+    this.showNewAction = true,
     this.statusValue,
     this.statusFilterItems,
     this.dateValue,
@@ -688,6 +728,7 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
   final String searchHint;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final bool showNewAction;
   final InventoryRegisterValueGetter<T>? statusValue;
   final List<AppDropdownItem<String>>? statusFilterItems;
   final InventoryRegisterValueGetter<T>? dateValue;
@@ -793,12 +834,13 @@ class _InventoryRegisterShellState<T>
               label: 'Filter',
               filled: _filtersVisible,
             ),
-            AdaptiveShellActionButton(
-              onPressed: () =>
-                  _openInventoryShellRoute(context, widget.newRoute),
-              icon: Icons.add_outlined,
-              label: widget.newLabel,
-            ),
+            if (widget.showNewAction)
+              AdaptiveShellActionButton(
+                onPressed: () =>
+                    _openInventoryShellRoute(context, widget.newRoute),
+                icon: Icons.add_outlined,
+                label: widget.newLabel,
+              ),
           ],
           filters: _filtersVisible
               ? SharedFilterBar(
@@ -926,6 +968,119 @@ class OpeningStockRegisterPage extends StatelessWidget {
       ],
       rowRoute: (row) =>
           '/inventory/opening-stocks/${intValue(row.toJson(), 'id')}',
+    );
+  }
+}
+
+class StockBalanceRegisterPage extends StatelessWidget {
+  const StockBalanceRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
+
+  final bool embedded;
+  final Map<String, String> queryParameters;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InventoryRegisterShell<StockBalanceModel>(
+      controllerName: 'StockBalanceRegisterController',
+      title: 'Stock balances',
+      embedded: embedded,
+      queryParameters: queryParameters,
+      onDashboardFilter: (controller, filter) {
+        controller.setMovementTypes({});
+        controller.setItemIds(
+          {
+            if (queryParameters['item_id'] != null)
+              int.tryParse(queryParameters['item_id']!) ?? -1,
+          }..remove(-1),
+        );
+      },
+      loader: (service, filters) => service.stockBalances(
+        filters:
+            <String, dynamic>{
+              ...filters,
+              'sort_by': 'qty_available',
+              if (filters['date_from'] != null)
+                'last_movement_from': filters['date_from'],
+              if (filters['date_to'] != null)
+                'last_movement_to': filters['date_to'],
+              if (filters['dashboard_filter'] == 'low_stock') 'low_stock': 1,
+              if (queryParameters['item_id'] != null)
+                'item_id': queryParameters['item_id'],
+              if (queryParameters['warehouse_id'] != null)
+                'warehouse_id': queryParameters['warehouse_id'],
+            }..removeWhere(
+              (key, value) =>
+                  key == 'date_from' ||
+                  key == 'date_to' ||
+                  key == 'dashboard_filter' ||
+                  key == 'movement_types' ||
+                  key == 'customer_ids' ||
+                  key == 'supplier_ids',
+            ),
+      ),
+      matches: (row, query) => [
+        row.itemCode,
+        row.itemName,
+        row.categoryCode ?? '',
+        row.categoryName ?? '',
+        row.warehouseCode ?? '',
+        row.warehouseName ?? '',
+        row.batchNo ?? '',
+        row.serialNo ?? '',
+      ].join(' ').toLowerCase().contains(query),
+      emptyMessage: 'No stock balance records found.',
+      newRoute: '/inventory/stock-balances',
+      newLabel: 'Stock Balances',
+      showNewAction: false,
+      searchHint: 'Search item, warehouse, batch, or serial',
+      categoryValues: (row) => [
+        if ((row.categoryName ?? '').trim().isNotEmpty) row.categoryName!,
+      ],
+      filterOptionsLoader: _loadStockBalanceFilterOptions,
+      columns: [
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Product',
+          flex: 3,
+          valueBuilder: (row) => JsonModel.combineValues(
+            <dynamic>[
+              row.itemName,
+              if (row.itemCode.trim().isNotEmpty) '(${row.itemCode})',
+            ],
+            separator: ' ',
+            defaultValue: row.itemCode,
+          ),
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Warehouse',
+          flex: 2,
+          valueBuilder: (row) => row.warehouseName ?? row.warehouseCode ?? '',
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Batch',
+          valueBuilder: (row) => row.batchNo ?? '',
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Serial',
+          valueBuilder: (row) => row.serialNo ?? '',
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'On Hand',
+          valueBuilder: (row) => formatQuantity(row.qtyOnHand ?? 0),
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Reserved',
+          valueBuilder: (row) => formatQuantity(row.qtyReserved ?? 0),
+        ),
+        PurchaseRegisterColumn<StockBalanceModel>(
+          label: 'Available',
+          valueBuilder: (row) => formatQuantity(row.qtyAvailable ?? 0),
+        ),
+      ],
+      rowRoute: (_) => '/inventory/stock-balances',
     );
   }
 }

@@ -538,9 +538,7 @@ class PhysicalStockCountManagementController extends GetxController {
 
   void startNew({required bool isDesktop}) {
     resetForm();
-    if (!isDesktop) {
-      workspaceController.openEditor();
-    }
+    workspaceController.openEditor();
   }
 
   void setDocumentSeriesId(int? value) {

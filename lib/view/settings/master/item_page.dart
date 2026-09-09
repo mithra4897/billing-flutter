@@ -184,27 +184,55 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       title: 'Items',
       editorTitle: controller.selectedItem?.toString(),
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<ItemModel>(
-        searchController: controller.searchController,
-        searchHint: 'Search items',
-        items: _visibleItems(controller),
-        selectedItem: controller.selectedItem,
-        emptyMessage: 'No item records found.',
-        paginationMeta: controller.paginationMeta,
-        onPageChanged: controller.goToPage,
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.itemName,
-          subtitle: [
-            item.itemCode,
-            item.itemType ?? '',
-          ].where((value) => value.trim().isNotEmpty).join(' · '),
-          selected: selected,
-          onTap: () => controller.selectItem(item),
-          trailing: SettingsStatusPill(
-            label: item.isActive ? 'Active' : 'Inactive',
-            active: item.isActive,
+      listOnly: true,
+      list: SharedRegisterList<ItemModel>(
+        title: 'Items',
+        loading: false,
+        errorMessage: null,
+        onRetry: () => controller.loadData(),
+        actions: [
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search items',
           ),
-        ),
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+          ),
+        ],
+        filters: null,
+        rows: _visibleItems(controller),
+        columns: [
+          PurchaseRegisterColumn<ItemModel>(
+            label: 'Code',
+            valueBuilder: (item) => item.itemCode,
+          ),
+          PurchaseRegisterColumn<ItemModel>(
+            label: 'Product',
+            flex: 3,
+            valueBuilder: (item) => item.itemName,
+          ),
+          PurchaseRegisterColumn<ItemModel>(
+            label: 'Type',
+            valueBuilder: (item) => item.itemType ?? '',
+          ),
+          PurchaseRegisterColumn<ItemModel>(
+            label: 'Status',
+            valueBuilder: (item) => item.isActive ? 'Active' : 'Inactive',
+          ),
+        ],
+        onRowTap: (item) {
+          controller.selectItem(item);
+          controller.workspaceController.openEditor();
+        },
+        emptyMessage: 'No item records found.',
+        remoteTotalItems: controller.paginationMeta?.total,
+        remoteCurrentPage: controller.paginationMeta?.currentPage,
+        remotePerPage: controller.paginationMeta?.perPage,
+        onRemotePageChanged: controller.goToPage,
+        contentSized: true,
+        embedded: true,
       ),
       editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -172,24 +172,54 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       title: 'Physical Counts',
       editorTitle: controller.selectedCount?.toString(),
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<PhysicalStockCountModel>(
-        searchController: controller.searchController,
-        searchHint: 'Search physical counts',
-        items: _visibleItems(controller),
-        selectedItem: controller.selectedCount,
+      listOnly: true,
+      list: SharedRegisterList<PhysicalStockCountModel>(
+        title: 'Physical Counts',
+        loading: false,
+        errorMessage: null,
+        onRetry: () => controller.loadData(),
+        actions: [
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search physical counts',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+          ),
+        ],
+        rows: _visibleItems(controller),
+        columns: [
+          PurchaseRegisterColumn<PhysicalStockCountModel>(
+            label: 'No',
+            valueBuilder: (item) => item.countNo ?? '-',
+          ),
+          PurchaseRegisterColumn<PhysicalStockCountModel>(
+            label: 'Date',
+            valueBuilder: (item) => item.countDate ?? '',
+          ),
+          PurchaseRegisterColumn<PhysicalStockCountModel>(
+            label: 'Warehouse',
+            flex: 2,
+            valueBuilder: (item) => item.warehouseName ?? '',
+          ),
+          PurchaseRegisterColumn<PhysicalStockCountModel>(
+            label: 'Status',
+            valueBuilder: (item) => item.countStatus ?? '',
+          ),
+        ],
+        onRowTap: (item) {
+          controller.selectCount(item);
+          controller.workspaceController.openEditor();
+        },
         emptyMessage: 'No physical counts found.',
-        paginationMeta: controller.paginationMeta,
-        onPageChanged: controller.goToPage,
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.countNo ?? '-',
-          subtitle: [
-            item.countDate ?? '',
-            item.countStatus ?? '',
-            item.warehouseName ?? '',
-          ].where((value) => value.trim().isNotEmpty).join(' · '),
-          selected: selected,
-          onTap: () => controller.selectCount(item),
-        ),
+        remoteTotalItems: controller.paginationMeta?.total,
+        remoteCurrentPage: controller.paginationMeta?.currentPage,
+        remotePerPage: controller.paginationMeta?.perPage,
+        onRemotePageChanged: controller.goToPage,
+        contentSized: true,
+        embedded: true,
       ),
       editorBuilder: (_) => Form(
         key: controller.formKey,

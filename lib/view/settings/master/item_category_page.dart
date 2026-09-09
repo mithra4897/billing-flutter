@@ -18,8 +18,9 @@ class _ItemCategoryManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('ItemCategoryManagementController');
+    _controllerTag = persistentControllerTag(
+      'ItemCategoryManagementController',
+    );
     Get.put(ItemCategoryManagementController(), tag: _controllerTag);
   }
 
@@ -79,18 +80,37 @@ class _ItemCategoryManagementPageState
       title: 'Item Categories',
       editorTitle: controller.selectedItem?.toString(),
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<ItemCategoryModel>(
-        searchController: controller.searchController,
-        searchHint: 'Search item categories',
-        items: controller.filteredItems,
-        selectedItem: controller.selectedItem,
+      listOnly: true,
+      list: SharedRegisterList<ItemCategoryModel>(
+        title: 'Item Categories',
+        loading: false,
+        errorMessage: null,
+        onRetry: () => controller.loadItems(),
+        actions: [
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search item categories',
+          ),
+        ],
+        rows: controller.filteredItems,
+        columns: [
+          PurchaseRegisterColumn<ItemCategoryModel>(
+            label: 'Code',
+            valueBuilder: (item) => item.categoryCode,
+          ),
+          PurchaseRegisterColumn<ItemCategoryModel>(
+            label: 'Category',
+            flex: 3,
+            valueBuilder: (item) => item.categoryName,
+          ),
+        ],
+        onRowTap: (item) {
+          controller.selectItem(item);
+          controller.workspaceController.openEditor();
+        },
         emptyMessage: 'No item categories found.',
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.categoryName,
-          subtitle: item.categoryCode,
-          selected: selected,
-          onTap: () => controller.selectItem(item),
-        ),
+        contentSized: true,
+        embedded: true,
       ),
       editorBuilder: (_) => Form(
         key: controller.formKey,

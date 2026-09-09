@@ -422,7 +422,7 @@ class ItemSupplierMapManagementController extends GetxController {
   void startNew({required bool isDesktop}) {
     showDraftTile = true;
     resetForm();
-    if (fixedItemId == null && !isDesktop) {
+    if (fixedItemId == null) {
       workspaceController.openEditor();
     }
   }

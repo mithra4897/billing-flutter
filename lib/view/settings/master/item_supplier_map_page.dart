@@ -250,38 +250,62 @@ class _ItemSupplierMapManagementPageState
       title: controller.pageTitle,
       editorTitle: controller.selectedMasterTitle,
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<dynamic>(
-        searchController: controller.masterSearchController,
-        searchHint: 'Search ${controller.masterLabel}',
-        items: _visibleMasters(controller),
-        selectedItem: controller.isItemWise
-            ? controller.allItems.cast<ItemModel?>().firstWhere(
-                (item) => item?.id == controller.selectedMasterId,
-                orElse: () => null,
-              )
-            : controller.allSuppliers.cast<PartyModel?>().firstWhere(
-                (party) => party?.id == controller.selectedMasterId,
-                orElse: () => null,
-              ),
-        emptyMessage: 'No ${controller.masterLabel} records found.',
-        itemBuilder: (entry, selected) {
-          if (controller.isItemWise) {
-            final item = entry as ItemModel;
-            return SettingsListTile(
-              title: item.itemName,
-              subtitle: item.itemCode,
-              selected: selected,
-              onTap: () => controller.selectMaster(item.id),
-            );
-          }
-          final supplier = entry as PartyModel;
-          return SettingsListTile(
-            title: supplier.displayName ?? supplier.partyName ?? '-',
-            subtitle: supplier.partyCode ?? '',
-            selected: selected,
-            onTap: () => controller.selectMaster(supplier.id),
+      listOnly: true,
+      list: SharedRegisterList<dynamic>(
+        title: controller.pageTitle,
+        loading: false,
+        errorMessage: null,
+        onRetry: () => controller.loadData(),
+        actions: [
+          AdaptiveShellSearchField(
+            controller: controller.masterSearchController,
+            hintText: 'Search ${controller.masterLabel}',
+          ),
+          AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+          ),
+        ],
+        rows: _visibleMasters(controller),
+        columns: controller.isItemWise
+            ? [
+                PurchaseRegisterColumn<dynamic>(
+                  label: 'Code',
+                  valueBuilder: (entry) => (entry as ItemModel).itemCode,
+                ),
+                PurchaseRegisterColumn<dynamic>(
+                  label: 'Product',
+                  flex: 3,
+                  valueBuilder: (entry) => (entry as ItemModel).itemName,
+                ),
+              ]
+            : [
+                PurchaseRegisterColumn<dynamic>(
+                  label: 'Code',
+                  valueBuilder: (entry) =>
+                      (entry as PartyModel).partyCode ?? '',
+                ),
+                PurchaseRegisterColumn<dynamic>(
+                  label: 'Supplier',
+                  flex: 3,
+                  valueBuilder: (entry) =>
+                      (entry as PartyModel).displayName ??
+                      entry.partyName ??
+                      '-',
+                ),
+              ],
+        onRowTap: (entry) {
+          controller.selectMaster(
+            controller.isItemWise
+                ? (entry as ItemModel).id
+                : (entry as PartyModel).id,
           );
+          controller.workspaceController.openEditor();
         },
+        emptyMessage: 'No ${controller.masterLabel} records found.',
+        contentSized: true,
+        embedded: true,
       ),
       editorBuilder: (_) => AppSectionCard(
         child: controller.selectedMasterId == null

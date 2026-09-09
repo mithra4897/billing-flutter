@@ -73,22 +73,41 @@ class _BrandManagementPageState extends State<BrandManagementPage> {
       title: 'Brands',
       editorTitle: controller.selectedBrand?.toString(),
       scrollController: controller.pageScrollController,
-      list: SettingsListCard<BrandModel>(
-        searchController: controller.searchController,
-        searchHint: 'Search brands',
-        items: controller.filteredBrands,
-        selectedItem: controller.selectedBrand,
-        emptyMessage: 'No brand records found.',
-        itemBuilder: (brand, selected) => SettingsListTile(
-          title: brand.brandName ?? '-',
-          subtitle: brand.brandCode ?? '',
-          selected: selected,
-          onTap: () => controller.selectBrand(brand),
-          trailing: SettingsStatusPill(
-            label: brand.isActive ? 'Active' : 'Inactive',
-            active: brand.isActive,
+      listOnly: true,
+      list: SharedRegisterList<BrandModel>(
+        title: 'Brands',
+        loading: false,
+        errorMessage: null,
+        onRetry: () => controller.loadBrands(),
+        actions: [
+          AdaptiveShellSearchField(
+            controller: controller.searchController,
+            hintText: 'Search brands',
           ),
-        ),
+        ],
+        rows: controller.filteredBrands,
+        columns: [
+          PurchaseRegisterColumn<BrandModel>(
+            label: 'Code',
+            valueBuilder: (brand) => brand.brandCode ?? '',
+          ),
+          PurchaseRegisterColumn<BrandModel>(
+            label: 'Brand',
+            flex: 3,
+            valueBuilder: (brand) => brand.brandName ?? '-',
+          ),
+          PurchaseRegisterColumn<BrandModel>(
+            label: 'Status',
+            valueBuilder: (brand) => brand.isActive ? 'Active' : 'Inactive',
+          ),
+        ],
+        onRowTap: (brand) {
+          controller.selectBrand(brand);
+          controller.workspaceController.openEditor();
+        },
+        emptyMessage: 'No brand records found.',
+        contentSized: true,
+        embedded: true,
       ),
       editorBuilder: (_) => Form(
         key: controller.formKey,

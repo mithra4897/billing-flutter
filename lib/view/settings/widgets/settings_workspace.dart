@@ -44,6 +44,8 @@ class SettingsWorkspace extends StatefulWidget {
     this.editorTitle,
     this.controller,
     this.editorOnly = false,
+    this.listOnly = false,
+    this.editorRouteBuilder,
     this.wrapEditorInCard = true,
     this.fullWidthHeader,
   }) : assert(
@@ -61,6 +63,8 @@ class SettingsWorkspace extends StatefulWidget {
   final String? editorTitle;
   final SettingsWorkspaceController? controller;
   final bool editorOnly;
+  final bool listOnly;
+  final String Function()? editorRouteBuilder;
   final bool wrapEditorInCard;
   final Widget? fullWidthHeader;
 
@@ -146,7 +150,8 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
             final theme = Theme.of(context).textTheme;
             final showEditorTitle =
                 widget.editorTitle != null && Responsive.isNotMobile(context);
-            final editorContent = routeController.editorRouteOpen
+            final editorContent =
+                routeController.editorRouteOpen && !widget.listOnly
                 ? _buildEditorContent(
                     textTheme: theme,
                     showEditorTitle: showEditorTitle,
@@ -171,6 +176,14 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                       controller: widget.scrollController,
                       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
                       child: editorContent,
+                    )
+                  : widget.listOnly
+                  ? SingleChildScrollView(
+                      controller: widget.scrollController,
+                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                      child: routeController.editorRouteOpen
+                          ? editorContent
+                          : widget.list,
                     )
                   : showInlineEditor
                   ? SingleChildScrollView(
@@ -267,6 +280,19 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       }
 
       _routeController.setEditorRouteOpen(true);
+
+      final route = widget.editorRouteBuilder?.call();
+      final navigate = ShellRouteScope.maybeOf(context);
+      if (route != null && navigate != null) {
+        navigate(route);
+        _editorRoutePushScheduled = false;
+        return;
+      }
+
+      if (widget.listOnly) {
+        _editorRoutePushScheduled = false;
+        return;
+      }
 
       // Let the placeholder-only frame finish before the route mounts the
       // editor, which avoids temporary duplicate GlobalKey ownership during
@@ -720,6 +746,13 @@ class _SettingsEditorRoutePage extends StatefulWidget {
 
 class _SettingsEditorRoutePageState extends State<_SettingsEditorRoutePage> {
   bool _showChild = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -736,17 +769,13 @@ class _SettingsEditorRoutePageState extends State<_SettingsEditorRoutePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: Text(widget.title)),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-          child: _showChild ? widget.child : const SizedBox.shrink(),
-        ),
+    return AppStandaloneShell(
+      title: widget.title,
+      scrollController: _scrollController,
+      actions: const <Widget>[],
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+        child: _showChild ? widget.child : const SizedBox.shrink(),
       ),
     );
   }
