@@ -5,6 +5,8 @@ class PayrollLineModel extends JsonModel {
     super.id,
     this.payrollRunId,
     this.employeeId,
+    this.calculationDetails = const {},
+
     this.employeeName,
     this.employeeCode,
     this.salaryStructureId,
@@ -28,6 +30,8 @@ class PayrollLineModel extends JsonModel {
   });
   final int? payrollRunId;
   final int? employeeId;
+  final Map<String, dynamic> calculationDetails;
+
   final String? employeeName;
   final String? employeeCode;
   final int? salaryStructureId;
@@ -53,6 +57,8 @@ class PayrollLineModel extends JsonModel {
     final employee = _asMap(json['employee']);
     final payslip = _asMap(json['payslip']);
     return PayrollLineModel(
+      calculationDetails: _asMap(json['calculation_snapshot']),
+
       id: JsonModel.nullableInt(json['id']),
       payrollRunId: JsonModel.nullableInt(json['payroll_run_id']),
       employeeId: JsonModel.nullableInt(json['employee_id'] ?? employee['id']),
@@ -89,6 +95,8 @@ class PayrollLineModel extends JsonModel {
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
     if (payrollRunId != null) 'payroll_run_id': payrollRunId,
+    'calculation_snapshot': calculationDetails,
+
     if (employeeId != null) 'employee_id': employeeId,
     if (employeeName != null) 'employee_name': employeeName,
     if (employeeCode != null) 'employee_code': employeeCode,

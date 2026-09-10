@@ -1,124 +1,77 @@
 import '../../screen.dart';
 
 class PayrollRunEmployeeTable extends StatelessWidget {
-  const PayrollRunEmployeeTable({super.key, required this.employees});
+  const PayrollRunEmployeeTable({
+    super.key,
+    this.employees = const [],
+    this.lines = const [],
+  });
 
   final List<PayrollEmployeePreviewModel> employees;
-
-  Color _statusColor(
-    BuildContext context,
-    PayrollEmployeePreviewModel employee,
-  ) {
-    if (employee.eligible) {
-      return Colors.green;
-    }
-    final reason = (employee.reason ?? '').toLowerCase();
-    return reason.contains('salary component') ||
-            reason.contains('gross salary') ||
-            reason.contains('structure')
-        ? Theme.of(context).colorScheme.error
-        : Colors.orange.shade700;
-  }
-
-  String _statusLabel(PayrollEmployeePreviewModel employee) {
-    if (employee.eligible) return 'Eligible';
-    final reason = employee.reason?.trim();
-    return reason == null || reason.isEmpty ? 'Attention' : 'Blocked';
-  }
+  final List<PayrollLineModel> lines;
 
   @override
   Widget build(BuildContext context) {
-    if (employees.isEmpty) {
-      return const Text('No employees found for this company.');
+    final rows = lines.isNotEmpty
+        ? lines
+              .map(
+                (line) => <String, dynamic>{
+                  ...line.toJson(),
+                  'gross_salary': line.monthlyGrossSalary,
+                  'earned_gross': line.grossSalary,
+                  'lop_amount': line.calculationDetails['notional_lop_amount'],
+                },
+              )
+              .toList(growable: false)
+        : employees
+              .map((employee) => employee.toJson())
+              .toList(growable: false);
+    String number(Map<String, dynamic> row, String key) {
+      final amount = JsonModel.nullableDouble(row[key]);
+      return amount == null ? '—' : amount.toStringAsFixed(2);
     }
 
     return SizedBox(
       width: double.infinity,
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              columnSpacing: 28,
-              headingRowColor: WidgetStatePropertyAll(
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-              columns: const [
-                DataColumn(label: Text('Employee')),
-                DataColumn(label: Text('Code')),
-                DataColumn(label: Text('Eligibility')),
-                DataColumn(label: Text('Gross')),
-                DataColumn(label: Text('Paid days')),
-                DataColumn(label: Text('LOP')),
-                DataColumn(label: Text('Details')),
-              ],
-              rows: employees
-                  .map((employee) {
-                    final color = _statusColor(context, employee);
-                    return DataRow(
-                      color: WidgetStatePropertyAll(
-                        color.withValues(alpha: 0.08),
-                      ),
-                      cells: [
-                        DataCell(Text(employee.employeeName ?? '—')),
-                        DataCell(Text(employee.employeeCode ?? '—')),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: color.withValues(alpha: 0.45),
-                              ),
-                            ),
-                            child: Text(
-                              _statusLabel(employee),
-                              style: TextStyle(
-                                color: color,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        DataCell(Text(formatAmount(employee.grossSalary ?? 0))),
-                        DataCell(
-                          Text(
-                            employee.paidDays == null
-                                ? '—/${employee.workingDays ?? 0}'
-                                : '${formatAmount(employee.paidDays!)}/${employee.workingDays ?? 0}',
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            employee.lopDays == null
-                                ? '—'
-                                : formatAmount(employee.lopDays!),
-                          ),
-                        ),
-                        DataCell(
-                          SizedBox(
-                            width: 360,
-                            child: Text(
-                              employee.eligible
-                                  ? 'Ready for payroll processing'
-                                  : employee.reason ??
-                                        'Payroll setup needs attention.',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  })
-                  .toList(growable: false),
-            ),
+      child: SharedRegisterList<Map<String, dynamic>>(
+        title: 'Employee payroll',
+        embedded: true,
+        contentSized: true,
+        loading: false,
+        errorMessage: null,
+        onRetry: () async {},
+        actions: const [],
+        rows: rows,
+        emptyMessage: 'No employee payroll details available.',
+        onRowTap: (_) {},
+        columns: [
+          PurchaseRegisterColumn<Map<String, dynamic>>(
+            label: 'Employee',
+            flex: 2,
+            valueBuilder: (r) => r['employee_name']?.toString() ?? '—',
+            detailBuilder: (r) => [
+              r['employee_code']?.toString() ?? '—',
+              if (r['reason'] != null) r['reason'].toString(),
+            ].join(' · '),
           ),
-        ),
+          for (final entry in const {
+            'gross_salary': 'Salary',
+            'earned_gross': 'Earned gross',
+            'lop_days': 'LOP days',
+            'lop_amount': 'LOP amount',
+            'total_deductions': 'Deductions',
+            'net_salary': 'Net pay',
+            'paid_days': 'Paid days',
+            'working_days': 'Working days',
+            'present_days': 'Present',
+            'leave_days': 'Leave',
+          }.entries)
+            PurchaseRegisterColumn<Map<String, dynamic>>(
+              label: entry.value,
+              alignRight: true,
+              valueBuilder: (r) => number(r, entry.key),
+            ),
+        ],
       ),
     );
   }

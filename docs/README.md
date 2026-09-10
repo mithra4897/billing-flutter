@@ -1,5 +1,8 @@
 # Frontend Change Documentation
 
+- [Payroll draft calculations and register](payroll-draft-register.md) — shared
+  full-width employee register, calculation parity and processing refresh.
+
 - HR register search and supported filters — HR list/register search is in the
   app bar and filters use the one shared register card, constrained to existing
   backend query contracts.

@@ -149,6 +149,11 @@ class PayrollPreviewModel extends JsonModel {
 class PayrollEmployeePreviewModel extends JsonModel {
   const PayrollEmployeePreviewModel({
     this.employeeId,
+    this.calculationDetails = const {},
+    this.earnedGross,
+    this.totalDeductions,
+    this.netSalary,
+    this.lopAmount,
     this.employeeCode,
     this.employeeName,
     this.eligible = false,
@@ -163,6 +168,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
   });
 
   final int? employeeId;
+  final Map<String, dynamic> calculationDetails;
+  final double? earnedGross;
+  final double? totalDeductions;
+  final double? netSalary;
+  final double? lopAmount;
   final String? employeeCode;
   final String? employeeName;
   final bool eligible;
@@ -177,6 +187,15 @@ class PayrollEmployeePreviewModel extends JsonModel {
 
   factory PayrollEmployeePreviewModel.fromJson(Map<String, dynamic> json) {
     return PayrollEmployeePreviewModel(
+      calculationDetails: <String, dynamic>{
+        ..._asMap(json['calculation_snapshot']),
+        if (json.containsKey('components')) 'components': json['components'],
+        if (json.containsKey('statutory')) 'statutory': json['statutory'],
+      },
+      earnedGross: JsonModel.nullableDouble(json['earned_gross']),
+      totalDeductions: JsonModel.nullableDouble(json['total_deductions']),
+      netSalary: JsonModel.nullableDouble(json['net_salary']),
+      lopAmount: JsonModel.nullableDouble(json['lop_amount']),
       employeeId: JsonModel.nullableInt(json['employee_id']),
       employeeCode: json['employee_code']?.toString(),
       employeeName: json['employee_name']?.toString(),
@@ -194,6 +213,11 @@ class PayrollEmployeePreviewModel extends JsonModel {
 
   @override
   Map<String, dynamic> toJson() => <String, dynamic>{
+    'calculation_snapshot': calculationDetails,
+    if (earnedGross != null) 'earned_gross': earnedGross,
+    if (totalDeductions != null) 'total_deductions': totalDeductions,
+    if (netSalary != null) 'net_salary': netSalary,
+    if (lopAmount != null) 'lop_amount': lopAmount,
     if (employeeId != null) 'employee_id': employeeId,
     if (employeeCode != null) 'employee_code': employeeCode,
     if (employeeName != null) 'employee_name': employeeName,

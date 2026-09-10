@@ -1,5 +1,21 @@
 # Testing
 
+## Payroll breakdown interaction removal — 2026-09-10
+
+Focused employee-table analysis and three payroll model tests passed. Manual
+browser verification remains pending: confirm no Details column or dialog on
+row click in draft and processed views; payroll figures remain visible.
+
+## Payroll draft register — 2026-09-10
+
+Backend payroll suite passes: 13 tests, 64 assertions. The parity regression
+checks that preview writes no payroll lines/payslips and remains draft, then
+matches processed gross, deductions, net and LOP amount. Focused Flutter
+analysis passed. Three payroll model tests passed, covering preview round-trip,
+saved snapshots and missing legacy preview amounts. Authenticated visual
+verification and processing a live run
+remain manual; no live payroll records were changed.
+
 ## Rejected claim columns — 2026-09-10
 
 Shared table tests passed (5/5), including populated and blank read-only

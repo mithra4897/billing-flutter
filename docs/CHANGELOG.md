@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-10 — Remove payroll breakdown interaction
+
+Removed the employee register's Details/breakdown column and dialog, retaining
+the full-width shared register and all payroll figures. Exclusion reasons now
+appear with the employee code. No API or calculation changes.
+
+## 2026-09-10 — Payroll draft breakdown and status refresh
+
+Payroll processing refreshes detail and the HR register. Draft and processed
+employee rows reuse the full-width shared register with salary, LOP,
+deductions, net, attendance and a component breakdown. The API preview reuses
+the processing calculation without creating payroll records. See
+[payroll draft register](payroll-draft-register.md).
+
 ## 2026-09-10 — Restore rejected claim expense columns
 
 The shared table no longer mistakes read-only controller-backed fields for

@@ -91,6 +91,7 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
         widget.runId,
         PayrollRunModel.fromJson(const <String, dynamic>{}),
       ),
+      refreshSource: 'payroll_run_process',
     );
   }
 
@@ -125,7 +126,7 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
             source: refreshSource,
           );
         }
-        if (_run?.status == 'draft' || response.data == null) {
+        if (refreshSource == 'payroll_run_delete') {
           _backToRegister();
         } else {
           await _load();
@@ -171,18 +172,27 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
     final run = _run!;
     final lines = run.lines;
     final preview = run.payrollPreview;
-    final totalGross = lines.fold<double>(
-      0,
-      (sum, line) => sum + (line.grossSalary ?? 0),
-    );
-    final totalDeductions = lines.fold<double>(
-      0,
-      (sum, line) => sum + (line.totalDeductions ?? 0),
-    );
-    final totalNet = lines.fold<double>(
-      0,
-      (sum, line) => sum + (line.netSalary ?? 0),
-    );
+    final totalGross = lines.isEmpty && preview != null
+        ? preview.employees.fold<double>(
+            0,
+            (sum, employee) => sum + (employee.earnedGross ?? 0),
+          )
+        : lines.fold<double>(0, (sum, line) => sum + (line.grossSalary ?? 0));
+    final totalDeductions = lines.isEmpty && preview != null
+        ? preview.employees.fold<double>(
+            0,
+            (sum, employee) => sum + (employee.totalDeductions ?? 0),
+          )
+        : lines.fold<double>(
+            0,
+            (sum, line) => sum + (line.totalDeductions ?? 0),
+          );
+    final totalNet = lines.isEmpty && preview != null
+        ? preview.employees.fold<double>(
+            0,
+            (sum, employee) => sum + (employee.netSalary ?? 0),
+          )
+        : lines.fold<double>(0, (sum, line) => sum + (line.netSalary ?? 0));
     final status = run.status ?? '';
 
     return SizedBox(
@@ -214,7 +224,8 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
                 _PayrollInfoChip(label: 'Status', value: status.toUpperCase()),
                 _PayrollInfoChip(
                   label: 'Lines',
-                  value: '${run.linesCount ?? lines.length}',
+                  value:
+                      '${preview?.employees.length ?? run.linesCount ?? lines.length}',
                 ),
                 _PayrollInfoChip(
                   label: 'Gross',
@@ -237,10 +248,7 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
               child: SingleChildScrollView(
                 child: status == 'draft' && preview != null
                     ? PayrollRunEmployeeTable(employees: preview.employees)
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: _processedTable(lines),
-                      ),
+                    : PayrollRunEmployeeTable(lines: lines),
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -285,40 +293,6 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _processedTable(List<PayrollLineModel> lines) {
-    if (lines.isEmpty) return const Text('No payroll lines were generated.');
-    return DataTable(
-      columns: const [
-        DataColumn(label: Text('Employee')),
-        DataColumn(label: Text('Code')),
-        DataColumn(label: Text('Gross')),
-        DataColumn(label: Text('Deductions')),
-        DataColumn(label: Text('Net')),
-        DataColumn(label: Text('Paid days')),
-        DataColumn(label: Text('LOP')),
-      ],
-      rows: lines
-          .map((line) {
-            return DataRow(
-              cells: [
-                DataCell(Text(line.employeeName ?? '—')),
-                DataCell(Text(line.employeeCode ?? '—')),
-                DataCell(Text(formatAmount(line.grossSalary ?? 0))),
-                DataCell(Text(formatAmount(line.totalDeductions ?? 0))),
-                DataCell(Text(formatAmount(line.netSalary ?? 0))),
-                DataCell(
-                  Text(
-                    '${formatAmount(line.paidDays ?? 0)}/${line.workingDays ?? 0}',
-                  ),
-                ),
-                DataCell(Text(formatAmount(line.lopDays ?? 0))),
-              ],
-            );
-          })
-          .toList(growable: false),
     );
   }
 }
