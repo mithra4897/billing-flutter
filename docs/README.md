@@ -45,6 +45,10 @@ For a backend and frontend change that belongs to one feature, use the same deci
 - [Architecture decisions](DECISIONS.md) — append-only records of durable technical decisions.
 - [Testing](TESTING.md) — verification strategy, commands, and known untested environments.
 - [Changelog](CHANGELOG.md) — meaningful implementation and operational changes.
+- [Company timezone dropdown](company-timezone-dropdown.md) — select the
+  company IANA timezone through the shared form control.
+- [CRM Company-timezone scheduling](crm-company-timezone-scheduling.md) — CRM
+  forms use Company local time while the API stores UTC.
 
 - [ERP line discount by percentage or amount](erp-line-discount-input.md) —
   choose `%` or fixed `Amt` in editable sales and purchase line tables.

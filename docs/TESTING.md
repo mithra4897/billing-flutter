@@ -1857,3 +1857,13 @@ been packaged successfully.
 - Manual: open New and an existing row for each HR management register,
   Expense Claims, Attendance, Payroll Runs, and Parties; verify editor-only
   content, save behavior, return/refresh behavior, and invalid-company errors.
+
+## Company timezone dropdown — 2026-09-10
+
+- Automated: `dart format` completed; focused `flutter analyze` reported no
+  issues; `flutter test test/controller/settings/company_management_controller_test.dart`
+  passed 2 tests.
+- Manual: open a new Company and confirm `Asia/Kolkata` is selected; search and
+  select a different timezone; save and reopen it. Open a company with a saved
+  timezone outside the curated list and confirm it remains selected and can be
+  saved without replacement.

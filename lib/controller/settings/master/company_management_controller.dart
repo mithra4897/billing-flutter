@@ -13,6 +13,72 @@ class CompanyManagementController extends GetxController {
         AppDropdownItem(value: 'other', label: 'Other'),
       ];
 
+  static const Set<String> supportedTimezoneValues = <String>{
+    'UTC',
+    'Africa/Cairo',
+    'Africa/Johannesburg',
+    'Africa/Lagos',
+    'America/Anchorage',
+    'America/Argentina/Buenos_Aires',
+    'America/Bogota',
+    'America/Chicago',
+    'America/Denver',
+    'America/Halifax',
+    'America/Los_Angeles',
+    'America/Mexico_City',
+    'America/New_York',
+    'America/Phoenix',
+    'America/Sao_Paulo',
+    'America/Toronto',
+    'Asia/Almaty',
+    'Asia/Baghdad',
+    'Asia/Bangkok',
+    'Asia/Colombo',
+    'Asia/Dhaka',
+    'Asia/Dubai',
+    'Asia/Hong_Kong',
+    'Asia/Jakarta',
+    'Asia/Jerusalem',
+    'Asia/Karachi',
+    'Asia/Kathmandu',
+    'Asia/Kolkata',
+    'Asia/Kuala_Lumpur',
+    'Asia/Manila',
+    'Asia/Muscat',
+    'Asia/Riyadh',
+    'Asia/Seoul',
+    'Asia/Shanghai',
+    'Asia/Singapore',
+    'Asia/Taipei',
+    'Asia/Tokyo',
+    'Australia/Adelaide',
+    'Australia/Brisbane',
+    'Australia/Melbourne',
+    'Australia/Perth',
+    'Australia/Sydney',
+    'Europe/Amsterdam',
+    'Europe/Athens',
+    'Europe/Berlin',
+    'Europe/Brussels',
+    'Europe/Istanbul',
+    'Europe/Lisbon',
+    'Europe/London',
+    'Europe/Madrid',
+    'Europe/Moscow',
+    'Europe/Paris',
+    'Europe/Rome',
+    'Europe/Stockholm',
+    'Pacific/Auckland',
+    'Pacific/Fiji',
+    'Pacific/Honolulu',
+  };
+
+  static final List<AppDropdownItem<String>> timezoneItems =
+      supportedTimezoneValues
+          .map((value) => AppDropdownItem(value: value, label: value))
+          .toList(growable: false)
+        ..sort((left, right) => left.label.compareTo(right.label));
+
   CompanyManagementController({required this.initialTabIndex});
 
   final MasterService _masterService = MasterService();
@@ -64,6 +130,7 @@ class CompanyManagementController extends GetxController {
   VoidCallback? _newFinancialYearAction;
   bool isActive = true;
   String companyType = 'private_limited';
+  String timezone = 'Asia/Kolkata';
   int activeTabIndex = 0;
   double lopMultiplier = 1;
   String lopCalculationBasis = 'working_days';
@@ -190,6 +257,7 @@ class CompanyManagementController extends GetxController {
     stateController.text = company.stateName ?? company.stateCode ?? '';
     postalCodeController.text = company.postalCode ?? '';
     currencyController.text = company.baseCurrency ?? 'INR';
+    timezone = company.timezone ?? 'Asia/Kolkata';
     logoPathController.text = company.logoPath ?? '';
     remarksController.text = company.remarks ?? '';
     companyType = company.companyType ?? 'private_limited';
@@ -237,6 +305,7 @@ class CompanyManagementController extends GetxController {
     stateController.clear();
     postalCodeController.clear();
     currencyController.text = 'INR';
+    timezone = 'Asia/Kolkata';
     logoPathController.clear();
     remarksController.clear();
     companyType = 'private_limited';
@@ -260,6 +329,19 @@ class CompanyManagementController extends GetxController {
   }
 
   bool get isNewCompany => selectedCompany?.id == null;
+
+  List<AppDropdownItem<String>> get availableTimezoneItems {
+    if (supportedTimezoneValues.contains(timezone)) {
+      return timezoneItems;
+    }
+
+    // Preserve a previously saved valid IANA value even when it is outside the
+    // curated dropdown list, so opening and saving a company cannot erase it.
+    return <AppDropdownItem<String>>[
+      ...timezoneItems,
+      AppDropdownItem(value: timezone, label: timezone),
+    ];
+  }
 
   void _setCode(String value) {
     codeController.value = codeController.value.copyWith(
@@ -313,6 +395,7 @@ class CompanyManagementController extends GetxController {
       stateName: nullIfEmpty(stateController.text),
       postalCode: nullIfEmpty(postalCodeController.text),
       baseCurrency: nullIfEmpty(currencyController.text) ?? 'INR',
+      timezone: timezone,
       logoPath: nullIfEmpty(logoPathController.text),
       remarks: nullIfEmpty(remarksController.text),
       isActive: isActive,
@@ -369,6 +452,14 @@ class CompanyManagementController extends GetxController {
 
   void setCompanyType(String? value) {
     companyType = value ?? companyType;
+    update();
+  }
+
+  void setTimezone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return;
+    }
+    timezone = value;
     update();
   }
 

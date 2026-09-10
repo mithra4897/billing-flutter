@@ -733,17 +733,13 @@ class LeadActivityDraft {
     String? nextFollowup,
     String? draftKey,
   }) : activityDateTimeController = TextEditingController(
-         text: displayDateTime(activityDateTime) == ''
-             ? currentDateTimeInput()
-             : displayDateTime(activityDateTime),
+         text: displayDateTime(activityDateTime),
        ),
        notesController = TextEditingController(text: notes ?? ''),
        nextFollowupController = TextEditingController(
          text: displayDateTime(nextFollowup),
        ),
-       draftKey =
-           draftKey ??
-           '${DateTime.now().microsecondsSinceEpoch}-${_draftSequence++}';
+       draftKey = draftKey ?? 'draft-${_draftSequence++}';
 
   factory LeadActivityDraft.fromJson(Map<String, dynamic> json) {
     return LeadActivityDraft(
@@ -751,9 +747,17 @@ class LeadActivityDraft {
       leadId: intValue(json, 'lead_id'),
       activityType: stringValue(json, 'activity_type', 'call'),
       status: stringValue(json, 'status', 'pending'),
-      activityDateTime: stringValue(json, 'activity_datetime'),
+      activityDateTime: stringValue(
+        json,
+        'activity_datetime_local',
+        stringValue(json, 'activity_datetime'),
+      ),
       notes: stringValue(json, 'notes'),
-      nextFollowup: stringValue(json, 'next_followup'),
+      nextFollowup: stringValue(
+        json,
+        'next_followup_local',
+        stringValue(json, 'next_followup'),
+      ),
     );
   }
 

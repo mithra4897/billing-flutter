@@ -1344,3 +1344,22 @@
   module-specific shells still own controller wiring and custom filter content.
 - Related files: `lib/widgets/shared_register_list.dart`,
   `lib/widgets/shared_filter_bar.dart`, and target `*_registers.dart` files.
+
+## ADR-0055: Use the shared dropdown for Company timezone selection
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: Company timezone is a persisted IANA identifier but was entered as
+  unconstrained free text, causing avoidable typing errors.
+- Decision: Replace the text field with the existing searchable
+  `AppDropdownField<String>` and a bounded curated IANA list. Preserve a saved
+  value outside the list as an editor option.
+- Reason: This improves data entry without a new dependency, remote timezone
+  catalogue, or API contract. Preservation avoids destructive resaves of valid
+  legacy values.
+- Alternatives considered: A free-text field permits invalid values; a new
+  timezone dependency or remote endpoint expands scope without a current need.
+- Consequences: New selections are constrained to the curated list; backend
+  compatibility with existing valid IANA values remains unchanged.
+- Related files: `CompanyManagementController`, `CompanyPage`, and
+  `company-timezone-dropdown.md`.

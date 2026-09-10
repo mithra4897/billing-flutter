@@ -1040,9 +1040,7 @@ class OpportunityFollowupDraft {
     String? notes,
     String? nextFollowup,
   }) : followupDateController = TextEditingController(
-         text: displayDateTime(followupDate) == ''
-             ? currentDateTimeInput()
-             : displayDateTime(followupDate),
+         text: displayDateTime(followupDate),
        ),
        notesController = TextEditingController(text: notes ?? ''),
        nextFollowupController = TextEditingController(
@@ -1054,9 +1052,17 @@ class OpportunityFollowupDraft {
       id: intValue(json, 'id'),
       assignedTo: intValue(json, 'assigned_to'),
       status: stringValue(json, 'status', 'pending'),
-      followupDate: stringValue(json, 'followup_date'),
+      followupDate: stringValue(
+        json,
+        'followup_date_local',
+        stringValue(json, 'followup_date'),
+      ),
       notes: stringValue(json, 'notes'),
-      nextFollowup: stringValue(json, 'next_followup'),
+      nextFollowup: stringValue(
+        json,
+        'next_followup_local',
+        stringValue(json, 'next_followup'),
+      ),
     );
   }
 

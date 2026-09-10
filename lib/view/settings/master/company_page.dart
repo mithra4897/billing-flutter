@@ -308,6 +308,15 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
                   controller: controller.currencyController,
                   labelText: 'Base Currency',
                 ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: controller.timezone,
+                  labelText: 'Time Zone',
+                  hintText: 'Select company time zone',
+                  mappedItems: controller.availableTimezoneItems,
+                  onChanged: controller.setTimezone,
+                  validator: (value) =>
+                      value == null ? 'Time Zone is required' : null,
+                ),
               ],
             ),
             const SizedBox(height: 16),

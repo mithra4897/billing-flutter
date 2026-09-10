@@ -78,8 +78,59 @@ String normalizeDateTimeForApi(String? value) {
   return '$year-$month-$day $hour:$minute:$second';
 }
 
-/// Normalizes a user-entered business datetime without applying a timezone
-/// conversion. CRM follow-up DATETIME columns store this wall-clock value.
+/// Normalizes a CRM date/time as UTC without consulting browser/device time.
+/// Values without an offset are explicitly interpreted as UTC. Offset-bearing
+/// ISO values are converted to UTC before they are sent to the API.
+String normalizeUtcDateTimeForApi(String? value) {
+  final raw = (value ?? '').trim();
+  if (raw.isEmpty) {
+    return '';
+  }
+
+  final match = RegExp(
+    r'^(.*?)[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$',
+  ).firstMatch(raw);
+  if (match == null) {
+    return raw;
+  }
+
+  final date = normalizeDateForApi(match.group(1));
+  final hour = int.tryParse(match.group(2) ?? '');
+  final minute = int.tryParse(match.group(3) ?? '');
+  final second = int.tryParse(match.group(4) ?? '0');
+  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date) ||
+      hour == null ||
+      minute == null ||
+      second == null ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59) {
+    return raw;
+  }
+
+  final normalized =
+      '$date '
+      '${hour.toString().padLeft(2, '0')}:'
+      '${minute.toString().padLeft(2, '0')}:'
+      '${second.toString().padLeft(2, '0')}';
+  if (match.group(5) == null) {
+    return normalized;
+  }
+
+  final utc = DateTime.tryParse(raw)?.toUtc();
+  if (utc == null) {
+    return raw;
+  }
+  return '${utc.year.toString().padLeft(4, '0')}-'
+      '${utc.month.toString().padLeft(2, '0')}-'
+      '${utc.day.toString().padLeft(2, '0')} '
+      '${utc.hour.toString().padLeft(2, '0')}:'
+      '${utc.minute.toString().padLeft(2, '0')}:'
+      '${utc.second.toString().padLeft(2, '0')}';
+}
+
+/// Legacy, timezone-neutral formatter used by the shared API client for
+/// non-CRM datetime fields. CRM callers must use [normalizeUtcDateTimeForApi].
 String normalizeWallClockDateTimeForApi(String? value) {
   final raw = (value ?? '').trim();
   if (raw.isEmpty) {

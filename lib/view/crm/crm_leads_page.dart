@@ -1097,7 +1097,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       AppFormTextField(
                         controller: activity.activityDateTimeController,
                         labelText: 'Activity Date Time',
-                        hintText: 'Date and time',
+                        hintText: 'Leave blank to use server time',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateTimeInputFormatter()],
                         enabled: !controller.isSelectedLeadReadOnly,

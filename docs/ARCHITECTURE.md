@@ -1160,3 +1160,12 @@ callback and does not introduce a second data cache. HR management pages and
 Parties use shell-aware editor-only routes for new and existing records;
 Attendance and Payroll Run have dedicated form pages with mounted checks and
 typed API models.
+
+## Company timezone dropdown — 2026-09-10
+
+`CompanyManagementController` owns the selected timezone string and its bounded
+static IANA option list. `CompanyPage` composes the existing
+`AppDropdownField<String>`; it does not create a timezone widget, fetch remote
+data, or alter the existing typed `CompanyModel`/`MasterService` contract. A
+saved value outside the curated list is appended only for the active editor so
+the shared dropdown can resolve the selection safely.

@@ -36,6 +36,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   bool _filtersVisible = false;
   bool _isSuperAdmin = false;
   String? _error;
+  DateTime? _serverNowUtc;
   DateTime? _filterDateFrom;
   DateTime? _filterDateTo;
   Set<int> _employeeFilterIds = <int>{};
@@ -114,7 +115,11 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   DateTime _normalizeDate(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
+      DateTime.utc(value.year, value.month, value.day);
+
+  DateTime get _serverTodayUtc => _normalizeDate(
+    _serverNowUtc ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  );
 
   String get _dateRangeLabel {
     final from = _filterDateFrom == null
@@ -142,7 +147,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   // picker flow; the inline AppDateField now owns the picker interaction.
   // ignore: unused_element
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final now =
+        _serverNowUtc ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final selected = await showAppDatePickerDialog(
       context: context,
       initialDate: _filterDateFrom ?? now,
@@ -186,7 +192,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     if (parsed == null) {
       return null;
     }
-    return parsed.isUtc ? parsed.toLocal() : parsed;
+    return parsed.toUtc();
   }
 
   DateTime? _normalizedRowDate(Map<String, dynamic> row, String key) {
@@ -263,6 +269,9 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     try {
       final response = await _crmService.opportunityFollowupsBoard();
       final data = response.data ?? const <String, dynamic>{};
+      final serverNow = DateTime.tryParse(
+        stringValue(data, 'server_time'),
+      )?.toUtc();
       final followups =
           (data['followups'] as List<dynamic>? ?? const <dynamic>[])
               .whereType<Map>()
@@ -294,6 +303,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         _followups = followups;
         _nextFollowupRows = nextFollowups;
         _gaps = gaps;
+        _serverNowUtc = serverNow;
         _loading = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -321,7 +331,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       }
       _followupDateControllers.putIfAbsent(
         opportunityId,
-        () => TextEditingController(text: currentDateTimeInput()),
+        () => TextEditingController(),
       );
       _nextFollowupControllers.putIfAbsent(
         opportunityId,
@@ -589,7 +599,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   List<_FollowupListEntry> get _visiblePendingFollowups {
-    final today = _normalizeDate(DateTime.now());
+    final today = _serverTodayUtc;
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
         if (!_matchesDateRange(entry)) {
@@ -618,7 +628,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   List<_FollowupListEntry> get _todayFollowups {
-    final today = _normalizeDate(DateTime.now());
+    final today = _serverTodayUtc;
     return _sortedEntries(
       _effectiveFollowupEntries.where(
         (entry) =>
@@ -629,7 +639,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   List<_FollowupListEntry> get _upcomingFollowups {
-    final today = _normalizeDate(DateTime.now());
+    final today = _serverTodayUtc;
     return _sortedEntries(
       _effectiveFollowupEntries.where((entry) {
         if (!_matchesDateRange(entry)) {
@@ -841,7 +851,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         selectedPartyIds: _isSuperAdmin ? _employeeFilterIds : null,
         onPartyChanged: _isSuperAdmin
             ? (values) =>
-                setState(() => _employeeFilterIds = Set<int>.from(values))
+                  setState(() => _employeeFilterIds = Set<int>.from(values))
             : null,
         onClear: _clearDateFilter,
       ),
@@ -870,32 +880,32 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
             borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
             child: Row(
               children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  border: Border.all(color: appTheme.tableBorder),
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.buttonRadius,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: appTheme.tableBorder),
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  child: Icon(
+                    isCollapsed
+                        ? Icons.keyboard_arrow_right
+                        : Icons.keyboard_arrow_down,
+                    size: 18,
                   ),
                 ),
-                child: Icon(
-                  isCollapsed
-                      ? Icons.keyboard_arrow_right
-                      : Icons.keyboard_arrow_down,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: AppUiConstants.spacingXs),
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                const SizedBox(width: AppUiConstants.spacingXs),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
             ),
           ),
           if (!isCollapsed) ...[
@@ -953,23 +963,24 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       notes: notes,
     );
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-    final parsedDate = dateText == null
+    // Use the Company-timezone display values for the card. The raw UTC values
+    // remain the source for the board's due/overdue comparisons and grouping.
+    final companyLocalDate = dateText == null
         ? null
-        : DateTime.tryParse(nullableStringValue(row, 'next_followup') ?? '') ??
+        : DateTime.tryParse(
+                nullableStringValue(row, 'next_followup_local') ?? '',
+              ) ??
               DateTime.tryParse(
-                nullableStringValue(row, 'followup_date') ?? '',
+                nullableStringValue(row, 'followup_date_local') ?? '',
               );
-    final localDate = parsedDate?.isUtc == true
-        ? parsedDate!.toLocal()
-        : parsedDate;
-    final timeText = localDate == null
+    final timeText = companyLocalDate == null
         ? (dateText ?? 'No date')
         : MaterialLocalizations.of(
             context,
-          ).formatTimeOfDay(TimeOfDay.fromDateTime(localDate));
-    final dateLabel = localDate == null
+          ).formatTimeOfDay(TimeOfDay.fromDateTime(companyLocalDate));
+    final dateLabel = companyLocalDate == null
         ? null
-        : formatCalendarDate(_normalizeDate(localDate));
+        : formatCalendarDate(_normalizeDate(companyLocalDate));
     final assignedLabel = _assignedLabel(row).trim();
 
     Widget detailCard = Material(

@@ -2522,3 +2522,12 @@
 - Separated aging Bucket from Outstanding using the same status-pill pattern.
 - Added visual spacing between aging days and the bucket pill, and render zero
   aging days as `-` for Current invoices.
+
+## 2026-09-10 — Company timezone dropdown
+
+- Replaced the Company Time Zone free-text field with the existing searchable
+  dropdown and a curated IANA timezone list.
+- Defaults to `Asia/Kolkata` and preserves a saved timezone outside the list.
+- No API, schema, permission, or network behavior changed.
+- Focused Flutter analysis reported no issues and the new controller test passed
+  2 tests.

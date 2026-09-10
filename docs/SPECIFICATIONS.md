@@ -3057,6 +3057,16 @@ shared filter bar instead of the report-specific table renderer.
   means Current and is displayed as `-`; this presentation rule does not alter
   financial amounts or totals.
 - Focused analysis and financial report tests pass.
+
+## Company timezone dropdown — 2026-09-10
+
+The Company primary form must expose the persisted `timezone` field through the
+existing searchable shared dropdown. It defaults to `Asia/Kolkata`, offers a
+curated set of common IANA timezone identifiers, requires a selection, and
+preserves a previously stored value outside that set. The field does not change
+the UTC storage policy; it identifies the company timezone used for display and
+date-only business rules. No API, schema, permission, or additional request is
+introduced. Focused formatting, analysis, and existing tests must pass.
 # Shared register list and filter naming — 2026-09-08
 
 ## Objective
