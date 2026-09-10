@@ -1,5 +1,36 @@
 # Testing
 
+## Settings workspace controller ownership — 2026-09-10
+
+- `flutter test --no-pub test/widgets/settings_workspace_lifecycle_test.dart`
+  passed (3/3): callback ownership, replacing a disposed borrowed controller,
+  and removing a workspace with a queued editor request.
+- Focused `flutter analyze` passed for SettingsWorkspace, the cancellation
+  dialog, Module Preferences, and the focused test.
+- Full `flutter test --no-pub` passed (22/22). Full `flutter analyze` reported
+  six existing warnings outside this change (unused import/element, three
+  unawaited-return lints, and one deprecated Flutter member); no lifecycle
+  change file is implicated.
+- Manual authenticated verification remains: repeatedly open and close a
+  compact Settings editor, replace its owning page/controller through normal
+  navigation, and navigate away during a detail operation.
+- `flutter test --no-pub test/hr/global_salary_component_controller_lifecycle_test.dart`
+  passed: deleting one Global Salary Component route owner leaves the other
+  route's controller registered.
+
+## App drawer single expanded module — 2026-09-10
+
+- `flutter test --no-pub test/components/adaptive_shell_drawer_test.dart`
+  passed. The widget test starts on an Inventory route, opens and closes the
+  mobile drawer, reopens it, expands Sales, and verifies the Inventory submenu
+  closes while the Sales submenu opens.
+- Focused `flutter analyze --no-pub` passed for the shell and regression test;
+  the full `flutter test --no-pub` suite passed 18/18.
+- Full-project analysis completed with six unrelated existing warnings and
+  deprecation notices; the changed shell and test remain clean.
+- Manual authenticated verification remains for the same interaction on a
+  physical mobile device and in the desktop permanent drawer.
+
 ## Item lookup dropdown uniqueness — 2026-09-09
 
 - Focused analysis verifies the Item controller compiles after lookup

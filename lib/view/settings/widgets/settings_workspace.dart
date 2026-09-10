@@ -8,8 +8,10 @@ class SettingsWorkspaceController extends ChangeNotifier {
     _openEditorRoute = openEditorRoute;
   }
 
-  void unbindEditorRoute() {
-    _openEditorRoute = null;
+  void unbindEditorRoute(VoidCallback openEditorRoute) {
+    if (identical(_openEditorRoute, openEditorRoute)) {
+      _openEditorRoute = null;
+    }
   }
 
   void openEditor() {
@@ -105,9 +107,10 @@ class _SettingsWorkspaceRouteController extends GetxController {
 }
 
 class _SettingsWorkspaceState extends State<SettingsWorkspace> {
-  late final SettingsWorkspaceController _controller;
-  late final bool _ownsController;
+  late SettingsWorkspaceController _controller;
+  late bool _ownsController;
   late final String _routeControllerTag;
+  late final VoidCallback _editorRouteOpener;
   bool _editorRoutePushScheduled = false;
   LocalHistoryEntry? _editorHistoryEntry;
 
@@ -119,17 +122,36 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
     super.initState();
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? SettingsWorkspaceController();
+    _editorRouteOpener = _scheduleEditorRoutePush;
     _routeControllerTag = persistentControllerTag(
       'SettingsWorkspaceRouteController',
       scope: <String, Object?>{'identity': identityHashCode(widget)},
     );
     Get.put(_SettingsWorkspaceRouteController(), tag: _routeControllerTag);
-    _controller.bindEditorRoute(_scheduleEditorRoutePush);
+    _controller.bindEditorRoute(_editorRouteOpener);
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.controller, widget.controller)) {
+      return;
+    }
+
+    _controller.unbindEditorRoute(_editorRouteOpener);
+    if (_ownsController) {
+      _controller.dispose();
+    }
+
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? SettingsWorkspaceController();
+    _controller.bindEditorRoute(_editorRouteOpener);
   }
 
   @override
   void dispose() {
-    _controller.unbindEditorRoute();
+    _editorRoutePushScheduled = false;
+    _controller.unbindEditorRoute(_editorRouteOpener);
     final editorHistoryEntry = _editorHistoryEntry;
     _editorHistoryEntry = null;
     editorHistoryEntry?.remove();
@@ -265,7 +287,9 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   }
 
   void _scheduleEditorRoutePush() {
-    if (_routeController.editorRouteOpen || _editorRoutePushScheduled) {
+    if (!mounted ||
+        _routeController.editorRouteOpen ||
+        _editorRoutePushScheduled) {
       return;
     }
 
@@ -317,7 +341,6 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) {
         _editorRoutePushScheduled = false;
-        _routeController.setEditorRouteOpen(false);
         return;
       }
 
@@ -335,11 +358,8 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         // inline editor, so keyed form subtrees cannot overlap for a frame.
         await WidgetsBinding.instance.endOfFrame;
         if (!mounted) {
-          _routeController.setEditorRouteOpen(false);
           return;
         }
-        _routeController.setEditorRouteOpen(false);
-      } else {
         _routeController.setEditorRouteOpen(false);
       }
       _editorRoutePushScheduled = false;

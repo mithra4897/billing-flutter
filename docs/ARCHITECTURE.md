@@ -1,5 +1,29 @@
 # Architecture
 
+## Settings workspace controller ownership — 2026-09-10
+
+`SettingsWorkspace` owns only the controller it creates internally. For a
+supplied controller, its state tracks the current widget property in
+`didUpdateWidget`, removes its own callback binding from the old instance, and
+binds the replacement. Callback removal is identity-based, so an outgoing
+workspace cannot detach a later workspace's binding. Deferred editor routing
+checks the workspace lifetime before reading its short-lived GetX route state.
+The operation stores one callback and has O(1) time and space cost.
+
+Global Salary Component pages scope their GetX tag to the concrete page widget.
+List and editor routes fetch their own bounded page state and dispose only their
+own controller; route replacement therefore has O(1) controller ownership and
+does not share form controllers across mounted routes.
+
+## App drawer expansion state — 2026-09-10
+
+`AdaptiveShell` continues to own drawer expansion in its existing keyed
+override map. Route synchronization expands the destination's ancestor groups.
+A manual group expansion explicitly marks unrelated ancestors of the current
+route as collapsed, then expands only the selected group and its ancestors.
+This prevents the active-route fallback from rendering a second open module
+while preserving nested groups with bounded O(d) work, where `d` is menu depth.
+
 ## Item form lookup normalization — 2026-09-09
 
 `ItemManagementController` deduplicates active Category, Brand, UOM, and Tax

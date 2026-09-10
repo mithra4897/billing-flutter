@@ -1,5 +1,42 @@
 # Architecture decisions
 
+## ADR-0057: Scope Global Salary Component controllers to their page instance
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: The list and editor routes used the same persistent GetX tag. Route
+  replacement could delete the outgoing page's controller while the incoming
+  form still used its TextEditingControllers.
+- Decision: Include the concrete page instance in the controller tag and keep
+  the existing page-state disposal as the sole owner cleanup.
+- Reason: Each route has independent loading and selection state, so sharing a
+  short-lived form controller has no business requirement.
+- Consequences: Route transitions no longer share draft form values; persisted
+  records are reloaded from the existing API.
+- Related files: `lib/view/hr/global_salary_components_page.dart` and its
+  focused lifecycle test.
+
+## ADR-0056: Keep SettingsWorkspace controller ownership explicit
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: Parent-owned SettingsWorkspaceController instances can be replaced
+  while the reusable workspace state remains mounted. Caching the original
+  instance exposed a disposed notifier during layout rebuilds.
+- Decision: SettingsWorkspace owns and disposes only internally created
+  controllers. Borrowed controllers remain the parent's responsibility; the
+  workspace swaps borrowed instances in `didUpdateWidget` and uses
+  identity-based callback unbinding.
+- Reason: This preserves one clear owner and prevents both stale notifier use
+  and one workspace clearing another workspace's callback.
+- Alternatives considered: Never dispose borrowed controllers or recreate the
+  workspace controller during every build. The former leaks and the latter
+  loses navigation state.
+- Consequences: Parent owners must continue disposing their controllers when
+  their lifetime ends. Rebuilds with replacement controllers are supported.
+- Related files: `lib/view/settings/widgets/settings_workspace.dart` and its
+  focused widget test.
+
 ## ADR-0055: Use Active as the only document-terms application control
 
 - Date: 2026-09-09

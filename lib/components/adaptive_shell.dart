@@ -1233,13 +1233,27 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   void _expandGroup(String key, {required String currentPath}) {
-    final keysToKeep = <String>{
-      ...AppNavigation.ancestorKeysForPath(currentPath),
+    final keysToExpand = <String>{
       ...AppNavigation.ancestorKeysForItemKey(key),
       key,
     };
+    final currentRouteAncestors = AppNavigation.ancestorKeysForPath(
+      currentPath,
+    );
 
-    _replaceExpandedOverrides(keysToKeep);
+    _groupExpansionOverrides
+      ..clear()
+      ..addEntries(
+        currentRouteAncestors.map(
+          (ancestorKey) => MapEntry<String, bool>(
+            ancestorKey,
+            keysToExpand.contains(ancestorKey),
+          ),
+        ),
+      )
+      ..addEntries(
+        keysToExpand.map((groupKey) => MapEntry<String, bool>(groupKey, true)),
+      );
   }
 
   void _replaceExpandedOverrides(Iterable<String> expandedKeys) {

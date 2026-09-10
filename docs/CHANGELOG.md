@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-09-10 — Fix Settings workspace controller lifetime
+
+- Request: Prevent SettingsWorkspace from reading a parent-owned controller
+  after that controller is disposed during a replacement rebuild.
+- Specification: Borrowed controller ownership remains with the parent; the
+  reusable workspace only binds and unbinds its own editor callback.
+- Implementation: Swapped supplied controllers in `didUpdateWidget`, made
+  callback unbinding identity-safe, and stopped deferred editor navigation from
+  reading route state after removal. Also disposed the cancellation dialog's
+  local input controller and removed Module Preferences controllers created in
+  `build` by using the existing field's `initialValue` API. Global Salary
+  Component list/editor pages now use different route-instance controller tags.
+- Files changed: Shared workspace, cancellation dialog, Module Preferences,
+  focused lifecycle test, and frontend documentation.
+- Database/API impact: None.
+- Security impact: None.
+- Tests added or updated: Added three focused workspace lifecycle regressions.
+- Tests executed and results: Focused lifecycle tests passed (4/4), full test suite
+  passed (22/22), formatting and focused static analysis passed. Full analysis
+  retains six unrelated existing warnings.
+- Documentation updated: README, specification, architecture, decision,
+  testing, and changelog.
+- Known limitations: Authenticated device testing remains manual; full-project
+  analysis has six unrelated existing warnings.
+- Follow-up work: None.
+
+## 2026-09-10 — Keep one app drawer module expanded
+
+- Request: Prevent the previously opened Inventory submenu and a newly opened
+  module submenu from appearing expanded together after reopening the drawer.
+- Specification: The drawer keeps at most one manually selected module branch
+  expanded while route navigation still opens the destination branch.
+- Implementation: Reused `AdaptiveShell`'s existing expansion override map and
+  explicitly collapsed unrelated current-route ancestors during manual group
+  expansion.
+- Files changed: Adaptive shell, focused widget test, and frontend docs.
+- Database/API impact: None.
+- Security impact: None; permission filtering is unchanged.
+- Tests added or updated: Added the mobile drawer close/reopen regression.
+- Tests executed and results: Formatting and focused analysis passed; the
+  focused regression and full 18-test Flutter suite passed. Full-project
+  analysis reported six unrelated existing warnings/deprecation notices.
+- Documentation updated: README, specification, architecture, testing, and
+  changelog.
+- Known limitations: Physical-device and desktop interaction remain manually
+  unverified.
+- Follow-up work: None.
+
 ## 2026-09-09 — Fix duplicate Item form dropdown values
 
 - Item lookup lists now remove duplicate and null IDs before Category, Brand,

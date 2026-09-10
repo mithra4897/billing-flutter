@@ -38,6 +38,13 @@ const List<AppDropdownItem<String>> _contributionRoleItems =
       AppDropdownItem(value: 'employer', label: 'Employer (CTC cost)'),
     ];
 
+String globalSalaryComponentControllerTag(Object pageIdentity) {
+  return persistentControllerTag(
+    'GlobalSalaryComponentController',
+    scope: <String, Object?>{'identity': identityHashCode(pageIdentity)},
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 class GlobalSalaryComponentsPage extends StatefulWidget {
@@ -65,7 +72,7 @@ class _GlobalSalaryComponentsPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('GlobalSalaryComponentController');
+    _controllerTag = globalSalaryComponentControllerTag(this);
     if (Get.isRegistered<GlobalSalaryComponentController>(
       tag: _controllerTag,
     )) {

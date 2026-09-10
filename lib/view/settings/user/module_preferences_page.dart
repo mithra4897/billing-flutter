@@ -94,30 +94,22 @@ class _ModulePreferencesPageState extends State<ModulePreferencesPage> {
               children: [
                 AppFormTextField(
                   labelText: 'Module',
-                  controller: TextEditingController(
-                    text: controller.selectedModule?.moduleName ?? '',
-                  ),
+                  initialValue: controller.selectedModule?.moduleName ?? '',
                   readOnly: true,
                 ),
                 AppFormTextField(
                   labelText: 'Code',
-                  controller: TextEditingController(
-                    text: controller.selectedModule?.moduleCode ?? '',
-                  ),
+                  initialValue: controller.selectedModule?.moduleCode ?? '',
                   readOnly: true,
                 ),
                 AppFormTextField(
                   labelText: 'Group',
-                  controller: TextEditingController(
-                    text: controller.selectedModule?.moduleGroup ?? '',
-                  ),
+                  initialValue: controller.selectedModule?.moduleGroup ?? '',
                   readOnly: true,
                 ),
                 AppFormTextField(
                   labelText: 'Route',
-                  controller: TextEditingController(
-                    text: controller.selectedModule?.routePath ?? '',
-                  ),
+                  initialValue: controller.selectedModule?.routePath ?? '',
                   readOnly: true,
                 ),
                 AppFormTextField(

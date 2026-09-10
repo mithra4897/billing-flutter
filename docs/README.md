@@ -1,5 +1,14 @@
 # Frontend Change Documentation
 
+- Settings workspace controller ownership — borrowed controllers are swapped
+  safely on parent rebuilds and remain owned by their parent lifecycle; see the
+  2026-09-10 lifecycle entries in the specification, architecture, decision,
+  testing, and changelog records.
+
+- App drawer single expanded module — opening another module collapses the
+  current route's previously expanded submenu, including after the mobile
+  drawer is closed and reopened.
+
 - Financial report quick links — direct Accounting sidebar access to Daybook
   and General Ledger through the existing Financial Reports route.
 

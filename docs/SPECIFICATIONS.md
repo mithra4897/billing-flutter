@@ -1,5 +1,45 @@
 # Specifications
 
+## Settings workspace controller ownership — 2026-09-10
+
+`SettingsWorkspace` may receive a controller owned by a parent page, provider,
+or GetX controller. It must use the current supplied instance across parent
+rebuilds, must not dispose that borrowed instance, and must detach only its own
+editor-route callback before it is removed. A workspace-created controller is
+owned and disposed by that workspace exactly once.
+
+Acceptance criteria:
+
+- Replacing a supplied controller never leaves a disposed controller attached
+  to the workspace's inherited notifier.
+- Disposing an old workspace cannot clear a newer workspace binding for the
+  same borrowed controller.
+- A scheduled compact-editor navigation does not update deleted route state
+  after the workspace is removed.
+- The shared UI, desktop/compact layouts, and navigation behavior are unchanged.
+
+Global Salary Component list and editor routes must not share a GetX controller
+tag. Each mounted route owns its controller and form input controllers until its
+own widget tree is removed, so disposing the outgoing list cannot invalidate a
+still-mounted editor form.
+
+## App drawer single expanded module — 2026-09-10
+
+The app drawer must show at most one expanded module branch at a time. When
+the current route belongs to an expanded module, closing and reopening the
+mobile drawer must not keep that module open after the user expands a different
+module. Nested groups within the selected module remain supported, and route
+navigation continues to expand the destination module automatically.
+
+Acceptance criteria:
+
+- Opening another top-level module collapses the previously expanded module,
+  including the module inferred from the current route.
+- Closing and reopening the mobile drawer does not allow two module submenus to
+  remain open after a new module is selected.
+- Selecting a destination route still expands its containing module.
+- No API, persistence, authorization, or route changes are introduced.
+
 ## Item lookup dropdown uniqueness — 2026-09-09
 
 The Item form must show at most one selectable Category, Brand, UOM, or Tax
