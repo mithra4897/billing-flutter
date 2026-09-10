@@ -69,6 +69,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   late final String _controllerTag;
 
   bool _employeeEditorRouteBumpScheduled = false;
+  bool _filtersVisible = false;
 
   static const List<AppDropdownItem<String>> _componentCalculationItems =
       <AppDropdownItem<String>>[
@@ -433,6 +434,22 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               'company_id': companyInfo.companyId,
             if (_searchController.text.trim().isNotEmpty)
               'search': _searchController.text.trim(),
+            if (_employeeController.listDepartmentIds.isNotEmpty)
+              'department_ids': _employeeController.listDepartmentIds.join(','),
+            if (_employeeController.listDesignationIds.isNotEmpty)
+              'designation_ids': _employeeController.listDesignationIds.join(
+                ',',
+              ),
+            if (_employeeController.listCostCenterIds.isNotEmpty)
+              'cost_center_ids': _employeeController.listCostCenterIds.join(
+                ',',
+              ),
+            if (_employeeController.listEmploymentTypes.isNotEmpty)
+              'employment_types': _employeeController.listEmploymentTypes.join(
+                ',',
+              ),
+            if (_employeeController.listStatuses.isNotEmpty)
+              'statuses': _employeeController.listStatuses.join(','),
           },
         ),
         _hrService.departments(
@@ -550,6 +567,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           if (_contextCompanyId != null) 'company_id': _contextCompanyId,
           if (_searchController.text.trim().isNotEmpty)
             'search': _searchController.text.trim(),
+          if (_employeeController.listDepartmentIds.isNotEmpty)
+            'department_ids': _employeeController.listDepartmentIds.join(','),
+          if (_employeeController.listDesignationIds.isNotEmpty)
+            'designation_ids': _employeeController.listDesignationIds.join(','),
+          if (_employeeController.listCostCenterIds.isNotEmpty)
+            'cost_center_ids': _employeeController.listCostCenterIds.join(','),
+          if (_employeeController.listEmploymentTypes.isNotEmpty)
+            'employment_types': _employeeController.listEmploymentTypes.join(
+              ',',
+            ),
+          if (_employeeController.listStatuses.isNotEmpty)
+            'statuses': _employeeController.listStatuses.join(','),
         },
       );
       if (!mounted) return;
@@ -1890,6 +1919,17 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       tag: _controllerTag,
       builder: (_) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: _searchController,
+              hintText: 'Search employees',
+            ),
+          AdaptiveShellActionButton(
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: _filtersVisible,
+          ),
           AdaptiveShellActionButton(
             onPressed: () => openFormScreenRoute(context, '/hr/employees/new'),
             icon: Icons.person_add_alt_1_outlined,
@@ -1924,6 +1964,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       errorMessage: _pageError,
       onRetry: _loadData,
       actions: actions,
+      filters: _filtersVisible ? _buildEmployeeRegisterFilters() : null,
       rows: _filteredEmployees,
       remoteTotalItems: _employeeController.paginationMeta?.total,
       remoteCurrentPage: _employeeController.paginationMeta?.currentPage,
@@ -1962,6 +2003,98 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         if (id != null) {
           openFormScreenRoute(context, '/hr/employees/$id');
         }
+      },
+    );
+  }
+
+  Widget _buildEmployeeRegisterFilters() {
+    final controller = _employeeController;
+    final registerCostCenters = _costCenters
+        .where(
+          (costCenter) =>
+              costCenter.id != null &&
+              (_contextCompanyId == null ||
+                  costCenter.companyId == null ||
+                  costCenter.companyId == _contextCompanyId),
+        )
+        .toList(growable: false);
+    return SharedFilterBar(
+      showDateFilters: false,
+      typeLabel: 'Employment Type',
+      typeItems: _employmentTypeItems,
+      selectedTypes: controller.listEmploymentTypes,
+      onTypesChanged: (values) {
+        controller.setListEmploymentTypes(values);
+        unawaited(_loadData(page: 1));
+      },
+      statusItems: _statusItems,
+      selectedStatuses: controller.listStatuses,
+      onStatusesChanged: (values) {
+        controller.setListStatuses(values);
+        unawaited(_loadData(page: 1));
+      },
+      additionalFields: [
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Department',
+          mappedItems: _departments
+              .where(
+                (department) => department.id != null && department.isActive,
+              )
+              .map(
+                (department) => AppDropdownItem<int>(
+                  value: department.id!,
+                  label: department.toString(),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.listDepartmentIds,
+          multiHintText: 'Select departments',
+          onMultiChanged: (values) {
+            controller.setListDepartmentIds(values);
+            unawaited(_loadData(page: 1));
+          },
+        ),
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Designation',
+          mappedItems: _designations
+              .where(
+                (designation) => designation.id != null && designation.isActive,
+              )
+              .map(
+                (designation) => AppDropdownItem<int>(
+                  value: designation.id!,
+                  label: designation.toString(),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.listDesignationIds,
+          multiHintText: 'Select designations',
+          onMultiChanged: (values) {
+            controller.setListDesignationIds(values);
+            unawaited(_loadData(page: 1));
+          },
+        ),
+        AppDropdownField<int>.fromMapped(
+          labelText: 'Cost Center',
+          mappedItems: registerCostCenters
+              .map(
+                (costCenter) => AppDropdownItem<int>(
+                  value: costCenter.id!,
+                  label: costCenter.toString(),
+                ),
+              )
+              .toList(growable: false),
+          multiInitialValues: controller.listCostCenterIds,
+          multiHintText: 'Select cost centers',
+          onMultiChanged: (values) {
+            controller.setListCostCenterIds(values);
+            unawaited(_loadData(page: 1));
+          },
+        ),
+      ],
+      onClear: () {
+        controller.clearListFilters();
+        unawaited(_loadData(page: 1));
       },
     );
   }

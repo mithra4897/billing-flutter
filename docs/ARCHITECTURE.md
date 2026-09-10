@@ -1,5 +1,16 @@
 # Architecture
 
+## Employee shared register filters — 2026-09-10
+
+The Employees register composes the normal `SharedFilterBar` through the shared
+register filter slot, so the existing outer `AppRegisterFiltersSection` remains
+the only filter card. Register filter state belongs to
+`EmployeeManagementController` and is distinct from editor fields. Search is
+in the shell app bar; Department, Designation, Cost Center, Employment Type,
+and Status are multi-select filters. The page sends those values to the
+paginated employee endpoint before its 50-row page is returned. Clear cancels
+the pending search debounce, resets all five filter sets, and reloads page one.
+
 ## Settings workspace controller ownership — 2026-09-10
 
 `SettingsWorkspace` owns only the controller it creates internally. For a

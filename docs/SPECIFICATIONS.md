@@ -1,5 +1,15 @@
 # Specifications
 
+## Employee shared register filters — 2026-09-10
+
+The Employees register must put its existing Search field in the shell app bar
+and reuse the shared `SharedFilterBar`/`AppRegisterFilters` surface without a
+nested filter card. The filter panel must contain at least Department,
+Designation, Cost Center, Employment Type, and Status. Values apply to the
+paginated employee API request and remain independent from the currently edited
+employee's fields. Clear resets every register filter and reloads page one. The
+editor-only route does not render register filters.
+
 ## Settings workspace controller ownership — 2026-09-10
 
 `SettingsWorkspace` may receive a controller owned by a parent page, provider,

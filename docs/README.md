@@ -1,5 +1,9 @@
 # Frontend Change Documentation
 
+- Employee shared register filters — the Employees list uses one existing
+  shared filter card, app-bar search, and server-side Department, Designation,
+  Cost Center, Employment Type, and Status filtering.
+
 - Settings workspace controller ownership — borrowed controllers are swapped
   safely on parent rebuilds and remain owned by their parent lifecycle; see the
   2026-09-10 lifecycle entries in the specification, architecture, decision,

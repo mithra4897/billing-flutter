@@ -1,5 +1,25 @@
 # Architecture decisions
 
+## ADR-0058: Filter employee registers on the paginated query
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: The Employees register needed five composable filters while keeping
+  its shared app-bar search, shared filter card, and remote pagination.
+- Decision: Reuse the normal `SharedFilterBar` and send comma-separated
+  multi-select Department, Designation, Cost Center, Employment Type, and
+  Status values to the existing employee list query. The API applies each
+  supplied dimension with `whereIn` before pagination.
+- Reason: Local filtering cannot produce correct totals or pages when the API
+  returns only one page of employees, and a second filter card would duplicate
+  the shared register shell.
+- Consequences: Existing scalar employee filters remain backward compatible;
+  no schema or permission change is required. The employee register controller
+  owns only five small sets and one existing search debounce.
+- Related files: `lib/view/hr/employee_page.dart`,
+  `lib/controller/hr/employee_management_controller.dart`, and
+  `billing-api/app/Services/ListQuery/Hr/EmployeeListQueryService.php`.
+
 ## ADR-0057: Scope Global Salary Component controllers to their page instance
 
 - Date: 2026-09-10

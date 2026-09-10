@@ -107,6 +107,11 @@ class EmployeeManagementController extends GetxController {
       <EmployeeSalaryStructureDraft>[];
   EmployeeModel? selectedEmployee;
   int? contextCompanyId;
+  Set<int> listDepartmentIds = <int>{};
+  Set<int> listDesignationIds = <int>{};
+  Set<int> listCostCenterIds = <int>{};
+  Set<String> listEmploymentTypes = <String>{};
+  Set<String> listStatuses = <String>{};
   int? companyId;
   int? departmentId;
   int? designationId;
@@ -116,6 +121,44 @@ class EmployeeManagementController extends GetxController {
   String salaryMode = 'monthly';
   PaginationMeta? paginationMeta;
   Timer? listSearchDebounce;
+
+  void setListDepartmentIds(Set<int> values) {
+    listDepartmentIds = Set<int>.from(values);
+    update();
+  }
+
+  void setListDesignationIds(Set<int> values) {
+    listDesignationIds = Set<int>.from(values);
+    update();
+  }
+
+  void setListCostCenterIds(Set<int> values) {
+    listCostCenterIds = Set<int>.from(values);
+    update();
+  }
+
+  void setListEmploymentTypes(Set<String> values) {
+    listEmploymentTypes = Set<String>.from(values);
+    update();
+  }
+
+  void setListStatuses(Set<String> values) {
+    listStatuses = Set<String>.from(values);
+    update();
+  }
+
+  void clearListFilters() {
+    listSearchDebounce?.cancel();
+    listDepartmentIds = <int>{};
+    listDesignationIds = <int>{};
+    listCostCenterIds = <int>{};
+    listEmploymentTypes = <String>{};
+    listStatuses = <String>{};
+    searchController.clear();
+    listSearchDebounce?.cancel();
+    update();
+  }
+
   int draftKeySeed = -1;
   String addressType = 'present';
   int? selectedAddressKey;

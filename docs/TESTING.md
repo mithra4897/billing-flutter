@@ -1,5 +1,15 @@
 # Testing
 
+## Employee shared register filters — 2026-09-10
+
+- `flutter test --no-pub test/controller/hr/employee_management_controller_filter_test.dart`
+  passed, verifying Clear resets all five filter dimensions, Search, and pending
+  debounce work.
+- Focused analysis passed for the Employee page, controller, and focused test.
+- Full `flutter test --no-pub` passed (23/23).
+- Manual authenticated verification remains for the five API filters across
+  pagination and the responsive shared filter layout.
+
 ## Settings workspace controller ownership — 2026-09-10
 
 - `flutter test --no-pub test/widgets/settings_workspace_lifecycle_test.dart`

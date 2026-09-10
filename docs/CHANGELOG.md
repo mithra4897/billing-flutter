@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-10 — Add shared Employees register filters
+
+- Reused the normal shared filter bar in the Employees register without adding
+  a nested filter card, and moved Search to the app bar.
+- Department, Designation, Cost Center, Employment Type, and Status now reload
+  the existing server-paginated employee query; Clear cancels queued search
+  work and returns to page one.
+- Added additive multi-select employee query parameters; no database,
+  authorization, or employee-editor field changes.
+
 ## 2026-09-10 — Fix Settings workspace controller lifetime
 
 - Request: Prevent SettingsWorkspace from reading a parent-owned controller
