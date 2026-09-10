@@ -38,7 +38,7 @@ class SalesReceiptAllocationModel extends JsonModel {
       isAutoAllocated: JsonModel.boolOf(json['is_auto_allocated']),
       sourceReceiptId: JsonModel.nullableInt(json['source_receipt_id']),
       allocatedBy: JsonModel.nullableInt(json['allocated_by']),
-      allocatedAt: json['allocated_at']?.toString(),
+      allocatedAt: json['allocated_at_local']?.toString() ?? json['allocated_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
