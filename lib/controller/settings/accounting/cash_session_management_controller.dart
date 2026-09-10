@@ -2,9 +2,10 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class CashSessionManagementController extends GetxController {
-  CashSessionManagementController({this.initialId});
+  CashSessionManagementController({this.initialId, this.startNew = false});
 
   final int? initialId;
+  final bool startNew;
 
   static const String _refreshSource = 'CashSessionManagementController';
 
@@ -51,6 +52,7 @@ class CashSessionManagementController extends GetxController {
   int? cashAccountId;
   int? currentUserId;
   String? currentUserLabel;
+  bool _isNewSessionRoute = false;
 
   @override
   void onInit() {
@@ -68,9 +70,10 @@ class CashSessionManagementController extends GetxController {
     );
     searchController.addListener(_applySearch);
     final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
-    final isNew = Get.parameters['new'] == '1';
-    if (isNew) {
-      unawaited(loadPage().then((_) => resetOpenForm()));
+    _isNewSessionRoute = startNew;
+    if (_isNewSessionRoute) {
+      resetOpenForm(notify: false);
+      unawaited(loadPage(keepNewSessionForm: true));
     } else {
       unawaited(loadPage(selectId: targetId));
     }
@@ -95,7 +98,11 @@ class CashSessionManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadPage({int? selectId, bool resetPage = false}) async {
+  Future<void> loadPage({
+    int? selectId,
+    bool resetPage = false,
+    bool keepNewSessionForm = false,
+  }) async {
     if (resetPage) currentPage = 1;
     initialLoading = sessions.isEmpty;
     pageError = null;
@@ -106,14 +113,16 @@ class CashSessionManagementController extends GetxController {
       await MasterDataCache.to.ensureLoaded();
       final cache = MasterDataCache.to;
       final responses = await Future.wait<dynamic>([
-        _accountsService.cashSessions(filters: <String, dynamic>{
-          'page': currentPage,
-          'per_page': pageSize,
-          'sort_by': 'id',
-          'sort_order': 'desc',
-          if (searchController.text.trim().isNotEmpty)
-            'search': searchController.text.trim(),
-        }),
+        _accountsService.cashSessions(
+          filters: <String, dynamic>{
+            'page': currentPage,
+            'per_page': pageSize,
+            'sort_by': 'id',
+            'sort_order': 'desc',
+            if (searchController.text.trim().isNotEmpty)
+              'search': searchController.text.trim(),
+          },
+        ),
         _accountsService.accountsAll(
           filters: const {
             'account_type': 'cash',
@@ -138,7 +147,8 @@ class CashSessionManagementController extends GetxController {
           );
 
       sessions = nextSessions;
-      paginationMeta = (responses[0] as PaginatedResponse<CashSessionModel>).meta;
+      paginationMeta =
+          (responses[0] as PaginatedResponse<CashSessionModel>).meta;
       filteredSessions = nextSessions;
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
@@ -149,6 +159,12 @@ class CashSessionManagementController extends GetxController {
           currentUser?['display_name']?.toString() ??
           currentUser?['username']?.toString();
       initialLoading = false;
+
+      if (keepNewSessionForm || _isNewSessionRoute) {
+        resetOpenForm(notify: false);
+        update();
+        return;
+      }
 
       var selected = selectId != null
           ? nextSessions.cast<CashSessionModel?>().firstWhere(
@@ -215,6 +231,7 @@ class CashSessionManagementController extends GetxController {
   }
 
   void selectSession(CashSessionModel item, {bool notify = true}) {
+    _isNewSessionRoute = false;
     selectedSession = item;
     companyId = item.companyId;
     branchId = item.branchId;
@@ -225,8 +242,7 @@ class CashSessionManagementController extends GetxController {
     openingBalanceController.text = item.openingBalance?.toString() ?? '0';
     remarksController.text = item.remarks ?? '';
     closingDatetimeController.text =
-        item.closingDatetime?.split('.').first ??
-        DateTime.now().toIso8601String().split('.').first;
+        item.closingDatetime?.split('.').first ?? '';
     expectedClosingController.text =
         item.expectedClosingBalance?.toString() ?? '';
     actualClosingController.text = item.actualClosingBalance?.toString() ?? '';
@@ -245,16 +261,10 @@ class CashSessionManagementController extends GetxController {
     cashAccountId = cashAccountOptions.isNotEmpty
         ? cashAccountOptions.first.id
         : null;
-    openingDatetimeController.text = DateTime.now()
-        .toIso8601String()
-        .split('.')
-        .first;
+    openingDatetimeController.clear();
     openingBalanceController.text = '0';
     remarksController.clear();
-    closingDatetimeController.text = DateTime.now()
-        .toIso8601String()
-        .split('.')
-        .first;
+    closingDatetimeController.clear();
     expectedClosingController.clear();
     actualClosingController.clear();
     closingRemarksController.clear();
@@ -299,6 +309,7 @@ class CashSessionManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       _moduleRefresh.notifyChanged(source: _refreshSource);
+      _isNewSessionRoute = false;
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -377,6 +388,7 @@ class CashSessionManagementController extends GetxController {
   }
 
   void startNewSession({required bool isDesktop}) {
+    _isNewSessionRoute = true;
     resetOpenForm();
     if (!isDesktop) {
       workspaceController.openEditor();

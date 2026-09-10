@@ -517,6 +517,7 @@ class _AppShellPageState extends State<AppShellPage> {
             embedded: true,
             editorOnly: true,
             initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+            startNew: _currentQueryParameters['new'] == '1',
           );
         }
         return CashSessionRegisterPage(

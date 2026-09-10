@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-10 — Accounting and Cash UTC time rollout
+
+- Cash Sessions now send and display Company-local times while the API stores
+  UTC. Leaving an opening or closing time blank uses server UTC time.
+- Accounting posting, allocation, and reconciliation instants are server UTC;
+  voucher and reconciliation calendar dates remain date-only.
+- Focused Flutter analysis and the full 20-test suite passed.
+
 ## 2026-09-10 — Authentication and Security UTC time rollout
 
 - Request: Complete the Authentication and Security module in the global UTC

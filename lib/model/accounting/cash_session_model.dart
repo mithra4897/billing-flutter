@@ -61,8 +61,12 @@ class CashSessionModel extends JsonModel {
       locationId: _nullableInt(json['location_id'] ?? location['id']),
       userId: _nullableInt(json['user_id'] ?? user['id']),
       cashAccountId: _nullableInt(json['cash_account_id'] ?? cashAccount['id']),
-      openingDatetime: json['opening_datetime']?.toString(),
-      closingDatetime: json['closing_datetime']?.toString(),
+      openingDatetime:
+          json['opening_datetime_local']?.toString() ??
+          json['opening_datetime']?.toString(),
+      closingDatetime:
+          json['closing_datetime_local']?.toString() ??
+          json['closing_datetime']?.toString(),
       openingBalance: _double(json['opening_balance']),
       expectedClosingBalance: _double(json['expected_closing_balance']),
       actualClosingBalance: _double(json['actual_closing_balance']),

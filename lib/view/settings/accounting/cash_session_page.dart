@@ -7,11 +7,13 @@ class CashSessionManagementPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.startNew = false,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final bool startNew;
 
   @override
   State<CashSessionManagementPage> createState() =>
@@ -37,6 +39,13 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   @override
   void didUpdateWidget(covariant CashSessionManagementPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.startNew && !oldWidget.startNew) {
+      final controller = Get.find<CashSessionManagementController>(
+        tag: _controllerTag,
+      );
+      controller.startNewSession(isDesktop: true);
+      return;
+    }
     if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
       final controller = Get.find<CashSessionManagementController>(
         tag: _controllerTag,
@@ -65,7 +74,10 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
       return;
     }
     Get.put(
-      CashSessionManagementController(initialId: widget.initialId),
+      CashSessionManagementController(
+        initialId: widget.initialId,
+        startNew: widget.startNew,
+      ),
       tag: _controllerTag,
     );
   }
@@ -174,10 +186,8 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
                 AppFormTextField(
                   labelText: 'Opening Datetime',
                   controller: controller.openingDatetimeController,
-                  validator: Validators.compose([
-                    Validators.required('Opening Datetime'),
-                    Validators.dateTime('Opening Datetime'),
-                  ]),
+                  hintText: 'Leave blank to use server time',
+                  validator: Validators.dateTime('Opening Datetime'),
                 ),
                 AppFormTextField(
                   labelText: 'Opening Balance',
@@ -238,11 +248,9 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
                     labelText: 'Closing Datetime',
                     controller: controller.closingDatetimeController,
                     validator: controller.isOpen
-                        ? Validators.compose([
-                            Validators.required('Closing Datetime'),
-                            Validators.dateTime('Closing Datetime'),
-                          ])
+                        ? Validators.dateTime('Closing Datetime')
                         : null,
+                    hintText: 'Leave blank to use server time',
                   ),
                   AppFormTextField(
                     labelText: 'Expected Closing Balance',
