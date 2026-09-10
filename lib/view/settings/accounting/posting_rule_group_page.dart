@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/posting_rule_group_management_co
 import '../../../screen.dart';
 
 class PostingRuleGroupManagementPage extends StatefulWidget {
-  const PostingRuleGroupManagementPage({super.key, this.embedded = false});
+  const PostingRuleGroupManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PostingRuleGroupManagementPage> createState() =>
@@ -38,6 +45,17 @@ class _PostingRuleGroupManagementPageState
   }
 
   @override
+  void didUpdateWidget(covariant PostingRuleGroupManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<PostingRuleGroupManagementController>(
+        tag: _controllerTag,
+      );
+      controller.load(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<PostingRuleGroupManagementController>(
       tag: _controllerTag,
@@ -56,7 +74,10 @@ class _PostingRuleGroupManagementPageState
     )) {
       return;
     }
-    Get.put(PostingRuleGroupManagementController(), tag: _controllerTag);
+    Get.put(
+      PostingRuleGroupManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -66,12 +87,13 @@ class _PostingRuleGroupManagementPageState
       builder: (controller) {
         final content = _buildContent(controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
-            icon: Icons.folder_special_outlined,
-            label: 'New Group',
-          ),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.folder_special_outlined,
+              label: 'New Group',
+            ),
         ];
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
@@ -102,6 +124,7 @@ class _PostingRuleGroupManagementPageState
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Posting Rule Groups',
+      editorOnly: widget.editorOnly,
       editorTitle:
           stringValue(
             controller.json(controller.selected),
@@ -192,6 +215,13 @@ class _PostingRuleGroupManagementPageState
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label:

@@ -2,6 +2,10 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class BankReconciliationManagementController extends GetxController {
+  BankReconciliationManagementController({this.initialId});
+
+  final int? initialId;
+
   static const String _refreshSource = 'BankReconciliationManagementController';
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -10,8 +14,6 @@ class BankReconciliationManagementController extends GetxController {
         AppDropdownItem(value: 'bounced', label: 'Bounced'),
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
-
-  BankReconciliationManagementController();
 
   final AccountsService _accountsService = AccountsService();
 
@@ -62,7 +64,13 @@ class BankReconciliationManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage().then((_) => resetForm()));
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -126,7 +134,7 @@ class BankReconciliationManagementController extends GetxController {
       vouchers = nextVouchers;
       initialLoading = false;
 
-      final selected = selectId != null
+      var selected = selectId != null
           ? nextRecords.cast<BankReconciliationModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
@@ -138,6 +146,13 @@ class BankReconciliationManagementController extends GetxController {
                     orElse: () =>
                         nextRecords.isNotEmpty ? nextRecords.first : null,
                   ));
+
+      if (selected == null && selectId != null) {
+        try {
+          final res = await _accountsService.bankReconciliationEntry(selectId);
+          selected = res.data;
+        } catch (_) {}
+      }
 
       if (selected != null) {
         await selectRecord(selected, notify: false);

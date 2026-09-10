@@ -24,7 +24,9 @@ class DocumentPostingLineDraft {
 }
 
 class DocumentPostingManagementController extends GetxController {
-  DocumentPostingManagementController();
+  DocumentPostingManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'DocumentPostingManagementController';
 
@@ -105,7 +107,13 @@ class DocumentPostingManagementController extends GetxController {
     );
     searchController.addListener(_applySearch);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage().then((_) => resetForm()));
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -198,7 +206,7 @@ class DocumentPostingManagementController extends GetxController {
       documentTableItems = _documentTableItemsForModule(moduleController.text);
       initialLoading = false;
 
-      final selected = selectId != null
+      var selected = selectId != null
           ? rows.cast<DocumentPostingModel?>().firstWhere(
               (item) => intValue(json(item), 'id') == selectId,
               orElse: () => null,
@@ -211,6 +219,13 @@ class DocumentPostingManagementController extends GetxController {
                         intValue(json(selectedPosting), 'id'),
                     orElse: () => rows.isNotEmpty ? rows.first : null,
                   ));
+
+      if (selected == null && selectId != null) {
+        try {
+          final res = await _accountsService.documentPosting(selectId);
+          selected = res.data;
+        } catch (_) {}
+      }
 
       if (selected != null) {
         await selectPosting(selected, notify: false);

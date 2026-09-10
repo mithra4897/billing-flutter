@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/document_posting_management_cont
 import '../../../screen.dart';
 
 class DocumentPostingManagementPage extends StatefulWidget {
-  const DocumentPostingManagementPage({super.key, this.embedded = false});
+  const DocumentPostingManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<DocumentPostingManagementPage> createState() =>
@@ -29,6 +36,17 @@ class _DocumentPostingManagementPageState
   }
 
   @override
+  void didUpdateWidget(covariant DocumentPostingManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<DocumentPostingManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadPage(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<DocumentPostingManagementController>(
       tag: _controllerTag,
@@ -47,7 +65,10 @@ class _DocumentPostingManagementPageState
     )) {
       return;
     }
-    Get.put(DocumentPostingManagementController(), tag: _controllerTag);
+    Get.put(
+      DocumentPostingManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -57,13 +78,14 @@ class _DocumentPostingManagementPageState
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewPosting(
-              isDesktop: Responsive.isDesktop(context),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => controller.startNewPosting(
+                isDesktop: Responsive.isDesktop(context),
+              ),
+              icon: Icons.post_add_outlined,
+              label: 'New Posting',
             ),
-            icon: Icons.post_add_outlined,
-            label: 'New Posting',
-          ),
         ];
 
         if (widget.embedded) {
@@ -98,6 +120,7 @@ class _DocumentPostingManagementPageState
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Document Postings',
+      editorOnly: widget.editorOnly,
       editorTitle:
           stringValue(
             controller.json(controller.selectedPosting),
@@ -297,6 +320,13 @@ class _DocumentPostingManagementPageState
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label:

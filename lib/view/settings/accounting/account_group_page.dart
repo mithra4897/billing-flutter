@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/account_group_management_control
 import '../../../screen.dart';
 
 class AccountGroupManagementPage extends StatefulWidget {
-  const AccountGroupManagementPage({super.key, this.embedded = false});
+  const AccountGroupManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<AccountGroupManagementPage> createState() =>
@@ -56,9 +63,30 @@ class _AccountGroupManagementPageState
       scope: <String, Object?>{
         'identity': identityHashCode(this),
         'embedded': widget.embedded,
+        'editorOnly': widget.editorOnly,
+        'initialId': widget.initialId,
       },
     );
     _registerController();
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountGroupManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId) {
+      if (Get.isRegistered<AccountGroupManagementController>(
+        tag: _controllerTag,
+      )) {
+        final c = Get.find<AccountGroupManagementController>(
+          tag: _controllerTag,
+        );
+        if (widget.initialId != null) {
+          unawaited(c.loadGroups(selectId: widget.initialId));
+        } else {
+          c.startNew(isDesktop: Responsive.isDesktop(context));
+        }
+      }
+    }
   }
 
   @override
@@ -80,7 +108,10 @@ class _AccountGroupManagementPageState
     )) {
       return;
     }
-    Get.put(AccountGroupManagementController(), tag: _controllerTag);
+    Get.put(
+      AccountGroupManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -90,12 +121,20 @@ class _AccountGroupManagementPageState
       builder: (controller) {
         final content = _buildContent(controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
-            icon: Icons.account_tree_outlined,
-            label: 'New Group',
-          ),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.account_tree_outlined,
+              label: 'New Group',
+            ),
+          if (widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => Get.back(),
+              icon: Icons.arrow_back,
+              label: 'Back to Register',
+              filled: false,
+            ),
         ];
 
         if (widget.embedded) {
@@ -131,6 +170,7 @@ class _AccountGroupManagementPageState
       title: 'Account Groups',
       editorTitle: controller.selectedGroup?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       list: SettingsListCard<AccountGroupModel>(
         searchController: controller.searchController,
         searchHint: 'Search account groups',
@@ -252,6 +292,13 @@ class _AccountGroupManagementPageState
                     icon: Icons.delete_outline,
                     label: 'Delete',
                     onPressed: controller.saving ? null : controller.delete,
+                    filled: false,
+                  ),
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    onPressed: () => Get.back(),
                     filled: false,
                   ),
               ],

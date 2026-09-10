@@ -459,17 +459,87 @@ class _AppShellPageState extends State<AppShellPage> {
           initialPartyContext: _currentQueryParameters['party_context'],
         );
       case '/accounting/account-groups':
-        return AccountGroupManagementPage(key: routeKey, embedded: true);
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return AccountGroupManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return AccountGroupRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/accounting/accounts':
-        return AccountManagementPage(key: routeKey, embedded: true);
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return AccountManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return AccountRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/accounting/vouchers':
-        return VoucherManagementPage(key: routeKey, embedded: true);
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return VoucherManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return VoucherRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/accounting/voucher-allocations':
         return VoucherAllocationManagementPage(key: routeKey, embedded: true);
       case '/accounting/cash-sessions':
-        return CashSessionManagementPage(key: routeKey, embedded: true);
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return CashSessionManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return CashSessionRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/accounting/bank-reconciliation':
-        return BankReconciliationManagementPage(key: routeKey, embedded: true);
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return BankReconciliationManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return BankReconciliationRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/accounting/reports':
         return FinancialReportsPage(
           key: routeKey,
@@ -477,23 +547,104 @@ class _AppShellPageState extends State<AppShellPage> {
           initialReportType: _currentQueryParameters['report_type'],
         );
       case '/accounting/voucher-types':
-        return VoucherTypeManagementPage(key: routeKey, embedded: true);
-      case '/accounting/posting-rule-groups':
-        return PostingRuleGroupManagementPage(key: routeKey, embedded: true);
-      case '/accounting/posting-rules':
-        return PostingRuleManagementPage(key: routeKey, embedded: true);
-      case '/accounting/document-postings':
-        return DocumentPostingManagementPage(key: routeKey, embedded: true);
-      case '/accounting/budgets':
-        return BudgetManagementPage(key: routeKey, embedded: true);
-      case '/accounting/party-accounts':
-      case '/parties/accounts':
-        return PartyAccountRegisterPage(
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return VoucherTypeManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return VoucherTypeRegisterPage(
           key: routeKey,
           embedded: true,
-          initialPartyId: int.tryParse(
-            _currentQueryParameters['party_id'] ?? '',
-          ),
+          queryParameters: _currentQueryParameters,
+        );
+      case '/accounting/posting-rule-groups':
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return PostingRuleGroupManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return PostingRuleGroupRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
+      case '/accounting/posting-rules':
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return PostingRuleManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return PostingRuleRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
+      case '/accounting/document-postings':
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return DocumentPostingManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return DocumentPostingRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
+      case '/accounting/budgets':
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return BudgetManagementPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+          );
+        }
+        return BudgetRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
+      case '/accounting/party-accounts':
+      case '/parties/accounts':
+        if (_currentQueryParameters['view'] == 'manage' ||
+            _currentQueryParameters['id'] != null ||
+            _currentQueryParameters['new'] == '1') {
+          return PartyAccountRegisterPage(
+            key: routeKey,
+            embedded: true,
+            editorOnly: true,
+            initialId: int.tryParse(_currentQueryParameters['id'] ?? ''),
+            initialPartyId: int.tryParse(
+              _currentQueryParameters['party_id'] ?? '',
+            ),
+          );
+        }
+        return AccountsPartyAccountRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
         );
       case '/hr/departments':
         return DepartmentManagementPage(key: routeKey, embedded: true);

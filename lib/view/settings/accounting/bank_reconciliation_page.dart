@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/bank_reconciliation_management_c
 import '../../../screen.dart';
 
 class BankReconciliationManagementPage extends StatefulWidget {
-  const BankReconciliationManagementPage({super.key, this.embedded = false});
+  const BankReconciliationManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<BankReconciliationManagementPage> createState() =>
@@ -29,6 +36,17 @@ class _BankReconciliationManagementPageState
   }
 
   @override
+  void didUpdateWidget(covariant BankReconciliationManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<BankReconciliationManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadPage(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<BankReconciliationManagementController>(
       tag: _controllerTag,
@@ -47,7 +65,10 @@ class _BankReconciliationManagementPageState
     )) {
       return;
     }
-    Get.put(BankReconciliationManagementController(), tag: _controllerTag);
+    Get.put(
+      BankReconciliationManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -57,13 +78,13 @@ class _BankReconciliationManagementPageState
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNew(
-              isDesktop: Responsive.isDesktop(context),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.compare_arrows_outlined,
+              label: 'New Reconciliation',
             ),
-            icon: Icons.compare_arrows_outlined,
-            label: 'New Reconciliation',
-          ),
         ];
 
         if (widget.embedded) {
@@ -100,6 +121,7 @@ class _BankReconciliationManagementPageState
       controller: controller.workspaceController,
       title: 'Bank Reconciliation',
       editorTitle: controller.selectedRecord?.toString(),
+      editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
       list: SettingsListCard<BankReconciliationModel>(
         searchController: controller.searchController,
@@ -232,14 +254,26 @@ class _BankReconciliationManagementPageState
                 ),
               ],
             ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            AppActionButton(
-              icon: Icons.save_outlined,
-              label: controller.selectedRecord == null
-                  ? 'Save Reconciliation'
-                  : 'Update Reconciliation',
-              onPressed: controller.save,
-              busy: controller.saving,
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: controller.selectedRecord == null
+                      ? 'Save Reconciliation'
+                      : 'Update Reconciliation',
+                  onPressed: controller.save,
+                  busy: controller.saving,
+                ),
+              ],
             ),
           ],
         ),

@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/posting_rule_management_controll
 import '../../../screen.dart';
 
 class PostingRuleManagementPage extends StatefulWidget {
-  const PostingRuleManagementPage({super.key, this.embedded = false});
+  const PostingRuleManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PostingRuleManagementPage> createState() =>
@@ -78,6 +85,17 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
   }
 
   @override
+  void didUpdateWidget(covariant PostingRuleManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<PostingRuleManagementController>(
+        tag: _controllerTag,
+      );
+      controller.load(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<PostingRuleManagementController>(
       tag: _controllerTag,
@@ -96,7 +114,10 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
     )) {
       return;
     }
-    Get.put(PostingRuleManagementController(), tag: _controllerTag);
+    Get.put(
+      PostingRuleManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -106,12 +127,13 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
       builder: (controller) {
         final content = _buildContent(controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
-            icon: Icons.rule_folder_outlined,
-            label: 'New Rule',
-          ),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.rule_folder_outlined,
+              label: 'New Rule',
+            ),
         ];
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
@@ -142,6 +164,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Posting Rules',
+      editorOnly: widget.editorOnly,
       editorTitle: intValue(controller.json(controller.selected), 'id') == null
           ? null
           : 'Line ${controller.lineNoController.text}',
@@ -264,6 +287,13 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label:

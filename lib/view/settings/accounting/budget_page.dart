@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/budget_management_controller.dar
 import '../../../screen.dart';
 
 class BudgetManagementPage extends StatefulWidget {
-  const BudgetManagementPage({super.key, this.embedded = false});
+  const BudgetManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<BudgetManagementPage> createState() => _BudgetManagementPageState();
@@ -27,6 +34,17 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
   }
 
   @override
+  void didUpdateWidget(covariant BudgetManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<BudgetManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadPage(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<BudgetManagementController>(tag: _controllerTag)) {
       Get.delete<BudgetManagementController>(tag: _controllerTag, force: true);
@@ -38,7 +56,10 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     if (Get.isRegistered<BudgetManagementController>(tag: _controllerTag)) {
       return;
     }
-    Get.put(BudgetManagementController(), tag: _controllerTag);
+    Get.put(
+      BudgetManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   Future<void> _showBudgetVsActual(
@@ -182,13 +203,14 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewBudget(
-              isDesktop: Responsive.isDesktop(context),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => controller.startNewBudget(
+                isDesktop: Responsive.isDesktop(context),
+              ),
+              icon: Icons.savings_outlined,
+              label: 'New Budget',
             ),
-            icon: Icons.savings_outlined,
-            label: 'New Budget',
-          ),
         ];
 
         if (widget.embedded) {
@@ -222,6 +244,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Budgets',
+      editorOnly: widget.editorOnly,
       editorTitle:
           stringValue(
             controller.json(controller.selectedBudget),
@@ -406,6 +429,13 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label:

@@ -2,11 +2,12 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class PartyAccountRegisterController extends GetxController {
-  PartyAccountRegisterController({this.initialPartyId});
+  PartyAccountRegisterController({this.initialPartyId, this.initialId});
 
   static const String _refreshSource = 'PartyAccountRegisterController';
 
   final int? initialPartyId;
+  final int? initialId;
 
   static const List<AppDropdownItem<String>> accountPurposeItems =
       <AppDropdownItem<String>>[
@@ -90,7 +91,29 @@ class PartyAccountRegisterController extends GetxController {
     );
     formPartyId = initialPartyId;
     searchController.addListener(_onSearchChanged);
-    bootstrap();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(bootstrap().then((_) => startNewMapping()));
+    } else if (targetId != null) {
+      unawaited(bootstrap().then((_) => loadMapping(targetId)));
+    } else {
+      bootstrap();
+    }
+  }
+
+  Future<void> loadMapping(int id) async {
+    final match = rows.where((r) => r.id == id).firstOrNull;
+    if (match != null) {
+      editRow(match);
+      return;
+    }
+    try {
+      final res = await _accountsService.partyAccount(id);
+      if (res.data != null) {
+        editRow(res.data!);
+      }
+    } catch (_) {}
   }
 
   @override

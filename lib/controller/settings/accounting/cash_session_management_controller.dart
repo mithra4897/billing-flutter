@@ -2,7 +2,9 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class CashSessionManagementController extends GetxController {
-  CashSessionManagementController();
+  CashSessionManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'CashSessionManagementController';
 
@@ -65,7 +67,13 @@ class CashSessionManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage().then((_) => resetOpenForm()));
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -142,7 +150,7 @@ class CashSessionManagementController extends GetxController {
           currentUser?['username']?.toString();
       initialLoading = false;
 
-      final selected = selectId != null
+      var selected = selectId != null
           ? nextSessions.cast<CashSessionModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
@@ -154,6 +162,13 @@ class CashSessionManagementController extends GetxController {
                     orElse: () =>
                         nextSessions.isNotEmpty ? nextSessions.first : null,
                   ));
+
+      if (selected == null && selectId != null) {
+        try {
+          final res = await _accountsService.cashSession(selectId);
+          selected = res.data;
+        } catch (_) {}
+      }
 
       if (selected != null) {
         selectSession(selected, notify: false);

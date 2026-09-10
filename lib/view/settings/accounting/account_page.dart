@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/account_management_controller.da
 import '../../../screen.dart';
 
 class AccountManagementPage extends StatefulWidget {
-  const AccountManagementPage({super.key, this.embedded = false});
+  const AccountManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<AccountManagementPage> createState() => _AccountManagementPageState();
@@ -21,9 +28,26 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       scope: <String, Object?>{
         'identity': identityHashCode(this),
         'embedded': widget.embedded,
+        'editorOnly': widget.editorOnly,
+        'initialId': widget.initialId,
       },
     );
     _registerController();
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId) {
+      if (Get.isRegistered<AccountManagementController>(tag: _controllerTag)) {
+        final c = Get.find<AccountManagementController>(tag: _controllerTag);
+        if (widget.initialId != null) {
+          unawaited(c.loadPage(selectId: widget.initialId));
+        } else {
+          c.startNew(isDesktop: Responsive.isDesktop(context));
+        }
+      }
+    }
   }
 
   @override
@@ -38,7 +62,10 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
     if (Get.isRegistered<AccountManagementController>(tag: _controllerTag)) {
       return;
     }
-    Get.put(AccountManagementController(), tag: _controllerTag);
+    Get.put(
+      AccountManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -48,12 +75,20 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
-            icon: Icons.account_balance_outlined,
-            label: 'New Account',
-          ),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.account_balance_outlined,
+              label: 'New Account',
+            ),
+          if (widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => Get.back(),
+              icon: Icons.arrow_back,
+              label: 'Back to Register',
+              filled: false,
+            ),
         ];
 
         if (widget.embedded) {
@@ -92,6 +127,7 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       title: 'Accounts',
       editorTitle: controller.selectedAccount?.toString(),
       scrollController: controller.pageScrollController,
+      editorOnly: widget.editorOnly,
       list: SettingsListCard<AccountModel>(
         searchController: controller.searchController,
         searchHint: 'Search accounts',
@@ -116,15 +152,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Use this screen for ledger creation and structure. Party-to-ledger mapping is maintained in the Parties screen under Party Accounts.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).extension<AppThemeExtension>()!.mutedText,
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           Form(
             key: controller.formKey,
             child: Column(
@@ -169,8 +196,7 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
                     ),
                     AppDropdownField<String>.fromMapped(
                       labelText: 'Account Type',
-                      mappedItems:
-                          AccountManagementController.accountTypeItems,
+                      mappedItems: AccountManagementController.accountTypeItems,
                       initialValue: controller.accountType,
                       onChanged: controller.setAccountType,
                       validator: Validators.requiredSelection('Account Type'),
@@ -187,8 +213,8 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
                     ),
                     AppDropdownField<String>.fromMapped(
                       labelText: 'Opening Balance Type',
-                      mappedItems: AccountManagementController
-                          .openingBalanceTypeItems,
+                      mappedItems:
+                          AccountManagementController.openingBalanceTypeItems,
                       initialValue: controller.openingBalanceType,
                       onChanged: controller.setOpeningBalanceType,
                     ),
@@ -264,6 +290,13 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
                         icon: Icons.delete_outline,
                         label: 'Delete',
                         onPressed: controller.saving ? null : controller.delete,
+                        filled: false,
+                      ),
+                    if (widget.editorOnly)
+                      AppActionButton(
+                        icon: Icons.close_outlined,
+                        label: 'Cancel',
+                        onPressed: () => Get.back(),
                         filled: false,
                       ),
                   ],

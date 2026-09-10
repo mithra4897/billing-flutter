@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-10 — Standardize Accounts register columns to 5-6 columns with balanced spacing
+
+- Standardized all 11 Accounts module registers to between 5 and 6 columns, eliminating crowded headers and text collisions (e.g. Credit and Approval collision on Voucher Register).
+- Applied comfortable column flex weighting, generous horizontal padding (12px gutters), right-aligned currency formatting, and centered status badges.
+- Moved secondary identifiers (e.g., Reference No, Table Name, Variance, Bank Reference) into subtitle/detail builders to maintain clean, readable rows.
+- Verified with `flutter analyze` (0 issues) and `flutter test` (23/23 passed).
+
+## 2026-09-10 — Implement Accounts module registers with shared filter bar
+
+- Implemented unified register screens for the Accounts module using `SharedRegisterList<T>` and `SharedFilterBar` (wrapping `AppRegisterFilters`), following the Inventory and HR register architecture.
+- Added 11 register pages: Voucher, Account, Account Group, Voucher Type, Document Posting, Budget, Cash Session, Bank Reconciliation, Posting Rule, Posting Rule Group, and Party Account.
+- Maintained at least 5 query filters per register matching backend filter endpoints without inventing arbitrary rules.
+- Connected shell navigation in `app_shell_page.dart` to open register screens by default and management views on `?view=manage`.
+- Exported register components in `screen.dart` and verified clean static analysis (`flutter analyze` passed with 0 issues).
+
 ## 2026-09-10 — Standardize HR register search and filters
 
 - Moved existing HR list/register search fields to the app bar and replaced

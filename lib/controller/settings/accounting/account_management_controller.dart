@@ -1,4 +1,4 @@
-﻿import '../../../screen.dart';
+import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class AccountManagementController extends GetxController {
@@ -22,7 +22,9 @@ class AccountManagementController extends GetxController {
         AppDropdownItem(value: 'credit', label: 'Credit'),
       ];
 
-  AccountManagementController();
+  AccountManagementController({this.initialId});
+
+  final int? initialId;
 
   final AccountsService _accountsService = AccountsService();
 
@@ -79,7 +81,14 @@ class AccountManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage());
+      resetForm(notify: false);
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -150,18 +159,33 @@ class AccountManagementController extends GetxController {
           .toList(growable: false);
       initialLoading = false;
 
-      final selected = selectId != null
-          ? nextAccounts.cast<AccountModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (selectedAccount == null
-                ? (nextAccounts.isNotEmpty ? nextAccounts.first : null)
-                : nextAccounts.cast<AccountModel?>().firstWhere(
-                    (item) => item?.id == selectedAccount?.id,
-                    orElse: () =>
-                        nextAccounts.isNotEmpty ? nextAccounts.first : null,
-                  ));
+      AccountModel? selected;
+      if (selectId != null) {
+        selected = nextAccounts.cast<AccountModel?>().firstWhere(
+          (item) => item?.id == selectId,
+          orElse: () => null,
+        );
+        if (selected == null) {
+          try {
+            final res = await _accountsService.account(selectId);
+            selected = res.data;
+            if (selected != null) {
+              accounts = [selected, ...accounts];
+              filteredAccounts = accounts;
+            }
+          } catch (_) {}
+        }
+      } else if (Get.parameters['new'] == '1') {
+        selected = null;
+      } else {
+        selected = selectedAccount == null
+            ? (nextAccounts.isNotEmpty ? nextAccounts.first : null)
+            : nextAccounts.cast<AccountModel?>().firstWhere(
+                (item) => item?.id == selectedAccount?.id,
+                orElse: () =>
+                    nextAccounts.isNotEmpty ? nextAccounts.first : null,
+              );
+      }
 
       if (selected != null) {
         selectAccount(selected, notify: false);

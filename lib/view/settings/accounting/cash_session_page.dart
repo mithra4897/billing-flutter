@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/cash_session_management_controll
 import '../../../screen.dart';
 
 class CashSessionManagementPage extends StatefulWidget {
-  const CashSessionManagementPage({super.key, this.embedded = false});
+  const CashSessionManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<CashSessionManagementPage> createState() =>
@@ -28,8 +35,21 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   }
 
   @override
+  void didUpdateWidget(covariant CashSessionManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<CashSessionManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadPage(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
-    if (Get.isRegistered<CashSessionManagementController>(tag: _controllerTag)) {
+    if (Get.isRegistered<CashSessionManagementController>(
+      tag: _controllerTag,
+    )) {
       Get.delete<CashSessionManagementController>(
         tag: _controllerTag,
         force: true,
@@ -39,10 +59,15 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   }
 
   void _registerController() {
-    if (Get.isRegistered<CashSessionManagementController>(tag: _controllerTag)) {
+    if (Get.isRegistered<CashSessionManagementController>(
+      tag: _controllerTag,
+    )) {
       return;
     }
-    Get.put(CashSessionManagementController(), tag: _controllerTag);
+    Get.put(
+      CashSessionManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -52,13 +77,14 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewSession(
-              isDesktop: Responsive.isDesktop(context),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => controller.startNewSession(
+                isDesktop: Responsive.isDesktop(context),
+              ),
+              icon: Icons.point_of_sale_outlined,
+              label: 'Open Session',
             ),
-            icon: Icons.point_of_sale_outlined,
-            label: 'Open Session',
-          ),
         ];
 
         if (widget.embedded) {
@@ -94,6 +120,7 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
       controller: controller.workspaceController,
       title: 'Cash Sessions',
       editorTitle: controller.selectedSession?.toString(),
+      editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
       list: SettingsListCard<CashSessionModel>(
         searchController: controller.searchController,
@@ -173,11 +200,24 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
-          AppActionButton(
-            icon: Icons.play_circle_outline,
-            label: 'Open Session',
-            onPressed: controller.openSession,
-            busy: controller.saving,
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              if (widget.editorOnly)
+                AppActionButton(
+                  icon: Icons.close_outlined,
+                  label: 'Cancel',
+                  filled: false,
+                  onPressed: () => Get.back(),
+                ),
+              AppActionButton(
+                icon: Icons.play_circle_outline,
+                label: 'Open Session',
+                onPressed: controller.openSession,
+                busy: controller.saving,
+              ),
+            ],
           ),
           if (controller.selectedSession != null) ...[
             const SizedBox(height: AppUiConstants.spacingLg),
@@ -248,6 +288,13 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 if (controller.isOpen)
                   AppActionButton(
                     icon: Icons.stop_circle_outlined,

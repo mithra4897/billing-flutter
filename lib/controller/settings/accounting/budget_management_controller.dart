@@ -17,7 +17,9 @@ class BudgetLineDraft {
 }
 
 class BudgetManagementController extends GetxController {
-  BudgetManagementController();
+  BudgetManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'BudgetManagementController';
 
@@ -79,7 +81,13 @@ class BudgetManagementController extends GetxController {
     );
     searchController.addListener(_applySearch);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage().then((_) => resetForm()));
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -156,7 +164,7 @@ class BudgetManagementController extends GetxController {
       financialYearId ??= contextSelection.financialYearId;
       initialLoading = false;
 
-      final selected = selectId != null
+      var selected = selectId != null
           ? budgets.cast<BudgetModel?>().firstWhere(
               (item) => intValue(json(item), 'id') == selectId,
               orElse: () => null,
@@ -169,6 +177,13 @@ class BudgetManagementController extends GetxController {
                         intValue(json(selectedBudget), 'id'),
                     orElse: () => budgets.isNotEmpty ? budgets.first : null,
                   ));
+
+      if (selected == null && selectId != null) {
+        try {
+          final res = await _accountsService.budget(selectId);
+          selected = res.data;
+        } catch (_) {}
+      }
 
       if (selected != null) {
         await selectBudget(selected, notify: false);

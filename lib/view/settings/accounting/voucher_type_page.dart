@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/voucher_type_management_controll
 import '../../../screen.dart';
 
 class VoucherTypeManagementPage extends StatefulWidget {
-  const VoucherTypeManagementPage({super.key, this.embedded = false});
+  const VoucherTypeManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<VoucherTypeManagementPage> createState() =>
@@ -42,6 +49,17 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
   }
 
   @override
+  void didUpdateWidget(covariant VoucherTypeManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<VoucherTypeManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadTypes(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<VoucherTypeManagementController>(
       tag: _controllerTag,
@@ -60,7 +78,10 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
     )) {
       return;
     }
-    Get.put(VoucherTypeManagementController(), tag: _controllerTag);
+    Get.put(
+      VoucherTypeManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
@@ -70,12 +91,13 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
       builder: (controller) {
         final content = _buildContent(controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () =>
-                controller.startNew(isDesktop: Responsive.isDesktop(context)),
-            icon: Icons.receipt_outlined,
-            label: 'New Type',
-          ),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
+              icon: Icons.receipt_outlined,
+              label: 'New Type',
+            ),
         ];
 
         if (widget.embedded) {
@@ -110,6 +132,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
       controller: controller.workspaceController,
       title: 'Voucher Types',
       editorTitle: controller.selectedType?.toString(),
+      editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
       list: SettingsListCard<VoucherTypeModel>(
         searchController: controller.searchController,
@@ -216,6 +239,13 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                if (widget.editorOnly)
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedType == null

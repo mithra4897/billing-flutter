@@ -2,7 +2,9 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class VoucherTypeManagementController extends GetxController {
-  VoucherTypeManagementController();
+  VoucherTypeManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'VoucherTypeManagementController';
 
@@ -53,7 +55,13 @@ class VoucherTypeManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    loadTypes();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadTypes().then((_) => resetForm()));
+    } else {
+      unawaited(loadTypes(selectId: targetId));
+    }
   }
 
   @override
@@ -101,7 +109,7 @@ class VoucherTypeManagementController extends GetxController {
       );
       initialLoading = false;
 
-      final selected = selectId != null
+      var selected = selectId != null
           ? items.cast<VoucherTypeModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
@@ -112,6 +120,13 @@ class VoucherTypeManagementController extends GetxController {
                     (item) => item?.id == selectedType?.id,
                     orElse: () => items.isNotEmpty ? items.first : null,
                   ));
+
+      if (selected == null && selectId != null) {
+        try {
+          final res = await _accountsService.voucherType(selectId);
+          selected = res.data;
+        } catch (_) {}
+      }
 
       if (selected != null) {
         selectType(selected, notify: false);

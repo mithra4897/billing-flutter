@@ -2,9 +2,16 @@ import '../../../controller/settings/accounting/voucher_management_controller.da
 import '../../../screen.dart';
 
 class VoucherManagementPage extends StatefulWidget {
-  const VoucherManagementPage({super.key, this.embedded = false});
+  const VoucherManagementPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<VoucherManagementPage> createState() => _VoucherManagementPageState();
@@ -27,6 +34,17 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   }
 
   @override
+  void didUpdateWidget(covariant VoucherManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialId != oldWidget.initialId && widget.initialId != null) {
+      final controller = Get.find<VoucherManagementController>(
+        tag: _controllerTag,
+      );
+      controller.loadPage(selectId: widget.initialId);
+    }
+  }
+
+  @override
   void dispose() {
     if (Get.isRegistered<VoucherManagementController>(tag: _controllerTag)) {
       Get.delete<VoucherManagementController>(tag: _controllerTag, force: true);
@@ -38,7 +56,10 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     if (Get.isRegistered<VoucherManagementController>(tag: _controllerTag)) {
       return;
     }
-    Get.put(VoucherManagementController(), tag: _controllerTag);
+    Get.put(
+      VoucherManagementController(initialId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   Future<void> _confirmDelete(VoucherManagementController controller) async {
@@ -185,13 +206,14 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       builder: (controller) {
         final content = _buildContent(context, controller);
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => controller.startNewEntry(
-              isDesktop: Responsive.isDesktop(context),
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
+              onPressed: () => controller.startNewEntry(
+                isDesktop: Responsive.isDesktop(context),
+              ),
+              icon: Icons.add_outlined,
+              label: 'New Entry',
             ),
-            icon: Icons.add_outlined,
-            label: 'New Entry',
-          ),
         ];
 
         if (widget.embedded) {
@@ -226,6 +248,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       controller: controller.workspaceController,
       title: 'Vouchers',
       editorTitle: controller.selectedVoucher?.toString(),
+      editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
       list: SettingsListCard<VoucherModel>(
         searchController: controller.searchController,
@@ -427,6 +450,15 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (widget.editorOnly) ...[
+                  AppActionButton(
+                    icon: Icons.close_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: () => Get.back(),
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingSm),
+                ],
                 Expanded(
                   child: AppActionButton(
                     icon: Icons.save_outlined,

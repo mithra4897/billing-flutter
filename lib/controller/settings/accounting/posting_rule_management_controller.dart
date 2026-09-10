@@ -2,7 +2,9 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class PostingRuleManagementController extends GetxController {
-  PostingRuleManagementController();
+  PostingRuleManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'PostingRuleManagementController';
 
@@ -59,7 +61,13 @@ class PostingRuleManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    load();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(load().then((_) => resetForm()));
+    } else {
+      unawaited(load(selectId: targetId));
+    }
   }
 
   @override
@@ -120,7 +128,7 @@ class PostingRuleManagementController extends GetxController {
         groupId = intValue(nextGroups.first.toJson(), 'id');
       }
 
-      final nextSelected = selectId != null
+      var nextSelected = selectId != null
           ? nextRows.cast<PostingRuleModel?>().firstWhere(
               (element) => intValue(json(element), 'id') == selectId,
               orElse: () => null,
@@ -133,6 +141,12 @@ class PostingRuleManagementController extends GetxController {
                         intValue(json(selected), 'id'),
                     orElse: () => nextRows.isNotEmpty ? nextRows.first : null,
                   ));
+      if (nextSelected == null && selectId != null) {
+        try {
+          final res = await _accountsService.postingRule(selectId);
+          nextSelected = res.data;
+        } catch (_) {}
+      }
       if (nextSelected != null) {
         applySelection(nextSelected, notify: false);
       } else {

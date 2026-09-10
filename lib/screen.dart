@@ -334,6 +334,7 @@ export 'service/quality/quality_service.dart';
 export 'service/sales/sales_service.dart';
 export 'service/service_module/service_module_service.dart';
 export 'service/taxes/taxes_service.dart';
+export 'view/accounts/accounts_registers.dart';
 export 'view/assets/asset_category_page.dart';
 export 'view/assets/asset_cost_center_page.dart';
 export 'view/assets/asset_depreciation_run_page.dart';

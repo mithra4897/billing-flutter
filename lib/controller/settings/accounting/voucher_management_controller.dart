@@ -38,7 +38,9 @@ class VoucherModeOption {
 }
 
 class VoucherManagementController extends GetxController {
-  VoucherManagementController();
+  VoucherManagementController({this.initialId});
+
+  final int? initialId;
 
   static const String _refreshSource = 'VoucherManagementController';
   static const int _defaultVoucherListLimit = 20;
@@ -174,7 +176,13 @@ class VoucherManagementController extends GetxController {
       },
     );
     searchController.addListener(applySearch);
-    loadPage();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadPage().then((_) => resetForm()));
+    } else {
+      unawaited(loadPage(selectId: targetId));
+    }
   }
 
   @override
@@ -311,10 +319,16 @@ class VoucherManagementController extends GetxController {
       update();
 
       if (selectId != null) {
-        final selected = nextAllVouchers.cast<VoucherModel?>().firstWhere(
+        var selected = nextAllVouchers.cast<VoucherModel?>().firstWhere(
           (item) => item?.id == selectId,
           orElse: () => null,
         );
+        if (selected == null) {
+          try {
+            final res = await _accountsService.voucher(selectId);
+            selected = res.data;
+          } catch (_) {}
+        }
         if (selected != null) {
           await selectVoucher(selected, notify: false);
         } else {

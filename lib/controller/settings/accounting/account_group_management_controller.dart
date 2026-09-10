@@ -2,8 +2,9 @@ import '../../../screen.dart';
 import 'settings_accounting_module_refresh_controller.dart';
 
 class AccountGroupManagementController extends GetxController {
-  AccountGroupManagementController();
+  AccountGroupManagementController({this.initialId});
 
+  final int? initialId;
   static const String _refreshSource = 'AccountGroupManagementController';
 
   final AccountsService _accountsService = AccountsService();
@@ -52,7 +53,14 @@ class AccountGroupManagementController extends GetxController {
       },
     );
     searchController.addListener(_applySearch);
-    loadGroups();
+    final targetId = initialId ?? int.tryParse(Get.parameters['id'] ?? '');
+    final isNew = Get.parameters['new'] == '1';
+    if (isNew) {
+      unawaited(loadGroups());
+      resetForm(notify: false);
+    } else {
+      unawaited(loadGroups(selectId: targetId));
+    }
   }
 
   @override
@@ -108,17 +116,25 @@ class AccountGroupManagementController extends GetxController {
       filteredGroups = items;
       initialLoading = false;
 
-      final selected = selectId != null
-          ? items.cast<AccountGroupModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (selectedGroup == null
-                ? (items.isNotEmpty ? items.first : null)
-                : items.cast<AccountGroupModel?>().firstWhere(
-                    (item) => item?.id == selectedGroup?.id,
-                    orElse: () => items.isNotEmpty ? items.first : null,
-                  ));
+      AccountGroupModel? selected;
+      if (selectId != null) {
+        selected = items.cast<AccountGroupModel?>().firstWhere(
+          (item) => item?.id == selectId,
+          orElse: () => allGroups.cast<AccountGroupModel?>().firstWhere(
+            (item) => item?.id == selectId,
+            orElse: () => null,
+          ),
+        );
+      } else if (Get.parameters['new'] == '1') {
+        selected = null;
+      } else {
+        selected = selectedGroup == null
+            ? (items.isNotEmpty ? items.first : null)
+            : items.cast<AccountGroupModel?>().firstWhere(
+                (item) => item?.id == selectedGroup?.id,
+                orElse: () => items.isNotEmpty ? items.first : null,
+              );
+      }
 
       if (selected != null) {
         selectGroup(selected, notify: false);

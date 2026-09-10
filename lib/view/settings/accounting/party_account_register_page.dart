@@ -5,10 +5,14 @@ class PartyAccountRegisterPage extends StatefulWidget {
   const PartyAccountRegisterPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
     this.initialPartyId,
   });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
   final int? initialPartyId;
 
   @override
@@ -28,6 +32,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         'identity': identityHashCode(this),
         'embedded': widget.embedded,
         'initialPartyId': widget.initialPartyId,
+        'initialId': widget.initialId,
       },
     );
     _registerController();
@@ -49,7 +54,10 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
       return;
     }
     Get.put(
-      PartyAccountRegisterController(initialPartyId: widget.initialPartyId),
+      PartyAccountRegisterController(
+        initialPartyId: widget.initialPartyId,
+        initialId: widget.initialId,
+      ),
       tag: _controllerTag,
     );
   }
@@ -61,6 +69,11 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
       Get.find<PartyAccountRegisterController>(
         tag: _controllerTag,
       ).syncInitialPartyId(widget.initialPartyId);
+    }
+    if (oldWidget.initialId != widget.initialId && widget.initialId != null) {
+      Get.find<PartyAccountRegisterController>(
+        tag: _controllerTag,
+      ).loadMapping(widget.initialId!);
     }
   }
 
@@ -145,8 +158,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                             ),
                           ),
                           IconButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(),
+                            onPressed: () => Navigator.of(dialogContext).pop(),
                             tooltip: 'Close',
                             icon: const Icon(Icons.close),
                             color: appTheme.mutedText,
@@ -296,10 +308,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppUiConstants.spacingSm),
-                Text(
-                  'Choose a company in filters so the correct ledgers appear. Mappings are saved against the selected party and account.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+
                 if (controller.formError != null) ...[
                   const SizedBox(height: AppUiConstants.spacingMd),
                   AppErrorStateView.inline(message: controller.formError!),
@@ -404,6 +413,13 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                         const SizedBox(height: AppUiConstants.spacingLg),
                         Row(
                           children: [
+                            if (widget.editorOnly) ...[
+                              TextButton(
+                                onPressed: () => Get.back(),
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: AppUiConstants.spacingSm),
+                            ],
                             if (controller.editing?.id != null &&
                                 controller.canDelete)
                               TextButton(
@@ -431,85 +447,91 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
               ],
             ),
           ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          ReportPaginationBar(
-            meta: controller.effectiveMeta,
-            onPerPageChanged: controller.setPerPage,
-            onPageChanged: controller.setPage,
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          AppSectionCard(
-            child: controller.loading && controller.rows.isEmpty
-                ? const AppLoadingView(message: 'Loading...')
-                : controller.rows.isEmpty
-                ? const SettingsEmptyState(
-                    icon: Icons.link_outlined,
-                    title: 'No mappings',
-                    message:
-                        'No rows match the filters. Add a mapping with the form above.',
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth,
-                          ),
-                          child: DataTable(
-                            headingRowHeight: 40,
-                            dataRowMinHeight: 40,
-                            dataRowMaxHeight: 56,
-                            columns: const [
-                              DataColumn(label: Text('Party')),
-                              DataColumn(label: Text('Account')),
-                              DataColumn(label: Text('Purpose')),
-                              DataColumn(label: Text('Default')),
-                              DataColumn(label: Text('Active')),
-                              DataColumn(label: Text('')),
-                            ],
-                            rows: controller.rows
-                                .map((row) {
-                                  final partyLabel =
-                                      row.partyName?.isNotEmpty == true
-                                      ? row.partyName!
-                                      : (row.partyCode ?? '-');
-                                  final accountLabel =
-                                      row.accountName?.isNotEmpty == true
-                                      ? row.accountName!
-                                      : (row.accountCode ?? '-');
-                                  final selected =
-                                      controller.editing?.id == row.id;
-                                  return DataRow(
-                                    selected: selected,
-                                    cells: [
-                                      DataCell(Text(partyLabel)),
-                                      DataCell(Text(accountLabel)),
-                                      DataCell(Text(row.accountPurpose ?? '-')),
-                                      DataCell(
-                                        Text(row.isDefault ? 'Yes' : 'No'),
-                                      ),
-                                      DataCell(
-                                        Text(row.isActive ? 'Yes' : 'No'),
-                                      ),
-                                      DataCell(
-                                        IconButton(
-                                          tooltip: 'Edit',
-                                          icon: const Icon(Icons.edit_outlined),
-                                          onPressed: () =>
-                                              controller.editRow(row),
+          if (!widget.editorOnly) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            ReportPaginationBar(
+              meta: controller.effectiveMeta,
+              onPerPageChanged: controller.setPerPage,
+              onPageChanged: controller.setPage,
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSectionCard(
+              child: controller.loading && controller.rows.isEmpty
+                  ? const AppLoadingView(message: 'Loading...')
+                  : controller.rows.isEmpty
+                  ? const SettingsEmptyState(
+                      icon: Icons.link_outlined,
+                      title: 'No mappings',
+                      message:
+                          'No rows match the filters. Add a mapping with the form above.',
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
+                            child: DataTable(
+                              headingRowHeight: 40,
+                              dataRowMinHeight: 40,
+                              dataRowMaxHeight: 56,
+                              columns: const [
+                                DataColumn(label: Text('Party')),
+                                DataColumn(label: Text('Account')),
+                                DataColumn(label: Text('Purpose')),
+                                DataColumn(label: Text('Default')),
+                                DataColumn(label: Text('Active')),
+                                DataColumn(label: Text('')),
+                              ],
+                              rows: controller.rows
+                                  .map((row) {
+                                    final partyLabel =
+                                        row.partyName?.isNotEmpty == true
+                                        ? row.partyName!
+                                        : (row.partyCode ?? '-');
+                                    final accountLabel =
+                                        row.accountName?.isNotEmpty == true
+                                        ? row.accountName!
+                                        : (row.accountCode ?? '-');
+                                    final selected =
+                                        controller.editing?.id == row.id;
+                                    return DataRow(
+                                      selected: selected,
+                                      cells: [
+                                        DataCell(Text(partyLabel)),
+                                        DataCell(Text(accountLabel)),
+                                        DataCell(
+                                          Text(row.accountPurpose ?? '-'),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                })
-                                .toList(growable: false),
+                                        DataCell(
+                                          Text(row.isDefault ? 'Yes' : 'No'),
+                                        ),
+                                        DataCell(
+                                          Text(row.isActive ? 'Yes' : 'No'),
+                                        ),
+                                        DataCell(
+                                          IconButton(
+                                            tooltip: 'Edit',
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                            ),
+                                            onPressed: () =>
+                                                controller.editRow(row),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  })
+                                  .toList(growable: false),
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ],
       ),
     );
