@@ -1169,3 +1169,11 @@ static IANA option list. `CompanyPage` composes the existing
 data, or alter the existing typed `CompanyModel`/`MasterService` contract. A
 saved value outside the curated list is appended only for the active editor so
 the shared dropdown can resolve the selection safely.
+
+## Authentication and Security UTC display — 2026-09-10
+
+Authentication keeps timestamp storage and expiry decisions in the backend.
+The Login History typed model prefers API `*_local` values for rendering, while
+the Activity Watch model uses the same local-field preference and consumes a
+server-calculated pairing-expiry flag. This extends existing typed models and
+services; no client-side time service or duplicate request is introduced.

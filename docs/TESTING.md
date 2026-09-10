@@ -1867,3 +1867,12 @@ been packaged successfully.
   select a different timezone; save and reopen it. Open a company with a saved
   timezone outside the curated list and confirm it remains selected and can be
   saved without replacement.
+
+## Authentication and Security Company-time display — 2026-09-10
+
+- Focused formatting and `flutter analyze` for Login History and Activity Watch
+  models/page must pass.
+- Manual: switch the active Company timezone, open Login History and Activity
+  Watch, and confirm displayed timestamps follow the API local fields. Change
+  the browser clock and confirm a pairing's status does not change until the
+  server response changes.

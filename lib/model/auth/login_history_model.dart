@@ -10,6 +10,8 @@ class LoginHistoryModel extends JsonModel {
     this.displayName,
     this.loginAt,
     this.logoutAt,
+    this.loginAtLocal,
+    this.logoutAtLocal,
     this.ipAddress,
     this.hostName,
     this.userAgent,
@@ -26,6 +28,8 @@ class LoginHistoryModel extends JsonModel {
   final String? displayName;
   final String? loginAt;
   final String? logoutAt;
+  final String? loginAtLocal;
+  final String? logoutAtLocal;
   final String? ipAddress;
   final String? hostName;
   final String? userAgent;
@@ -45,6 +49,8 @@ class LoginHistoryModel extends JsonModel {
       displayName: json['display_name']?.toString(),
       loginAt: json['login_at']?.toString(),
       logoutAt: json['logout_at']?.toString(),
+      loginAtLocal: json['login_at_local']?.toString(),
+      logoutAtLocal: json['logout_at_local']?.toString(),
       ipAddress: json['ip_address']?.toString(),
       hostName: json['host_name']?.toString(),
       userAgent: json['user_agent']?.toString(),
@@ -63,7 +69,6 @@ class LoginHistoryModel extends JsonModel {
     lastName,
   ], defaultValue: 'Login History');
 
-
   @override
   Map<String, dynamic> toJson() {
     return {
@@ -75,6 +80,8 @@ class LoginHistoryModel extends JsonModel {
       if (displayName != null) 'display_name': displayName,
       if (loginAt != null) 'login_at': loginAt,
       if (logoutAt != null) 'logout_at': logoutAt,
+      if (loginAtLocal != null) 'login_at_local': loginAtLocal,
+      if (logoutAtLocal != null) 'logout_at_local': logoutAtLocal,
       if (ipAddress != null) 'ip_address': ipAddress,
       if (hostName != null) 'host_name': hostName,
       if (userAgent != null) 'user_agent': userAgent,

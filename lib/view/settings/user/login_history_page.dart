@@ -446,8 +446,8 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
                   DataCell(Text(displayName.isEmpty ? '-' : displayName)),
                   DataCell(Text(entry.username ?? '-')),
                   DataCell(Text(entry.status ?? '-')),
-                  DataCell(Text(entry.loginAt ?? '-')),
-                  DataCell(Text(entry.logoutAt ?? '-')),
+                  DataCell(Text(entry.loginAtLocal ?? entry.loginAt ?? '-')),
+                  DataCell(Text(entry.logoutAtLocal ?? entry.logoutAt ?? '-')),
                   DataCell(
                     Text(
                       '${entry.deviceType ?? '-'} / ${entry.browser ?? '-'} / ${entry.os ?? '-'}',
@@ -505,8 +505,10 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('Login: ${entry.loginAt ?? '-'}'),
-                  Text('Logout: ${entry.logoutAt ?? '-'}'),
+                  Text('Login: ${entry.loginAtLocal ?? entry.loginAt ?? '-'}'),
+                  Text(
+                    'Logout: ${entry.logoutAtLocal ?? entry.logoutAt ?? '-'}',
+                  ),
                   Text('IP: ${entry.ipAddress ?? '-'}'),
                   Text('Host: ${entry.hostName ?? '-'}'),
                   Text(

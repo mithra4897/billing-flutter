@@ -49,6 +49,9 @@ For a backend and frontend change that belongs to one feature, use the same deci
   company IANA timezone through the shared form control.
 - [CRM Company-timezone scheduling](crm-company-timezone-scheduling.md) — CRM
   forms use Company local time while the API stores UTC.
+- [Authentication and Security Company-time display](auth-security-company-time.md)
+  — login history and Activity Watch use API-provided Company-local display
+  values while the server stores instants in UTC.
 
 - [ERP line discount by percentage or amount](erp-line-discount-input.md) —
   choose `%` or fixed `Amt` in editable sales and purchase line tables.

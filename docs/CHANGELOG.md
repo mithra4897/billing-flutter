@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-10 — Authentication and Security UTC time rollout
+
+- Request: Complete the Authentication and Security module in the global UTC
+  rollout.
+- Implementation: Login History and Activity Watch now prefer API-provided
+  Company-local display timestamps; pairing expiry is server-authoritative.
+- Database/API impact: The backend stores relevant instants in UTC and adds
+  additive `*_local` display fields plus `is_pairing_expired` for devices.
+- Security impact: Lockout, password-reset expiry, audit, and device status no
+  longer depend on a browser/device clock.
+- Documentation updated: UTC rollout, auth/security contract, specification,
+  architecture, ADR, testing notes, and this changelog.
+- Known limitations: Existing historical timezone-neutral data is unchanged
+  until its original timezone is confirmed and an approved migration is run.
+
 ## 2026-09-10 — Standardize Accounts register columns to 5-6 columns with balanced spacing
 
 - Standardized all 11 Accounts module registers to between 5 and 6 columns, eliminating crowded headers and text collisions (e.g. Credit and Approval collision on Voucher Register).

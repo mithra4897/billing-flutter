@@ -3067,6 +3067,14 @@ preserves a previously stored value outside that set. The field does not change
 the UTC storage policy; it identifies the company timezone used for display and
 date-only business rules. No API, schema, permission, or additional request is
 introduced. Focused formatting, analysis, and existing tests must pass.
+
+## Authentication and Security Company-time display — 2026-09-10
+
+Login History must display API-provided `login_at_local` and `logout_at_local`
+when available. Activity Watch device timestamps must prefer API-provided local
+fields, and pairing expiry must use the server-provided status rather than the
+browser clock. UTC API timestamp fields remain available for compatibility and
+server-authoritative processing.
 # Shared register list and filter naming — 2026-09-08
 
 ## Objective

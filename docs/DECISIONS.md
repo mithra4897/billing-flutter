@@ -1363,3 +1363,21 @@
   compatibility with existing valid IANA values remains unchanged.
 - Related files: `CompanyManagementController`, `CompanyPage`, and
   `company-timezone-dropdown.md`.
+
+## ADR-0056: Keep Authentication and Security time authoritative on the server
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: Browser-local timestamps and expiry comparisons can disagree with
+  the company setting and with server records.
+- Decision: Store Authentication and Activity Watch instants in UTC; expose
+  Company-local display fields from the API; use server-calculated pairing
+  expiry.
+- Reason: A single server clock avoids incorrect login/security audit times and
+  pairing status on devices with inaccurate clocks.
+- Alternatives considered: Convert UTC timestamps in every Flutter page; let
+  each browser calculate expiry. Both approaches duplicate timezone behavior.
+- Consequences: The UI remains a typed display consumer, and old API responses
+  retain a UTC fallback until all environments are updated.
+- Related files: `auth-security-company-time.md`, Login History model/page, and
+  Activity Watch model.

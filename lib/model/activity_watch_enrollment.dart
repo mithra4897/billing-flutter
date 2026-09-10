@@ -41,6 +41,7 @@ final class ActivityWatchPairingSession {
       pairingToken: json['pairing_token']?.toString() ?? '',
       pairingUrl: json['pairing_url']?.toString() ?? '',
       expiresAt:
+          DateTime.tryParse(json['expires_at_local']?.toString() ?? '') ??
           DateTime.tryParse(json['expires_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       installerUrl: json['installer_url']?.toString(),
@@ -66,6 +67,7 @@ final class ActivityWatchDevice {
     this.revokedAt,
     this.pairingExpiresAt,
     this.pairedAt,
+    this.isPairingExpiredFromServer = false,
   });
 
   final String id;
@@ -76,13 +78,11 @@ final class ActivityWatchDevice {
   final DateTime? revokedAt;
   final DateTime? pairingExpiresAt;
   final DateTime? pairedAt;
+  final bool isPairingExpiredFromServer;
 
   bool get isActive => revokedAt == null;
   bool get isPaired => pairedAt != null || lastSeenAt != null;
-  bool get isPairingExpired =>
-      !isPaired &&
-      pairingExpiresAt != null &&
-      pairingExpiresAt!.isBefore(DateTime.now());
+  bool get isPairingExpired => !isPaired && isPairingExpiredFromServer;
 
   String get connectionStatus {
     if (!isActive) return 'Revoked';
@@ -97,14 +97,30 @@ final class ActivityWatchDevice {
       label: json['device_label']?.toString() ?? '',
       platform: json['platform']?.toString() ?? '',
       consentedAt:
+          DateTime.tryParse(json['consented_at_local']?.toString() ?? '') ??
           DateTime.tryParse(json['consented_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-      lastSeenAt: DateTime.tryParse(json['last_seen_at']?.toString() ?? ''),
-      revokedAt: DateTime.tryParse(json['revoked_at']?.toString() ?? ''),
-      pairingExpiresAt: DateTime.tryParse(
-        json['pairing_expires_at']?.toString() ?? '',
+      lastSeenAt: DateTime.tryParse(
+        json['last_seen_at_local']?.toString() ??
+            json['last_seen_at']?.toString() ??
+            '',
       ),
-      pairedAt: DateTime.tryParse(json['paired_at']?.toString() ?? ''),
+      revokedAt: DateTime.tryParse(
+        json['revoked_at_local']?.toString() ??
+            json['revoked_at']?.toString() ??
+            '',
+      ),
+      pairingExpiresAt: DateTime.tryParse(
+        json['pairing_expires_at_local']?.toString() ??
+            json['pairing_expires_at']?.toString() ??
+            '',
+      ),
+      pairedAt: DateTime.tryParse(
+        json['paired_at_local']?.toString() ??
+            json['paired_at']?.toString() ??
+            '',
+      ),
+      isPairingExpiredFromServer: JsonModel.boolOf(json['is_pairing_expired']),
     );
   }
 
