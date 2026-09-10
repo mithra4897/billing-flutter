@@ -729,40 +729,41 @@ class VoucherRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<VoucherModel>(
           label: 'Voucher No',
+          flex: 3,
           valueBuilder: (row) => row.voucherNo ?? '-',
         ),
         PurchaseRegisterColumn<VoucherModel>(
           label: 'Date',
+          flex: 2,
           valueBuilder: (row) => displayDate(row.voucherDate),
         ),
         PurchaseRegisterColumn<VoucherModel>(
           label: 'Type',
+          flex: 2,
           valueBuilder: (row) => row.voucherTypeName ?? '-',
         ),
         PurchaseRegisterColumn<VoucherModel>(
-          label: 'Ref No',
-          valueBuilder: (row) => row.referenceNo ?? '-',
+          label: 'Ref No / Narration',
+          flex: 4,
+          valueBuilder: (row) =>
+              (row.referenceNo != null && row.referenceNo!.trim().isNotEmpty)
+                  ? row.referenceNo!
+                  : (row.narration != null && row.narration!.trim().isNotEmpty)
+                      ? row.narration!
+                      : '-',
         ),
         PurchaseRegisterColumn<VoucherModel>(
-          label: 'Debit',
+          label: 'Amount',
+          flex: 2,
           alignRight: true,
-          valueBuilder: (row) => formatAmount(row.totalDebit),
-        ),
-        PurchaseRegisterColumn<VoucherModel>(
-          label: 'Credit',
-          alignRight: true,
-          valueBuilder: (row) => formatAmount(row.totalCredit),
-        ),
-        PurchaseRegisterColumn<VoucherModel>(
-          label: 'Approval',
-          valueBuilder: (row) => row.approvalStatus ?? 'draft',
-          widgetBuilder: (context, row) => AppStatusBadge(
-            label: (row.approvalStatus ?? 'draft').titleCase,
-            color: appStatusColor(row.approvalStatus),
+          padding: const EdgeInsets.only(right: 8),
+          valueBuilder: (row) => formatAmount(
+            row.totalDebit > 0 ? row.totalDebit : row.totalCredit,
           ),
         ),
         PurchaseRegisterColumn<VoucherModel>(
           label: 'Posting',
+          flex: 2,
           valueBuilder: (row) => row.postingStatus ?? 'draft',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.postingStatus ?? 'draft').titleCase,
@@ -873,6 +874,7 @@ class AccountRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<AccountModel>(
           label: 'Code',
+          flex: 2,
           valueBuilder: (row) => row.accountCode ?? '-',
         ),
         PurchaseRegisterColumn<AccountModel>(
@@ -887,19 +889,19 @@ class AccountRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<AccountModel>(
           label: 'Type',
+          flex: 2,
           valueBuilder: (row) => (row.accountType ?? '-').titleCase,
         ),
         PurchaseRegisterColumn<AccountModel>(
-          label: 'Currency',
-          valueBuilder: (row) => row.currencyCode ?? 'INR',
-        ),
-        PurchaseRegisterColumn<AccountModel>(
           label: 'Opening Balance',
+          flex: 3,
           alignRight: true,
+          padding: const EdgeInsets.only(right: 8),
           valueBuilder: (row) => formatAmount(row.openingBalance ?? 0),
         ),
         PurchaseRegisterColumn<AccountModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: row.isActive ? 'Active' : 'Inactive',
@@ -1246,33 +1248,33 @@ class DocumentPostingRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<DocumentPostingModel>(
           label: 'Date',
+          flex: 2,
           valueBuilder: (row) => displayDate(row.documentDate),
         ),
         PurchaseRegisterColumn<DocumentPostingModel>(
           label: 'Module',
+          flex: 2,
           valueBuilder: (row) => (row.documentModule ?? '-').titleCase,
         ),
         PurchaseRegisterColumn<DocumentPostingModel>(
-          label: 'Table',
-          valueBuilder: (row) => row.documentTable ?? '-',
-        ),
-        PurchaseRegisterColumn<DocumentPostingModel>(
           label: 'Voucher ID',
+          flex: 2,
           valueBuilder: (row) =>
               row.voucherId != null ? '#${row.voucherId}' : '-',
-        ),
-        PurchaseRegisterColumn<DocumentPostingModel>(
-          label: 'Status',
-          valueBuilder: (row) => row.postingStatus ?? 'draft',
-          widgetBuilder: (context, row) => AppStatusBadge(
-            label: (row.postingStatus ?? 'draft').titleCase,
-            color: appStatusColor(row.postingStatus),
-          ),
         ),
         PurchaseRegisterColumn<DocumentPostingModel>(
           label: 'Remarks / Error',
           flex: 4,
           valueBuilder: (row) => row.errorMessage ?? row.remarks ?? '-',
+        ),
+        PurchaseRegisterColumn<DocumentPostingModel>(
+          label: 'Status',
+          flex: 2,
+          valueBuilder: (row) => row.postingStatus ?? 'draft',
+          widgetBuilder: (context, row) => AppStatusBadge(
+            label: (row.postingStatus ?? 'draft').titleCase,
+            color: appStatusColor(row.postingStatus),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -1351,6 +1353,7 @@ class BudgetRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<BudgetModel>(
           label: 'Code',
+          flex: 2,
           valueBuilder: (row) => row.budgetCode ?? '-',
         ),
         PurchaseRegisterColumn<BudgetModel>(
@@ -1360,14 +1363,17 @@ class BudgetRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<BudgetModel>(
           label: 'From Date',
+          flex: 2,
           valueBuilder: (row) => displayDate(row.dateFrom),
         ),
         PurchaseRegisterColumn<BudgetModel>(
           label: 'To Date',
+          flex: 2,
           valueBuilder: (row) => displayDate(row.dateTo),
         ),
         PurchaseRegisterColumn<BudgetModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => row.budgetStatus ?? 'draft',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.budgetStatus ?? 'draft').titleCase,
@@ -1376,6 +1382,7 @@ class BudgetRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<BudgetModel>(
           label: 'Active',
+          flex: 2,
           valueBuilder: (row) => (row.isActive ?? true) ? 'Active' : 'Inactive',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.isActive ?? true) ? 'Active' : 'Inactive',
@@ -1466,25 +1473,26 @@ class CashSessionRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<CashSessionModel>(
           label: 'Opened',
+          flex: 3,
           valueBuilder: (row) => displayDateTime(row.openingDatetime),
         ),
         PurchaseRegisterColumn<CashSessionModel>(
           label: 'Opening Bal',
+          flex: 2,
           alignRight: true,
+          padding: const EdgeInsets.only(right: 8),
           valueBuilder: (row) => formatAmount(row.openingBalance ?? 0),
         ),
         PurchaseRegisterColumn<CashSessionModel>(
-          label: 'Actual Closing',
+          label: 'Closing Bal',
+          flex: 2,
           alignRight: true,
+          padding: const EdgeInsets.only(right: 8),
           valueBuilder: (row) => formatAmount(row.actualClosingBalance ?? 0),
         ),
         PurchaseRegisterColumn<CashSessionModel>(
-          label: 'Variance',
-          alignRight: true,
-          valueBuilder: (row) => formatAmount(row.varianceAmount ?? 0),
-        ),
-        PurchaseRegisterColumn<CashSessionModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => row.status ?? 'open',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.status ?? 'open').titleCase,
@@ -1584,27 +1592,29 @@ class BankReconciliationRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<BankReconciliationModel>(
           label: 'Voucher No',
+          flex: 3,
           valueBuilder: (row) => row.voucherNo ?? '-',
         ),
         PurchaseRegisterColumn<BankReconciliationModel>(
           label: 'Bank Date',
+          flex: 2,
           valueBuilder: (row) => displayDate(row.bankDate),
         ),
         PurchaseRegisterColumn<BankReconciliationModel>(
-          label: 'Cleared Date',
-          valueBuilder: (row) => displayDate(row.clearedDate),
-        ),
-        PurchaseRegisterColumn<BankReconciliationModel>(
-          label: 'Amount',
-          alignRight: true,
-          valueBuilder: (row) => formatAmount(row.voucherAmount ?? 0),
-        ),
-        PurchaseRegisterColumn<BankReconciliationModel>(
           label: 'Ref No',
+          flex: 2,
           valueBuilder: (row) => row.bankReferenceNo ?? '-',
         ),
         PurchaseRegisterColumn<BankReconciliationModel>(
+          label: 'Amount',
+          flex: 2,
+          alignRight: true,
+          padding: const EdgeInsets.only(right: 8),
+          valueBuilder: (row) => formatAmount(row.voucherAmount ?? 0),
+        ),
+        PurchaseRegisterColumn<BankReconciliationModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => row.reconciliationStatus ?? 'pending',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.reconciliationStatus ?? 'pending').titleCase,
@@ -1693,10 +1703,12 @@ class PostingRuleRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<PostingRuleModel>(
           label: 'Line',
+          flex: 1,
           valueBuilder: (row) => '#${row.lineNo ?? 1}',
         ),
         PurchaseRegisterColumn<PostingRuleModel>(
           label: 'Side',
+          flex: 2,
           valueBuilder: (row) => (row.entrySide ?? '-').titleCase,
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.entrySide ?? '-').titleCase,
@@ -1722,6 +1734,7 @@ class PostingRuleRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn<PostingRuleModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => (row.isActive ?? true) ? 'Active' : 'Inactive',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.isActive ?? true) ? 'Active' : 'Inactive',
@@ -1807,6 +1820,7 @@ class PostingRuleGroupRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<PostingRuleGroupModel>(
           label: 'Code',
+          flex: 2,
           valueBuilder: (row) => row.groupCode ?? '-',
         ),
         PurchaseRegisterColumn<PostingRuleGroupModel>(
@@ -1815,16 +1829,23 @@ class PostingRuleGroupRegisterPage extends StatelessWidget {
           valueBuilder: (row) => row.groupName ?? '-',
         ),
         PurchaseRegisterColumn<PostingRuleGroupModel>(
+          label: 'Description',
+          flex: 4,
+          valueBuilder: (row) => row.description ?? '-',
+        ),
+        PurchaseRegisterColumn<PostingRuleGroupModel>(
           label: 'Document Type',
           flex: 3,
           valueBuilder: (row) => (row.documentType ?? '-').titleCase,
         ),
         PurchaseRegisterColumn<PostingRuleGroupModel>(
           label: 'Trigger',
+          flex: 2,
           valueBuilder: (row) => (row.triggerEvent ?? '-').titleCase,
         ),
         PurchaseRegisterColumn<PostingRuleGroupModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => (row.isActive ?? true) ? 'Active' : 'Inactive',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: (row.isActive ?? true) ? 'Active' : 'Inactive',
@@ -1917,28 +1938,32 @@ class AccountsPartyAccountRegisterPage extends StatelessWidget {
       columns: [
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Party',
-          flex: 4,
+          flex: 3,
           valueBuilder: (row) => row.partyName ?? 'Party #${row.partyId}',
         ),
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Account Code',
+          flex: 2,
           valueBuilder: (row) => row.accountCode ?? '-',
         ),
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Account Name',
-          flex: 4,
+          flex: 3,
           valueBuilder: (row) => row.accountName ?? '-',
         ),
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Purpose',
+          flex: 2,
           valueBuilder: (row) => (row.accountPurpose ?? '-').titleCase,
         ),
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Default',
+          flex: 2,
           valueBuilder: (row) => row.isDefault ? 'Yes' : 'No',
         ),
         PurchaseRegisterColumn<PartyAccountModel>(
           label: 'Status',
+          flex: 2,
           valueBuilder: (row) => row.isActive ? 'Active' : 'Inactive',
           widgetBuilder: (context, row) => AppStatusBadge(
             label: row.isActive ? 'Active' : 'Inactive',

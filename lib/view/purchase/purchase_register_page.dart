@@ -594,7 +594,8 @@ class _RegisterHeader<T> extends StatelessWidget {
               (column) => Expanded(
                 flex: column.flex,
                 child: Padding(
-                  padding: column.padding ?? EdgeInsets.zero,
+                  padding: column.padding ??
+                      const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     column.label,
                     textAlign: column.center
@@ -742,7 +743,7 @@ class _RegisterCell<T> extends StatelessWidget {
           );
 
     final paddedPrimaryWidget = Padding(
-      padding: column.padding ?? EdgeInsets.zero,
+      padding: column.padding ?? const EdgeInsets.symmetric(horizontal: 4),
       child: primaryWidget,
     );
 
