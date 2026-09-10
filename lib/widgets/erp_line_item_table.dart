@@ -744,6 +744,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       return _isHiddenPlaceholderCell(cell.child);
     }
     if (cell is ErpLineItemTextCell) {
+      // Controller-backed fields are real document columns, even when blank
+      // or read-only. Only explicit static placeholders may hide a column.
+      if (cell.controller != null) return false;
       final value = (cell.initialValue ?? '').trim();
       return cell.readOnly &&
           !cell.enabled &&

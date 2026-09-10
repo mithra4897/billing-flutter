@@ -1,5 +1,11 @@
 # Testing
 
+## Rejected claim columns — 2026-09-10
+
+Shared table tests passed (5/5), including populated and blank read-only
+controller columns. Focused analysis passed. Live authenticated visual
+verification remains manual.
+
 ## Global required-marker fallback — 2026-09-10
 
 Focused required-detector and table tests passed (6 tests). Focused analysis

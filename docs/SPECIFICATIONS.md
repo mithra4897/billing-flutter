@@ -1,5 +1,11 @@
 # Specifications
 
+## Read-only expense columns — 2026-09-10
+
+Controller-backed line-table fields remain visible for rejected and other
+read-only documents, including empty optional fields. Static placeholder cells
+retain their existing column-hiding behavior.
+
 ## Global required-marker fallback — 2026-09-10
 
 Shared required-marker detection must recognize legacy wrapped validators that

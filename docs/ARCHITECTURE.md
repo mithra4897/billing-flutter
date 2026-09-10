@@ -1,5 +1,8 @@
 # Architecture
 
+Read-only line-table column detection preserves controller-backed text cells.
+Only static empty/placeholder cells qualify for automatic column hiding.
+
 ## Global required-marker fallback — 2026-09-10
 
 `Validators.isRequiredValidator` first checks existing metadata, then probes

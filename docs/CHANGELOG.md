@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-10 — Restore rejected claim expense columns
+
+The shared table no longer mistakes read-only controller-backed fields for
+empty static placeholders. Rejected claims retain their expense columns.
+
 ## 2026-09-10 — Global wrapped-validator required markers
 
 Extended the shared required detector and parent table to cover legacy wrapped
