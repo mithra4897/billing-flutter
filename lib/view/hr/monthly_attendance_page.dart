@@ -313,79 +313,53 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
     }
   }
 
-  Widget _buildInlineFilterBar() => HrInlineFilterBar(
-    filterFields: [
-      hrListFilterBox(
-        child: AppFormTextField(
-          controller: _searchController,
-          labelText: 'Search',
-          hintText: 'Employee name or code',
-        ),
-      ),
-      hrListFilterBox(
-        child: AppDropdownField<int>.fromMapped(
-          labelText: 'Employee',
-          mappedItems: (_sheet?.employees ?? const [])
-              .map(
-                (employee) => AppDropdownItem<int>(
-                  value: employee.id,
-                  label: employee.employeeName,
-                ),
-              )
-              .toList(growable: false),
-          multiInitialValues: _filterEmployeeIds,
-          multiHintText: 'Select employees',
-          onMultiChanged: (values) {
-            setState(() => _filterEmployeeIds = Set<int>.from(values));
-          },
-        ),
-      ),
-      hrListFilterBox(
-        child: AppDropdownField<String>.fromMapped(
-          labelText: 'Status',
-          mappedItems: _attendanceStatusFilters,
-          multiInitialValues: _filterStatuses,
-          multiHintText: 'Select statuses',
-          onMultiChanged: (values) {
-            setState(() => _filterStatuses = Set<String>.from(values));
-          },
-        ),
-      ),
-      hrListFilterBox(
-        child: AppDropdownField<String>.fromMapped(
-          labelText: 'Source',
-          mappedItems: _attendanceSourceFilters,
-          multiInitialValues: _filterSources,
-          multiHintText: 'Select sources',
-          onMultiChanged: (values) {
-            setState(() => _filterSources = Set<String>.from(values));
-          },
-        ),
-      ),
-      hrListFilterBox(
-        child: AppDropdownField<int>.fromMapped(
-          labelText: 'Month',
-          initialValue: _month,
-          mappedItems: List<AppDropdownItem<int>>.generate(
-            12,
-            (index) => AppDropdownItem<int>(
-              value: index + 1,
-              label: _monthName(index + 1),
-            ),
+  Widget _buildAttendanceFilters() => SharedFilterBar(
+    showDateFilters: false,
+    partyLabel: 'Employee',
+    partyItems: (_sheet?.employees ?? const [])
+        .map(
+          (employee) => AppDropdownItem<int>(
+            value: employee.id,
+            label: employee.employeeName,
           ),
-          onChanged: (value) => _selectReportPeriod(month: value),
+        )
+        .toList(growable: false),
+    selectedPartyIds: _filterEmployeeIds,
+    onPartyChanged: (values) {
+      setState(() => _filterEmployeeIds = Set<int>.from(values));
+    },
+    statusItems: _attendanceStatusFilters,
+    selectedStatuses: _filterStatuses,
+    onStatusesChanged: (values) {
+      setState(() => _filterStatuses = Set<String>.from(values));
+    },
+    typeLabel: 'Source',
+    typeItems: _attendanceSourceFilters,
+    selectedTypes: _filterSources,
+    onTypesChanged: (values) {
+      setState(() => _filterSources = Set<String>.from(values));
+    },
+    additionalFields: [
+      AppDropdownField<int>.fromMapped(
+        labelText: 'Month',
+        initialValue: _month,
+        mappedItems: List<AppDropdownItem<int>>.generate(
+          12,
+          (index) => AppDropdownItem<int>(
+            value: index + 1,
+            label: _monthName(index + 1),
+          ),
         ),
+        onChanged: (value) => _selectReportPeriod(month: value),
       ),
-      hrListFilterBox(
-        child: AppDropdownField<int>.fromMapped(
-          labelText: 'Year',
-          initialValue: _year,
-          mappedItems: List<AppDropdownItem<int>>.generate(7, (index) {
-            final value = DateTime.now().year - 4 + index;
-            return AppDropdownItem<int>(value: value, label: '$value');
-          }),
-          onChanged: (value) => _selectReportPeriod(year: value),
-        ),
+      AppDropdownField<int>.fromMapped(
+        labelText: 'Year',
+        initialValue: _year,
+        mappedItems: List<AppDropdownItem<int>>.generate(7, (index) {
+          final value = DateTime.now().year - 4 + index;
+          return AppDropdownItem<int>(value: value, label: '$value');
+        }),
+        onChanged: (value) => _selectReportPeriod(year: value),
       ),
     ],
     onClear: () {
@@ -442,6 +416,10 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
   @override
   Widget build(BuildContext context) {
     final actions = <Widget>[
+      AdaptiveShellSearchField(
+        controller: _searchController,
+        hintText: 'Search attendance',
+      ),
       if (!widget.manualOnly) ...[
         AdaptiveShellActionButton(
           icon: Icons.filter_alt_outlined,
@@ -550,7 +528,7 @@ class _MonthlyAttendancePageState extends State<MonthlyAttendancePage> {
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
           ] else if (_filtersVisible) ...[
-            _buildInlineFilterBar(),
+            AppRegisterFiltersSection(filters: _buildAttendanceFilters()),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           if (_loading)

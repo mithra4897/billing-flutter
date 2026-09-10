@@ -67,100 +67,50 @@ class _ExpenseClaimsManagementPageState
   ExpenseClaimsManagementController get _controller =>
       Get.find<ExpenseClaimsManagementController>(tag: _controllerTag);
 
-  Widget _buildInlineExpenseFilters() {
+  Widget _buildExpenseFilters() {
     final controller = _controller;
-    return HrInlineFilterBar(
-      filterFields: [
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.searchController,
-            labelText: 'Search',
-            hintText: 'Search claims…',
-          ),
-        ),
-        if (controller.canViewAllClaims)
-          hrListFilterBox(
-            child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee',
-              mappedItems: controller.employees
-                  .where(
-                    (employee) =>
-                        employee.companyId == controller.companyId &&
-                        employee.id != null,
-                  )
-                  .map(
-                    (employee) => AppDropdownItem<int>(
-                      value: employee.id!,
-                      label: employee.toString(),
-                    ),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.filterEmployeeIds,
-              multiHintText: 'Select employees',
-              onMultiChanged: controller.setFilterEmployeeIds,
-            ),
-          ),
-        hrListFilterBox(
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Payment',
-            mappedItems: ExpenseClaimsManagementController.paymentFilterItems
-                .where((item) => item.value != null)
+    return SharedFilterBar(
+      dateFromController: controller.filterDateFromController,
+      dateToController: controller.filterDateToController,
+      partyLabel: 'Employee',
+      partyItems: controller.canViewAllClaims
+          ? controller.employees
+                .where(
+                  (employee) =>
+                      employee.companyId == controller.companyId &&
+                      employee.id != null,
+                )
                 .map(
-                  (item) => AppDropdownItem<String>(
-                    value: item.value!,
-                    label: item.label,
+                  (employee) => AppDropdownItem<int>(
+                    value: employee.id!,
+                    label: employee.toString(),
                   ),
                 )
-                .toList(growable: false),
-            multiInitialValues: controller.filterPaymentStatuses,
-            multiHintText: 'Select payments',
-            onMultiChanged: controller.setFilterPaymentStatuses,
-          ),
-        ),
-        hrListFilterBox(
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Status',
-            mappedItems: ExpenseClaimsManagementController.statusFilterItems
-                .where((item) => item.value != null)
-                .map(
-                  (item) => AppDropdownItem<String>(
-                    value: item.value!,
-                    label: item.label,
-                  ),
-                )
-                .toList(growable: false),
-            multiInitialValues: controller.filterClaimStatuses,
-            multiHintText: 'Select statuses',
-            onMultiChanged: controller.setFilterClaimStatuses,
-          ),
-        ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.filterDateFromController,
-            labelText: 'From date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            onChanged: (value) {
-              if (normalizeDateForApi(value).isNotEmpty) {
-                unawaited(controller.loadPage());
-              }
-            },
-          ),
-        ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.filterDateToController,
-            labelText: 'To date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-            onChanged: (value) {
-              if (normalizeDateForApi(value).isNotEmpty) {
-                unawaited(controller.loadPage());
-              }
-            },
-          ),
-        ),
-      ],
+                .toList(growable: false)
+          : null,
+      selectedPartyIds: controller.filterEmployeeIds,
+      onPartyChanged: controller.canViewAllClaims
+          ? controller.setFilterEmployeeIds
+          : null,
+      typeLabel: 'Payment',
+      typeItems: ExpenseClaimsManagementController.paymentFilterItems
+          .where((item) => item.value != null)
+          .map(
+            (item) =>
+                AppDropdownItem<String>(value: item.value!, label: item.label),
+          )
+          .toList(growable: false),
+      selectedTypes: controller.filterPaymentStatuses,
+      onTypesChanged: controller.setFilterPaymentStatuses,
+      statusItems: ExpenseClaimsManagementController.statusFilterItems
+          .where((item) => item.value != null)
+          .map(
+            (item) =>
+                AppDropdownItem<String>(value: item.value!, label: item.label),
+          )
+          .toList(growable: false),
+      selectedStatuses: controller.filterClaimStatuses,
+      onStatusesChanged: controller.setFilterClaimStatuses,
       onClear: () {
         controller.clearExpenseFilters();
         unawaited(controller.loadPage());
@@ -320,6 +270,11 @@ class _ExpenseClaimsManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search claims',
+            ),
           AdaptiveShellActionButton(
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
@@ -380,9 +335,7 @@ class _ExpenseClaimsManagementPageState
       editorTitle: controller.editorTitle,
       scrollController: controller.pageScrollController,
       editorOnly: widget.editorOnly,
-      fullWidthHeader: _filtersVisible
-          ? SharedFilterBar.custom(child: _buildInlineExpenseFilters())
-          : null,
+      fullWidthHeader: _filtersVisible ? _buildExpenseFilters() : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -435,9 +388,7 @@ class _ExpenseClaimsManagementPageState
       errorMessage: controller.pageError,
       onRetry: controller.loadPage,
       actions: actions,
-      filters: _filtersVisible
-          ? SharedFilterBar.custom(child: _buildInlineExpenseFilters())
-          : null,
+      filters: _filtersVisible ? _buildExpenseFilters() : null,
       rows: controller.filteredRows,
       remoteTotalItems: controller.paginationMeta?.total,
       remoteCurrentPage: controller.paginationMeta?.currentPage,

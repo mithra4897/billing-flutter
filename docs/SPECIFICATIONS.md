@@ -10,6 +10,32 @@ paginated employee API request and remain independent from the currently edited
 employee's fields. Clear resets every register filter and reloads page one. The
 editor-only route does not render register filters.
 
+## HR register search and supported filters — 2026-09-10
+
+Every HR list/register that already has search must expose that existing search
+controller in its page app-bar actions, not inside the expandable filter
+surface. A register filter panel may expose only dimensions supported by that
+register's current API query (or its existing local monthly-attendance view);
+no backend parameter, field, or schema is invented for visual consistency.
+Where five supported dimensions exist, retain at least five: Expense Claims
+uses Employee, Payment, Claim Status, From date, and To date; Payroll Runs
+uses Status, Payroll Month, Payroll Year, From date, and To date. Existing
+smaller query contracts, including Leave Requests and Payslips, retain their
+supported filters. Filter panels reuse `SharedFilterBar` and the one outer
+register filter card.
+
+Acceptance criteria:
+
+- Search appears in app-bar actions on Employees, HR masters, Leave Requests,
+  Expense Claims, Attendance, Payroll Runs, Payslips, and Employee Ledger.
+- Search changes retain their existing debounce/local-refresh behavior.
+- No filter panel nests an additional `AppSectionCard`.
+- Each request contains only already-supported filter keys, before pagination.
+- When a register has a date range, the shared `Date From` and `Date To`
+  controls are always its final two filter fields.
+- Employee Ledger uses the same explicit Filter action as the other registers;
+  its filter panel is hidden until that action is selected.
+
 ## Settings workspace controller ownership — 2026-09-10
 
 `SettingsWorkspace` may receive a controller owned by a parent page, provider,

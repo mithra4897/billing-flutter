@@ -42,6 +42,11 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search leave types',
+            ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 openFormScreenRoute(context, '/hr/leave-types/new'),
@@ -95,8 +100,9 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
         PurchaseRegisterColumn<LeaveTypeModel>(
           label: 'Max Days/Year',
           alignRight: true,
-          valueBuilder: (row) =>
-              row.maxDaysPerYear != null ? formatAmount(row.maxDaysPerYear) : '-',
+          valueBuilder: (row) => row.maxDaysPerYear != null
+              ? formatAmount(row.maxDaysPerYear)
+              : '-',
         ),
         PurchaseRegisterColumn<LeaveTypeModel>(
           label: 'Paid / Unpaid',

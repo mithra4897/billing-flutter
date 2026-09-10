@@ -1,5 +1,15 @@
 # Testing
 
+## HR register search and supported filters — 2026-09-10
+
+- Focused `flutter analyze --no-pub` passed for the nine changed HR views.
+- Full `flutter test --no-pub` passed (23/23).
+- Manual authenticated verification remains for each HR register's app-bar
+  search, shared-card expansion, cleared filters, and server-paginated result
+  sets. Verify Payroll Runs accepts the five supported dimensions together,
+  date ranges remain the final two fields, and Employee Ledger filters only
+  appear after selecting Filter.
+
 ## Employee shared register filters — 2026-09-10
 
 - `flutter test --no-pub test/controller/hr/employee_management_controller_filter_test.dart`

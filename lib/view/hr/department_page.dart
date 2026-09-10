@@ -63,6 +63,11 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search departments',
+            ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 openFormScreenRoute(context, '/hr/departments/new'),

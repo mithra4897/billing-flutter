@@ -39,72 +39,39 @@ class _LeaveRequestManagementPageState
     );
   }
 
-  Widget _buildInlineLeaveFilters(LeaveRequestManagementController controller) {
-    return HrInlineFilterBar(
-      filterFields: [
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.searchController,
-            labelText: 'Search',
-            hintText: 'Search leave requests',
-          ),
-        ),
-        if (controller.canViewAllHr) ...[
-          hrListFilterBox(
-            child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee',
-              mappedItems: controller.employees
-                  .where(
-                    (e) =>
-                        e.companyId == controller.sessionCompanyId &&
-                        e.id != null,
-                  )
-                  .map(
-                    (e) =>
-                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.listFilterEmployeeIds,
-              multiHintText: 'Select employees',
-              onMultiChanged: controller.setListFilterEmployeeIds,
-            ),
-          ),
-          hrListFilterBox(
-            child: AppDropdownField<String>.fromMapped(
-              labelText: 'Status',
-              mappedItems: LeaveRequestManagementController
-                  .listStatusFilterItems
-                  .where((item) => item.value != null)
-                  .map(
-                    (item) => AppDropdownItem<String>(
-                      value: item.value!,
-                      label: item.label,
-                    ),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.listFilterStatuses,
-              multiHintText: 'Select statuses',
-              onMultiChanged: controller.setListFilterStatuses,
-            ),
-          ),
-        ],
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.listDateFromController,
-            labelText: 'From date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.listDateToController,
-            labelText: 'To date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-      ],
+  Widget _buildLeaveFilters(LeaveRequestManagementController controller) {
+    return SharedFilterBar(
+      dateFromController: controller.listDateFromController,
+      dateToController: controller.listDateToController,
+      partyLabel: 'Employee',
+      partyItems: controller.canViewAllHr
+          ? controller.employees
+                .where(
+                  (employee) =>
+                      employee.companyId == controller.sessionCompanyId &&
+                      employee.id != null,
+                )
+                .map(
+                  (employee) => AppDropdownItem<int>(
+                    value: employee.id!,
+                    label: employee.toString(),
+                  ),
+                )
+                .toList(growable: false)
+          : null,
+      selectedPartyIds: controller.listFilterEmployeeIds,
+      onPartyChanged: controller.canViewAllHr
+          ? controller.setListFilterEmployeeIds
+          : null,
+      statusItems: LeaveRequestManagementController.listStatusFilterItems
+          .where((item) => item.value != null)
+          .map(
+            (item) =>
+                AppDropdownItem<String>(value: item.value!, label: item.label),
+          )
+          .toList(growable: false),
+      selectedStatuses: controller.listFilterStatuses,
+      onStatusesChanged: controller.setListFilterStatuses,
       onClear: () {
         controller.clearLeaveListFilters();
         unawaited(controller.loadData());
@@ -118,6 +85,11 @@ class _LeaveRequestManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search leave requests',
+            ),
           AdaptiveShellActionButton(
             icon: Icons.filter_alt_outlined,
             label: 'Filter',
@@ -162,9 +134,7 @@ class _LeaveRequestManagementPageState
       errorMessage: controller.pageError,
       onRetry: controller.loadData,
       actions: actions,
-      filters: _filtersVisible
-          ? SharedFilterBar.custom(child: _buildInlineLeaveFilters(controller))
-          : null,
+      filters: _filtersVisible ? _buildLeaveFilters(controller) : null,
       rows: controller.filteredLeaveRequests,
       remoteTotalItems: controller.paginationMeta?.total,
       remoteCurrentPage: controller.paginationMeta?.currentPage,
@@ -192,7 +162,8 @@ class _LeaveRequestManagementPageState
           label: 'Days',
           alignRight: true,
           valueBuilder: (row) {
-            final total = (row.paidLeaveDays ?? 0) +
+            final total =
+                (row.paidLeaveDays ?? 0) +
                 (row.clApprovedDays ?? 0) +
                 (row.lopDays ?? 0);
             return total > 0 ? formatAmount(total) : '-';
@@ -236,9 +207,7 @@ class _LeaveRequestManagementPageState
       editorTitle: controller.selectedLeaveRequest?.toString(),
       scrollController: controller.pageScrollController,
       editorOnly: widget.editorOnly,
-      fullWidthHeader: _filtersVisible
-          ? SharedFilterBar.custom(child: _buildInlineLeaveFilters(controller))
-          : null,
+      fullWidthHeader: _filtersVisible ? _buildLeaveFilters(controller) : null,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

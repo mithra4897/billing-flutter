@@ -267,6 +267,8 @@ class ExpenseClaimsManagementController extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(_onSearchChanged);
+    filterDateFromController.addListener(_scheduleReload);
+    filterDateToController.addListener(_scheduleReload);
     _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
       event,
     ) {
@@ -290,6 +292,8 @@ class ExpenseClaimsManagementController extends GetxController {
     _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController.removeListener(_onSearchChanged);
+    filterDateFromController.removeListener(_scheduleReload);
+    filterDateToController.removeListener(_scheduleReload);
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController.dispose();

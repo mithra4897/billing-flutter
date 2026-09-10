@@ -250,6 +250,8 @@ class PayrollRunRegisterController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   String statusFilter = '';
+  int? payrollMonthFilter;
+  int? payrollYearFilter;
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -322,6 +324,8 @@ class PayrollRunRegisterController extends GetxController {
         if (searchController.text.trim().isNotEmpty)
           'search': searchController.text.trim(),
         if (statusFilter.isNotEmpty) 'status': statusFilter,
+        if (payrollMonthFilter != null) 'payroll_month': payrollMonthFilter,
+        if (payrollYearFilter != null) 'payroll_year': payrollYearFilter,
         if (dateFromController.text.trim().isNotEmpty)
           'date_from': dateFromController.text.trim(),
         if (dateToController.text.trim().isNotEmpty)
@@ -365,11 +369,27 @@ class PayrollRunRegisterController extends GetxController {
     _scheduleReload();
   }
 
+  void setPayrollMonthFilter(int? value) {
+    payrollMonthFilter = value;
+    update();
+    _scheduleReload();
+  }
+
+  void setPayrollYearFilter(int? value) {
+    payrollYearFilter = value;
+    update();
+    _scheduleReload();
+  }
+
   void clearFilters() {
     searchController.clear();
     dateFromController.clear();
     dateToController.clear();
-    setStatusFilter('');
+    statusFilter = '';
+    payrollMonthFilter = null;
+    payrollYearFilter = null;
+    update();
+    _scheduleReload();
   }
 }
 
@@ -741,6 +761,23 @@ class PayrollRunRegisterPage extends StatefulWidget {
   State<PayrollRunRegisterPage> createState() => _PayrollRunRegisterPageState();
 }
 
+const List<String> _payrollMonthLabels = <String>[
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+String _payrollMonthLabel(int month) => _payrollMonthLabels[month - 1];
+
 class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
   late final String _controllerTag;
   bool _filtersVisible = false;
@@ -767,6 +804,10 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No payroll runs found.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search payroll runs',
+            ),
             AdaptiveShellActionButton(
               icon: Icons.filter_alt_outlined,
               label: 'Filter',
@@ -794,47 +835,45 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
             ),
           ],
           filters: _filtersVisible
-              ? SharedFilterBar.custom(
-                  child: HrInlineFilterBar(
-                    wrapInCard: false,
-                    filterFields: [
-                      hrListFilterBox(
-                        child: AppFormTextField(
-                          controller: controller.searchController,
-                          labelText: 'Search',
-                          hintText: 'Period, status, run date…',
+              ? SharedFilterBar(
+                  dateFromController: controller.dateFromController,
+                  dateToController: controller.dateToController,
+                  additionalFields: [
+                    AppDropdownField<String>.fromMapped(
+                      labelText: 'Status',
+                      mappedItems: PayrollRunRegisterController.statusItems,
+                      initialValue: controller.statusFilter,
+                      onChanged: (value) =>
+                          controller.setStatusFilter(value ?? ''),
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Payroll month',
+                      mappedItems: List<AppDropdownItem<int>>.generate(
+                        12,
+                        (index) => AppDropdownItem<int>(
+                          value: index + 1,
+                          label: _payrollMonthLabel(index + 1),
                         ),
                       ),
-                      hrListFilterBox(
-                        child: AppDropdownField<String>.fromMapped(
-                          labelText: 'Status',
-                          mappedItems: PayrollRunRegisterController.statusItems,
-                          initialValue: controller.statusFilter,
-                          onChanged: (value) =>
-                              controller.setStatusFilter(value ?? ''),
-                        ),
-                      ),
-                      hrListFilterBox(
-                        child: AppFormTextField(
-                          controller: controller.dateFromController,
-                          labelText: 'From date',
-                          keyboardType: TextInputType.datetime,
-                          inputFormatters: const [DateInputFormatter()],
-                        ),
-                      ),
-                      hrListFilterBox(
-                        child: AppFormTextField(
-                          controller: controller.dateToController,
-                          labelText: 'To date',
-                          keyboardType: TextInputType.datetime,
-                          inputFormatters: const [DateInputFormatter()],
-                        ),
-                      ),
-                    ],
-                    onClear: () {
-                      controller.clearFilters();
-                    },
-                  ),
+                      initialValue: controller.payrollMonthFilter,
+                      onChanged: controller.setPayrollMonthFilter,
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Payroll year',
+                      mappedItems: List<AppDropdownItem<int>>.generate(7, (
+                        index,
+                      ) {
+                        final year = DateTime.now().year - 4 + index;
+                        return AppDropdownItem<int>(
+                          value: year,
+                          label: '$year',
+                        );
+                      }),
+                      initialValue: controller.payrollYearFilter,
+                      onChanged: controller.setPayrollYearFilter,
+                    ),
+                  ],
+                  onClear: controller.clearFilters,
                 )
               : null,
           rows: controller.filteredRows,
@@ -950,54 +989,30 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
     }
   }
 
-  Widget _buildInlinePayslipFilters(PayslipRegisterController controller) {
-    return HrInlineFilterBar(
-      wrapInCard: false,
-      filterFields: [
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.searchController,
-            labelText: 'Search',
-            hintText: 'Employee, period, date…',
-          ),
-        ),
-        if (controller.canViewAllHr)
-          hrListFilterBox(
-            child: AppDropdownField<int>.fromMapped(
-              labelText: 'Employee',
-              mappedItems: controller.employees
-                  .where(
-                    (EmployeeModel e) =>
-                        e.companyId == controller.sessionCompanyId &&
-                        e.id != null,
-                  )
-                  .map(
-                    (EmployeeModel e) =>
-                        AppDropdownItem<int>(value: e.id!, label: e.toString()),
-                  )
-                  .toList(growable: false),
-              multiInitialValues: controller.filterEmployeeIds,
-              multiHintText: 'Select employees',
-              onMultiChanged: controller.setEmployeeFilters,
-            ),
-          ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.dateFromController,
-            labelText: 'From date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-        hrListFilterBox(
-          child: AppFormTextField(
-            controller: controller.dateToController,
-            labelText: 'To date',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-        ),
-      ],
+  Widget _buildPayslipFilters(PayslipRegisterController controller) {
+    return SharedFilterBar(
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      partyLabel: 'Employee',
+      partyItems: controller.canViewAllHr
+          ? controller.employees
+                .where(
+                  (employee) =>
+                      employee.companyId == controller.sessionCompanyId &&
+                      employee.id != null,
+                )
+                .map(
+                  (employee) => AppDropdownItem<int>(
+                    value: employee.id!,
+                    label: employee.toString(),
+                  ),
+                )
+                .toList(growable: false)
+          : null,
+      selectedPartyIds: controller.filterEmployeeIds,
+      onPartyChanged: controller.canViewAllHr
+          ? controller.setEmployeeFilters
+          : null,
       onClear: () {
         controller.clearFilters();
         unawaited(controller.load());
@@ -1018,6 +1033,10 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
           onRetry: controller.load,
           emptyMessage: 'No payslips found.',
           actions: [
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search payslips',
+            ),
             AdaptiveShellActionButton(
               icon: Icons.design_services_outlined,
               label: 'Design payslip',
@@ -1039,11 +1058,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
               onPressed: controller.load,
             ),
           ],
-          filters: _filtersVisible
-              ? SharedFilterBar.custom(
-                  child: _buildInlinePayslipFilters(controller),
-                )
-              : null,
+          filters: _filtersVisible ? _buildPayslipFilters(controller) : null,
           rows: controller.filteredRows,
           remoteTotalItems: controller.paginationMeta?.total,
           remoteCurrentPage: controller.paginationMeta?.currentPage,

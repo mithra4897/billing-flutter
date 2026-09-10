@@ -37,6 +37,7 @@ class _EmployeeLedgerRegisterPageState
   final TextEditingController _searchController = TextEditingController();
 
   bool _loading = true;
+  bool _filtersVisible = false;
   String? _errorMessage;
   Set<String> _statuses = <String>{};
   Set<String> _balanceFilters = <String>{};
@@ -265,6 +266,14 @@ class _EmployeeLedgerRegisterPageState
     });
   }
 
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _statuses = <String>{};
+      _balanceFilters = <String>{};
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SharedRegisterList<_EmployeeLedgerRegisterRow>(
@@ -275,6 +284,16 @@ class _EmployeeLedgerRegisterPageState
       onRetry: _loadRows,
       emptyMessage: 'No employee ledgers found.',
       actions: [
+        AdaptiveShellSearchField(
+          controller: _searchController,
+          hintText: 'Search employee ledgers',
+        ),
+        AdaptiveShellActionButton(
+          onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+          icon: Icons.filter_alt_outlined,
+          label: 'Filter',
+          filled: _filtersVisible,
+        ),
         AdaptiveShellActionButton(
           onPressed: _loadRows,
           icon: Icons.refresh_outlined,
@@ -282,15 +301,19 @@ class _EmployeeLedgerRegisterPageState
           filled: false,
         ),
       ],
-      filters: _EmployeeLedgerFilters(
-        searchController: _searchController,
-        statuses: _statuses,
-        statusItems: _statusItems,
-        onStatusChanged: _setStatuses,
-        balanceFilters: _balanceFilters,
-        balanceItems: _balanceItems,
-        onBalanceChanged: _setBalanceFilters,
-      ),
+      filters: _filtersVisible
+          ? SharedFilterBar(
+              showDateFilters: false,
+              statusItems: _statusItems,
+              selectedStatuses: _statuses,
+              onStatusesChanged: _setStatuses,
+              typeLabel: 'Ledger activity',
+              typeItems: _balanceItems,
+              selectedTypes: _balanceFilters,
+              onTypesChanged: _setBalanceFilters,
+              onClear: _clearFilters,
+            )
+          : null,
       rows: _filteredRows,
       columns: [
         PurchaseRegisterColumn(
@@ -642,64 +665,6 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
       },
     );
     return response.data?.data ?? const <String, dynamic>{};
-  }
-}
-
-class _EmployeeLedgerFilters extends StatelessWidget {
-  const _EmployeeLedgerFilters({
-    required this.searchController,
-    required this.statuses,
-    required this.statusItems,
-    required this.onStatusChanged,
-    required this.balanceFilters,
-    required this.balanceItems,
-    required this.onBalanceChanged,
-  });
-
-  final TextEditingController searchController;
-  final Set<String> statuses;
-  final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<Set<String>> onStatusChanged;
-  final Set<String> balanceFilters;
-  final List<AppDropdownItem<String>> balanceItems;
-  final ValueChanged<Set<String>> onBalanceChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppUiConstants.spacingMd,
-      runSpacing: AppUiConstants.spacingMd,
-      children: [
-        SizedBox(
-          width: 320,
-          child: AppFormTextField(
-            controller: searchController,
-            labelText: 'Search',
-            hintText: 'Employee, code, or ledger',
-          ),
-        ),
-        SizedBox(
-          width: 220,
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Status',
-            mappedItems: statusItems,
-            multiInitialValues: statuses,
-            multiHintText: 'Select statuses',
-            onMultiChanged: onStatusChanged,
-          ),
-        ),
-        SizedBox(
-          width: 220,
-          child: AppDropdownField<String>.fromMapped(
-            labelText: 'Ledger Balance',
-            mappedItems: balanceItems,
-            multiInitialValues: balanceFilters,
-            multiHintText: 'Select balances',
-            onMultiChanged: onBalanceChanged,
-          ),
-        ),
-      ],
-    );
   }
 }
 

@@ -114,6 +114,11 @@ class _GlobalSalaryComponentsPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search salary components',
+            ),
           AdaptiveShellActionButton(
             onPressed: () => openFormScreenRoute(
               context,

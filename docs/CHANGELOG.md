@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-10 — Standardize HR register search and filters
+
+- Moved existing HR list/register search fields to the app bar and replaced
+  inline HR filter layouts with the normal shared filter surface.
+- Retained only existing query contracts. Expense Claims keeps five supported
+  dimensions; Payroll Runs now exposes its existing Status, Month, Year, From,
+  and To query filters. Registers with fewer backend filters do not show
+  invented criteria.
+- No database, authorization, or new backend API contract was introduced.
+- Focused analysis and the full Flutter suite passed (23/23); authenticated UI
+  verification remains manual.
+- Kept shared Date From/Date To controls as the final two fields in every HR
+  date-range filter panel, and made Employee Ledger filters expandable instead
+  of always visible.
+
 ## 2026-09-10 — Add shared Employees register filters
 
 - Reused the normal shared filter bar in the Employees register without adding

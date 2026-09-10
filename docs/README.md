@@ -1,5 +1,9 @@
 # Frontend Change Documentation
 
+- HR register search and supported filters — HR list/register search is in the
+  app bar and filters use the one shared register card, constrained to existing
+  backend query contracts.
+
 - Employee shared register filters — the Employees list uses one existing
   shared filter card, app-bar search, and server-side Department, Designation,
   Cost Center, Employment Type, and Status filtering.

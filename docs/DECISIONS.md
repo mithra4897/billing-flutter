@@ -1,5 +1,26 @@
 # Architecture decisions
 
+## ADR-0059: Keep HR filters constrained to existing query contracts
+
+- Date: 2026-09-10
+- Status: Accepted
+- Context: HR registers had search embedded in disparate filter panels, while
+  their existing APIs expose different sets of filter dimensions.
+- Decision: Move each existing search controller into the app-bar action area
+  and compose the normal shared filter bar for register filters. Expose five
+  dimensions only where the present query supports them; retain smaller filter
+  surfaces where the API has fewer dimensions.
+- Reason: This establishes one predictable search location and one filter card
+  without creating undocumented query parameters or misleading controls.
+- Alternatives considered: Add placeholders or local-only filters to force
+  every register to five dimensions; change every backend endpoint. Both would
+  invent business behavior outside the requested scope.
+- Consequences: Existing request keys, authorization, pagination, and schema
+  remain compatible. Payroll Run now exposes its already-supported month and
+  year query fields.
+- Related files: HR register pages, `hr_registers.dart`, and the existing HR
+  list-query/controller contracts.
+
 ## ADR-0058: Filter employee registers on the paginated query
 
 - Date: 2026-09-10

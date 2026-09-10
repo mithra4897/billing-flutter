@@ -46,6 +46,11 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
+          if (!widget.editorOnly)
+            AdaptiveShellSearchField(
+              controller: controller.searchController,
+              hintText: 'Search designations',
+            ),
           AdaptiveShellActionButton(
             onPressed: () =>
                 openFormScreenRoute(context, '/hr/designations/new'),

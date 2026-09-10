@@ -1,5 +1,24 @@
 # Architecture
 
+## HR register search and supported filters — 2026-09-10
+
+HR register pages reuse `AdaptiveShellSearchField` with their existing search
+controller in the action area. Their filter content composes normal
+`SharedFilterBar` instances, leaving the register's
+`AppRegisterFiltersSection` as the only card. Existing debounce behavior and
+server pagination remain controller-owned. Payroll Run state stores nullable
+month/year values alongside its scalar status and date controllers, then sends
+only the established `payroll_month`, `payroll_year`, `status`, `date_from`,
+and `date_to` query keys. The bounded monthly-attendance view continues to
+filter its loaded sheet locally using sets, in O(n) time for visible employees.
+
+Pages whose APIs expose fewer filter dimensions do not synthesize client-only
+criteria: the filter UI presents their existing supported keys only.
+Date-range registers pass their controllers through the shared filter bar's
+built-in date slots, which render `Date From` and `Date To` after all other
+filter controls. Employee Ledger holds its existing local `Set` filters in the
+same shared panel but reveals that panel only from its page-level Filter action.
+
 ## Employee shared register filters — 2026-09-10
 
 The Employees register composes the normal `SharedFilterBar` through the shared
