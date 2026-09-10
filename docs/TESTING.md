@@ -1,11 +1,20 @@
 # Testing
 
+## Global required-marker fallback — 2026-09-10
+
+Focused required-detector and table tests passed (6 tests). Focused analysis
+passed. Tests distinguish wrapped required rules from optional numeric rules,
+reevaluate conditional rules, and verify parent headers without explicit
+required-column metadata. Authenticated multi-page visual verification remains
+manual; callbacks capturing filled selections retain the documented limitation.
+
 ## Expense claim line-item table — 2026-09-10
 
 - `flutter test --no-pub test/widgets/expense_claim_line_item_table_test.dart test/widgets/deferred_hover_state_test.dart`
-  passed (4/4), covering custom claim columns, date formatting, add/delete
+  passed (5/5), covering custom claim columns, date formatting, add/delete
   callbacks, full-width expansion, required-header markers, non-shrinking
-  validation fields, and the shared table's hover behavior.
+  validation fields, explicit wrapped-validator required markers, and the
+  shared table's hover behavior.
 - Focused `flutter analyze --no-pub lib/controller/hr/expense_claims_management_controller.dart lib/view/hr/expense_claims_page.dart lib/widgets/erp_line_item_table.dart test/widgets/expense_claim_line_item_table_test.dart`
   passed with no issues.
 - Manual authenticated verification: create and edit a draft claim, add and
@@ -19,6 +28,8 @@
 - Manual validation regression: submit a blank new claim and confirm required
   column headers show `*`, each error message is readable, and the input itself
   stays at its normal compact height.
+- The shared table regression test covers unmarked wrapped validators with
+  explicit `requiredColumns`, matching Purchase Order Item and Ordered Qty.
 
 ## HR register search and supported filters — 2026-09-10
 

@@ -685,7 +685,10 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   bool _isRequiredColumn(Object column) {
     if (column is ErpLineItemCustomColumn) {
-      return column.isRequired;
+      return column.isRequired ||
+          widget.lines.any(
+            (row) => _cellIsRequired(row.customCells[column.id]),
+          );
     }
     if (column is! ErpLineItemTableColumn) {
       return false;
@@ -694,6 +697,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       return true;
     }
     return widget.lines.any((row) {
+      if (_cellIsRequired(row.cellWidgets[column])) return true;
       switch (column) {
         case ErpLineItemTableColumn.item:
           return Validators.isRequiredValidator(row.itemValidator);
@@ -717,6 +721,19 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           return false;
       }
     });
+  }
+
+  bool _cellIsRequired(Widget? cell) {
+    if (cell is ErpLineItemTextCell) {
+      return Validators.isRequiredValidator(cell.validator);
+    }
+    if (cell is ErpLineItemCellFrame) return _cellIsRequired(cell.child);
+    if (cell is Padding) return _cellIsRequired(cell.child);
+    if (cell is SizedBox) return _cellIsRequired(cell.child);
+    if (cell is AppFormTextField) {
+      return cell.isRequired || Validators.isRequiredValidator(cell.validator);
+    }
+    return false;
   }
 
   bool _isHiddenPlaceholderCell(Widget? cell) {

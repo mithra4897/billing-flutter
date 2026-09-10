@@ -1,5 +1,13 @@
 # Specifications
 
+## Global required-marker fallback — 2026-09-10
+
+Shared required-marker detection must recognize legacy wrapped validators that
+return an `is required` error for null, without marking optional numeric rules.
+Conditional rules are reevaluated on rebuild. Custom table text cells use the
+same detection. Explicit metadata remains supported for opaque callbacks that
+read a captured filled value instead of the probe. No validation rule changes.
+
 ## Expense claim line-item table — 2026-09-10
 
 The Expense Claims editor must reuse `ErpLineItemTable` for its expense lines
@@ -22,6 +30,9 @@ Acceptance criteria:
 - Required `ErpLineItemTable` columns show the standard red `*` in their table
   headers. A validation message must expand its row without shrinking the
   corresponding input below its compact height.
+- A page must pass `requiredColumns` for any required field whose validator is
+  wrapped or conditional; the table may infer only validators that retain the
+  shared required marker.
 
 ## Employee shared register filters — 2026-09-10
 

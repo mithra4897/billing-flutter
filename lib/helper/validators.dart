@@ -7,8 +7,17 @@ class Validators {
 
   static final Expando<bool> _requiredValidatorMarkers = Expando<bool>();
 
-  static bool isRequiredValidator(Function? validator) =>
-      validator != null && _requiredValidatorMarkers[validator] == true;
+  static bool isRequiredValidator(Function? validator) {
+    if (validator == null) return false;
+    if (_requiredValidatorMarkers[validator] == true) return true;
+    try {
+      final message = Function.apply(validator, const [null]);
+      return message is String &&
+          RegExp(r'\bis required\b', caseSensitive: false).hasMatch(message);
+    } on TypeError {
+      return false;
+    }
+  }
 
   static T _markRequired<T extends Function>(T validator) {
     _requiredValidatorMarkers[validator] = true;

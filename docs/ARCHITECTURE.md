@@ -1,5 +1,14 @@
 # Architecture
 
+## Global required-marker fallback — 2026-09-10
+
+`Validators.isRequiredValidator` first checks existing metadata, then probes
+legacy callbacks with null for a required error. It does not cache conditional
+results. Shared form labels and table headers reuse this detector; table cell
+overrides and custom text cells are inspected by the parent. Callbacks must be
+pure, as for normal form validation. Opaque closures over filled selections
+still require explicit metadata for a persistent marker.
+
 ## Expense claim line-item table — 2026-09-10
 
 `ExpenseClaimsManagementPage` maps the controller's ordered
@@ -22,6 +31,12 @@ user-initiated requests retain their existing immediate updates.
 columns, and uses the standard required-label renderer in its headers. Compact
 field and lookup-cell wrappers use a minimum, not fixed, height so Flutter can
 lay out validation text beneath the unchanged input control.
+
+Required-marker inference remains a convenience only for validators returned
+directly by `Validators`. Forms with an anonymous wrapper or conditional rule
+declare their table-level `requiredColumns` from the same business condition.
+For Purchase Orders, Item and Rate are always required; Ordered Qty is required
+only when at least one current line is inventory-tracked.
 
 ## HR register search and supported filters — 2026-09-10
 

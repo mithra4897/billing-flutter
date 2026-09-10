@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-10 — Global wrapped-validator required markers
+
+Extended the shared required detector and parent table to cover legacy wrapped
+validators and custom text cells. Optional rules are not marked; conditional
+rules are reevaluated. Individual pages need no changes for this fallback.
+
 ## 2026-09-10 — Reuse the shared line-item table for Expense Claims
 
 - Replaced stacked expense-line cards with `ErpLineItemTable` custom columns
@@ -10,12 +16,15 @@
   the HR/API contract; no database, authorization, or persistence changes.
 - Extended the shared compact table text cell with optional input formatters so
   the existing date entry behavior remains intact.
-- Verification: formatting, focused static analysis, and four focused shared
+- Verification: formatting, focused static analysis, and five focused shared
   table widget tests passed.
 - Fixed initial Expense Claims loading to begin after the first frame, avoiding
   a GetX rebuild request during route construction.
 - Shared required-column header markers and non-shrinking validation rows now
   apply to `ErpLineItemTable`, including Expense Claim lines.
+- Purchase Orders now explicitly declares Item, Rate, and conditionally
+  inventory-tracked Ordered Qty as required table columns, so their headers do
+  not depend on validator-wrapper inference.
 
 ## 2026-09-10 — Accounting and Cash UTC time rollout
 
