@@ -58,7 +58,8 @@ class _AssetCategoryPageState extends State<AssetCategoryPage> {
       tag: _controllerTag,
       builder: (_) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: () {
               _vm.resetDraft();
               if (!Responsive.isDesktop(context)) {
@@ -211,10 +212,78 @@ class _AssetCategoryEditor extends StatelessWidget {
   final Future<void> Function() onSave;
   final Future<void> Function() onDelete;
 
+  static const List<ErpLinkFieldOption<String>> _assetTypeOptions = [
+    ErpLinkFieldOption(value: 'machinery', label: 'Machinery'),
+    ErpLinkFieldOption(value: 'vehicle', label: 'Vehicle'),
+    ErpLinkFieldOption(value: 'computer', label: 'Computer'),
+    ErpLinkFieldOption(value: 'furniture', label: 'Furniture'),
+    ErpLinkFieldOption(value: 'building', label: 'Building'),
+    ErpLinkFieldOption(value: 'electrical', label: 'Electrical'),
+    ErpLinkFieldOption(value: 'tool', label: 'Tool'),
+    ErpLinkFieldOption(value: 'office_equipment', label: 'Office equipment'),
+    ErpLinkFieldOption(value: 'other', label: 'Other'),
+  ];
+
+  static const List<ErpLinkFieldOption<String>> _depreciationMethodOptions = [
+    ErpLinkFieldOption(value: 'straight_line', label: 'Straight line'),
+    ErpLinkFieldOption(value: 'written_down_value', label: 'Written down value'),
+    ErpLinkFieldOption(value: 'manual', label: 'Manual'),
+  ];
+
+  static ErpLinkFieldOption<T>? _selectedOption<T>(
+    T? value,
+    List<ErpLinkFieldOption<T>> options,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value == value) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  static ErpLinkFieldOption<String>? _selectedTextOption(
+    String text,
+    List<ErpLinkFieldOption<String>> options,
+  ) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value.toLowerCase() == trimmed.toLowerCase()) {
+        return option;
+      }
+    }
+    return ErpLinkFieldOption<String>(value: trimmed, label: trimmed);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isExisting = intValue(vm.detail?.toJson() ?? {}, 'id') != null;
     final parents = vm.parentOptions();
+    final companyOptions = vm.companies
+        .where((CompanyModel c) => c.id != null)
+        .map(
+          (CompanyModel c) => ErpLinkFieldOption<int>(
+            value: c.id!,
+            label: c.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final parentOptions = parents
+        .where((AssetCategoryModel c) => intValue(c.toJson(), 'id') != null)
+        .map(
+          (AssetCategoryModel c) => ErpLinkFieldOption<int>(
+            value: intValue(c.toJson(), 'id')!,
+            label: vm.listTitle(c),
+          ),
+        )
+        .toList(growable: false);
 
     return SingleChildScrollView(
       child: Column(
@@ -227,67 +296,61 @@ class _AssetCategoryEditor extends StatelessWidget {
           if (vm.saving) const LinearProgressIndicator(),
           SettingsFormWrap(
             children: [
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(
-                  labelText: 'Company',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: vm.companyId,
-                items: vm.companies
-                    .where((CompanyModel c) => c.id != null)
-                    .map(
-                      (CompanyModel c) => DropdownMenuItem<int>(
-                        value: c.id,
-                        child: Text(c.toString()),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: vm.saving ? null : (int? v) => vm.setCompanyId(v),
+              ErpLinkField<int>(
+                labelText: 'Company',
+                doctypeLabel: 'Company',
+                enabled: !vm.saving,
+                isRequired: true,
+                initialSelection: _selectedOption(vm.companyId, companyOptions),
+                options: companyOptions,
+                onChanged: vm.setCompanyId,
               ),
               AppFormTextField(
                 labelText: 'Category code',
                 controller: vm.categoryCodeController,
+                isRequired: true,
               ),
               AppFormTextField(
                 labelText: 'Category name',
                 controller: vm.categoryNameController,
+                isRequired: true,
               ),
-              DropdownButtonFormField<int?>(
-                decoration: const InputDecoration(
-                  labelText: 'Parent category',
-                  border: OutlineInputBorder(),
+              ErpLinkField<int>(
+                labelText: 'Parent category',
+                doctypeLabel: 'Asset category',
+                enabled: !vm.saving,
+                initialSelection: _selectedOption(
+                  vm.parentCategoryId,
+                  parentOptions,
                 ),
-                initialValue: vm.parentCategoryId,
-                items: <DropdownMenuItem<int?>>[
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('None'),
-                  ),
-                  ...parents
-                      .where(
-                        (AssetCategoryModel c) =>
-                            intValue(c.toJson(), 'id') != null,
-                      )
-                      .map(
-                        (AssetCategoryModel c) => DropdownMenuItem<int?>(
-                          value: intValue(c.toJson(), 'id'),
-                          child: Text(vm.listTitle(c)),
-                        ),
-                      ),
-                ],
-                onChanged: vm.saving
-                    ? null
-                    : (int? v) => vm.setParentCategoryId(v),
+                options: parentOptions,
+                onChanged: vm.setParentCategoryId,
+                onClear: () => vm.setParentCategoryId(null),
               ),
-              AppFormTextField(
+              ErpLinkField<String>(
                 labelText: 'Asset type',
-                controller: vm.assetTypeController,
-                hintText: 'e.g. tangible, intangible',
+                doctypeLabel: 'Asset type',
+                enabled: !vm.saving,
+                initialSelection: _selectedTextOption(
+                  vm.assetTypeController.text,
+                  _assetTypeOptions,
+                ),
+                options: _assetTypeOptions,
+                onChanged: (val) => vm.assetTypeController.text = val ?? '',
+                onClear: () => vm.assetTypeController.clear(),
               ),
-              AppFormTextField(
+              ErpLinkField<String>(
                 labelText: 'Default depreciation method',
-                controller: vm.defaultDepreciationMethodController,
-                hintText: 'e.g. straight_line',
+                doctypeLabel: 'Depreciation method',
+                enabled: !vm.saving,
+                initialSelection: _selectedTextOption(
+                  vm.defaultDepreciationMethodController.text,
+                  _depreciationMethodOptions,
+                ),
+                options: _depreciationMethodOptions,
+                onChanged: (val) =>
+                    vm.defaultDepreciationMethodController.text = val ?? '',
+                onClear: () => vm.defaultDepreciationMethodController.clear(),
               ),
               AppFormTextField(
                 labelText: 'Default useful life (months)',

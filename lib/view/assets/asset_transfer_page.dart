@@ -101,7 +101,8 @@ class _AssetTransferPageState extends State<AssetTransferPage> {
       tag: _controllerTag,
       builder: (_) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: () {
               _vm.resetDraft();
               _openRoute('/assets/transfers/new');

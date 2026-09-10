@@ -51,7 +51,8 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: controller.loading
                 ? null
                 : () => controller.startNew(
@@ -76,6 +77,46 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
     );
   }
 
+  static const List<ErpLinkFieldOption<String>> _disposalTypeOptions = [
+    ErpLinkFieldOption(value: 'sale', label: 'Sale'),
+    ErpLinkFieldOption(value: 'scrap', label: 'Scrap'),
+    ErpLinkFieldOption(value: 'write_off', label: 'Write off'),
+    ErpLinkFieldOption(value: 'retirement', label: 'Retirement'),
+    ErpLinkFieldOption(value: 'loss', label: 'Loss'),
+    ErpLinkFieldOption(value: 'theft', label: 'Theft'),
+  ];
+
+  static ErpLinkFieldOption<T>? _selectedOption<T>(
+    T? value,
+    List<ErpLinkFieldOption<T>> options,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value == value) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  static ErpLinkFieldOption<String>? _selectedTextOption(
+    String text,
+    List<ErpLinkFieldOption<String>> options,
+  ) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value.toLowerCase() == trimmed.toLowerCase()) {
+        return option;
+      }
+    }
+    return ErpLinkFieldOption<String>(value: trimmed, label: trimmed);
+  }
+
   Widget _buildContent(
     BuildContext context,
     AssetDisposalManagementController controller,
@@ -90,6 +131,26 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
         onRetry: () => controller.load(selectId: widget.initialId),
       );
     }
+
+    final assetOptions = controller.assetsList
+        .where((asset) => intValue(asset.toJson(), 'id') != null)
+        .map(
+          (asset) => ErpLinkFieldOption<int>(
+            value: intValue(asset.toJson(), 'id')!,
+            label: controller.listAssetOption(asset),
+          ),
+        )
+        .toList(growable: false);
+
+    final partyOptions = controller.parties
+        .where((party) => party.id != null)
+        .map(
+          (party) => ErpLinkFieldOption<int>(
+            value: party.id!,
+            label: party.toString(),
+          ),
+        )
+        .toList(growable: false);
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -145,26 +206,18 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                   ],
                   SettingsFormWrap(
                     children: [
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Asset',
-                          border: OutlineInputBorder(),
+                      ErpLinkField<int>(
+                        labelText: 'Asset',
+                        doctypeLabel: 'Asset',
+                        enabled:
+                            !controller.saving && !controller.actionBusy,
+                        isRequired: true,
+                        initialSelection: _selectedOption(
+                          controller.assetId,
+                          assetOptions,
                         ),
-                        initialValue: controller.assetId,
-                        items: controller.assetsList
-                            .where(
-                              (asset) => intValue(asset.toJson(), 'id') != null,
-                            )
-                            .map(
-                              (asset) => DropdownMenuItem<int>(
-                                value: intValue(asset.toJson(), 'id'),
-                                child: Text(controller.listAssetOption(asset)),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setAssetId,
+                        options: assetOptions,
+                        onChanged: controller.setAssetId,
                       ),
                       DocumentSeriesSelector<int>(
                         labelText: 'Document series',
@@ -192,30 +245,37 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                         labelText: 'Disposal date',
                         controller: controller.disposalDateController,
                         hintText: dateFormatHint(),
+                        isRequired: true,
+                        inputFormatters: const [DateInputFormatter()],
                       ),
-                      AppFormTextField(
+                      ErpLinkField<String>(
                         labelText: 'Disposal type',
-                        controller: controller.disposalTypeController,
-                        hintText: 'sale, scrap, write_off',
-                      ),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Sale party',
-                          border: OutlineInputBorder(),
+                        doctypeLabel: 'Disposal type',
+                        enabled:
+                            !controller.saving && !controller.actionBusy,
+                        isRequired: true,
+                        initialSelection: _selectedTextOption(
+                          controller.disposalTypeController.text,
+                          _disposalTypeOptions,
                         ),
-                        initialValue: controller.salePartyId,
-                        items: controller.parties
-                            .where((party) => party.id != null)
-                            .map(
-                              (party) => DropdownMenuItem<int>(
-                                value: party.id,
-                                child: Text(party.toString()),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setSalePartyId,
+                        options: _disposalTypeOptions,
+                        onChanged: (val) =>
+                            controller.disposalTypeController.text = val ?? '',
+                        onClear: () =>
+                            controller.disposalTypeController.clear(),
+                      ),
+                      ErpLinkField<int>(
+                        labelText: 'Sale party',
+                        doctypeLabel: 'Party',
+                        enabled:
+                            !controller.saving && !controller.actionBusy,
+                        initialSelection: _selectedOption(
+                          controller.salePartyId,
+                          partyOptions,
+                        ),
+                        options: partyOptions,
+                        onChanged: controller.setSalePartyId,
+                        onClear: () => controller.setSalePartyId(null),
                       ),
                       AppFormTextField(
                         labelText: 'Disposal value',

@@ -56,7 +56,8 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: controller.loading
                 ? null
                 : () => controller.startNew(
@@ -81,6 +82,47 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
     );
   }
 
+  static const List<ErpLinkFieldOption<String>> _costCenterTypeOptions = [
+    ErpLinkFieldOption(value: 'department', label: 'Department'),
+    ErpLinkFieldOption(value: 'branch', label: 'Branch'),
+    ErpLinkFieldOption(value: 'project', label: 'Project'),
+    ErpLinkFieldOption(value: 'production', label: 'Production'),
+    ErpLinkFieldOption(value: 'service', label: 'Service'),
+    ErpLinkFieldOption(value: 'admin', label: 'Admin'),
+    ErpLinkFieldOption(value: 'other', label: 'Other'),
+  ];
+
+  static ErpLinkFieldOption<T>? _selectedOption<T>(
+    T? value,
+    List<ErpLinkFieldOption<T>> options,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value == value) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  static ErpLinkFieldOption<String>? _selectedTextOption(
+    String text,
+    List<ErpLinkFieldOption<String>> options,
+  ) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value.toLowerCase() == trimmed.toLowerCase()) {
+        return option;
+      }
+    }
+    return ErpLinkFieldOption<String>(value: trimmed, label: trimmed);
+  }
+
   Widget _buildContent(
     BuildContext context,
     AssetCostCenterManagementController controller,
@@ -96,9 +138,29 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
       );
     }
 
-    final editorTitle = controller.selected == null
-        ? 'New cost center'
-        : controller.listTitle(controller.selected!);
+    final editorTitle = controller.selected != null
+        ? controller.listTitle(controller.selected!)
+        : 'New cost center';
+
+    final companyOptions = controller.companies
+        .where((company) => company.id != null)
+        .map(
+          (company) => ErpLinkFieldOption<int>(
+            value: company.id!,
+            label: company.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final parentOptions = controller.parentOptions
+        .where((row) => row.id != null)
+        .map(
+          (row) => ErpLinkFieldOption<int>(
+            value: row.id!,
+            label: controller.listTitle(row),
+          ),
+        )
+        .toList(growable: false);
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -143,58 +205,52 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
                   if (controller.saving) const LinearProgressIndicator(),
                   SettingsFormWrap(
                     children: [
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Company',
-                          border: OutlineInputBorder(),
+                      ErpLinkField<int>(
+                        labelText: 'Company',
+                        doctypeLabel: 'Company',
+                        enabled: !controller.saving,
+                        isRequired: true,
+                        initialSelection: _selectedOption(
+                          controller.companyId,
+                          companyOptions,
                         ),
-                        initialValue: controller.companyId,
-                        items: controller.companies
-                            .where((company) => company.id != null)
-                            .map(
-                              (company) => DropdownMenuItem<int>(
-                                value: company.id,
-                                child: Text(company.toString()),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving
-                            ? null
-                            : controller.setCompanyId,
+                        options: companyOptions,
+                        onChanged: controller.setCompanyId,
                       ),
                       AppFormTextField(
                         labelText: 'Cost center code',
                         controller: controller.codeController,
+                        isRequired: true,
                       ),
                       AppFormTextField(
                         labelText: 'Cost center name',
                         controller: controller.nameController,
+                        isRequired: true,
                       ),
-                      DropdownButtonFormField<int?>(
-                        decoration: const InputDecoration(
-                          labelText: 'Parent cost center',
-                          border: OutlineInputBorder(),
+                      ErpLinkField<int>(
+                        labelText: 'Parent cost center',
+                        doctypeLabel: 'Cost center',
+                        enabled: !controller.saving,
+                        initialSelection: _selectedOption(
+                          controller.parentId,
+                          parentOptions,
                         ),
-                        initialValue: controller.parentId,
-                        items: <DropdownMenuItem<int?>>[
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('None'),
-                          ),
-                          ...controller.parentOptions.map(
-                            (row) => DropdownMenuItem<int?>(
-                              value: row.id,
-                              child: Text(controller.listTitle(row)),
-                            ),
-                          ),
-                        ],
-                        onChanged: controller.saving
-                            ? null
-                            : controller.setParentId,
+                        options: parentOptions,
+                        onChanged: controller.setParentId,
+                        onClear: () => controller.setParentId(null),
                       ),
-                      AppFormTextField(
+                      ErpLinkField<String>(
                         labelText: 'Cost center type',
-                        controller: controller.typeController,
+                        doctypeLabel: 'Cost center type',
+                        enabled: !controller.saving,
+                        initialSelection: _selectedTextOption(
+                          controller.typeController.text,
+                          _costCenterTypeOptions,
+                        ),
+                        options: _costCenterTypeOptions,
+                        onChanged: (val) =>
+                            controller.typeController.text = val ?? '',
+                        onClear: () => controller.typeController.clear(),
                       ),
                     ],
                   ),

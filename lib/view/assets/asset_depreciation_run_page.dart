@@ -90,7 +90,8 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
       tag: _controllerTag,
       builder: (_) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: () {
               _vm.resetDraft();
               _openRoute('/assets/depreciation-runs/new');
@@ -569,6 +570,26 @@ class _CreateDepreciationRunForm extends StatelessWidget {
   final AssetDepreciationRunViewModel vm;
   final Future<void> Function() onCreate;
 
+  static const List<ErpLinkFieldOption<String>> _bookTypeOptions = [
+    ErpLinkFieldOption(value: 'financial', label: 'Financial'),
+    ErpLinkFieldOption(value: 'tax', label: 'Tax'),
+  ];
+
+  static ErpLinkFieldOption<T>? _selectedOption<T>(
+    T? value,
+    List<ErpLinkFieldOption<T>> options,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value == value) {
+        return option;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -592,35 +613,39 @@ class _CreateDepreciationRunForm extends StatelessWidget {
             AppFormTextField(
               labelText: 'Run date',
               controller: vm.runDateController,
+              isRequired: true,
+              inputFormatters: const [DateInputFormatter()],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
             AppFormTextField(
               labelText: 'Depreciation from',
               controller: vm.fromDateController,
+              isRequired: true,
+              inputFormatters: const [DateInputFormatter()],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
             AppFormTextField(
               labelText: 'Depreciation to',
               controller: vm.toDateController,
+              isRequired: true,
+              inputFormatters: const [DateInputFormatter()],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Book type',
-                border: OutlineInputBorder(),
+            ErpLinkField<String>(
+              labelText: 'Book type',
+              doctypeLabel: 'Book type',
+              enabled: !vm.createBusy,
+              isRequired: true,
+              initialSelection: _selectedOption(
+                vm.bookType,
+                _bookTypeOptions,
               ),
-              initialValue: vm.bookType,
-              items: const [
-                DropdownMenuItem(value: 'financial', child: Text('financial')),
-                DropdownMenuItem(value: 'tax', child: Text('tax')),
-              ],
-              onChanged: vm.createBusy
-                  ? null
-                  : (String? v) {
-                      if (v != null) {
-                        vm.setBookType(v);
-                      }
-                    },
+              options: _bookTypeOptions,
+              onChanged: (String? v) {
+                if (v != null) {
+                  vm.setBookType(v);
+                }
+              },
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
             if (vm.seriesOptions.isEmpty)

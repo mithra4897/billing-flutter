@@ -57,6 +57,14 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
     });
   }
 
+  static const List<ErpLinkFieldOption<String>> _conditionStatusOptions = [
+    ErpLinkFieldOption(value: 'new', label: 'New'),
+    ErpLinkFieldOption(value: 'good', label: 'Good'),
+    ErpLinkFieldOption(value: 'fair', label: 'Fair'),
+    ErpLinkFieldOption(value: 'poor', label: 'Poor'),
+    ErpLinkFieldOption(value: 'damaged', label: 'Damaged'),
+  ];
+
   ErpLinkFieldOption<T>? _selectedOption<T>(
     T? value,
     List<ErpLinkFieldOption<T>> options,
@@ -97,7 +105,8 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
+          if (!widget.editorOnly)
+            AdaptiveShellActionButton(
             onPressed: controller.loading
                 ? null
                 : () => controller.startNew(
@@ -277,14 +286,17 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                             ),
                             options: categoryOptions,
                             onChanged: controller.setCategoryId,
+                            isRequired: true,
                           ),
                           AppFormTextField(
                             labelText: 'Asset code',
                             controller: controller.assetCodeController,
+                            isRequired: true,
                           ),
                           AppFormTextField(
                             labelText: 'Asset name',
                             controller: controller.assetNameController,
+                            isRequired: true,
                           ),
                           AppFormTextField(
                             labelText: 'Asset tag no',
@@ -307,6 +319,7 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                             controller: controller.purchaseDateController,
                             hintText: dateFormatHint(),
                             inputFormatters: const [DateInputFormatter()],
+                            isRequired: true,
                           ),
                           AppFormTextField(
                             labelText: 'Capitalization date',
@@ -409,10 +422,20 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                               decimal: true,
                             ),
                           ),
-                          AppFormTextField(
+                          ErpLinkField<String>(
                             labelText: 'Condition status',
-                            controller: controller.conditionStatusController,
-                            hintText: 'good, fair, damaged',
+                            doctypeLabel: 'Condition status',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedTextOption(
+                              controller.conditionStatusController.text,
+                              _conditionStatusOptions,
+                            ),
+                            options: _conditionStatusOptions,
+                            onChanged: (v) => controller
+                                .conditionStatusController.text = v ?? '',
+                            onClear: () =>
+                                controller.conditionStatusController.clear(),
                           ),
                           AppFormTextField(
                             labelText: 'Warranty start',
