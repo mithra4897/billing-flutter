@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-10 — Reuse the shared line-item table for Expense Claims
+
+- Replaced stacked expense-line cards with `ErpLineItemTable` custom columns
+  for date, category, description, amount, and remarks.
+- Constrained the reused table to the available editor width, matching the
+  sales product-table layout.
+- Preserved draft-only add/delete controls, all existing field validation, and
+  the HR/API contract; no database, authorization, or persistence changes.
+- Extended the shared compact table text cell with optional input formatters so
+  the existing date entry behavior remains intact.
+- Verification: formatting, focused static analysis, and four focused shared
+  table widget tests passed.
+- Fixed initial Expense Claims loading to begin after the first frame, avoiding
+  a GetX rebuild request during route construction.
+- Shared required-column header markers and non-shrinking validation rows now
+  apply to `ErpLineItemTable`, including Expense Claim lines.
+
 ## 2026-09-10 — Accounting and Cash UTC time rollout
 
 - Cash Sessions now send and display Company-local times while the API stores

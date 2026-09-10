@@ -1,5 +1,25 @@
 # Testing
 
+## Expense claim line-item table — 2026-09-10
+
+- `flutter test --no-pub test/widgets/expense_claim_line_item_table_test.dart test/widgets/deferred_hover_state_test.dart`
+  passed (4/4), covering custom claim columns, date formatting, add/delete
+  callbacks, full-width expansion, required-header markers, non-shrinking
+  validation fields, and the shared table's hover behavior.
+- Focused `flutter analyze --no-pub lib/controller/hr/expense_claims_management_controller.dart lib/view/hr/expense_claims_page.dart lib/widgets/erp_line_item_table.dart test/widgets/expense_claim_line_item_table_test.dart`
+  passed with no issues.
+- Manual authenticated verification: create and edit a draft claim, add and
+  remove lines, confirm the last remaining row cannot be removed, and confirm
+  an applied/approved claim is read-only. On desktop, confirm the table fills
+  the editor width like the sales product table; on narrow screens, confirm it
+  scrolls horizontally.
+- Manual regression: navigate directly to an existing Expense Claim and refresh
+  the route; confirm the browser console contains no `markNeedsBuild during
+  build` error while the initial loading state appears.
+- Manual validation regression: submit a blank new claim and confirm required
+  column headers show `*`, each error message is readable, and the input itself
+  stays at its normal compact height.
+
 ## HR register search and supported filters — 2026-09-10
 
 - Focused `flutter analyze --no-pub` passed for the nine changed HR views.

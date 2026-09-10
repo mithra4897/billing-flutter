@@ -1,5 +1,28 @@
 # Architecture
 
+## Expense claim line-item table — 2026-09-10
+
+`ExpenseClaimsManagementPage` maps the controller's ordered
+`List<ExpenseLineEditors>` to `ErpLineItemTableRow` values in one O(n) render
+pass. Claim-specific fields are supplied through the table's custom-column
+contract, while the shared table continues to own row numbering, scrolling,
+styling, add/delete controls, and row selection. The shared compact text cell
+accepts optional input formatters so the existing expense-date formatter is
+preserved without a page-local field copy. The page constrains this shared
+widget to the available editor width, matching the sales product-table layout
+while leaving the widget's narrow-screen horizontal scrolling unchanged.
+
+The controller starts its initial page request from GetX `onReady`, after the
+first widget frame, rather than `onInit`. A reused controller is likewise
+reconfigured after the current frame. This ensures its loading-state `update()`
+cannot mark the active `GetBuilder` dirty during route construction; later
+user-initiated requests retain their existing immediate updates.
+
+`ErpLineItemTable` exposes required-column metadata for built-in and custom
+columns, and uses the standard required-label renderer in its headers. Compact
+field and lookup-cell wrappers use a minimum, not fixed, height so Flutter can
+lay out validation text beneath the unchanged input control.
+
 ## HR register search and supported filters — 2026-09-10
 
 HR register pages reuse `AdaptiveShellSearchField` with their existing search

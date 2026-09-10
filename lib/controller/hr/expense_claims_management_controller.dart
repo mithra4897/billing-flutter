@@ -277,6 +277,11 @@ class ExpenseClaimsManagementController extends GetxController {
       }
       unawaited(loadPage(selectClaimId: editingClaimId));
     });
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
     unawaited(_initialize());
   }
 

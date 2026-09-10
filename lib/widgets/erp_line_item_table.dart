@@ -152,12 +152,16 @@ class ErpLineItemCustomColumn {
     required this.label,
     required this.width,
     this.insertAfter = ErpLineItemTableColumn.source,
+    this.growWeight,
+    this.isRequired = false,
   });
 
   final String id;
   final String label;
   final double width;
   final ErpLineItemTableColumn insertAfter;
+  final double? growWeight;
+  final bool isRequired;
 }
 
 class ErpLineItemCellFrame extends StatelessWidget {
@@ -175,8 +179,12 @@ class ErpLineItemCellFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget current = child;
-    if (height != null) {
-      current = SizedBox(height: height, child: current);
+    final frameHeight = height;
+    if (frameHeight != null) {
+      current = ConstrainedBox(
+        constraints: BoxConstraints(minHeight: frameHeight),
+        child: current,
+      );
     }
     return Padding(padding: padding, child: current);
   }
@@ -191,6 +199,7 @@ class ErpLineItemTextCell extends StatefulWidget {
     this.onChanged,
     this.validator,
     this.keyboardType,
+    this.inputFormatters,
     this.maxLines = 1,
     this.readOnly = false,
     this.enabled = true,
@@ -209,6 +218,7 @@ class ErpLineItemTextCell extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final int maxLines;
   final bool readOnly;
   final bool enabled;
@@ -367,11 +377,13 @@ class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
             widget.textAlign ??
             (_isNumericField ? TextAlign.right : TextAlign.start),
         textAlignVertical: TextAlignVertical.center,
-        inputFormatters: widget.keyboardType == null
-            ? null
-            : <TextInputFormatter>[
-                if (_isNumericField) const NumericInputFormatter(),
-              ],
+        inputFormatters:
+            widget.inputFormatters ??
+            (widget.keyboardType == null
+                ? null
+                : <TextInputFormatter>[
+                    if (_isNumericField) const NumericInputFormatter(),
+                  ]),
         decoration: InputDecoration(
           isDense: true,
           hintText: widget.hintText,
@@ -484,6 +496,7 @@ class ErpLineItemTable extends StatefulWidget {
     this.sourceColumnLabel = 'Source line',
     this.columnLabels = const <ErpLineItemTableColumn, String>{},
     this.customColumns = const <ErpLineItemCustomColumn>[],
+    this.requiredColumns = const <ErpLineItemTableColumn>{},
     this.visibleColumns = const <ErpLineItemTableColumn>{
       ErpLineItemTableColumn.no,
       ErpLineItemTableColumn.source,
@@ -511,6 +524,7 @@ class ErpLineItemTable extends StatefulWidget {
   final String sourceColumnLabel;
   final Map<ErpLineItemTableColumn, String> columnLabels;
   final List<ErpLineItemCustomColumn> customColumns;
+  final Set<ErpLineItemTableColumn> requiredColumns;
   final Set<ErpLineItemTableColumn> visibleColumns;
   final bool enabled;
 
@@ -596,11 +610,28 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       )
       .toList(growable: false);
 
-  double get _tableMinWidth => _orderedColumns.fold<double>(0, (sum, column) {
+  double _columnBaseWidth(Object column) {
     if (column is ErpLineItemTableColumn) {
-      return sum + (_columnWidths[_columnKey(column)] ?? 0);
+      return _columnWidths[_columnKey(column)] ?? 0;
     }
-    return sum + (column as ErpLineItemCustomColumn).width;
+    return (column as ErpLineItemCustomColumn).width;
+  }
+
+  double _columnGrowWeight(Object column) {
+    if (column is ErpLineItemTableColumn) {
+      return _columnGrowWeights[column] ?? 0;
+    }
+    if (column is ErpLineItemCustomColumn) {
+      if (column.growWeight != null) {
+        return column.growWeight!;
+      }
+      return (column.width / 100.0).clamp(0.5, 4.0);
+    }
+    return 0;
+  }
+
+  double get _tableMinWidth => _orderedColumns.fold<double>(0, (sum, column) {
+    return sum + _columnBaseWidth(column);
   });
 
   double _extraWidthPerWeight(double availableWidth) {
@@ -608,8 +639,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     if (extraWidth <= 0) {
       return 0;
     }
-    final totalWeight = _activeColumns.fold<double>(0, (sum, column) {
-      return sum + (_columnGrowWeights[column] ?? 0);
+    final totalWeight = _orderedColumns.fold<double>(0, (sum, column) {
+      return sum + _columnGrowWeight(column);
     });
     if (totalWeight <= 0) {
       return 0;
@@ -617,12 +648,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     return extraWidth / totalWeight;
   }
 
-  double _resolvedColumnWidth(
-    ErpLineItemTableColumn column,
-    double extraWidthPerWeight,
-  ) {
-    final baseWidth = _columnWidths[_columnKey(column)] ?? 0;
-    final growWeight = _columnGrowWeights[column] ?? 0;
+  double _resolvedColumnWidth(Object column, double extraWidthPerWeight) {
+    final baseWidth = _columnBaseWidth(column);
+    final growWeight = _columnGrowWeight(column);
     if (growWeight <= 0 || extraWidthPerWeight <= 0) {
       return baseWidth;
     }
@@ -653,6 +681,42 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       return false;
     }
     return true;
+  }
+
+  bool _isRequiredColumn(Object column) {
+    if (column is ErpLineItemCustomColumn) {
+      return column.isRequired;
+    }
+    if (column is! ErpLineItemTableColumn) {
+      return false;
+    }
+    if (widget.requiredColumns.contains(column)) {
+      return true;
+    }
+    return widget.lines.any((row) {
+      switch (column) {
+        case ErpLineItemTableColumn.item:
+          return Validators.isRequiredValidator(row.itemValidator);
+        case ErpLineItemTableColumn.uom:
+          return Validators.isRequiredValidator(row.uomValidator);
+        case ErpLineItemTableColumn.warehouse:
+          return Validators.isRequiredValidator(row.warehouseValidator);
+        case ErpLineItemTableColumn.qty:
+          return Validators.isRequiredValidator(row.qtyValidator);
+        case ErpLineItemTableColumn.rate:
+          return Validators.isRequiredValidator(row.rateValidator);
+        case ErpLineItemTableColumn.discount:
+          return Validators.isRequiredValidator(row.discountValidator);
+        case ErpLineItemTableColumn.no:
+        case ErpLineItemTableColumn.source:
+        case ErpLineItemTableColumn.taxCode:
+        case ErpLineItemTableColumn.description:
+        case ErpLineItemTableColumn.remarks:
+        case ErpLineItemTableColumn.amount:
+        case ErpLineItemTableColumn.action:
+          return false;
+      }
+    });
   }
 
   bool _isHiddenPlaceholderCell(Widget? cell) {
@@ -959,11 +1023,10 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           column is ErpLineItemTableColumn
               ? _columnLabel(column)
               : (column as ErpLineItemCustomColumn).label,
-          column is ErpLineItemTableColumn
-              ? _resolvedColumnWidth(column, extraWidthPerWeight)
-              : (column as ErpLineItemCustomColumn).width,
+          _resolvedColumnWidth(column, extraWidthPerWeight),
           style,
           appTheme,
+          isRequired: _isRequiredColumn(column),
           showRightBorder: index != columns.length - 1,
         );
       }),
@@ -1035,6 +1098,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                 row: row,
                 appTheme: appTheme,
                 column: column as ErpLineItemCustomColumn,
+                extraWidthPerWeight: extraWidthPerWeight,
                 showRightBorder: columnIndex != columns.length - 1,
               );
             }),
@@ -1358,10 +1422,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     required ErpLineItemTableRow row,
     required AppThemeExtension appTheme,
     required ErpLineItemCustomColumn column,
+    required double extraWidthPerWeight,
     required bool showRightBorder,
   }) {
     return _dataCell(
-      width: column.width,
+      width: _resolvedColumnWidth(column, extraWidthPerWeight),
       borderColor: appTheme.tableBorder,
       showRightBorder: showRightBorder,
       child: row.customCells[column.id] ?? const SizedBox.shrink(),
@@ -1434,8 +1499,10 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   Widget _compactDropdown<T>({required Widget child}) {
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
-      child: SizedBox(
-        height: AppUiConstants.tableCompactFieldHeight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: AppUiConstants.tableCompactFieldHeight,
+        ),
         child: child,
       ),
     );
@@ -1446,6 +1513,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     double width,
     TextStyle? style,
     AppThemeExtension appTheme, {
+    bool isRequired = false,
     bool showRightBorder = true,
   }) {
     return Container(
@@ -1462,7 +1530,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ),
       ),
       child: Center(
-        child: Text(label, style: style, textAlign: TextAlign.center),
+        child: buildFormLabel(label, isRequired: isRequired, style: style),
       ),
     );
   }
@@ -1598,16 +1666,12 @@ class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
           fontSize: 14,
           height: 1.2,
         );
-    final compactErrorStyle = theme.textTheme.bodySmall?.copyWith(
-      fontSize: 0,
-      height: 0.01,
-      color: Colors.transparent,
-    );
-
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
-      child: SizedBox(
-        height: AppUiConstants.tableCompactFieldHeight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: AppUiConstants.tableCompactFieldHeight,
+        ),
         child: TextFormField(
           controller: widget.controller,
           focusNode: _numericBinding.focusNode,
@@ -1628,8 +1692,6 @@ class _ErpCompactTextFieldState extends State<_ErpCompactTextField> {
           decoration: InputDecoration(
             isDense: true,
             hintText: widget.hintText,
-            errorStyle: compactErrorStyle,
-            errorMaxLines: 1,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppUiConstants.tableCellPaddingSm,
               vertical: AppUiConstants.tableCellPaddingXs,

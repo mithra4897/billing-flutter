@@ -57,6 +57,10 @@ class _ExpenseClaimsManagementPageState
   }
 
   Future<void> _configureExistingController() async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) {
+      return;
+    }
     final controller = _controller;
     await controller.loadPage(selectClaimId: widget.initialId);
     if (widget.editorOnly && widget.initialId == null) {
@@ -444,6 +448,133 @@ class _ExpenseClaimsManagementPageState
     );
   }
 
+  Widget _buildLineItemTable(ExpenseClaimsManagementController controller) {
+    final rows = List<ErpLineItemTableRow>.generate(
+      controller.lineEditors.length,
+      (index) {
+        final line = controller.lineEditors[index];
+        return ErpLineItemTableRow(
+          rowKey: line,
+          amount: Validators.parseFlexibleNumber(line.amount.text) ?? 0,
+          customCells: <String, Widget>{
+            'expense-date': ErpLineItemTextCell(
+              controller: line.expenseDate,
+              hintText: 'YYYY/MM/DD',
+              keyboardType: TextInputType.datetime,
+              inputFormatters: const <TextInputFormatter>[DateInputFormatter()],
+              readOnly: !controller.editorEditable,
+              enabled: controller.editorEditable,
+              validator: Validators.compose([
+                Validators.required('Expense date'),
+                Validators.date('Expense date'),
+              ]),
+            ),
+            'category': ErpLineItemTextCell(
+              controller: line.category,
+              hintText: 'Category',
+              readOnly: !controller.editorEditable,
+              enabled: controller.editorEditable,
+              validator: Validators.required('Category'),
+            ),
+            'description': ErpLineItemTextCell(
+              controller: line.description,
+              hintText: 'Description',
+              readOnly: !controller.editorEditable,
+              enabled: controller.editorEditable,
+              validator: Validators.required('Description'),
+            ),
+            'amount': ErpLineItemTextCell(
+              controller: line.amount,
+              hintText: '0.00',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              numericDisplayKind: AppNumericDisplayKind.amount,
+              readOnly: !controller.editorEditable,
+              enabled: controller.editorEditable,
+              validator: Validators.compose([
+                Validators.required('Amount'),
+                (String? value) {
+                  final amount = double.tryParse(value?.trim() ?? '');
+                  if (amount == null) {
+                    return 'Amount must be a valid number';
+                  }
+                  if (amount <= 0) {
+                    return 'Amount must be greater than zero';
+                  }
+                  return null;
+                },
+              ]),
+            ),
+            'remarks': ErpLineItemTextCell(
+              controller: line.remarks,
+              hintText: 'Remarks',
+              readOnly: !controller.editorEditable,
+              enabled: controller.editorEditable,
+            ),
+          },
+          deleteEnabled:
+              controller.editorEditable && controller.lineEditors.length > 1,
+        );
+      },
+    );
+
+    return ErpLineItemTable(
+      title: 'Expense lines',
+      lines: rows,
+      onChanged: (_) {},
+      onAddLine: controller.editorEditable ? controller.addLine : null,
+      onDeleteLine: controller.editorEditable ? controller.removeLineAt : null,
+      addButtonLabel: 'Add line',
+      visibleColumns: <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        if (controller.editorEditable) ErpLineItemTableColumn.action,
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'expense-date',
+          label: 'Expense date',
+          width: 152,
+          growWeight: 1.2,
+          isRequired: true,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'category',
+          label: 'Category',
+          width: 180,
+          growWeight: 1.5,
+          isRequired: true,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'description',
+          label: 'Description',
+          width: 280,
+          growWeight: 2.8,
+          isRequired: true,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'amount',
+          label: 'Amount',
+          width: 132,
+          growWeight: 1.2,
+          isRequired: true,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'remarks',
+          label: 'Remarks',
+          width: 220,
+          growWeight: 2.2,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+      ],
+      enabled: controller.editorEditable,
+    );
+  }
+
   Widget _buildEditor(ExpenseClaimsManagementController controller) {
     if (controller.companyId == null) {
       return const Text('Select a company to edit expense claims.');
@@ -560,97 +691,10 @@ class _ExpenseClaimsManagementPageState
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: controller.editorEditable
-                      ? controller.addLine
-                      : null,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add line'),
-                ),
+              SizedBox(
+                width: double.infinity,
+                child: _buildLineItemTable(controller),
               ),
-              ...List<Widget>.generate(controller.lineEditors.length, (index) {
-                final line = controller.lineEditors[index];
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: AppSectionCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Line ${index + 1}',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const Spacer(),
-                            if (controller.editorEditable &&
-                                controller.lineEditors.length > 1)
-                              IconButton(
-                                tooltip: 'Remove line',
-                                onPressed: () => controller.removeLineAt(index),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                          ],
-                        ),
-                        AppFormTextField(
-                          controller: line.expenseDate,
-                          labelText: 'Expense date',
-                          readOnly: !controller.editorEditable,
-                          keyboardType: TextInputType.datetime,
-                          inputFormatters: const [DateInputFormatter()],
-                          validator: Validators.compose([
-                            Validators.required('Expense date'),
-                            Validators.date('Expense date'),
-                          ]),
-                        ),
-                        AppFormTextField(
-                          controller: line.category,
-                          labelText: 'Category',
-                          readOnly: !controller.editorEditable,
-                          validator: Validators.required('Category'),
-                        ),
-                        AppFormTextField(
-                          controller: line.description,
-                          labelText: 'Description',
-                          readOnly: !controller.editorEditable,
-                          validator: Validators.required('Description'),
-                        ),
-                        AppFormTextField(
-                          controller: line.amount,
-                          labelText: 'Amount',
-                          readOnly: !controller.editorEditable,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.compose([
-                            Validators.required('Amount'),
-                            (String? value) {
-                              final text = value?.trim() ?? '';
-                              final amount = double.tryParse(text);
-                              if (amount == null) {
-                                return 'Amount must be a valid number';
-                              }
-                              if (amount <= 0) {
-                                return 'Amount must be greater than zero';
-                              }
-                              return null;
-                            },
-                          ]),
-                        ),
-                        AppFormTextField(
-                          controller: line.remarks,
-                          labelText: 'Remarks (optional)',
-                          readOnly: !controller.editorEditable,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
               const SizedBox(height: AppUiConstants.spacingMd),
             ],
           ),

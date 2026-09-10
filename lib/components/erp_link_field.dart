@@ -772,11 +772,6 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
       height: compactCellMode ? 1.2 : null,
       color: compactCellMode ? appTheme?.tableCellText : null,
     );
-    final compactErrorStyle = theme.textTheme.bodySmall?.copyWith(
-      fontSize: 0,
-      height: 0.01,
-      color: Colors.transparent,
-    );
     return AppFieldBox(
       width: widget.width,
       padding: widget.fieldPadding,
@@ -823,8 +818,6 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                             'Search $_doctypeLabel')
                       : (widget.hintText ?? 'Search $_doctypeLabel'),
                   errorText: field.errorText,
-                  errorStyle: compactCellMode ? compactErrorStyle : null,
-                  errorMaxLines: compactCellMode ? 1 : null,
                   suffixIconConstraints: BoxConstraints(
                     minWidth: compactCellMode ? 28 : 30,
                     minHeight: compactCellMode

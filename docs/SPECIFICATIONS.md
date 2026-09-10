@@ -1,5 +1,28 @@
 # Specifications
 
+## Expense claim line-item table — 2026-09-10
+
+The Expense Claims editor must reuse `ErpLineItemTable` for its expense lines
+instead of rendering one card per line. The table displays each existing field:
+Expense date, Category, Description, Amount, and optional Remarks. It retains
+the existing date and positive-amount validation, draft-only add/remove rules,
+and horizontal overflow behavior. No claim API, persistence, authorization, or
+business validation behavior changes.
+
+Acceptance criteria:
+
+- Existing and new claims render their lines in the shared table.
+- The table uses the full available editor width, matching sales product tables,
+  while retaining horizontal scrolling for narrow screens.
+- Add line and row deletion retain the existing controller behavior; the final
+  line cannot be deleted.
+- Read-only claims show their existing values without editable controls.
+- Opening an Expense Claims route must not request a `GetBuilder` rebuild while
+  its initial Flutter build is in progress.
+- Required `ErpLineItemTable` columns show the standard red `*` in their table
+  headers. A validation message must expand its row without shrinking the
+  corresponding input below its compact height.
+
 ## Employee shared register filters — 2026-09-10
 
 The Employees register must put its existing Search field in the shell app bar
