@@ -78,6 +78,7 @@ class CrmEnquiriesController extends GetxController {
   String sort = 'date_desc';
   String enquiryStatus = 'open';
   String opportunityStatus = 'open';
+  String? currentDateTimeLocal;
   List<EnquiryLineDraft> lines = <EnquiryLineDraft>[];
   List<FollowupDraft> followups = <FollowupDraft>[];
   int? expandedLineIndex;
@@ -609,6 +610,7 @@ class CrmEnquiriesController extends GetxController {
     assignedTo = intValue(data, 'assigned_to');
     enquiryStatus = stringValue(data, 'enquiry_status', 'open');
     opportunityStatus = stringValue(data, 'status', 'open');
+    currentDateTimeLocal = nullableStringValue(data, 'current_datetime_local');
     enquiryNoController.text = stringValue(data, 'enquiry_no');
     enquiryDateController.text = displayDate(
       nullableStringValue(data, 'enquiry_date'),
@@ -669,6 +671,7 @@ class CrmEnquiriesController extends GetxController {
     assignedTo = null;
     enquiryStatus = 'open';
     opportunityStatus = 'open';
+    currentDateTimeLocal = null;
     enquiryNoController.clear();
     enquiryDateController.text = displayTodayDate();
     remarksController.clear();
@@ -713,8 +716,15 @@ class CrmEnquiriesController extends GetxController {
   }
 
   void addFollowup() {
-    followups = List<FollowupDraft>.from(followups)..add(FollowupDraft());
-    expandedFollowupIndex = followups.length - 1;
+    followups = List<FollowupDraft>.from(followups)
+      ..insert(
+        0,
+        FollowupDraft(
+          assignedTo: assignedTo,
+          followupDate: currentDateTimeLocal,
+        ),
+      );
+    expandedFollowupIndex = 0;
     update();
   }
 

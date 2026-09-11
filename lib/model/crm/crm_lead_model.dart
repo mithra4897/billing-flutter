@@ -19,6 +19,7 @@ class CrmLeadModel extends JsonModel {
     this.creator,
     this.createdAt,
     this.updatedAt,
+    this.currentDateTimeLocal,
     this.activities = const <Map<String, dynamic>>[],
     this.activitiesCount,
   });
@@ -39,6 +40,7 @@ class CrmLeadModel extends JsonModel {
   final Map<String, dynamic>? creator;
   final String? createdAt;
   final String? updatedAt;
+  final String? currentDateTimeLocal;
   final List<Map<String, dynamic>> activities;
   final int? activitiesCount;
 
@@ -61,6 +63,7 @@ class CrmLeadModel extends JsonModel {
       creator: JsonModel.mapOf(json['creator']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      currentDateTimeLocal: json['current_datetime_local']?.toString(),
       activities: JsonModel.mapListOf(json['activities']),
       activitiesCount: JsonModel.nullableInt(json['activities_count']),
     );
@@ -92,6 +95,8 @@ class CrmLeadModel extends JsonModel {
     if (creator != null) 'creator': creator,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (currentDateTimeLocal != null)
+      'current_datetime_local': currentDateTimeLocal,
     'activities': activities,
     if (activitiesCount != null) 'activities_count': activitiesCount,
   };

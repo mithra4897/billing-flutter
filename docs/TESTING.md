@@ -1941,3 +1941,31 @@ been packaged successfully.
   Watch, and confirm displayed timestamps follow the API local fields. Change
   the browser clock and confirm a pairing's status does not change until the
   server response changes.
+
+## CRM detail activity and follow-up ordering — 2026-09-11
+
+- Automated: focused controller tests passed for a newly added Lead activity,
+  Enquiry follow-up, and Opportunity follow-up at index zero and expanded;
+  they also verify server-local datetime defaults and follow-up assignee
+  inheritance.
+- Automated: PHP syntax checks passed for the three CRM repositories; focused
+  Flutter analysis passed with no issues.
+- Manual: reopen a Lead, Enquiry, and Opportunity with distinct historical
+  datetimes and confirm newest-first detail order. Confirm the Follow-ups
+  dashboard still sorts actionable rows by due date. Add each draft type and
+  confirm its date/time and follow-up assignee are prefilled.
+
+## CRM Lead activity action placement and status control — 2026-09-11
+
+- Automated: focused Flutter analysis passed with no unused activity-status
+  action after the manual dropdown was removed; focused controller tests passed
+  3/3.
+- Manual: open an editable Lead's Activities tab and confirm Update Lead is
+  beside Add Activity, there is no bottom Update Lead button, and activity
+  cards have no Status dropdown.
+
+## CRM Enquiry update action emphasis — 2026-09-11
+
+- Automated: focused Flutter analysis passed for the Enquiry detail page.
+- Manual: open an editable Enquiry Follow-ups tab and confirm Update Enquiry
+  is filled blue, saves normally, and disables while saving.

@@ -1026,6 +1026,17 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
+            if (!controller.isSelectedLeadReadOnly) ...[
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: controller.selectedItem == null
+                    ? 'Save Lead'
+                    : 'Update Lead',
+                onPressed: controller.save,
+                busy: controller.saving,
+              ),
+              const SizedBox(width: AppUiConstants.spacingSm),
+            ],
             AppActionButton(
               icon: Icons.add_outlined,
               label: 'Add Activity',
@@ -1087,13 +1098,6 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         onChanged: (value) =>
                             controller.setLeadActivityType(activity, value),
                       ),
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Status',
-                        mappedItems: CrmLeadsController.activityStatuses,
-                        initialValue: activity.status,
-                        onChanged: (value) =>
-                            controller.setLeadActivityStatus(activity, value),
-                      ),
                       AppFormTextField(
                         controller: activity.activityDateTimeController,
                         labelText: 'Activity Date Time',
@@ -1122,23 +1126,6 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               ),
             );
           }),
-        if (!controller.isSelectedLeadReadOnly) ...[
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: controller.selectedItem == null
-                    ? 'Save Lead'
-                    : 'Update Lead',
-                onPressed: controller.save,
-                busy: controller.saving,
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }

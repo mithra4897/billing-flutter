@@ -77,6 +77,7 @@ class CrmOpportunitiesController extends GetxController {
   Set<int> filterStageIds = <int>{};
   Set<String> filterStatuses = <String>{'open'};
   String status = 'open';
+  String? currentDateTimeLocal;
   List<OpportunityLineDraft> lines = <OpportunityLineDraft>[];
   List<OpportunityFollowupDraft> followups = <OpportunityFollowupDraft>[];
   List<OpportunityProductDraft> products = <OpportunityProductDraft>[];
@@ -386,6 +387,7 @@ class CrmOpportunitiesController extends GetxController {
     stageId = intValue(data, 'stage_id');
     assignedTo = intValue(data, 'assigned_to');
     status = stringValue(data, 'status', 'open');
+    currentDateTimeLocal = nullableStringValue(data, 'current_datetime_local');
     remarksController.text = stringValue(data, 'remarks');
     nameController.text = stringValue(data, 'opportunity_name');
     expectedValueController.text = formatCrmExpectedValue(
@@ -431,6 +433,7 @@ class CrmOpportunitiesController extends GetxController {
     stageId = null;
     assignedTo = null;
     status = 'open';
+    currentDateTimeLocal = null;
     remarksController.clear();
     nameController.clear();
     expectedValueController.clear();
@@ -584,8 +587,14 @@ class CrmOpportunitiesController extends GetxController {
 
   void addFollowup() {
     followups = List<OpportunityFollowupDraft>.from(followups)
-      ..add(OpportunityFollowupDraft(assignedTo: assignedTo));
-    expandedFollowupIndex = followups.length - 1;
+      ..insert(
+        0,
+        OpportunityFollowupDraft(
+          assignedTo: assignedTo,
+          followupDate: currentDateTimeLocal,
+        ),
+      );
+    expandedFollowupIndex = 0;
     update();
   }
 

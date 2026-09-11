@@ -1,5 +1,56 @@
 # Changelog
 
+## 2026-09-11 — CRM Enquiry primary update action
+
+- Request: Make Update Enquiry use the same filled blue action style as Update
+  Lead.
+- Implementation: Reused the existing shared Enquiry save helper and removed
+  only its outlined-style override.
+- Database/API impact: None.
+- Tests: Focused Flutter analysis passed with no issues.
+- Manual follow-up: Verify the authenticated Enquiry Follow-ups tab.
+
+## 2026-09-11 — CRM Lead Activities action alignment
+
+- Request: Place Update Lead beside Add Activity and remove manual Activity
+  status changes.
+- Implementation: Reused the existing Activities action row and action-button
+  components for Update Lead and Add Activity. Removed the duplicate bottom
+  action and the Activity Status dropdown/controller setter.
+- Database/API impact: None. Persisted and automatic activity status behavior
+  remains unchanged.
+- Tests: Focused controller test passed 3/3; focused Flutter analysis passed
+  with no issues.
+- Manual follow-up: Verify the Activities tab layout in the authenticated app.
+
+## 2026-09-11 — CRM detail history newest first and draft defaults
+
+- Request: Show new CRM activities and follow-ups first, with older entries in
+  descending datetime order.
+- Specification: Detail editor children use their domain datetime descending,
+  add unsaved drafts at the first position, and prefill draft time from the
+  server's Company-local value; the Follow-ups dashboard keeps its due-date
+  order.
+- Implementation: Reused the existing CRM detail repositories and controllers.
+  Persisted arrays order by activity/follow-up datetime and ID descending; new
+  drafts insert and expand at index zero with server-local time, and follow-ups
+  inherit the record assignee.
+- Files changed: CRM repositories, detail controllers, focused controller test,
+  and engineering documentation.
+- Database/API impact: No schema, endpoint, timestamp, or permission change.
+  Detail responses add display-only `current_datetime_local`; UTC persistence
+  and existing `*_local` timestamp fields remain unchanged.
+- Security impact: None.
+- Tests added or updated: Added three focused controller ordering tests.
+- Tests executed and results: PHP syntax checks passed for all three
+  repositories; focused Flutter analysis passed; focused Flutter test passed
+  3/3.
+- Documentation updated: Specification, architecture, decision, testing notes,
+  and changelog.
+- Known limitations: Authenticated browser verification of persisted ordering
+  remains manual.
+- Follow-up work: None.
+
 ## 2026-09-11 — Payslip register Send Payslip action
 
 - Request: Add the same compact per-row email affordance used by sales to the

@@ -19,6 +19,7 @@ class CrmEnquiryModel extends JsonModel {
     this.status,
     this.createdAt,
     this.updatedAt,
+    this.currentDateTimeLocal,
   });
 
   final int? companyId;
@@ -37,6 +38,7 @@ class CrmEnquiryModel extends JsonModel {
   final String? status;
   final String? createdAt;
   final String? updatedAt;
+  final String? currentDateTimeLocal;
 
   factory CrmEnquiryModel.fromJson(Map<String, dynamic> json) {
     return CrmEnquiryModel(
@@ -57,6 +59,7 @@ class CrmEnquiryModel extends JsonModel {
       status: json['status']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      currentDateTimeLocal: json['current_datetime_local']?.toString(),
     );
   }
 
@@ -83,5 +86,7 @@ class CrmEnquiryModel extends JsonModel {
     if (status != null) 'status': status,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (currentDateTimeLocal != null)
+      'current_datetime_local': currentDateTimeLocal,
   };
 }

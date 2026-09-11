@@ -1776,7 +1776,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       label: controller.selectedItem == null
           ? 'Save Enquiry'
           : 'Update Enquiry',
-      filled: false,
       onPressed: controller.save,
       busy: controller.saving,
     );

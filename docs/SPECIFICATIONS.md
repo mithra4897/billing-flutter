@@ -2512,6 +2512,80 @@ Acceptance criteria:
    available.
 5. Focused formatting, analysis, and widget tests pass with no new warning.
 
+## CRM detail activity and follow-up ordering
+
+Status: Implemented (2026-09-11)
+
+Lead activities and enquiry/opportunity follow-ups in their record-detail
+editors must show the newest scheduled/activity datetime first. A newly added,
+unsaved draft must appear and expand at the first position. Equal datetimes use
+the record ID in descending order for a stable persisted order. This applies to
+the detail editors only; the CRM Follow-ups dashboard keeps its existing
+due-date ordering because it is an actionable schedule.
+
+Acceptance criteria:
+
+1. Reloading a Lead displays activities by `activity_datetime` descending, then
+   ID descending.
+2. Reloading an Enquiry or Opportunity displays follow-ups by
+   `followup_date` descending, then ID descending.
+3. Adding an activity or follow-up puts the new expanded draft at index zero.
+4. No timestamp, status, visibility, dashboard order, or API field changes.
+
+## CRM detail activity and follow-up draft defaults
+
+Status: Implemented (2026-09-11)
+
+When a user adds a CRM Lead activity or Enquiry/Opportunity follow-up, its
+event datetime must be prefilled from a server-calculated Company-local detail
+response value. Follow-ups also prefill the record's existing assignee. Notes
+and next follow-up remain blank. The submitted datetime remains a
+timezone-neutral Company-local value that the API converts to UTC for storage.
+
+Acceptance criteria:
+
+1. New activity and follow-up drafts show the server-provided current
+   Company-local datetime without consulting browser/device time.
+2. New Enquiry and Opportunity follow-ups inherit the selected record's
+   assignee.
+3. Notes and next-follow-up inputs remain empty.
+4. Existing detail timestamps remain UTC in storage and return through their
+   established `*_local` display fields.
+
+## CRM Lead activities action placement and status control
+
+Status: Implemented (2026-09-11)
+
+The Activities tab must place Update Lead beside Add Activity, matching the
+Follow-ups action layout. Activity status is system-managed and must not be
+editable from an activity card. Existing activity status is still shown in the
+collapsed summary and is sent unchanged when the Lead is saved.
+
+Acceptance criteria:
+
+1. A persisted, editable Lead shows Update Lead and Add Activity together at
+   the top of the Activities tab.
+2. The Activities tab has no duplicate Update Lead action at the bottom.
+3. Activity cards do not render a Status dropdown.
+4. Existing status values, server validation, and automatic follow-up status
+   behavior remain unchanged.
+
+## CRM Enquiry update action emphasis
+
+Status: Implemented (2026-09-11)
+
+The existing shared Update Enquiry action in the Enquiry detail tabs must use
+the standard filled primary action style, matching Update Lead. Its label,
+save handler, loading state, placement, and locked-state behavior remain
+unchanged.
+
+Acceptance criteria:
+
+1. Update Enquiry is visually rendered as a filled blue primary action.
+2. The shared action continues to call the existing save flow and disables
+   while saving.
+3. No API, model, validation, or lifecycle behavior changes.
+
 ## Sales outstanding balance drill-down parity
 
 Status: Implemented (2026-08-24)

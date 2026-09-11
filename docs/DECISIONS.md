@@ -1381,3 +1381,42 @@
   retain a UTC fallback until all environments are updated.
 - Related files: `auth-security-company-time.md`, Login History model/page, and
   Activity Watch model.
+
+## ADR-0057: Order CRM detail history newest first
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: CRM detail editors appended new activity and follow-up drafts and
+  relied on unspecified relationship query order for persisted history.
+- Decision: Order persisted activities/follow-ups by their domain datetime
+  descending with ID descending as a stable tie-breaker; insert new drafts at
+  index zero in the existing controllers.
+- Reason: The newest CRM interaction must be immediately visible without
+  changing the action-oriented Follow-ups dashboard's due-date ordering.
+- Alternatives considered: Client-only sorting duplicates server order and can
+  drift between consumers; ordering every list by creation time ignores the
+  scheduled activity/follow-up datetime.
+- Consequences: Detail API array order is deterministic. No schema, endpoint,
+  timestamp, or permission change is introduced.
+- Related files: CRM Lead, Enquiry, and Opportunity repositories and Flutter
+  detail controllers.
+
+## ADR-0058: Use server Company-local time for CRM draft defaults
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: Empty CRM follow-up drafts fail required-date validation, while a
+  browser-clock default can disagree with the selected Company's timezone.
+- Decision: Detail responses expose an additive `current_datetime_local` value
+  calculated by the server for the record's Company. Typed Flutter CRM models
+  retain that value; existing detail controllers use it for new activity and
+  follow-up drafts.
+- Reason: This gives users a useful default without making browser time an ERP
+  source of truth or changing UTC storage.
+- Alternatives considered: Leave drafts blank; default from `DateTime.now()`;
+  add a separate time endpoint whenever Add is pressed.
+- Consequences: The detail API adds one display-only field. Notes and
+  next-follow-up remain intentionally blank; server validation remains
+  authoritative.
+- Related files: CRM detail repositories, typed CRM models, and detail
+  controllers.

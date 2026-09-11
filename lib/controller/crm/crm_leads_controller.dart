@@ -19,12 +19,6 @@ class CrmLeadsController extends GetxController {
         AppDropdownItem(value: 'note', label: 'Note'),
         AppDropdownItem(value: 'whatsapp', label: 'WhatsApp'),
       ];
-  static const List<AppDropdownItem<String>> activityStatuses =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'done', label: 'Done'),
-      ];
-
   CrmLeadsController({
     required this.startInNewMode,
     required this.initialSelectId,
@@ -71,6 +65,7 @@ class CrmLeadsController extends GetxController {
   Set<int> filterAssignedToIds = <int>{};
   Set<String> filterLeadStatuses = <String>{};
   String leadStatus = 'new';
+  String? currentDateTimeLocal;
   List<LeadActivityDraft> activities = <LeadActivityDraft>[];
   int? expandedActivityIndex;
   Map<String, dynamic>? salesChain;
@@ -393,6 +388,7 @@ class CrmLeadsController extends GetxController {
     sourceId = intValue(data, 'source_id');
     assignedTo = intValue(data, 'assigned_to');
     leadStatus = stringValue(data, 'lead_status', 'new');
+    currentDateTimeLocal = nullableStringValue(data, 'current_datetime_local');
     if (leadStatus == 'new') {
       leadStatus = 'draft';
     }
@@ -442,6 +438,7 @@ class CrmLeadsController extends GetxController {
     assignedTo = null;
     leadStatus = 'new';
     leadStatus = 'draft';
+    currentDateTimeLocal = null;
     leadNameController.clear();
     companyNameController.clear();
     mobileController.clear();
@@ -465,8 +462,8 @@ class CrmLeadsController extends GetxController {
 
   void addActivity() {
     activities = List<LeadActivityDraft>.from(activities)
-      ..add(LeadActivityDraft());
-    expandedActivityIndex = activities.length - 1;
+      ..insert(0, LeadActivityDraft(activityDateTime: currentDateTimeLocal));
+    expandedActivityIndex = 0;
     update();
   }
 
@@ -708,11 +705,6 @@ class CrmLeadsController extends GetxController {
 
   void setLeadActivityType(LeadActivityDraft activity, String? value) {
     activity.activityType = value ?? activity.activityType;
-    update();
-  }
-
-  void setLeadActivityStatus(LeadActivityDraft activity, String? value) {
-    activity.status = value ?? activity.status;
     update();
   }
 

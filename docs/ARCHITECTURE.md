@@ -1225,3 +1225,32 @@ The Login History typed model prefers API `*_local` values for rendering, while
 the Activity Watch model uses the same local-field preference and consumes a
 server-calculated pairing-expiry flag. This extends existing typed models and
 services; no client-side time service or duplicate request is introduced.
+
+## CRM detail activity and follow-up ordering — 2026-09-11
+
+CRM detail repositories order persisted child activities and follow-ups in the
+database before they are serialized: event datetime descending, then ID
+descending. The Lead, Enquiry, and Opportunity controllers reuse those ordered
+payloads and insert a new unsaved draft at list index zero, where the existing
+expanded-card UI already renders it. No client-side sort, duplicate request, or
+new widget is required. The database order is O(n log n) for n child rows; CRM
+detail records are bounded child collections, while the Follow-ups dashboard
+retains its separate due-date order.
+
+## CRM detail draft defaults — 2026-09-11
+
+The existing Lead, Enquiry, and Opportunity detail repositories append one
+additive `current_datetime_local` field, calculated from the server UTC clock
+in the loaded record's Company timezone. The typed CRM models preserve the
+field, and the existing controllers pass it to their existing draft objects.
+Follow-up drafts also receive the already-loaded record assignee. This adds no
+request, client-side timezone conversion, or new UI component; it is O(1)
+time and space per loaded detail record.
+
+## CRM Lead activity action placement — 2026-09-11
+
+The Activities tab reuses its existing action-row `AppActionButton` components
+for Update Lead and Add Activity. Activity status remains an existing persisted
+draft property for summary and save compatibility, but the UI no longer offers
+a second mutable status input. No request, data structure, or API change is
+introduced.
