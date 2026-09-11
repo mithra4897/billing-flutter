@@ -2,15 +2,25 @@
 
 ## Payslip register Send Payslip action — 2026-09-11
 
-- Focused unit coverage verifies that only persisted payslip rows expose an
-  enabled send action.
+- Focused unit coverage verifies that only persisted payslip rows from posted
+  payroll runs expose a send action.
 - Executed `flutter test --no-pub test/view/hr/payslip_email_action_test.dart`
-  (1/1 passed) and focused `flutter analyze --no-pub` for the register,
+  (2/2 passed) and focused `flutter analyze --no-pub` for the register,
   payslip email flow, and test (no issues).
 - Manual authenticated verification remains required: select an active payslip
   template, confirm cancellation sends nothing, successfully deliver one PDF
   to the employee email, and confirm repeat taps are disabled while the row is
   sending.
+
+## Payroll run direct posting controls — 2026-09-11
+
+- Executed `flutter test --no-pub test/view/hr/payroll_run_lifecycle_action_test.dart`
+  (1/1 passed) and focused `flutter analyze --no-pub` for the service,
+  payroll-run screens, payslip register email flow, and focused tests (no
+  issues). PHP syntax validation passed for `PayrollRunService.php`.
+- Manual authenticated verification remains required: process and post the
+  same run, then use a single payslip-row email icon. Also verify a historical
+  approved run remains postable.
 
 ## Payroll breakdown interaction removal — 2026-09-10
 

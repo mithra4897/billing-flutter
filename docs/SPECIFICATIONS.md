@@ -1348,6 +1348,34 @@ template stroke width is configured to 1, matching the print-designer preview.
 - The on-screen designer preview remains unchanged.
 - Focused formatting and Flutter analysis pass.
 
+## Payroll run posting lifecycle and posted payslip email actions
+
+- Date: 2026-09-11
+- Status: Implemented
+
+### Objective
+
+Expose the direct payroll Process → Post lifecycle in every payroll-run UI, and
+keep payslip email delivery as an explicit per-row action in the Payslips
+register.
+
+### Scope and rules
+
+- A draft run can be processed. A processed run shows **Post** directly.
+- Existing historical `approved` runs also show **Post**, so they remain
+  postable after the approval step is removed from the active workflow.
+- A posted run exposes no bulk or automatic payslip email action. Individual
+  posted payslips expose their existing register email icon only.
+- Delete remains available for draft and processed runs; approved and posted
+  runs retain the existing server-authoritative restrictions.
+
+### Acceptance criteria
+
+- Processing a draft run exposes Post.
+- Posting neither emails all payslips nor navigates away from the run detail.
+- The Payslips register displays one email icon per posted payroll-row and no
+  icon for draft, processed, or approved payroll rows.
+
 ## Payroll run deletion from processed state
 
 - Date: 2026-08-13
@@ -1372,7 +1400,7 @@ dialog, matching the existing backend lifecycle rule.
 
 ### Acceptance criteria
 
-- Opening a processed payroll run displays Delete and no Post action.
+- Opening a processed payroll run displays Delete and Post.
 - Deleting a processed run requires confirmation, calls the existing DELETE
   endpoint, and refreshes the payroll-run register after success.
 - Draft and posted-run behavior remains unchanged.
@@ -2929,11 +2957,12 @@ Acceptance criteria:
    per-row action prompts for a template, generates, and sends the selected
    invoice PDF in place without navigating to the invoice editor or preview;
    ineligible rows remain visibly unavailable.
-9. The Payslips register includes a compact Send Payslip column. Each
-persisted row can select an active HR payslip template, generate its existing
-designed PDF, and send it in place through the existing HR payslip email
-endpoint. The row action shows progress, prevents duplicate taps, and leaves
-the register open; cancelling template selection sends nothing.
+9. The Payslips register includes a compact Send Payslip column. Only rows
+whose payroll run is posted display the email icon. Each eligible row can
+select an active HR payslip template, generate its existing designed PDF, and
+send it in place through the existing HR payslip email endpoint. The row action
+shows progress, prevents duplicate taps, and leaves the register open;
+cancelling template selection sends nothing.
 
 ## 2026-09-03 — StaffU-inspired project task Kanban board
 

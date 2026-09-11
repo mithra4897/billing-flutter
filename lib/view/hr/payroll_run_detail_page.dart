@@ -1,6 +1,11 @@
 import '../../screen.dart';
 import '../../controller/hr/hr_module_refresh_controller.dart';
 
+bool payrollRunCanPost(String? status) => const <String>{
+  'processed',
+  'approved',
+}.contains(status?.trim().toLowerCase());
+
 class PayrollRunDetailPage extends StatefulWidget {
   const PayrollRunDetailPage({
     super.key,
@@ -106,6 +111,23 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
     await _runAction(
       () => _hr.deletePayrollRun(widget.runId),
       refreshSource: 'payroll_run_delete',
+    );
+  }
+
+  Future<void> _post() async {
+    if (_run == null ||
+        !await _confirmAction(
+          'Post payroll',
+          'Post this payroll run to accounting?',
+        )) {
+      return;
+    }
+    await _runAction(
+      () => _hr.postPayrollRun(
+        widget.runId,
+        PayrollRunModel.fromJson(const <String, dynamic>{}),
+      ),
+      refreshSource: 'payroll_run_post',
     );
   }
 
@@ -279,6 +301,11 @@ class _PayrollRunDetailPageState extends State<PayrollRunDetailPage> {
                       child: const Text('Process'),
                     ),
                   ],
+                  if (payrollRunCanPost(status))
+                    FilledButton(
+                      onPressed: _busy ? null : _post,
+                      child: const Text('Post'),
+                    ),
                   if (status == 'draft' || status == 'processed')
                     FilledButton(
                       onPressed: _busy ? null : _delete,

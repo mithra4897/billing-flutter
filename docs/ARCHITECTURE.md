@@ -947,7 +947,15 @@ loads the selected payslip once through `HrService`, uses the existing HR
 template selector and `buildPayslipPrintData`/PDF renderer, then posts through
 the existing `/hr/payslips/{id}/send-email` attachment flow. Per-row state
 prevents duplicate sends without adding a parallel email API or retaining PDF
-bytes after delivery.
+bytes after delivery. The existing nested `payroll_line.payroll_run.status`
+field gates rendering and is rechecked after the detail fetch, so only posted
+payroll payslips display or use the action.
+
+Payroll run controls mirror the direct backend state machine: Process moves a
+draft run to processed, then Post creates the accounting posting. The post
+guard also accepts historical approved runs. The frontend does not duplicate
+those transitions or send payslips as a posting side effect; posted payroll
+delivery remains the bounded single-payslip register flow.
 
 The shared printable-email dialog also owns the canonical template document
 types used by the API. Email Template settings compose those lowercase choices

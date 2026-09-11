@@ -2289,7 +2289,7 @@ Future<void> showPayrollRunDetailDialog(
                               },
                               child: const Text('Delete'),
                             ),
-                          if (st == 'processed')
+                          if (payrollRunCanPost(st))
                             FilledButton(
                               onPressed: () async {
                                 if (!await _confirm(
@@ -2312,82 +2312,9 @@ Future<void> showPayrollRunDetailDialog(
                                 if (res.success == true) {
                                   Navigator.pop(ctx);
                                   onChanged();
-                                  try {
-                                    final delivery =
-                                        await emailDesignedPayslipsForRun(
-                                          context,
-                                          hr: hr,
-                                          payrollRunId: id,
-                                          companyId: companyId,
-                                        );
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(delivery.message),
-                                        ),
-                                      );
-                                    }
-                                  } catch (error) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Payroll was posted, but designed payslip '
-                                            'emailing failed: $error',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
                                 }
                               },
                               child: const Text('Post'),
-                            ),
-                          if (st == 'posted')
-                            FilledButton.tonalIcon(
-                              onPressed: () async {
-                                if (!await _confirm(
-                                  ctx,
-                                  'Email payslips',
-                                  'Send every employee in this posted payroll run '
-                                      'their PDF payslip now?',
-                                )) {
-                                  return;
-                                }
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                try {
-                                  final delivery =
-                                      await emailDesignedPayslipsForRun(
-                                        context,
-                                        hr: hr,
-                                        payrollRunId: id,
-                                        companyId: companyId,
-                                      );
-                                  if (ctx.mounted) {
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
-                                      SnackBar(content: Text(delivery.message)),
-                                    );
-                                  }
-                                } catch (error) {
-                                  if (ctx.mounted) {
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Designed payslip emailing failed: $error',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.email_outlined),
-                              label: const Text('Email payslips'),
                             ),
                         ],
                       ),

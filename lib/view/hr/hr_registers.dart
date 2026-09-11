@@ -1150,10 +1150,13 @@ class _PayslipRegisterEmailButtonState
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.canSend) {
+      return const SizedBox.shrink();
+    }
     return Tooltip(
-      message: widget.canSend ? 'Send payslip' : 'Payslip is unavailable',
+      message: 'Send payslip',
       child: IconButton(
-        onPressed: widget.canSend && !_isSending ? _send : null,
+        onPressed: !_isSending ? _send : null,
         icon: _isSending
             ? const SizedBox(
                 height: 18,

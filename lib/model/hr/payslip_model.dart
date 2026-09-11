@@ -16,6 +16,7 @@ class PayslipModel extends JsonModel {
     this.payrollMonth,
     this.payrollYear,
     this.runDate,
+    this.payrollRunStatus,
     this.workingDays,
     this.presentDays,
     this.leaveDays,
@@ -51,6 +52,7 @@ class PayslipModel extends JsonModel {
   final String? payrollMonth;
   final String? payrollYear;
   final String? runDate;
+  final String? payrollRunStatus;
   final int? workingDays;
   final double? presentDays;
   final double? leaveDays;
@@ -140,6 +142,9 @@ class PayslipModel extends JsonModel {
           json['payroll_year']?.toString(),
       runDate:
           payrollRun['run_date']?.toString() ?? json['run_date']?.toString(),
+      payrollRunStatus:
+          payrollRun['status']?.toString() ??
+          json['payroll_run_status']?.toString(),
       workingDays: JsonModel.nullableInt(json['working_days']),
       presentDays: JsonModel.nullableDouble(json['present_days']),
       leaveDays: JsonModel.nullableDouble(json['leave_days']),
@@ -218,6 +223,7 @@ class PayslipModel extends JsonModel {
             if (payrollMonth != null) 'payroll_month': payrollMonth,
             if (payrollYear != null) 'payroll_year': payrollYear,
             if (runDate != null) 'run_date': runDate,
+            if (payrollRunStatus != null) 'status': payrollRunStatus,
           },
       },
     if (workingDays != null) 'working_days': workingDays,

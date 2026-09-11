@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-11 — Restore direct payroll post control
+
+- Request: Restore the missing Post action after payroll processing while
+  keeping payslip email delivery per register row.
+- Implementation: Processed and existing approved runs now show Post. The
+  backend permits posting either status, so a processor can post their own run
+  without a separate approver. Posting no longer initiates bulk payslip email,
+  posted-run dialogs no longer offer it, and the unused bulk-email
+  implementation was removed.
+- Database/API impact: The existing post endpoint now accepts `processed` as
+  well as legacy `approved` runs; the legacy approval endpoint remains
+  compatible but is no longer used by the frontend.
+- Tests: Focused lifecycle test passed (1/1); combined focused payslip and
+  lifecycle validation passed (3/3), focused Flutter analysis passed with no
+  issues, and `PayrollRunService.php` passed PHP syntax validation.
+
 ## 2026-09-11 — CRM Enquiry primary update action
 
 - Request: Make Update Enquiry use the same filled blue action style as Update
@@ -55,15 +71,16 @@
 
 - Request: Add the same compact per-row email affordance used by sales to the
   Payslips register.
-- Specification: A persisted payslip can select an active HR template and
-  send its designed PDF in place; cancellation sends nothing and a row cannot
-  submit twice while sending.
+- Specification: Only a posted payroll run's payslip displays the email icon;
+  it can select an active HR template and send its designed PDF in place.
+  Cancellation sends nothing and a row cannot submit twice while sending.
 - Implementation: Reused the existing HR template selector, payslip print-data
   builder/PDF renderer, and `/hr/payslips/{id}/send-email` flow. The row keeps
-  local progress state and does not navigate away from the register.
+  local progress state, uses the existing payroll-run status, and does not
+  render the icon until the run is posted.
 - Database/API impact: None. Existing permission, template, recipient, and
   attachment validation remains server-authoritative.
-- Tests: Focused eligibility test passed (1/1); focused Flutter analysis
+- Tests: Focused eligibility test passed (2/2); focused Flutter analysis
   passed with no issues. Authenticated delivery remains a manual check.
 
 ## 2026-09-10 — Remove payroll breakdown interaction
