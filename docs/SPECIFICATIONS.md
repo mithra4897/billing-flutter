@@ -2855,6 +2855,11 @@ Acceptance criteria:
    per-row action prompts for a template, generates, and sends the selected
    invoice PDF in place without navigating to the invoice editor or preview;
    ineligible rows remain visibly unavailable.
+9. The Payslips register includes a compact Send Payslip column. Each
+persisted row can select an active HR payslip template, generate its existing
+designed PDF, and send it in place through the existing HR payslip email
+endpoint. The row action shows progress, prevents duplicate taps, and leaves
+the register open; cancelling template selection sends nothing.
 
 ## 2026-09-03 — StaffU-inspired project task Kanban board
 

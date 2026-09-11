@@ -34,6 +34,70 @@ Future<void> openPayslipPrintPreview(
   }
 }
 
+bool payslipCanSendEmailPdf(PayslipModel? payslip) => payslip?.id != null;
+
+Future<bool> sendPayslipEmailPdfFromRegister(
+  BuildContext context, {
+  required HrService hr,
+  required int payslipId,
+}) async {
+  final detailResponse = await hr.payslip(payslipId);
+  final payslip = detailResponse.data;
+  if (detailResponse.success != true || payslip == null) {
+    throw Exception(detailResponse.message);
+  }
+  if (!context.mounted) {
+    return false;
+  }
+
+  final documentData = buildPayslipPrintData(payslip);
+  final template = await selectPrintableDocumentEmailTemplate(
+    context,
+    target: const PrintableDocumentEmailTarget(
+      module: 'hr',
+      documentType: 'payslip',
+    ),
+    companyId: payslip.company?.id,
+    previewDocumentData: documentData,
+    previewDocumentId: payslipId,
+  );
+  if (template?.id == null || !context.mounted) {
+    return false;
+  }
+
+  final pdfBytes = await generateDocumentPrintPdf(
+    context,
+    documentType: 'hr_payslip',
+    title: 'Payslip',
+    documentData: documentData,
+  );
+  if (pdfBytes == null || pdfBytes.isEmpty) {
+    throw Exception('Unable to generate Payslip PDF.');
+  }
+
+  final fileName = '${payslip.payslipNo ?? 'payslip_$payslipId'}.pdf';
+  final emailResponse = await hr.sendPayslipEmailPdf(
+    payslipId,
+    templateId: template!.id!,
+    pdfBytes: pdfBytes,
+    fileName: fileName,
+  );
+  if (emailResponse.success != true ||
+      emailResponse.data?.status?.toLowerCase() != 'sent') {
+    throw Exception(emailResponse.data?.errorMessage ?? emailResponse.message);
+  }
+  if (context.mounted) {
+    AppToast.show(
+      emailResponse.message.isEmpty
+          ? 'Payslip emailed successfully.'
+          : emailResponse.message,
+      context: context,
+      type: AppToastType.success,
+    );
+  }
+  return true;
+}
+
 Future<void> openPayslipTemplateDesigner(BuildContext context) async {
   CompanyModel? company;
   try {

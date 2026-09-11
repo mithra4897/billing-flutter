@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-11 — Payslip register Send Payslip action
+
+- Request: Add the same compact per-row email affordance used by sales to the
+  Payslips register.
+- Specification: A persisted payslip can select an active HR template and
+  send its designed PDF in place; cancellation sends nothing and a row cannot
+  submit twice while sending.
+- Implementation: Reused the existing HR template selector, payslip print-data
+  builder/PDF renderer, and `/hr/payslips/{id}/send-email` flow. The row keeps
+  local progress state and does not navigate away from the register.
+- Database/API impact: None. Existing permission, template, recipient, and
+  attachment validation remains server-authoritative.
+- Tests: Focused eligibility test passed (1/1); focused Flutter analysis
+  passed with no issues. Authenticated delivery remains a manual check.
+
 ## 2026-09-10 — Remove payroll breakdown interaction
 
 Removed the employee register's Details/breakdown column and dialog, retaining

@@ -1078,6 +1078,20 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
               valueBuilder: (row) => row.payrollPeriodLabel,
             ),
             PurchaseRegisterColumn<PayslipModel>(
+              label: 'Send Payslip',
+              flex: 1,
+              center: true,
+              valueBuilder: (_) => '',
+              widgetBuilder: (context, row) => _PayslipRegisterEmailButton(
+                canSend: payslipCanSendEmailPdf(row),
+                onSend: () => sendPayslipEmailPdfFromRegister(
+                  context,
+                  hr: controller._service,
+                  payslipId: row.id!,
+                ),
+              ),
+            ),
+            PurchaseRegisterColumn<PayslipModel>(
               label: 'Net',
               alignRight: true,
               valueBuilder: (row) => formatAmount(row.netSalary),
@@ -1092,6 +1106,62 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
           },
         );
       },
+    );
+  }
+}
+
+class _PayslipRegisterEmailButton extends StatefulWidget {
+  const _PayslipRegisterEmailButton({
+    required this.canSend,
+    required this.onSend,
+  });
+
+  final bool canSend;
+  final Future<bool> Function() onSend;
+
+  @override
+  State<_PayslipRegisterEmailButton> createState() =>
+      _PayslipRegisterEmailButtonState();
+}
+
+class _PayslipRegisterEmailButtonState
+    extends State<_PayslipRegisterEmailButton> {
+  bool _isSending = false;
+
+  Future<void> _send() async {
+    if (_isSending || !widget.canSend) {
+      return;
+    }
+    setState(() => _isSending = true);
+    try {
+      await widget.onSend();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to send payslip: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.canSend ? 'Send payslip' : 'Payslip is unavailable',
+      child: IconButton(
+        onPressed: widget.canSend && !_isSending ? _send : null,
+        icon: _isSending
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.attach_email_outlined),
+      ),
     );
   }
 }

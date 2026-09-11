@@ -942,6 +942,13 @@ it without navigating to the invoice editor or print-preview page. Template
 selection, PDF generation, recipient handling, authorization, and
 duplicate-send protection remain centralized in the existing shared services.
 
+The Payslips register uses a focused stateful Send Payslip row action. It
+loads the selected payslip once through `HrService`, uses the existing HR
+template selector and `buildPayslipPrintData`/PDF renderer, then posts through
+the existing `/hr/payslips/{id}/send-email` attachment flow. Per-row state
+prevents duplicate sends without adding a parallel email API or retaining PDF
+bytes after delivery.
+
 The shared printable-email dialog also owns the canonical template document
 types used by the API. Email Template settings compose those lowercase choices
 with document-series choices so Purchase templates can be configured with the
