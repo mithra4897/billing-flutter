@@ -1044,8 +1044,7 @@ String _formatSalesLedgerAmount(double value) => formatAmount(value);
 
 const String _ledgerHistoryDateFrom = '2000-01-01';
 
-String _ledgerHistoryDateTo() =>
-    DateTime.now().toIso8601String().split('T').first;
+String _ledgerHistoryDateTo() => CompanyLocalDateSource.todayLocal ?? '';
 
 String? _normalizedFilterDate(String value) {
   final trimmed = value.trim();

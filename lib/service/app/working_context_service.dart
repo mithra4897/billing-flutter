@@ -230,6 +230,7 @@ class WorkingContextService {
     } else {
       ApiCacheStore.clear();
     }
+    CompanyLocalDateSource.clear();
     version.value++;
   }
 

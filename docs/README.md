@@ -52,6 +52,15 @@ For a backend and frontend change that belongs to one feature, use the same deci
   company IANA timezone through the shared form control.
 - [CRM Company-timezone scheduling](crm-company-timezone-scheduling.md) — CRM
   forms use Company local time while the API stores UTC.
+- [CRM Lead age zones use Company-local time](crm-age-zone-company-time.md) —
+  Lead-register aging compares each row with a server-calculated Company-local
+  date rather than browser time.
+- Shared register age-zone extension — CRM Enquiries and every existing Sales
+  and Purchase caller of `documentAgeZoneColor` now use the same server-local
+  date source; see the 2026-09-11 records in Specifications and Decisions.
+- Company-local business-date defaults — shared document defaults and Sales /
+  Purchase date-based decisions use the scoped server Company date rather than
+  the browser clock; see ADR-0061 and the 2026-09-11 records.
 - [Authentication and Security Company-time display](auth-security-company-time.md)
   — login history and Activity Watch use API-provided Company-local display
   values while the server stores instants in UTC.

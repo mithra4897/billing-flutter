@@ -762,8 +762,7 @@ String _formatPurchaseRegisterAmount(double value) {
   return formatAmount(value);
 }
 
-String _ledgerHistoryDateTo() =>
-    DateTime.now().toIso8601String().split('T').first;
+String _ledgerHistoryDateTo() => CompanyLocalDateSource.todayLocal ?? '';
 
 Map<String, dynamic> _ledgerMap(dynamic value) {
   if (value is Map<String, dynamic>) {

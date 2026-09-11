@@ -7,6 +7,7 @@ class PaginationMeta {
     this.qtyInTotal,
     this.qtyOutTotal,
     this.netQtyTotal,
+    this.companyTodayLocal,
   });
 
   final int currentPage;
@@ -16,6 +17,7 @@ class PaginationMeta {
   final double? qtyInTotal;
   final double? qtyOutTotal;
   final double? netQtyTotal;
+  final String? companyTodayLocal;
 
   factory PaginationMeta.fromJson(Map<String, dynamic> json) {
     return PaginationMeta(
@@ -26,6 +28,7 @@ class PaginationMeta {
       qtyInTotal: _parseNullableDouble(json['qty_in_total']),
       qtyOutTotal: _parseNullableDouble(json['qty_out_total']),
       netQtyTotal: _parseNullableDouble(json['net_qty_total']),
+      companyTodayLocal: json['company_today_local']?.toString(),
     );
   }
 

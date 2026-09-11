@@ -914,7 +914,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       },
       dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
       rowColorBuilder: (_, row) => salesQuotationAgeZoneColor(
-        row.createdAt,
+        row.quotationDate,
         quotationStatus: row.quotationStatus,
         isConverted: row.hasActiveOrder || row.hasActiveProforma,
       ),
@@ -1104,7 +1104,7 @@ class SalesProformaInvoiceRegisterPage extends StatelessWidget {
             !const {'cancelled', 'converted'}.contains(status);
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
-        row.createdAt,
+        row.proformaInvoiceDate,
         isPending: !const {
           'cancelled',
           'converted',
@@ -1331,7 +1331,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
             }.contains(status);
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
-        row.createdAt,
+        row.orderDate,
         isPending:
             !const {
               'fully_delivered',
@@ -1385,10 +1385,11 @@ class SalesOrderRegisterPage extends StatelessWidget {
             if (parsed == null) {
               return false;
             }
-            final now = DateTime.now();
-            return parsed.year == now.year &&
-                parsed.month == now.month &&
-                parsed.day == now.day;
+            final today = companyLocalToday();
+            return today != null &&
+                parsed.year == today.year &&
+                parsed.month == today.month &&
+                parsed.day == today.day;
           case 'delayed':
             final status = stringValue(
               row.toJson(),
@@ -1409,12 +1410,8 @@ class SalesOrderRegisterPage extends StatelessWidget {
             );
             final parsed = raw == null ? null : DateTime.tryParse(raw);
             if (parsed == null) return false;
-            final today = DateTime.now();
-            final normalizedToday = DateTime(
-              today.year,
-              today.month,
-              today.day,
-            );
+            final normalizedToday = companyLocalToday();
+            if (normalizedToday == null) return false;
             final normalizedDelivery = DateTime(
               parsed.year,
               parsed.month,
@@ -1670,12 +1667,8 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             if (dueDateStr == null) return false;
             final dueDate = DateTime.tryParse(dueDateStr);
             if (dueDate == null) return false;
-            final today = DateTime.now();
-            final normalizedToday = DateTime(
-              today.year,
-              today.month,
-              today.day,
-            );
+            final normalizedToday = companyLocalToday();
+            if (normalizedToday == null) return false;
             final normalizedDue = DateTime(
               dueDate.year,
               dueDate.month,
@@ -1939,7 +1932,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
             !const {'fully_invoiced', 'cancelled'}.contains(status);
       },
       rowColorBuilder: (_, row) => documentAgeZoneColor(
-        row.createdAt,
+        row.deliveryDate,
         isPending: !const {'fully_invoiced', 'cancelled'}.contains(
           stringValue(row.toJson(), 'delivery_status').trim().toLowerCase(),
         ),

@@ -3194,6 +3194,16 @@ when available. Activity Watch device timestamps must prefer API-provided local
 fields, and pairing expiry must use the server-provided status rather than the
 browser clock. UTC API timestamp fields remain available for compatibility and
 server-authoritative processing.
+
+## CRM Lead age zones use Company-local time — 2026-09-11
+
+The CRM Leads register must calculate its existing 7/15/30-day background
+zones from API-provided `created_at_local` and `company_today_local` values for
+each Lead. The server derives both from UTC in the Company timezone. The
+comparison must not use the browser/device clock. Open/closed status rules and
+all zone thresholds remain unchanged. The list stays a single request; no
+schema, permission, or user entry change is required. Tests must cover server
+reference-date use and focused formatting/analysis must pass.
 # Shared register list and filter naming — 2026-09-08
 
 ## Objective
@@ -3238,3 +3248,28 @@ navigation remains available for returning to the register.
 Run formatting, focused analysis, and the existing Flutter test suite. Manual
 verification should cover target register loading, empty/error states, filter
 toggle/clear, pagination where enabled, and row/new route navigation.
+
+## Shared register age-zone source — 2026-09-11
+
+Every existing caller of `documentAgeZoneColor`—CRM Leads and Enquiries, Sales
+Quotation/Proforma/Order/Delivery/Invoice, and the Purchase register shell—uses
+the server-calculated `company_today_local` from paginated response metadata.
+CRM Leads retain row-specific local values for mixed-company rows. Date-based
+documents use their existing date-only business date. Browser/device time must
+not affect age zones; changing Company clears the retained date until the next
+scoped response arrives.
+
+## Company-local business-date defaults — 2026-09-11
+
+All shared business-date defaults must use the Company-local calendar date
+returned by the API, never `DateTime.now()` from the browser/device. This
+includes document-date defaults and due-date fallbacks used by Sales and
+Purchase. The retained date is valid only for the Company context that made
+the request; an in-flight response from a previous context must not overwrite
+the current value. If a Company-scoped API date has not loaded, the default is
+left blank for the user to choose rather than guessing from the device clock.
+
+Timestamp input, storage, and API conversion are out of scope for this change.
+Date-only fields remain date-only and do not receive UTC conversion. Tests must
+cover the valid scoped value, context mismatch protection, and no-device-clock
+fallback.

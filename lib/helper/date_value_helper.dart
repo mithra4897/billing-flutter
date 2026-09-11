@@ -1,8 +1,20 @@
 import 'package:get/get.dart';
 
 import 'app_format_settings.dart';
+import 'company_local_date_source.dart';
 
-String displayTodayDate() => displayDate(DateTime.now().toIso8601String());
+/// Returns today's date in the active Company's local calendar.
+///
+/// The source is supplied by a Company-scoped API response. Returning an empty
+/// value until that response arrives is intentional: a browser/device date is
+/// not an authoritative business-date default.
+String displayTodayDate() =>
+    normalizeDateValue(CompanyLocalDateSource.todayLocal);
+
+/// Returns the active Company's current date at local midnight, when the
+/// Company-scoped API source has loaded.
+DateTime? companyLocalToday() =>
+    parseNormalizedDateValue(CompanyLocalDateSource.todayLocal);
 
 String dateFormatHint() {
   final format = Get.isRegistered<AppFormatSettings>()

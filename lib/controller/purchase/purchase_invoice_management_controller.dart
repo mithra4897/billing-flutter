@@ -109,7 +109,11 @@ class PurchaseInvoiceManagementController extends GetxController {
   String _defaultDueDateFrom(String? baseDate) {
     final normalized = (baseDate ?? '').trim();
     final parsed = DateTime.tryParse(normalized);
-    final effectiveBase = parsed ?? DateTime.now();
+    final effectiveBase =
+        parsed ?? DateTime.tryParse(CompanyLocalDateSource.todayLocal ?? '');
+    if (effectiveBase == null) {
+      return '';
+    }
     final dueDate = effectiveBase.add(const Duration(days: _defaultDueDays));
     return displayDate(dueDate.toIso8601String());
   }

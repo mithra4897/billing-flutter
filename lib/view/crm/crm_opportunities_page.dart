@@ -365,7 +365,7 @@ class _CrmOpportunityRegisterPageState
           : null,
       rows: _filtered,
       rowColorBuilder: (_, row) => documentAgeZoneColor(
-        row.createdAt,
+        row.enquiryDate,
         isPending:
             stringValue(row.toJson(), 'status').trim().toLowerCase() == 'open',
       ),

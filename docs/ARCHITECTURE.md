@@ -1254,3 +1254,34 @@ for Update Lead and Add Activity. Activity status remains an existing persisted
 draft property for summary and save compatibility, but the UI no longer offers
 a second mutable status input. No request, data structure, or API change is
 introduced.
+
+## CRM Lead age zones use Company-local time — 2026-09-11
+
+`CrmLeadListQueryService` loads each row's Company timezone only long enough to
+append `created_at_local` and `company_today_local`, using the stored UTC
+creation instant, the server UTC clock, and the existing CRM timezone utility.
+It removes that relationship before serialization, so the list contract gains
+two scalars only. `CrmLeadModel` carries the fields into the register, which
+passes them to the existing `documentAgeZoneColor` helper. The bounded paginated
+collection is transformed once, O(n) time and O(1) extra space per row, with no
+additional request or client-side timezone conversion.
+
+## Shared register age-zone source — 2026-09-11
+
+The common paginated API response attaches one `company_today_local` metadata
+value from server UTC in the active Company's timezone. `ApiClient` writes it
+to `CompanyLocalDateSource`; the shared helper synchronously uses it in the
+existing CRM, Sales, and Purchase callers. `WorkingContextService` clears the
+in-memory value when the Company context changes. This is O(1) per response,
+adds no request, and does not affect persisted timestamps.
+
+## Company-local business-date defaults — 2026-09-11
+
+`CompanyLocalDateSource` retains one validated `YYYY-MM-DD` value together
+with the Company ID that scoped the paginated response. `ApiClient` records the
+request's Company header and accepts the response date only when that Company
+is still selected, preventing a late response from a previous context from
+contaminating date defaults. The existing `displayTodayDate()` helper consumes
+this source, so its many date-only form callers remain unchanged. This is O(1)
+time and O(1) space per response/default; no new endpoint, request, or timezone
+library is introduced.

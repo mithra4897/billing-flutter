@@ -2680,3 +2680,45 @@ rules are reevaluated. Individual pages need no changes for this fallback.
 - No API, schema, permission, or network behavior changed.
 - Focused Flutter analysis reported no issues and the new controller test passed
   2 tests.
+
+## 2026-09-11 — Use Company-local dates for CRM Lead age zones
+
+- Request: Stop CRM Lead register age-zone colors from using the browser clock.
+- Specification: Each open Lead retains the existing 7/15/30-day zone, compared
+  against its Company-local server date.
+- Implementation: Additive `created_at_local` and `company_today_local` list
+  fields are carried by `CrmLeadModel` and supplied to the existing shared
+  helper; missing legacy values intentionally produce no Lead row color rather
+  than a browser-time fallback.
+- Files changed: CRM Lead list query, Lead model/register, shared age-zone
+  helper, focused test, and CRM time documentation.
+- Database/API impact: No schema change; two additive list-response fields.
+- Security impact: None; the server remains the time authority.
+- Tests added or updated: `document_age_zone_helper_test.dart`.
+- Tests executed and results: Focused Flutter analysis clean; focused helper
+  tests passed 3/3; PHP syntax check passed.
+- Documentation updated: CRM age-zone record, specification, architecture,
+  ADR-0059, testing, changelog, and backend UTC contract.
+- Known limitations: Other modules retain their established age-zone behavior;
+  this change fixes the CRM Lead register that exposed the issue.
+
+## 2026-09-11 — Extend Company-local age zones to all existing callers
+
+- Replaced the shared helper's browser-time fallback with server-provided
+  paginated metadata for CRM, Sales, and Purchase callers.
+- Sales and Purchase zones use their existing date-only document date; CRM
+  Enquiries use enquiry date and CRM Leads preserve per-row local values.
+- No database migration or extra request was introduced. Focused Flutter
+  analysis was clean and helper tests passed 4/4.
+
+## 2026-09-11 — Use the scoped Company date for business-date defaults
+
+- Replaced the shared browser-clock business-date default with the already
+  returned server Company-local date.
+- A response is accepted only while its Company remains selected, preventing
+  a late request from crossing Company context. Missing source data leaves the
+  default empty instead of using device time.
+- Date-only fields remain date-only; no database, API, or UTC-conversion
+  contract changed.
+- Focused analysis completed with no issues; seven focused source and age-zone
+  tests passed.

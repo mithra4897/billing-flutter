@@ -61,7 +61,10 @@ String salesInvoiceEffectiveStatus(
   }
 
   final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
-  final currentDate = today ?? DateTime.now();
+  final currentDate = today ?? companyLocalToday();
+  if (currentDate == null) {
+    return 'posted';
+  }
   final normalizedToday = DateTime(
     currentDate.year,
     currentDate.month,
@@ -197,11 +200,17 @@ Widget salesStatusBadge(
           normalized != 'cancelled')) {
     final parsed = DateTime.tryParse(dueDate);
     if (parsed != null) {
-      final today = DateTime.now();
-      final normalizedToday = DateTime(today.year, today.month, today.day);
-      final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
-      if (normalizedParsed.isBefore(normalizedToday)) {
-        normalized = 'overdue';
+      final today = companyLocalToday();
+      if (today != null) {
+        final normalizedToday = DateTime(today.year, today.month, today.day);
+        final normalizedParsed = DateTime(
+          parsed.year,
+          parsed.month,
+          parsed.day,
+        );
+        if (normalizedParsed.isBefore(normalizedToday)) {
+          normalized = 'overdue';
+        }
       }
     }
   }
@@ -1129,8 +1138,10 @@ ItemPriceModel? preferredActiveSalesItemPrice({
   if (itemId == null) {
     return null;
   }
-  final todayNow = DateTime.now();
-  final today = DateTime(todayNow.year, todayNow.month, todayNow.day);
+  final today = companyLocalToday();
+  if (today == null) {
+    return null;
+  }
   final active = itemPrices
       .where((price) => price.itemId == itemId)
       .where((price) => price.price != null)

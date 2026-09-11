@@ -1969,3 +1969,31 @@ been packaged successfully.
 - Automated: focused Flutter analysis passed for the Enquiry detail page.
 - Manual: open an editable Enquiry Follow-ups tab and confirm Update Enquiry
   is filled blue, saves normally, and disables while saving.
+
+## CRM Lead age zones use Company-local time — 2026-09-11
+
+- Automated: `flutter analyze` for the shared age-zone helper, Lead model, and
+  Lead register completed with no issues. The focused helper test passed three
+  cases: a server-supplied Company-local date selects the expected zone, a
+  closed Lead has no zone colour, and an invalid server reference date cannot
+  fall back to device time.
+- Manual: set a Company timezone that differs from the browser timezone, open
+  CRM Leads, and verify colors follow the API's `company_today_local` value.
+  Change the device clock and reload; the same server response must retain the
+  same colors.
+
+## Shared register age-zone source — 2026-09-11
+
+- Automated: focused analysis covered API metadata, the shared source, and
+  CRM/Sales/Purchase callers. Helper tests passed 4/4, including metadata use.
+- Manual: changing the browser clock must not change CRM Enquiry, Sales, or
+  Purchase age-zone colors; changing Company must use the new scoped response.
+
+## Company-local business-date defaults — 2026-09-11
+
+- Automated: focused helper tests cover a valid Company-scoped date, missing
+  date behavior, and rejection of an update for a different Company.
+- Manual: set a Company timezone different from the device timezone, open a
+  new Sales or Purchase document, and verify the document date and calculated
+  due date use the server Company-local day. Change Company while a register
+  is loading and verify the prior response cannot change the new form default.

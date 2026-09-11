@@ -99,10 +99,14 @@ class ApiClient {
     required T Function(Map<String, dynamic> json) itemFromJson,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
+    int? requestCompanyId;
     final response = await _getResponse(
       endpoint,
       queryParameters: queryParameters,
       headerOverrides: headerOverrides,
+      onRequestHeaders: (headers) {
+        requestCompanyId = int.tryParse(headers['X-Company-Id'] ?? '');
+      },
     );
     final json = _decodeBody(response.body);
     _throwIfHttpError(
@@ -111,7 +115,18 @@ class ApiClient {
       requestContext: _RequestDebugContext(method: 'GET', uri: uri),
       responseBody: response.body,
     );
-    return PaginatedResponse<T>.fromJson(json, itemFromJson: itemFromJson);
+    final paginated = PaginatedResponse<T>.fromJson(
+      json,
+      itemFromJson: itemFromJson,
+    );
+    final activeCompanyId = await SessionStorage.getCurrentCompanyId();
+    if (requestCompanyId != null && requestCompanyId == activeCompanyId) {
+      CompanyLocalDateSource.update(
+        paginated.meta?.companyTodayLocal,
+        companyId: requestCompanyId!,
+      );
+    }
+    return paginated;
   }
 
   Future<ApiResponse<T>> post<T>(
@@ -384,9 +399,11 @@ class ApiClient {
     String endpoint, {
     Map<String, dynamic>? queryParameters,
     Map<String, String?>? headerOverrides,
+    void Function(Map<String, String> headers)? onRequestHeaders,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
     final headers = await _buildHeaders(headerOverrides: headerOverrides);
+    onRequestHeaders?.call(headers);
     final path = _normalizePath(uri.path);
 
     if (!_isCacheableGetPath(path)) {

@@ -1371,10 +1371,11 @@ class SalesProformaInvoiceManagementController extends GetxController {
       final sourceValidUntil = parseNormalizedDateValue(
         nullableStringValue(data, 'valid_until'),
       );
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+      final today = companyLocalToday();
       validUntilController.text =
-          sourceValidUntil != null && !sourceValidUntil.isBefore(today)
+          sourceValidUntil != null &&
+              today != null &&
+              !sourceValidUntil.isBefore(today)
           ? displayDate(sourceValidUntil.toIso8601String())
           : '';
       customerRefNoController.text = stringValue(data, 'customer_reference_no');

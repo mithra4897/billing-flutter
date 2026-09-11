@@ -916,10 +916,11 @@ class SalesOrderManagementController extends GetxController {
         if (parsed == null) {
           return false;
         }
-        final now = DateTime.now();
-        return parsed.year == now.year &&
-            parsed.month == now.month &&
-            parsed.day == now.day;
+        final today = companyLocalToday();
+        return today != null &&
+            parsed.year == today.year &&
+            parsed.month == today.month &&
+            parsed.day == today.day;
       default:
         return true;
     }

@@ -230,9 +230,9 @@ String _purchaseInvoiceEffectiveStatus(PurchaseInvoiceModel invoice) {
   if (balance <= 0 && (invoice.totalAmount ?? 0) > 0) return 'paid';
   final paid = doubleValue(invoice.toJson(), 'paid_amount') ?? 0;
   final dueDate = DateTime.tryParse(invoice.dueDate ?? '');
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+  final today = companyLocalToday();
   if (dueDate != null &&
+      today != null &&
       DateTime(dueDate.year, dueDate.month, dueDate.day).isBefore(today)) {
     return 'overdue';
   }
@@ -776,10 +776,7 @@ class _PurchaseRegisterShellState<T> extends State<_PurchaseRegisterShell<T>> {
           onRowTap: (row) => _openShellRoute(context, widget.rowRoute(row)),
           rowColorBuilder: widget.isPending != null
               ? (_, row) => documentAgeZoneColor(
-                  row is JsonModel
-                      ? (row.toJson()['created_at']?.toString() ??
-                            widget.dateValueOf(row))
-                      : widget.dateValueOf(row),
+                  widget.dateValueOf(row),
                   isPending: widget.isPending!(row),
                 )
               : null,

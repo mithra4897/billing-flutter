@@ -1420,3 +1420,60 @@
   authoritative.
 - Related files: CRM detail repositories, typed CRM models, and detail
   controllers.
+
+## ADR-0059: Use server Company-local reference dates for CRM Lead age zones
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: The shared age-zone helper used the browser clock, so the same Lead
+  could have a different age-zone colour on devices in different timezones or
+  with incorrect clocks.
+- Decision: Add `created_at_local` and `company_today_local` to each CRM Lead
+  list row, calculated on the server from UTC in that Lead's Company timezone.
+  Pass them into the existing shared age-zone helper.
+- Reason: The server is the ERP time authority and a per-row date is correct
+  when a list contains Leads from more than one Company.
+- Alternatives considered: Browser local time is unreliable; using one selected
+  Company date is incorrect for mixed-company lists; adding a separate time
+  endpoint adds an avoidable request.
+- Consequences: The list makes a bounded O(n) server-side row transformation
+  and gains two additive display fields; storage and authorization are unchanged.
+- Related files: `CrmLeadListQueryService`, `CrmLeadModel`,
+  `document_age_zone_helper.dart`, `crm_leads_page.dart`, and
+  `crm-age-zone-company-time.md`.
+
+## ADR-0060: Extend server Company-local age zones to all callers
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: CRM Enquiries and Sales/Purchase document registers also use the
+  shared age-zone helper, where its browser-time fallback remained.
+- Decision: Attach `company_today_local` to all paginated API metadata and
+  retain it in a context-scoped Flutter source. CRM Leads keep ADR-0059's
+  row-specific local values.
+- Reason: One authoritative response value covers active-company register
+  callers without per-screen endpoints or browser timezone conversion.
+- Consequences: One additive metadata field is returned on paginated APIs and
+  cleared when Company context changes.
+
+## ADR-0061: Reuse the scoped server date for business-date defaults
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: Shared document-date defaults and date-based due calculations still
+  read the browser/device clock, despite paginated APIs already returning the
+  Company-local server date.
+- Decision: Retain the server date only with its request Company ID and reuse
+  it through `displayTodayDate()`. Ignore late responses if their request
+  Company is no longer selected; leave a default blank if no scoped value is
+  available.
+- Reason: It preserves correct local-business-day behavior without an extra
+  endpoint or a browser timezone conversion.
+- Alternatives considered: Continue using browser time (not authoritative);
+  calculate IANA time in Flutter (duplicates backend timezone logic); add a
+  dedicated time request for every form (unnecessary latency).
+- Consequences: Date-only forms do not guess a default before Company context
+  data is available. UTC timestamp storage and date-only payload handling are
+  unchanged.
+- Related files: `api_client.dart`, `company_local_date_source.dart`, and
+  `date_value_helper.dart`.
