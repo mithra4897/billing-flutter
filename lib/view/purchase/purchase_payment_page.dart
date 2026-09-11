@@ -324,12 +324,18 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                               ),
                             ),
                             AppFormTextField(
-                              labelText: 'Reference No',
+                              labelText: controller.referenceNoLabel,
                               controller: controller.referenceNoController,
-                              validator: Validators.optionalMaxLength(
-                                100,
-                                'Reference No',
-                              ),
+                              validator: Validators.compose([
+                                if (controller.requiresReferenceNo)
+                                  Validators.required(
+                                    controller.referenceNoLabel,
+                                  ),
+                                Validators.optionalMaxLength(
+                                  100,
+                                  controller.referenceNoLabel,
+                                ),
+                              ]),
                             ),
                             AppFormTextField(
                               labelText: 'Reference Date',

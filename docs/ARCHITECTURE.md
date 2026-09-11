@@ -1302,3 +1302,12 @@ unified-Enquiry `CrmOpportunityModel` carry the additive
 Company-local reference date. The helper still performs one
 constant-time date comparison per rendered row; no client-side sort, request,
 or timezone conversion is added.
+
+## Purchase Payment reference validation — 2026-09-11
+
+`PurchasePaymentManagementController` owns a constant payment-mode to
+reference-label map and exposes whether the selected mode requires a reference.
+`PurchasePaymentPage` reuses its existing `AppFormTextField` and `Validators`
+composition. Request validation and `PurchasePaymentService` enforce the same
+rule for API and non-HTTP callers. The map lookup is O(1), with no extra
+request, state object, or widget.

@@ -3311,3 +3311,12 @@ record creation or generic update timestamps. The API owns the UTC
 row's Company-local reference date. A pending record is green through day 7,
 blue through day 15, amber through day 30, and red after day 30. Closed,
 converted, won, and lost records have no age-zone colour.
+
+## Purchase Payment reference validation — 2026-09-11
+
+Purchase Payment drafts require a non-empty `reference_no` for Bank, UPI,
+Cheque, Card, Wallet, Adjustment, and Other payment modes. Cash is the only
+mode for which it is optional. The editor must show a mode-specific label and
+the API and Purchase Payment service must enforce the same rule. Existing
+payments remain unchanged; reference dates remain optional. No schema,
+permission, or payload field changes are introduced.

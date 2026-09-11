@@ -2748,3 +2748,15 @@ rules are reevaluated. Individual pages need no changes for this fallback.
   device-time or timezone conversion.
 - Focused Flutter analysis is clean, and the age-zone helper tests cover all
   7/15/30-day boundaries.
+
+## 2026-09-11 — Require Purchase Payment references by mode
+
+- Purchase Payment requires a traceable reference for every non-cash mode;
+  Cash remains optional.
+- The existing reference field dynamically identifies the expected UTR,
+  cheque, transaction, wallet, adjustment/voucher, or general reference.
+- The API and domain service enforce the same rule. No schema or payload field
+  changed.
+- Focused Flutter analysis passed and the reference-rule test passed 2/2. PHP
+  syntax checks passed; backend PHPUnit remains unrun because dependencies are
+  not installed in this checkout.

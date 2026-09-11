@@ -2015,3 +2015,15 @@ been packaged successfully.
 - Manual: create or update a Lead and Enquiry activity/follow-up, reload their
   registers, and confirm each row age starts from that interaction rather than
   its original creation or business date.
+
+## Purchase Payment reference validation — 2026-09-11
+
+- Automated: Cash permits an empty reference; a non-cash mode rejects an empty
+  reference; and a supplied non-cash reference passes validation. Focused
+  Flutter analysis completed with no issues and the focused test passed 2/2.
+- Backend: PHP syntax checks passed for the controller, service, and focused
+  service test. PHPUnit could not run because `billing-api/vendor/` is absent.
+- Manual: confirm Bank, UPI, Cheque, Card, Wallet, Adjustment, and Other show
+  their relevant required label, block saving without a reference, and are
+  also rejected by an invalid direct API request. Confirm Cash saves without a
+  reference.

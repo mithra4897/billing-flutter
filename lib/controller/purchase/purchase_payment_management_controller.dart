@@ -115,6 +115,23 @@ class PurchasePaymentManagementController extends GetxController {
         AppDropdownItem(value: 'other', label: 'Other'),
       ];
 
+  static const Map<String, String> _referenceNoLabels = <String, String>{
+    'cash': 'Reference No (Optional)',
+    'bank': 'UTR / Bank Transaction ID',
+    'upi': 'UPI Transaction ID',
+    'cheque': 'Cheque Number',
+    'card': 'Card Transaction ID',
+    'wallet': 'Wallet Transaction ID',
+    'adjustment': 'Adjustment / Voucher Reference',
+    'other': 'Payment Reference ID',
+  };
+
+  static bool requiresReferenceNoFor(String paymentMode) =>
+      paymentMode != 'cash';
+
+  static String referenceNoLabelFor(String paymentMode) =>
+      _referenceNoLabels[paymentMode] ?? 'Payment Reference ID';
+
   final PurchaseService _purchaseService = PurchaseService();
   final PurchaseModuleRefreshController _refreshController =
       PurchaseModuleRefreshController.ensureRegistered();
@@ -177,6 +194,10 @@ class PurchasePaymentManagementController extends GetxController {
       stringValue(selectedItem!.toJson(), 'payment_status'),
     );
   }
+
+  bool get requiresReferenceNo => requiresReferenceNoFor(paymentMode);
+
+  String get referenceNoLabel => referenceNoLabelFor(paymentMode);
 
   bool get isSelectedPaymentReadOnly =>
       selectedItem != null && !canEditSelectedPayment;

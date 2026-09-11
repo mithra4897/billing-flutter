@@ -1491,3 +1491,21 @@
   synchronization or a scheduled future follow-up as a customer interaction.
 - Consequences: Additive typed list fields replace existing creation/date
   inputs for CRM row colours; no browser-time calculation is introduced.
+
+## ADR-0063: Require traceable references for non-cash Purchase Payments
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: Purchase Payment drafts allowed electronic, cheque, adjustment, and
+  other payment modes without a transaction or voucher reference.
+- Decision: Keep Cash reference-free; require `reference_no` for every other
+  supported Purchase Payment mode. Show a mode-specific editor label and
+  enforce the rule in request validation and the domain service.
+- Reason: Non-cash and non-standard payments need a reconcilable reference;
+  inventing one for cash is not useful.
+- Alternatives considered: Optional references for all modes, references for
+  cash too, or Flutter-only validation.
+- Consequences: Existing records are preserved. New or edited invalid drafts
+  are rejected. No schema or API payload fields change.
+- Related files: Purchase Payment controller, service, management page, and
+  tests.

@@ -69,6 +69,9 @@ For a backend and frontend change that belongs to one feature, use the same deci
   choose `%` or fixed `Amt` in editable sales and purchase line tables.
 - [Sales master lookup freshness](sales-master-lookup-freshness.md) — refresh
   Item and customer Party options when Invoice or Quotation opens.
+- Purchase Payment reference validation — non-cash payments require a
+  traceable reference; see the 2026-09-11 Specification, Architecture,
+  ADR-0063, Testing, and Changelog records.
 - [Sales Proforma editor correctness](sales-proforma-editor-correctness.md) —
   allow direct proformas, preserve manual round-off, and keep New/prefill editor
   state safe from stale async responses.
