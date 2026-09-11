@@ -364,11 +364,16 @@ class _CrmOpportunityRegisterPageState
             )
           : null,
       rows: _filtered,
-      rowColorBuilder: (_, row) => documentAgeZoneColor(
-        row.enquiryDate,
-        isPending:
-            stringValue(row.toJson(), 'status').trim().toLowerCase() == 'open',
-      ),
+      rowColorBuilder: (_, row) =>
+          row.lastActivityAtLocal == null || row.companyTodayLocal == null
+          ? null
+          : documentAgeZoneColor(
+              row.lastActivityAtLocal,
+              isPending:
+                  stringValue(row.toJson(), 'status').trim().toLowerCase() ==
+                  'open',
+              referenceDate: row.companyTodayLocal,
+            ),
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
           label: 'Enquiry No',

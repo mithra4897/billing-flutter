@@ -20,6 +20,8 @@ class CrmLeadModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
     this.createdAtLocal,
+    this.lastActivityAt,
+    this.lastActivityAtLocal,
     this.currentDateTimeLocal,
     this.companyTodayLocal,
     this.activities = const <Map<String, dynamic>>[],
@@ -43,6 +45,8 @@ class CrmLeadModel extends JsonModel {
   final String? createdAt;
   final String? updatedAt;
   final String? createdAtLocal;
+  final String? lastActivityAt;
+  final String? lastActivityAtLocal;
   final String? currentDateTimeLocal;
   final String? companyTodayLocal;
   final List<Map<String, dynamic>> activities;
@@ -68,6 +72,8 @@ class CrmLeadModel extends JsonModel {
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
       createdAtLocal: json['created_at_local']?.toString(),
+      lastActivityAt: json['last_activity_at']?.toString(),
+      lastActivityAtLocal: json['last_activity_at_local']?.toString(),
       currentDateTimeLocal: json['current_datetime_local']?.toString(),
       companyTodayLocal: json['company_today_local']?.toString(),
       activities: JsonModel.mapListOf(json['activities']),
@@ -102,6 +108,9 @@ class CrmLeadModel extends JsonModel {
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
     if (createdAtLocal != null) 'created_at_local': createdAtLocal,
+    if (lastActivityAt != null) 'last_activity_at': lastActivityAt,
+    if (lastActivityAtLocal != null)
+      'last_activity_at_local': lastActivityAtLocal,
     if (currentDateTimeLocal != null)
       'current_datetime_local': currentDateTimeLocal,
     if (companyTodayLocal != null) 'company_today_local': companyTodayLocal,

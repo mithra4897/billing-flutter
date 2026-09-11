@@ -186,10 +186,10 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
               : null,
           rows: controller.filteredRows,
           rowColorBuilder: (_, row) =>
-              row.createdAtLocal == null || row.companyTodayLocal == null
+              row.lastActivityAtLocal == null || row.companyTodayLocal == null
               ? null
               : documentAgeZoneColor(
-                  row.createdAtLocal,
+                  row.lastActivityAtLocal,
                   isPending: controller.isPendingLead(row),
                   referenceDate: row.companyTodayLocal,
                 ),

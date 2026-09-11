@@ -19,7 +19,10 @@ class CrmEnquiryModel extends JsonModel {
     this.status,
     this.createdAt,
     this.updatedAt,
+    this.lastActivityAt,
+    this.lastActivityAtLocal,
     this.currentDateTimeLocal,
+    this.companyTodayLocal,
   });
 
   final int? companyId;
@@ -38,7 +41,10 @@ class CrmEnquiryModel extends JsonModel {
   final String? status;
   final String? createdAt;
   final String? updatedAt;
+  final String? lastActivityAt;
+  final String? lastActivityAtLocal;
   final String? currentDateTimeLocal;
+  final String? companyTodayLocal;
 
   factory CrmEnquiryModel.fromJson(Map<String, dynamic> json) {
     return CrmEnquiryModel(
@@ -59,7 +65,10 @@ class CrmEnquiryModel extends JsonModel {
       status: json['status']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lastActivityAt: json['last_activity_at']?.toString(),
+      lastActivityAtLocal: json['last_activity_at_local']?.toString(),
       currentDateTimeLocal: json['current_datetime_local']?.toString(),
+      companyTodayLocal: json['company_today_local']?.toString(),
     );
   }
 
@@ -86,7 +95,11 @@ class CrmEnquiryModel extends JsonModel {
     if (status != null) 'status': status,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (lastActivityAt != null) 'last_activity_at': lastActivityAt,
+    if (lastActivityAtLocal != null)
+      'last_activity_at_local': lastActivityAtLocal,
     if (currentDateTimeLocal != null)
       'current_datetime_local': currentDateTimeLocal,
+    if (companyTodayLocal != null) 'company_today_local': companyTodayLocal,
   };
 }

@@ -3273,3 +3273,12 @@ Timestamp input, storage, and API conversion are out of scope for this change.
 Date-only fields remain date-only and do not receive UTC conversion. Tests must
 cover the valid scoped value, context mismatch protection, and no-device-clock
 fallback.
+
+## CRM activity aging — 2026-09-11
+
+CRM Lead and Enquiry 7/15/30-day zones must use `last_activity_at_local`, not
+record creation or generic update timestamps. The API owns the UTC
+`last_activity_at` instant and returns its Company-local display value with the
+row's Company-local reference date. A pending record is green through day 7,
+blue through day 15, amber through day 30, and red after day 30. Closed,
+converted, won, and lost records have no age-zone colour.

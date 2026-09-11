@@ -1477,3 +1477,17 @@
   unchanged.
 - Related files: `api_client.dart`, `company_local_date_source.dart`, and
   `date_value_helper.dart`.
+
+## ADR-0062: Use dedicated CRM activity instants for age zones
+
+- Date: 2026-09-11
+- Status: Accepted
+- Context: Record creation age and generic `updated_at` do not represent the
+  most recent meaningful CRM interaction.
+- Decision: Use API-provided `last_activity_at_local` for Lead and Enquiry
+  age-zone comparisons. The backend owns its UTC source and records only
+  meaningful user CRM actions.
+- Reason: This keeps the 7/15/30-day colour truthful without treating system
+  synchronization or a scheduled future follow-up as a customer interaction.
+- Consequences: Additive typed list fields replace existing creation/date
+  inputs for CRM row colours; no browser-time calculation is introduced.

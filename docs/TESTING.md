@@ -1997,3 +1997,11 @@ been packaged successfully.
   new Sales or Purchase document, and verify the document date and calculated
   due date use the server Company-local day. Change Company while a register
   is loading and verify the prior response cannot change the new form default.
+
+## CRM activity aging — 2026-09-11
+
+- Automated: verify age zones at 7, 8, 15, 16, 30, and 31 days using an API
+  `last_activity_at_local` value and Company-local reference date.
+- Manual: create or update a Lead and Enquiry activity/follow-up, reload their
+  registers, and confirm each row age starts from that interaction rather than
+  its original creation or business date.

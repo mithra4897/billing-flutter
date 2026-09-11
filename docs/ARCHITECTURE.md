@@ -1285,3 +1285,12 @@ contaminating date defaults. The existing `displayTodayDate()` helper consumes
 this source, so its many date-only form callers remain unchanged. This is O(1)
 time and O(1) space per response/default; no new endpoint, request, or timezone
 library is introduced.
+
+## CRM activity aging — 2026-09-11
+
+The existing `documentAgeZoneColor` helper is reused. `CrmLeadModel` and the
+unified-Enquiry `CrmOpportunityModel` carry the additive
+`last_activity_at_local` list field and pass it with the API row's
+Company-local reference date. The helper still performs one
+constant-time date comparison per rendered row; no client-side sort, request,
+or timezone conversion is added.

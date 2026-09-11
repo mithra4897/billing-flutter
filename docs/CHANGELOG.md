@@ -2722,3 +2722,12 @@ rules are reevaluated. Individual pages need no changes for this fallback.
   contract changed.
 - Focused analysis completed with no issues; seven focused source and age-zone
   tests passed.
+
+## 2026-09-11 — Age CRM rows from the last meaningful activity
+
+- Lead and Enquiry age-zone inputs now use the API's Company-local
+  `last_activity_at_local` field.
+- UTC persistence and backfill are owned by the backend; Flutter performs no
+  device-time or timezone conversion.
+- Focused Flutter analysis is clean, and the age-zone helper tests cover all
+  7/15/30-day boundaries.
