@@ -587,8 +587,7 @@ class AppNavigation {
           title: 'Leave Requests',
           icon: Icons.event_available_outlined,
           path: '/hr/leave-requests',
-          requiredPermissions: ['hr.view'],
-          adminOnly: true,
+          requiredPermissions: ['hr.approve'],
         ),
         AppNavigationItem(
           key: 'hr-payroll-runs',

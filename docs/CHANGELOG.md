@@ -1194,15 +1194,15 @@ rules are reevaluated. Individual pages need no changes for this fallback.
 - Request: Move normal-user leave application from the HR drawer to Profile.
 - Implementation: Added a Profile Apply for Leave action that opens the
   existing new Leave Request form. The form, linked-employee behavior, and
-  API authorization are unchanged. The HR request list is now
-  administrative-only, while a hidden navigation route keeps the Profile action
-  authorized for normal users.
+  API authorization are unchanged. The HR request list is now shown to Super
+  Admins and users with `hr.approve`, while a hidden navigation route keeps the
+  Profile action authorized for normal users.
 - Files changed: Profile, navigation, focused navigation test, and durable
   frontend documentation.
 - Database/API/security impact: None; existing backend authorization remains
   authoritative.
 - Tests executed and results: Formatting and focused analysis passed; focused
-  navigation test passed 1/1.
+  navigation test passed 2/2.
 - Known limitations: Authenticated end-to-end verification remains pending.
 
 ## 2026-08-21 — Stabilize Company Settings tab rendering

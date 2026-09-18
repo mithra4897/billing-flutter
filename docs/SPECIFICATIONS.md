@@ -1096,9 +1096,10 @@ Acceptance criteria:
 - Normal users apply for leave from a clearly labelled action on Profile rather
   than the HR drawer. That action reuses the existing new Leave Request route,
   whose form already locks the employee to the signed-in user's linked record.
-- Leave Request remains available in the HR drawer to administrative users for
-  request review and approval. The existing server-side visibility, linked
-  employee, validation, and approval rules remain authoritative.
+- Leave Request remains available in the HR drawer to Super Admins and users
+  with `hr.approve` for request review and approval. The existing server-side
+  visibility, linked employee, validation, and approval rules remain
+  authoritative.
 
 Acceptance criteria:
 
@@ -1106,7 +1107,8 @@ Acceptance criteria:
 2. The action opens the existing new leave-request form with the current user's
    employee read-only and preselected.
 3. Normal users do not see Leave Requests in the HR drawer.
-4. Administrative users retain the HR Leave Requests entry and approval flow.
+4. Super Admins and `hr.approve` users retain the HR Leave Requests entry and
+   approval flow.
 
 ## Leave Request approval actions
 

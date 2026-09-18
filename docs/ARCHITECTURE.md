@@ -806,10 +806,11 @@ Profile reuses the existing form-route helper to open
 `/hr/leave-requests/new`; it does not duplicate the Leave Request form,
 controller, or HR API calls. A hidden navigation entry explicitly authorizes
 that exact editor route for normal users, while the HR drawer's request-list
-entry is administrative-only. The existing Leave Request controller resolves
-the linked employee and the API remains responsible for visibility and
-submission authorization. Route lookup is constant-time over the small static
-navigation tree; no request or persistent state is added.
+entry requires `hr.approve` (with the existing Super Admin bypass). The
+existing Leave Request controller resolves the linked employee and the API
+remains responsible for visibility and submission authorization. Route lookup
+is constant-time over the small static navigation tree; no request or
+persistent state is added.
 
 ## Activity Watch local persistence
 
