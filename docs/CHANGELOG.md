@@ -2760,3 +2760,24 @@ rules are reevaluated. Individual pages need no changes for this fallback.
 - Focused Flutter analysis passed and the reference-rule test passed 2/2. PHP
   syntax checks passed; backend PHPUnit remains unrun because dependencies are
   not installed in this checkout.
+
+## 2026-09-18 — Show completed CRM follow-ups
+
+- Request: Show completed follow-ups in CRM Follow-ups.
+- Specification: Completed board rows appear as read-only history and obey the
+  existing search, employee, visibility, and date-range filters; dashboard
+  pending-follow-up drill-downs remain actionable-only.
+- Implementation: Reused the existing board response's `completed_followups`
+  collection and timeline card to add a Completed Followups section and
+  completion badge, with no extra request or new component.
+- Files changed: `lib/view/crm/crm_followups_page.dart` and durable frontend
+  documentation.
+- Database/API impact: None; the already-returned response collection is now
+  rendered.
+- Security impact: None; existing server-side visibility remains authoritative.
+- Tests executed and results: Formatting completed; focused analysis found
+  only the existing unused `_buildGapList` warning and no new diagnostics.
+  Existing CRM detail follow-up regression coverage passed 3/3.
+- Documentation updated: Specifications, architecture, testing, and changelog.
+- Known limitations: Authenticated manual verification against completed CRM
+  data remains pending.

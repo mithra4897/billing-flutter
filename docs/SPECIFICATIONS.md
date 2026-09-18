@@ -3320,3 +3320,38 @@ mode for which it is optional. The editor must show a mode-specific label and
 the API and Purchase Payment service must enforce the same rule. Existing
 payments remain unchanged; reference dates remain optional. No schema,
 permission, or payload field changes are introduced.
+
+## CRM Follow-ups completed history — 2026-09-18
+
+The CRM Follow-ups page must display the existing board response's
+`completed_followups` alongside actionable follow-ups. Completed entries are
+read-only history: they continue to honor the existing search, employee,
+won/lost-record visibility, and date-range filters, and render in their own
+timeline section. Dashboard drill-down routes remain limited to actionable
+pending follow-ups, so their Due Today, Overdue, Upcoming, and Open counts do
+not include completed history. No API, database, permission, or persistence
+contract changes are required.
+
+Acceptance criteria:
+
+1. A returned completed follow-up is visible in a Completed Followups timeline
+   on the normal Follow-ups page.
+2. The completed section respects the existing search, employee, and inclusive
+   date-range filters.
+3. Dashboard pending-follow-up routes do not show completed entries.
+4. Existing loading, error, empty, refresh, and record-navigation behavior
+   remains available.
+
+## CRM Leads register date column — 2026-09-18
+
+The CRM Leads register must show each lead's existing Company-local creation
+date in a Date column instead of the Source column. Source remains available
+when editing or filtering leads; no list query, API, database, permission, or
+sorting contract changes are required.
+
+Acceptance criteria:
+
+1. The Leads register no longer displays a Source column.
+2. The Date column displays each row's `created_at_local` value, falling back
+   to the existing `created_at` field when a legacy response lacks the local
+   display value.

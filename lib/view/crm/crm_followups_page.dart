@@ -41,6 +41,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   DateTime? _filterDateTo;
   Set<int> _employeeFilterIds = <int>{};
   List<Map<String, dynamic>> _followups = const <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _completedFollowups =
+      const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _nextFollowupRows = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _gaps = const <Map<String, dynamic>>[];
   final Map<int, TextEditingController> _followupDateControllers =
@@ -67,7 +69,11 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 
   List<AppDropdownItem<int>> get _employeeItems {
     final employees = <int, String>{};
-    for (final row in [..._followups, ..._nextFollowupRows]) {
+    for (final row in [
+      ..._followups,
+      ..._completedFollowups,
+      ..._nextFollowupRows,
+    ]) {
       final assigned =
           JsonModel.mapOf(row['assigned_user']) ?? const <String, dynamic>{};
       final id = intValue(assigned, 'id') ?? intValue(row, 'assigned_to');
@@ -282,6 +288,11 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               .whereType<Map>()
               .map((item) => Map<String, dynamic>.from(item))
               .toList(growable: false);
+      final completedFollowups =
+          (data['completed_followups'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(growable: false);
       final gaps =
           (data['opportunities_without_followups'] as List<dynamic>? ??
                   const <dynamic>[])
@@ -301,6 +312,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
 
       setState(() {
         _followups = followups;
+        _completedFollowups = completedFollowups;
         _nextFollowupRows = nextFollowups;
         _gaps = gaps;
         _serverNowUtc = serverNow;
@@ -584,6 +596,23 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return _sortedEntries(entriesByIdentity.values);
   }
 
+  List<_FollowupListEntry> get _visibleCompletedFollowups {
+    return _sortedEntries(
+      _completedFollowups
+          .where(
+            (row) =>
+                _matchesEmployee(row) &&
+                !_shouldHideRow(row) &&
+                _matchesSearch(row) &&
+                crmIsCompletedFollowupStatus(
+                  nullableStringValue(row, 'status'),
+                ) &&
+                _normalizedRowDate(row, 'followup_date') != null,
+          )
+          .map((row) => _FollowupListEntry(row: row, dateKey: 'followup_date')),
+    );
+  }
+
   String? _detailRouteForRow(Map<String, dynamic> row) {
     final opportunityId = intValue(row, 'opportunity_id');
     if (opportunityId != null) {
@@ -840,6 +869,36 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     );
   }
 
+  Widget _buildCompletedFollowupList(BuildContext context) {
+    if (_visibleCompletedFollowups.isEmpty) {
+      return const SettingsEmptyState(
+        icon: Icons.task_alt_outlined,
+        title: 'No Completed Followups',
+        message: 'No completed followups match the current filters.',
+        minHeight: 180,
+      );
+    }
+
+    return Column(
+      children: List<Widget>.generate(_visibleCompletedFollowups.length, (
+        index,
+      ) {
+        final entry = _visibleCompletedFollowups[index];
+        return _buildFollowupCard(
+          context,
+          entry.row,
+          icon: Icons.task_alt_outlined,
+          fallbackTitle: 'Completed Followup',
+          badgeLabel: 'Completed',
+          dateText: displayDateTime(
+            nullableStringValue(entry.row, entry.dateKey),
+          ),
+          showBottomBorder: index != _visibleCompletedFollowups.length - 1,
+        );
+      }),
+    );
+  }
+
   Widget _buildDateFilter(BuildContext context) {
     return AppSectionCard(
       showShadow: false,
@@ -950,6 +1009,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     Map<String, dynamic> row, {
     required IconData icon,
     required String fallbackTitle,
+    String? badgeLabel,
     String? dateText,
     String? inlineDetailText,
     bool showBottomBorder = true,
@@ -1013,7 +1073,13 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                   ),
                 ),
                 AppStatusBadge(
-                  label: 'Follow-up',
+                  label:
+                      badgeLabel ??
+                      (crmIsCompletedFollowupStatus(
+                            nullableStringValue(row, 'status'),
+                          )
+                          ? 'Completed'
+                          : 'Follow-up'),
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ],
@@ -1193,7 +1259,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
     final source = _hasDashboardFilter
         ? _visiblePendingFollowups
-        : _effectiveFollowupEntries;
+        : <_FollowupListEntry>[
+            ..._effectiveFollowupEntries,
+            ..._visibleCompletedFollowups,
+          ];
     return _sortedEntries(source.where(_matchesDateRange));
   }
 
@@ -1359,6 +1428,12 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               context: context,
               title: 'Upcoming Followups',
               child: _buildUpcomingFollowupList(context),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTimelineSection(
+              context: context,
+              title: 'Completed Followups',
+              child: _buildCompletedFollowupList(context),
             ),
           ] else
             _buildTimelineSection(

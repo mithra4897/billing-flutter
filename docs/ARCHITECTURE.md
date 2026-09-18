@@ -1311,3 +1311,15 @@ reference-label map and exposes whether the selected mode requires a reference.
 composition. Request validation and `PurchasePaymentService` enforce the same
 rule for API and non-HTTP callers. The map lookup is O(1), with no extra
 request, state object, or widget.
+
+## CRM Follow-ups completed history — 2026-09-18
+
+`CrmFollowupsPage` reuses the existing `CrmService.opportunityFollowupsBoard`
+request and reads its additive `completed_followups` collection. The page
+applies the established in-memory employee, search, and hidden-record checks,
+then sorts the bounded completed rows by the existing follow-up datetime
+ordering before rendering them as a read-only Completed Followups timeline.
+The normal date-range view merges completed and actionable entries after those
+checks; dashboard-filter routes retain their existing actionable-only source.
+No additional request, state service, persistence, or backend component is
+introduced. Filtering is O(n), and the existing date sort is O(n log n).

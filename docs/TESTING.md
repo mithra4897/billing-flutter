@@ -2027,3 +2027,16 @@ been packaged successfully.
   their relevant required label, block saving without a reference, and are
   also rejected by an invalid direct API request. Confirm Cash saves without a
   reference.
+
+## CRM Follow-ups completed history — 2026-09-18
+
+- Automated: `dart format lib/view/crm/crm_followups_page.dart` completed.
+  Focused `flutter analyze lib/view/crm/crm_followups_page.dart` completed with
+  only the pre-existing unused `_buildGapList` warning; no new diagnostic was
+  reported for completed-history handling. Existing CRM detail follow-up
+  regression coverage passed 3/3 with `flutter test
+  test/controller/crm/crm_detail_activity_ordering_test.dart --no-pub`.
+- Manual: open CRM Follow-ups with completed rows and confirm they appear in
+  the Completed Followups timeline, are searchable and filterable by employee
+  and date range, and retain the Open-record action. Open each dashboard
+  pending-follow-up drill-down and confirm completed rows remain excluded.
