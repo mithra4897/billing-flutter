@@ -2781,3 +2781,16 @@ rules are reevaluated. Individual pages need no changes for this fallback.
 - Documentation updated: Specifications, architecture, testing, and changelog.
 - Known limitations: Authenticated manual verification against completed CRM
   data remains pending.
+
+## 2026-09-18 — Restore Date in CRM Leads register
+
+- Request: Remove Source and add Date in CRM Leads.
+- Implementation: Replaced the existing Source register column with Date,
+  using the typed Company-local creation timestamp and its existing legacy
+  fallback through the shared date formatter.
+- Files changed: `lib/view/crm/crm_leads_page.dart` and durable frontend
+  documentation.
+- Database/API/security impact: None.
+- Tests executed and results: Formatting and focused Flutter analysis passed
+  with no issues.
+- Known limitations: Authenticated visual verification remains pending.

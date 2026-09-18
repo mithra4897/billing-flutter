@@ -1323,3 +1323,11 @@ The normal date-range view merges completed and actionable entries after those
 checks; dashboard-filter routes retain their existing actionable-only source.
 No additional request, state service, persistence, or backend component is
 introduced. Filtering is O(n), and the existing date sort is O(n log n).
+
+## CRM Leads register date column — 2026-09-18
+
+`CrmLeadRegisterPage` continues to reuse `PurchaseRegisterColumn` for its
+responsive register layout. Its former Source column now renders the typed
+`CrmLeadModel.createdAtLocal` value with the existing `createdAt` fallback,
+using the shared `displayDate` formatter. This is a constant-time field choice
+per row and adds no request, state, API, or persistence behavior.

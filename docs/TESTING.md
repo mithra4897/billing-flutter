@@ -2040,3 +2040,10 @@ been packaged successfully.
   the Completed Followups timeline, are searchable and filterable by employee
   and date range, and retain the Open-record action. Open each dashboard
   pending-follow-up drill-down and confirm completed rows remain excluded.
+
+## CRM Leads register date column — 2026-09-18
+
+- Automated: `dart format lib/view/crm/crm_leads_page.dart` and focused
+  `flutter analyze lib/view/crm/crm_leads_page.dart` completed with no issues.
+- Manual: open CRM Leads and confirm Source is absent, Date shows the lead's
+  creation date, and Source remains available in the existing filter and editor.

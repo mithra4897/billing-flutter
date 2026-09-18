@@ -212,9 +212,10 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
               valueBuilder: (row) => stringValue(row.toJson(), 'mobile'),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
-              label: 'Source',
+              label: 'Date',
               flex: 2,
-              valueBuilder: (row) => _sourceLabel(row),
+              valueBuilder: (row) =>
+                  displayDate(row.createdAtLocal ?? row.createdAt),
             ),
             PurchaseRegisterColumn<CrmLeadModel>(
               label: 'Probability',
@@ -267,13 +268,6 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
     return displayName.isNotEmpty
         ? displayName
         : stringValue(creator, 'username');
-  }
-
-  String _sourceLabel(CrmLeadModel row) {
-    final source = row.source ?? const <String, dynamic>{};
-    return stringValue(source, 'source_name').isNotEmpty
-        ? stringValue(source, 'source_name')
-        : stringValue(source, 'name');
   }
 
   String _assignedLabel(CrmLeadModel row) {
