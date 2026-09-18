@@ -69,6 +69,13 @@ class AppNavigation {
           path: '/settings/profile',
         ),
         AppNavigationItem(
+          key: 'settings-profile-leave-request',
+          title: 'Apply for Leave',
+          icon: Icons.event_available_outlined,
+          path: '/hr/leave-requests/new',
+          showInDrawer: false,
+        ),
+        AppNavigationItem(
           key: 'settings-activity-watch',
           title: 'Activity Watch',
           icon: Icons.visibility_outlined,
@@ -581,6 +588,7 @@ class AppNavigation {
           icon: Icons.event_available_outlined,
           path: '/hr/leave-requests',
           requiredPermissions: ['hr.view'],
+          adminOnly: true,
         ),
         AppNavigationItem(
           key: 'hr-payroll-runs',

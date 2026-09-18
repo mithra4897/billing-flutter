@@ -800,6 +800,17 @@ that catalog as a selector only, and Company Settings owns per-company policy
 configuration. This keeps request entry free of catalog mutations and prevents
 company policy from creating duplicate leave definitions.
 
+## Profile leave-request access — 2026-09-18
+
+Profile reuses the existing form-route helper to open
+`/hr/leave-requests/new`; it does not duplicate the Leave Request form,
+controller, or HR API calls. A hidden navigation entry explicitly authorizes
+that exact editor route for normal users, while the HR drawer's request-list
+entry is administrative-only. The existing Leave Request controller resolves
+the linked employee and the API remains responsible for visibility and
+submission authorization. Route lookup is constant-time over the small static
+navigation tree; no request or persistent state is added.
+
 ## Activity Watch local persistence
 
 Activity Watch persistence is an opt-in native subsystem under

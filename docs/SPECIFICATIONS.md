@@ -1088,6 +1088,26 @@ Acceptance criteria:
 - If the user has no employee record linked in the active company, the form
   cannot submit until HR creates or links that record.
 
+## Profile leave-request access
+
+- Date: 2026-09-18
+- Status: Implemented
+
+- Normal users apply for leave from a clearly labelled action on Profile rather
+  than the HR drawer. That action reuses the existing new Leave Request route,
+  whose form already locks the employee to the signed-in user's linked record.
+- Leave Request remains available in the HR drawer to administrative users for
+  request review and approval. The existing server-side visibility, linked
+  employee, validation, and approval rules remain authoritative.
+
+Acceptance criteria:
+
+1. A normal user can open Profile and select Apply for Leave.
+2. The action opens the existing new leave-request form with the current user's
+   employee read-only and preselected.
+3. Normal users do not see Leave Requests in the HR drawer.
+4. Administrative users retain the HR Leave Requests entry and approval flow.
+
 ## Leave Request approval actions
 
 - Date: 2026-08-21

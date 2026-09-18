@@ -31,6 +31,8 @@ class ProfileManagementController extends GetxController {
   String? gender;
   bool displayNameTouched = false;
 
+  bool get canApplyForLeave => profile?.isSuperAdmin != true;
+
   @override
   void onInit() {
     super.onInit();

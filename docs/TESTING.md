@@ -764,6 +764,18 @@ manual; callbacks capturing filled selections retain the documented limitation.
 - Focused Flutter analysis covers the Leave Request page and controller.
 - Full Flutter suite is recorded after the implementation change.
 
+## Profile leave-request access — 2026-09-18
+
+- Automated: `dart format` completed for navigation, Profile, and its focused
+  test. Focused Flutter analysis reported no issues. `flutter test
+  test/app/navigation/app_navigation_test.dart --no-pub` passed 1/1, covering
+  normal-user access to the new-request route and denial of the HR request
+  list.
+- Manual: sign in as a normal user with a linked employee, open Profile, select
+  Apply for Leave, and confirm the new form preselects the employee. Confirm
+  Leave Requests is absent from the HR drawer. Sign in as an administrative
+  user and confirm the HR Leave Requests list and approval controls remain.
+
 ## Company Settings tab rendering — 2026-08-21
 
 - `flutter analyze` for the Company and Financial Year pages/controllers:

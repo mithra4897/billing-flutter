@@ -173,6 +173,33 @@ class _ProfileContent extends StatelessWidget {
                       busy: controller.saving,
                     ),
                   ),
+                  if (controller.canApplyForLeave) ...[
+                    const SizedBox(height: 28),
+                    const Divider(),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Leave Request',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Apply for leave using your employee record.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppActionButton(
+                      icon: Icons.event_available_outlined,
+                      label: 'Apply for Leave',
+                      onPressed: () => openFormScreenRoute(
+                        context,
+                        '/hr/leave-requests/new',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 28),
                   const Divider(),
                   const SizedBox(height: 20),
