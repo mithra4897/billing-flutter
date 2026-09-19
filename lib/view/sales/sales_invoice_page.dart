@@ -349,16 +349,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             : null,
         qtyValidator: (_) {
           final text = line.qtyController.text.trim();
-          if (text.isEmpty) {
-            return 'Qty is required';
+          final quantityError = Validators.requiredPositiveNumberField(
+            text,
+            'Qty',
+          );
+          if (quantityError != null) {
+            return quantityError;
           }
-          final qtyValue = double.tryParse(text);
-          if (qtyValue == null || qtyValue < 0) {
-            return 'Qty must be a valid non-negative number';
-          }
-          if (qtyValue <= 0) {
-            return 'Qty must be greater than zero';
-          }
+          final qtyValue = Validators.parseFlexibleNumber(text)!;
           if (controller.isSerialManagedItem(line.itemId)) {
             final serialCount = controller.lineSerialNumbers(line).length;
             if (line.warehouseId == null) {

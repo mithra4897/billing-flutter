@@ -1,5 +1,24 @@
 # Specifications
 
+## Sales Invoice grouped quantity validation — 2026-09-19
+
+Sales Invoice line quantities must accept the same comma-grouped numeric text
+used by the shared numeric display, such as `2,500` and `2,500.25`. The
+invoice must validate the parsed number as required and greater than zero,
+calculate totals from that numeric value, and retain existing serial-count
+validation. Empty, zero, negative, and malformed values remain invalid. This
+is a client-side validation consistency fix only: no API, persistence,
+authorization, or document-status behavior changes.
+
+Acceptance criteria:
+
+- A non-serial Sales Invoice quantity of `2,500` validates successfully.
+- The existing shared flexible numeric parser remains the source of truth for
+  grouped-number parsing.
+- Serial-managed lines compare their serial count with the parsed quantity.
+- Existing errors for missing, zero, negative, and malformed quantities remain
+  enforced.
+
 ## Read-only expense columns — 2026-09-10
 
 Controller-backed line-table fields remain visible for rejected and other

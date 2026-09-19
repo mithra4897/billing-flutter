@@ -1,5 +1,15 @@
 # Architecture
 
+## Sales Invoice grouped quantity validation — 2026-09-19
+
+The Sales Invoice line validator reuses
+`Validators.requiredPositiveNumberField` and
+`Validators.parseFlexibleNumber`, which normalize comma group separators before
+validation and before the existing serial-count comparison. The same parsed
+number already feeds the invoice tax calculation and request payload, so no
+additional state, API transformation, or persistence component is needed. The
+validation path is constant time and constant space per line.
+
 Read-only line-table column detection preserves controller-backed text cells.
 Only static empty/placeholder cells qualify for automatic column hiding.
 

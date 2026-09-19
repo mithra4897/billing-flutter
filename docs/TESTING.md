@@ -1,5 +1,17 @@
 # Testing
 
+## Sales Invoice grouped quantity validation — 2026-09-19
+
+- `dart format lib/view/sales/sales_invoice_page.dart
+  test/helper/validators_test.dart` completed.
+- `flutter test --no-pub test/helper/validators_test.dart` passed 2/2,
+  including comma-grouped `2,500` and missing, zero, negative, and malformed
+  quantities.
+- `flutter analyze lib/view/sales/sales_invoice_page.dart
+  test/helper/validators_test.dart` completed with no issues.
+- Manual browser verification remains pending: enter `2,500` in a Sales
+  Invoice quantity cell and save a valid invoice.
+
 ## Payslip register Send Payslip action — 2026-09-11
 
 - Focused unit coverage verifies that only persisted payslip rows from posted

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-19 — Accept grouped Sales Invoice quantities
+
+- Request: Allow the displayed quantity `2,500` in a Sales Invoice line.
+- Specification: Grouped positive quantities use the shared flexible parser;
+  invalid quantities remain rejected.
+- Implementation: Replaced the invoice-only `double.tryParse` validation path
+  with the existing comma-aware positive-number validator and parser before
+  serial-count comparison.
+- Files changed: Sales Invoice page, focused validator test, and durable
+  frontend documentation.
+- Database/API impact: None; the existing numeric payload remains unchanged.
+- Security impact: None.
+- Tests added or updated: Added grouped-number and invalid-quantity validation
+  coverage.
+- Tests executed and results: Formatting completed; focused test passed 2/2;
+  focused analysis completed with no issues.
+- Documentation updated: Specifications, architecture, testing, and changelog.
+- Known limitations: Authenticated browser save verification remains pending.
+- Follow-up work: None.
+
 ## 2026-09-11 — Restore direct payroll post control
 
 - Request: Restore the missing Post action after payroll processing while
