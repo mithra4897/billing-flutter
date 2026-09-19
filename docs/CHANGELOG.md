@@ -7,9 +7,11 @@
   invalid quantities remain rejected.
 - Implementation: Replaced the invoice-only `double.tryParse` validation path
   with the existing comma-aware positive-number validator and parser before
-  serial-count comparison.
-- Files changed: Sales Invoice page, focused validator test, and durable
-  frontend documentation.
+  serial-count comparison; aligned Sales Delivery's serial-count comparison.
+  Confirmed the other Sales document validators and Sales Invoice
+  export/print calculations already use the shared parser.
+- Files changed: Sales Invoice and Sales Delivery pages, focused validator
+  test, and durable frontend documentation.
 - Database/API impact: None; the existing numeric payload remains unchanged.
 - Security impact: None.
 - Tests added or updated: Added grouped-number and invalid-quantity validation

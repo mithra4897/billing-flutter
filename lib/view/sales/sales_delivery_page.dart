@@ -235,9 +235,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           if (quantityError != null) {
             return quantityError;
           }
-          final qtyValue = double.tryParse(
+          final qtyValue = Validators.parseFlexibleNumber(
             line.deliveredQtyController.text.trim(),
-          );
+          )!;
           if (controller.isSerialManagedItem(line.itemId)) {
             final serialCount = controller.lineSerialNumbers(line).length;
             if (serialCount == 0) {
