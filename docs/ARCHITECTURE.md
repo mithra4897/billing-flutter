@@ -1,5 +1,15 @@
 # Architecture
 
+## Sales Invoice Party Master address print fallback — 2026-10-10
+
+Sales Invoice print data resolves Bill To and Ship To from their selected
+address ids first. When either is absent, it scans the already loaded party
+address list for active entries of the matching address type, selecting the
+default when available and otherwise the first. If no matching address exists,
+that binding stays empty rather than reusing the other address. Each lookup is
+linear in the party's bounded saved-address list and uses constant auxiliary
+space.
+
 ## Sales Invoice grouped quantity validation — 2026-09-19
 
 The Sales Invoice and Sales Delivery line validators reuse

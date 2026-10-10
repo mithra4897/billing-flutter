@@ -407,6 +407,12 @@ builders that provide document-specific address values continue to override
 the shared fallback; other documents use the resolved party address for both
 bindings until separate saved address data is available.
 
+Sales Invoice `billing_address` and `shipping_address` use their respective
+invoice-selected addresses when present. If one is not selected, use the
+party master's active address of the matching type, preferring the default
+address and otherwise the first active address. A missing active address must
+not be replaced by the other address type.
+
 ## Purchase Order print binding — 2026-09-08
 
 Status: Implemented

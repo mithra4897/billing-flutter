@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-10 — Use Party Master addresses in Sales Invoice print
+
+- Request: Print the separate billing and shipping addresses saved in Party
+  Master.
+- Specification: Each selected invoice address takes priority; otherwise use
+  the party's active default address of the matching type, then its first
+  active address of that type. Keep either field blank if none exists.
+- Implementation: Sales Invoice print data now resolves both address types
+  from Party Master without substituting one for the other.
+- Files changed: Sales Invoice controller and the address print specification,
+  architecture, and changelog.
+- Database/API impact: None.
+- Security impact: None.
+- Tests added or updated: None.
+- Tests executed and results: Not run.
+- Documentation updated: Specification, architecture, and changelog.
+- Known limitations: Party Master must contain saved active addresses of the
+  matching types for the fallback to populate both fields.
+- Follow-up work: None.
+
 ## 2026-09-19 — Accept grouped Sales Invoice quantities
 
 - Request: Allow the displayed quantity `2,500` in a Sales Invoice line.

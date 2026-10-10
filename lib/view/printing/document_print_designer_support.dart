@@ -311,7 +311,7 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
           : partyAddress,
       'shipping_address': shippingAddress.trim().isNotEmpty
           ? shippingAddress
-          : partyAddress,
+          : '',
       'po_no': purchaseOrderNumber,
       'purchase_order_no': purchaseOrderNumber,
       ...extraData,

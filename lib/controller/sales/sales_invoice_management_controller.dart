@@ -372,6 +372,26 @@ class SalesInvoiceManagementController extends GetxController {
     );
   }
 
+  PartyAddressModel? defaultCustomerAddressByType(
+    PartyModel? customer,
+    String addressType,
+  ) {
+    final addresses = customer?.addresses
+        .where(
+          (address) =>
+              address.isActive &&
+              (address.addressType ?? '').trim().toLowerCase() == addressType,
+        )
+        .toList(growable: false);
+    if (addresses == null || addresses.isEmpty) {
+      return null;
+    }
+    return addresses.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => addresses.first,
+    );
+  }
+
   String? resolveCustomerStateCodeForSummary() {
     final customer = customerForTaxContext(customerPartyId);
     return resolvePartyStateCodeForGstSummary(
@@ -2677,13 +2697,18 @@ class SalesInvoiceManagementController extends GetxController {
         directCustomerDetails.isNotEmpty;
     final savedBillingAddress = formatPartyAddress(
       partyAddressById(customer, billingAddressId),
-      fallback: directCustomerDetails.isNotEmpty
-          ? effectivePartyAddress
-          : formatPartyAddressFromData(customerData),
+      fallback: formatPartyAddress(
+        defaultCustomerAddressByType(customer, 'billing'),
+        fallback: directCustomerDetails.isNotEmpty
+            ? effectivePartyAddress
+            : formatPartyAddressFromData(customerData),
+      ),
     );
     final savedShippingAddress = formatPartyAddress(
       partyAddressById(customer, shippingAddressId),
-      fallback: savedBillingAddress,
+      fallback: formatPartyAddress(
+        defaultCustomerAddressByType(customer, 'shipping'),
+      ),
     );
 
     return buildManagedDocumentPrintData(
