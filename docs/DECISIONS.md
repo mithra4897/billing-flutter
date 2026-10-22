@@ -1,5 +1,26 @@
 # Architecture decisions
 
+## ADR-0060: Resolve web API from the current app origin
+
+- Date: 2026-10-22
+- Status: Accepted
+- Context: The deployed Flutter web build must be usable by office PCs on the
+  LAN and authorized remote clients over WireGuard. A build-time private IP
+  works for only one of those networks.
+- Decision: When no `API_BASE_URL` Dart define is supplied, derive the web API
+  base from `Uri.base.origin` and append `/api/public`. Keep the explicit
+  override and existing non-web fallback.
+- Reason: The web and API are served by the same Nginx origin, so same-origin
+  requests follow whichever LAN or WireGuard address the user used to open the
+  app.
+- Alternatives considered: Build separate artifacts with LAN and WireGuard IPs;
+  configure split DNS and HTTPS first. Separate builds are easy to mismatch,
+  and DNS/HTTPS work is a later deployment step.
+- Consequences: A web build without an override is portable across the two
+  configured network addresses. The API still needs to be served under
+  `/api/public` on that origin.
+- Related files: `lib/app/constants/app_config.dart`, Nginx ERP site config.
+
 ## ADR-0059: Keep HR filters constrained to existing query contracts
 
 - Date: 2026-09-10

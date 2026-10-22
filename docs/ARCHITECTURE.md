@@ -1,5 +1,14 @@
 # Architecture
 
+## Web API origin follows the served ERP hostname — 2026-10-22
+
+`AppConfig.baseHost` honors the explicit `API_BASE_URL` Dart define first. For
+web builds without that override, it derives the origin from `Uri.base` and
+appends `/api/public`; the existing non-web fallback remains in place. Thus a
+single static build uses the LAN origin in the office and the WireGuard origin
+when opened remotely. URL selection is constant time and constant space, with
+no extra request or DNS dependency in the client.
+
 ## Sales Invoice Party Master address print fallback — 2026-10-10
 
 Sales Invoice print data resolves Bill To and Ship To from their selected

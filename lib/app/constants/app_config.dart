@@ -17,6 +17,10 @@ class AppConfig {
       return configuredUrl;
     }
 
+    if (kIsWeb) {
+      return '${Uri.base.origin}/api/public';
+    }
+
     // if (kIsWeb) {
     //   final current = Uri.base;
     //   final host = current.host;
@@ -40,9 +44,9 @@ class AppConfig {
     //   }
     // }
 
-     //return 'http://bill.local:8000';
-      //return 'http://192.168.31.83:8000';
-     return 'https://bill.sakthicontroller.com/api/public';
+    //return 'http://bill.local:8000';
+    //return 'http://192.168.31.83:8000';
+    return 'http://10.0.0.5:8082/api/public';
   }
 
   static String get apiBaseUrl => '$baseHost$apiPrefix';

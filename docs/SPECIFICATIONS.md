@@ -2805,6 +2805,23 @@ Acceptance criteria:
    honoring `--dart-define=API_BASE_URL=...`.
 3. Focused formatting and Flutter analysis pass without errors.
 
+## Web API origin follows the served ERP hostname — 2026-10-22
+
+When a web build does not receive an `API_BASE_URL` Dart define, API requests
+must use the origin from which the Flutter app was opened, followed by
+`/api/public`. This supports office LAN access and WireGuard access using the
+same release artifact. An explicit `API_BASE_URL` remains authoritative for
+deployments that need a separate API origin. Non-web clients retain their
+existing fallback.
+
+Acceptance criteria:
+
+1. A web app opened at `http://192.168.31.21:8082/` calls the API at
+   `http://192.168.31.21:8082/api/public/api/v1/...`.
+2. A web app opened at `http://10.0.0.5:8082/` calls the API at
+   `http://10.0.0.5:8082/api/public/api/v1/...`.
+3. An explicit `API_BASE_URL` override and non-web fallback remain unchanged.
+
 ## Sales invoice warehouse parity with deliveries
 
 Status: Implemented (2026-08-29)

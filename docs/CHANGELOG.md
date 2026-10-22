@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-22 — Use the current origin for Flutter web API requests
+
+- Request: Fix API connection timeouts from other office PCs and keep the same
+  web build usable over WireGuard.
+- Specification: Without `API_BASE_URL`, web requests use the app's current
+  origin plus `/api/public`; explicit overrides and non-web behavior remain.
+- Implementation: Updated `AppConfig.baseHost` to derive the web origin from
+  `Uri.base.origin`.
+- Files changed: `lib/app/constants/app_config.dart` and durable frontend
+  documentation.
+- Database/API impact: None.
+- Security impact: Requests remain same-origin; no credentials or network
+  secrets are embedded in the build.
+- Tests added or updated: None.
+- Tests executed and results: Not run.
+- Documentation updated: Specification, architecture, decision record, and
+  changelog.
+- Known limitations: The deployed Nginx origin must continue serving the API
+  below `/api/public`; remote use still requires an active WireGuard tunnel.
+- Follow-up work: Rebuild the Flutter web artifact and deploy `build/web/` to
+  `/srv/erp/web/`.
+
 ## 2026-10-10 — Use Party Master addresses in Sales Invoice print
 
 - Request: Print the separate billing and shipping addresses saved in Party
